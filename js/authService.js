@@ -14,7 +14,7 @@ async function _authCheckAndStart() {
     // Token beim Server erneuern (validiert + gibt frisches Token)
     let user;
     try {
-      const data = await pbGet('/api/collections/users/auth-refresh');
+      const data = await pbPost('/api/collections/users/auth-refresh');
       localStorage.setItem('pb_token', data.token);
       localStorage.setItem('pb_user', JSON.stringify(data.record));
       user = data.record;
