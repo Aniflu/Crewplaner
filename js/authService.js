@@ -64,6 +64,8 @@ async function logout() {
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!SUPABASE_ENABLED) return;
+  // Nicht auf login.html ausführen!
+  if (window.location.pathname.includes('login')) return;
   document.body.style.visibility = 'hidden';
   _authCheckAndStart();
 });
