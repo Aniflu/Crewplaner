@@ -238,18 +238,14 @@ async function sendCrewInvite(crewName, crewEmail, type) {
 async function saveCrewLink(crewName, email) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
-  if (!planId) return;
+  if (!planId) throw new Error('Plan nicht gefunden – bitte neu einloggen');
 
-  try {
-    await pbUpsert(
-      'crew_members',
-      `plan_id = "${planId}" && name = "${crewName.replace(/"/g, '\\"')}"`,
-      { plan_id: planId, name: crewName, email, sort_order: crew.indexOf(crewName) },
-      { email }
-    );
-    if (!crewMeta[crewName]) crewMeta[crewName] = {};
-    crewMeta[crewName].email = email;
-  } catch (e) {
-    console.warn('saveCrewLink Fehler:', e.message);
-  }
+  await pbUpsert(
+    'crew_members',
+    `plan_id = "${planId}" && name = "${crewName.replace(/"/g, '\\"')}"`,
+    { plan_id: planId, name: crewName, email, sort_order: crew.indexOf(crewName) },
+    { email }
+  );
+  if (!crewMeta[crewName]) crewMeta[crewName] = {};
+  crewMeta[crewName].email = email;
 }

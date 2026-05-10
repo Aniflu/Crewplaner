@@ -35,7 +35,11 @@ async function saveCrewLinkRow(i) {
   const name = crew[i];
   const email = (document.getElementById('cl_' + i)?.value || '').trim().toLowerCase();
   if (!email) return;
-  await saveCrewLink(name, email);
-  showToast(`${name} verknüpft ✓`, '#4ae8a0');
-  _renderCrewLinkList();
+  try {
+    await saveCrewLink(name, email);
+    showToast(`${name} verknüpft ✓`, '#4ae8a0');
+    _renderCrewLinkList();
+  } catch (e) {
+    showToast('Fehler: ' + e.message, '#e84a4a');
+  }
 }
