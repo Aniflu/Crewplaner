@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anmelden — Tour Crew Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="js/pb.js?v=23"></script>
+<script src="js/config.js?v=23"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a1a2e;
+    color: #c8cdd5;
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .login-wrap {
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .login-brand {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .login-brand h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    letter-spacing: .08em;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .login-brand h1 span {
+    color: #e8c84a;
+  }
+
+  .login-brand p {
+    font-size: .65rem;
+    color: #5a6070;
+    margin-top: 6px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  .login-card {
+    background: #12121f;
+    border: 1px solid #2a2a40;
+    border-radius: 8px;
+    padding: 28px 28px 24px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    display: block;
+    font-size: .6rem;
+    color: #5a6070;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%;
+    background: #1a1a2e;
+    border: 1px solid #2a2a40;
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .75rem;
+    color: #c8cdd5;
+    outline: none;
+    transition: border-color .15s;
+  }
+
+  .field input:focus {
+    border-color: #e8c84a;
+  }
+
+  .btn-login {
+    width: 100%;
+    background: #e8c84a;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 4px;
+    padding: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity .15s;
+  }
+
+  .btn-login:hover { opacity: .88; }
+  .btn-login:disabled { opacity: .45; cursor: not-allowed; }
+
+  .error-msg {
+    background: rgba(232, 74, 74, .12);
+    border: 1px solid rgba(232, 74, 74, .3);
+    border-radius: 4px;
+    padding: 9px 12px;
+    font-size: .65rem;
+    color: #e84a4a;
+    margin-top: 14px;
+    display: none;
+  }
+
+  .reset-link {
+    display: block;
+    text-align: center;
+    margin-top: 16px;
+    font-size: .6rem;
+    color: #5a6070;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    width: 100%;
+  }
+
+  .reset-link:hover { color: #e8c84a; }
+
+  .success-msg {
+    background: rgba(74, 232, 160, .1);
+    border: 1px solid rgba(74, 232, 160, .25);
+    border-radius: 4px;
+    padding: 9px 12px;
+    font-size: .65rem;
+    color: #4ae8a0;
+    margin-top: 14px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-brand">
+    <h1>Tour<span>/</span>Crew</h1>
+    <p>Personalplan · Anmelden</p>
+  </div>
+
+  <div class="login-card">
+    <div class="field">
+      <label for="email">E-Mail</label>
+      <input type="email" id="email" placeholder="name@beispiel.de" autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="password">Passwort</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" id="btnLogin" onclick="doLogin()">Anmelden</button>
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-msg" id="successMsg"></div>
+    <button class="reset-link" onclick="doPasswordReset()">Passwort vergessen?</button>
+  </div>
+</div>
+
+<script>
+  // Bereits eingeloggt → direkt weiterleiten
+  (function() {
+    const token = localStorage.getItem('pb_token');
+    if (!token) return;
+    pbGet('/api/collections/users/auth-refresh').then(data => {
+      localStorage.setItem('pb_token', data.token);
+      localStorage.setItem('pb_user', JSON.stringify(data.record));
+      window.location.href = 'index.html';
+    }).catch(() => {
+      localStorage.removeItem('pb_token');
+      localStorage.removeItem('pb_user');
+    });
+  })();
+
+  document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('btnLogin');
+
+    document.getElementById('errorMsg').style.display  = 'none';
+    document.getElementById('successMsg').style.display = 'none';
+
+    if (!email || !password) { showError('Bitte E-Mail und Passwort eingeben.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Anmelden…';
+
+    try {
+      const data = await pbPost('/api/collections/users/auth-with-password', {
+        identity: email, password
+      });
+      localStorage.setItem('pb_token', data.token);
+      localStorage.setItem('pb_user', JSON.stringify(data.record));
+      btn.textContent = 'Weiterleiten…';
+      window.location.href = 'index.html';
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Anmelden';
+      showError(_translateError(e.message));
+    }
+  }
+
+  async function doPasswordReset() {
+    const email = document.getElementById('email').value.trim();
+    if (!email) { showError('Bitte zuerst E-Mail-Adresse eingeben.'); return; }
+    try {
+      await pbPost('/api/collections/users/request-password-reset', { email });
+      document.getElementById('successMsg').textContent = 'Reset-Link wurde an ' + email + ' gesendet.';
+      document.getElementById('successMsg').style.display = 'block';
+    } catch (e) {
+      showError('Fehler beim Senden des Reset-Links.');
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function _translateError(msg) {
+    if (msg.includes('Failed to authenticate') || msg.includes('Invalid credentials'))
+      return 'E-Mail oder Passwort falsch.';
+    if (msg.includes('Too many requests')) return 'Zu viele Versuche. Bitte kurz warten.';
+    return msg;
+  }
+</script>
+</body>
+</html>

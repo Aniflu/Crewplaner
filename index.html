@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tour Crew Plan 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=23">
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-rail"></div>
+  <div class="header-body">
+    <!-- LEFT: Planer Logo -->
+    <div class="hleft" id="areaPlaner"></div>
+
+    <!-- CENTER: Band Logo + Title -->
+    <div class="hcenter">
+      <div class="logo-band-wrap" id="areaBand">
+        <div id="titleBlock">
+          <h1>Tour<span class="title-slash">/</span>Crew</h1>
+          <div class="subtitle-row">
+            <span class="tour-tag">Personalplan · v1.0</span>
+            <span class="active-plan-name" id="activePlanName"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Booking Logo -->
+    <div class="hright" id="areaBooking"></div>
+  </div>
+
+  <input type="file" id="fileInput" accept=".json" style="display:none" onchange="onFileLoad(event)">
+  <input type="file" id="inLogoPlaner" accept="image/*" style="display:none" onchange="handleLogoUpload('planer',this)">
+  <input type="file" id="inLogoBand" accept="image/*" style="display:none" onchange="handleLogoUpload('band',this)">
+  <input type="file" id="inLogoBooking" accept="image/*" style="display:none" onchange="handleLogoUpload('booking',this)">
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip" id="kpiStrip"></div>
+
+<!-- LAYOUT -->
+<div class="layout" id="mainLayout">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <h3>Aktionen</h3>
+      <div class="sb-actions">
+        <button class="primary" onclick="saveJSON()"><span class="sb-gl">▶</span>Speichern</button>
+        <button onclick="loadJSON()"><span class="sb-gl">▶</span>Laden</button>
+        <button class="green" onclick="openTourBlock()"><span class="sb-gl">▶</span>Tourblock einfügen</button>
+        <button class="green" onclick="openBlockRange()"><span class="sb-gl">▶</span>Bereich → Block</button>
+        <button onclick="openAddDate()"><span class="sb-gl">+</span>Datum hinzufügen</button>
+        <button onclick="openPDFFilter()"><span class="sb-gl">▾</span>PDF Export</button>
+        <button onclick="openCalendarExport()"><span class="sb-gl">▾</span>Kalender .ics</button>
+        <button onclick="openLogosModal()"><span class="sb-gl">▾</span>Logos</button>
+        <button onclick="openTypeManager()"><span class="sb-gl">▾</span>Tagesarten</button>
+        <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
+        <button id="btnCrewLink" onclick="openCrewLinkModal()" style="display:none;"><span class="sb-gl">✉</span>Crew verknüpfen</button>
+        <button id="btnCrewNotify" onclick="openCrewNotifyModal()" style="display:none;"><span class="sb-gl">📣</span>Crew benachrichtigen</button>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <h3>Pläne</h3>
+      <div id="planList"></div>
+      <div class="sb-actions" style="margin-top:4px;">
+        <button onclick="openNewPlan()"><span class="sb-gl">+</span>Neuer Plan</button>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <h3 id="crewHeading">Crew</h3>
+      <div id="crewList"></div>
+      <div class="add-row">
+        <input type="text" id="newCrewName" placeholder="Name…" onkeydown="if(event.key==='Enter')addCrew()">
+        <button class="primary sm" onclick="addCrew()">+</button>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <h3>Positionen</h3>
+      <div id="posList"></div>
+    </div>
+    <div id="userBadge" style="display:none;flex-direction:column;gap:4px;padding:10px 12px;margin-top:auto;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;">
+      <span class="user-email" style="font-size:.6rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <button onclick="logout()" style="font-size:.6rem;padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;text-align:left;">Abmelden</button>
+    </div>
+  </div>
+
+  <div class="table-wrap" id="tableRight">
+    <!-- View Toggle -->
+    <div class="view-toggle-bar">
+      <div class="view-toggle" role="tablist">
+        <button class="vt-btn active" data-view="table" onclick="setView('table')" role="tab">
+          <span class="vt-ic">▦</span> Tabelle
+        </button>
+        <button class="vt-btn" data-view="blocks" onclick="setView('blocks')" role="tab">
+          <span class="vt-ic">▨</span> Blöcke
+        </button>
+        <button class="vt-btn" data-view="crew" onclick="setView('crew')" role="tab">
+          <span class="vt-ic">▰</span> Crew
+        </button>
+      </div>
+      <div class="view-toggle-meta" id="viewMeta"></div>
+    </div>
+
+    <!-- Table View -->
+    <div class="view-pane" id="viewTable">
+      <div class="table-area">
+        <table><thead id="tHead"></thead><tbody id="tBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Block View -->
+    <div class="view-pane" id="viewBlocks" style="display:none;">
+      <div class="blocks-area" id="blocksArea"></div>
+    </div>
+
+    <!-- Crew View -->
+    <div class="view-pane" id="viewCrew" style="display:none;">
+      <div class="crew-area" id="crewArea"></div>
+    </div>
+
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+</div>
+
+<!-- DROPDOWN -->
+<div class="dd-ov" id="ddOv" onclick="closeDD()"></div>
+<div class="dd-menu" id="ddMenu"></div>
+
+<!-- TAGESARTEN-MANAGER MODAL -->
+<div class="modal-bg" id="typeManagerModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-title">Arten bearbeiten</div>
+    <div id="typeManagerList" style="max-height:360px;overflow-y:auto;margin-bottom:12px;"></div>
+    <div class="mactions">
+      <button class="mbtn" onclick="openAddType()">+ Neue Art</button>
+      <button class="mbtn primary" onclick="closeModal('typeManagerModal')">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DATE / RENAME / ADD POS MODAL (shared) -->
+<div class="modal-bg" id="sharedModal">
+  <div class="modal-box">
+    <div class="modal-title" id="sharedTitle"></div>
+    <div id="sharedBody"></div>
+  </div>
+</div>
+
+<!-- TOURBLOCK MODAL -->
+<div class="modal-bg" id="tbModal">
+  <div id="tbInner">
+    <div id="tbStep1" style="padding:26px;">
+      <div class="tb-title">Neuer Tourblock</div>
+      <div class="tb-sub">Zeitraum &amp; Blockname festlegen</div>
+      <div class="tb-g2">
+        <div class="mf"><label class="ml">Blockname</label><input type="text" id="tbName" class="mi" placeholder="z.B. Deutschland Leg 1"></div>
+        <div class="mf"><label class="ml">Standard-Ort</label><input type="text" id="tbLoc" class="mi" placeholder="z.B. Berlin – Arena"></div>
+        <div class="mf"><label class="ml">Von</label><input type="date" id="tbStart" class="mi"></div>
+        <div class="mf"><label class="ml">Bis</label><input type="date" id="tbEnd" class="mi"></div>
+      </div>
+      <div class="tb-hint"><strong>Smart-Defaults:</strong> Erster &amp; letzter Tag → Reise · Mittlere Tage → Show<br>Alles im nächsten Schritt anpassbar.</div>
+      <div class="mactions">
+        <button class="mbtn" onclick="closeModal('tbModal')">Abbrechen</button>
+        <button class="mbtn primary" onclick="tbStep2()">Weiter →</button>
+      </div>
+    </div>
+    <div id="tbStep2" style="display:none;padding:26px;">
+      <div class="tb-title">Tage konfigurieren</div>
+      <div class="tb-sub" id="tbStep2Sub"></div>
+      <div class="tb-bulk">
+        <span class="tb-bulk-lbl">Alle:</span>
+        <button onclick="tbSetAll('show','Show')" style="background:#1a3825;border-color:#2d6a3f;color:#4caf72;padding:3px 9px;font-size:.68rem;">Show</button>
+        <button onclick="tbSetAll('reise','Reise')" style="background:#0e1a2e;border-color:#1a3a6a;color:#5a9fd4;padding:3px 9px;font-size:.68rem;">Reise</button>
+        <button onclick="tbSetAll('prep','Aufbau')" style="background:#2a1800;border-color:#7a3a10;color:#e8883a;padding:3px 9px;font-size:.68rem;">Aufbau</button>
+        <button onclick="tbSetAll('prep','Probe')" style="background:#2a1800;border-color:#7a3a10;color:#e8883a;padding:3px 9px;font-size:.68rem;">Probe</button>
+        <button onclick="tbSetAll('off','OFF')" style="background:#1a1a1a;border-color:#3a3a3a;color:#888;padding:3px 9px;font-size:.68rem;">OFF</button>
+      </div>
+      <div class="tb-daylist" id="tbDayList"></div>
+      <div class="mactions" style="justify-content:space-between;">
+        <button class="mbtn" onclick="tbBack()">← Zurück</button>
+        <div style="display:flex;gap:8px;">
+          <button class="mbtn" onclick="closeModal('tbModal')">Abbrechen</button>
+          <button class="mbtn primary" onclick="tbConfirm()">✓ Block einfügen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGO MODAL -->
+<div class="modal-bg" id="logoModal">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-title">🖼 Logos einfügen</div>
+    <p style="font-size:.65rem;color:var(--muted);margin-bottom:16px;line-height:1.6;">Lade Logos hoch — sie werden automatisch an der richtigen Stelle im Header platziert und in der JSON-Datei gespeichert.</p>
+
+    <!-- Band -->
+    <div class="logo-option" onclick="document.getElementById('inLogoBand').click()">
+      <div class="logo-option-icon">🎸</div>
+      <div class="logo-option-text">
+        <strong>Band-Logo</strong>
+        <span>Erscheint mittig neben dem Titel "Tour Crew"</span>
+      </div>
+      <div class="logo-option-action">
+        <img id="prevBand" class="logo-preview">
+        <button class="logo-remove" id="rmBand" onclick="event.stopPropagation();removeLogo('band')">✕ Entfernen</button>
+      </div>
+    </div>
+
+    <!-- Booking -->
+    <div class="logo-option" onclick="document.getElementById('inLogoBooking').click()">
+      <div class="logo-option-icon">📋</div>
+      <div class="logo-option-text">
+        <strong>Booking-Logo</strong>
+        <span>Erscheint rechtsbündig oben rechts</span>
+      </div>
+      <div class="logo-option-action">
+        <img id="prevBooking" class="logo-preview">
+        <button class="logo-remove" id="rmBooking" onclick="event.stopPropagation();removeLogo('booking')">✕ Entfernen</button>
+      </div>
+    </div>
+
+    <!-- Planer -->
+    <div class="logo-option" onclick="document.getElementById('inLogoPlaner').click()">
+      <div class="logo-option-icon">📁</div>
+      <div class="logo-option-text">
+        <strong>Planer-Logo</strong>
+        <span>Erscheint linksbündig oben links</span>
+      </div>
+      <div class="logo-option-action">
+        <img id="prevPlaner" class="logo-preview">
+        <button class="logo-remove" id="rmPlaner" onclick="event.stopPropagation();removeLogo('planer')">✕ Entfernen</button>
+      </div>
+    </div>
+
+    <div class="mactions">
+      <button class="mbtn primary" onclick="closeModal('logoModal')">Fertig</button>
+    </div>
+  </div>
+</div>
+
+<!-- PDF MODAL -->
+<div class="modal-bg" id="pdfModal">
+  <div class="modal-box" style="width:480px;max-height:92vh;">
+    <div class="modal-title">PDF Export</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.2em;">Strg+P / Cmd+P → Als PDF speichern</div>
+
+    <div class="mf">
+      <label class="ml">Ansicht</label>
+      <div class="pdf-view-choice" id="pdfViewChoice">
+        <button type="button" class="pvc active" data-view="table" onclick="pdfSetView('table')"><span class="pvc-ic">▦</span><span class="pvc-lbl">Tabelle</span><span class="pvc-desc">Volle Kreuztabelle aller Positionen</span></button>
+        <button type="button" class="pvc" data-view="blocks" onclick="pdfSetView('blocks')"><span class="pvc-ic">▨</span><span class="pvc-lbl">Blöcke</span><span class="pvc-desc">Kompakte Tourblock-Übersicht</span></button>
+        <button type="button" class="pvc" data-view="crew" onclick="pdfSetView('crew')"><span class="pvc-ic">▰</span><span class="pvc-lbl">Crew</span><span class="pvc-desc">Timeline pro Crew-Mitglied</span></button>
+      </div>
+    </div>
+
+    <div class="mf" id="pdfPosWrap"><label class="ml">Positionen</label>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button class="mbtn" style="font-size:10px;padding:3px 8px;" onclick="pdfToggleAll('pdfPosCbs',true)">Alle</button>
+        <button class="mbtn" style="font-size:10px;padding:3px 8px;" onclick="pdfToggleAll('pdfPosCbs',false)">Keine</button>
+      </div>
+      <div id="pdfPosCbs" style="display:flex;flex-direction:column;gap:5px;margin-top:4px;"></div>
+    </div>
+
+    <div class="mf" style="margin-top:12px;"><label class="ml">Crew-Mitglieder</label>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button class="mbtn" style="font-size:10px;padding:3px 8px;" onclick="pdfToggleAll('pdfCrewCbs',true)">Alle</button>
+        <button class="mbtn" style="font-size:10px;padding:3px 8px;" onclick="pdfToggleAll('pdfCrewCbs',false)">Keine</button>
+      </div>
+      <div id="pdfCrewCbs" style="display:flex;flex-direction:column;gap:5px;margin-top:4px;"></div>
+    </div>
+
+    <div class="mf" style="margin-top:12px;"><label class="ml">Tagesarten</label>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfShow" checked style="accent-color:#5fcc8a;"> <span style="color:#5fcc8a;">■ </span> Show</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfReise" checked style="accent-color:#6aa7e8;"> <span style="color:#6aa7e8;">■ </span> Reise</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfPrep" checked style="accent-color:#e89a4a;"> <span style="color:#e89a4a;">■ </span> Aufbau / Probe</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfOff" checked style="accent-color:#6a6f78;"> <span style="color:#6a6f78;">■ </span> OFF / Sonstiges</label>
+      </div></div>
+    <div class="mactions">
+      <button class="mbtn" onclick="closeModal('pdfModal')">Abbrechen</button>
+      <button class="mbtn primary" onclick="generatePDF()">▶ Druckansicht</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALENDAR MODAL -->
+<div class="modal-bg" id="calModal">
+  <div class="modal-box" style="width:360px;">
+    <div class="modal-title">📅 Kalender exportieren</div>
+    <div style="font-size:.62rem;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.08em;">Importierbar in Apple Kalender, Google, Outlook</div>
+    <div class="mf"><label class="ml">Tagesarten</label>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calShow" checked style="accent-color:#4caf72;"> <span style="color:#4caf72;">■ </span> Show</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calReise" checked style="accent-color:#d4b84a;"> <span style="color:#d4b84a;">■ </span> Reise</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calPrep" checked style="accent-color:#5b8ac4;"> <span style="color:#5b8ac4;">■ </span> Aufbau / Probe</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calOff" style="accent-color:#888;"> <span style="color:#888;">■ </span> OFF / Sonstiges</label>
+      </div>
+    </div>
+    <div class="mactions">
+      <button class="mbtn" onclick="closeModal('calModal')">Abbrechen</button>
+      <button class="mbtn primary" onclick="generateICS()">⬇ .ics herunterladen</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
+
+<!-- SCRIPTS (Ladereihenfolge ist wichtig) -->
+<script src="js/dialog.js?v=23"></script>
+<script src="js/pb.js?v=23"></script>
+<script src="js/config.js?v=23"></script>
+<script src="js/dataService.js?v=23"></script>
+<script src="js/authService.js?v=23"></script>
+<script src="js/state.js?v=23"></script>
+<script src="js/types.js?v=23"></script>
+<script src="js/utils.js?v=23"></script>
+<script src="js/render.js?v=23"></script>
+<script src="js/bundle.js?v=23"></script>
+<script src="js/dropdown.js?v=23"></script>
+<script src="js/tourblock.js?v=23"></script>
+<script src="js/stats.js?v=23"></script>
+<script src="js/sidebar.js?v=23"></script>
+<script src="js/plans.js?v=23"></script>
+<script src="js/pdf.js?v=23"></script>
+<script src="js/persistence.js?v=23"></script>
+<script src="js/blockview.js?v=23"></script>
+<script src="js/crewview.js?v=23"></script>
+<script src="js/crewLink.js?v=23"></script>
+<script src="js/crewNotify.js?v=23"></script>
+<script src="js/userView.js?v=23"></script>
+<script src="js/init.js?v=23"></script>
+
+</body>
+</html>

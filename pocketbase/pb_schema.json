@@ -1,0 +1,264 @@
+[
+  {
+    "id": "plans0000000001",
+    "name": "plans",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "name": "name",
+        "type": "text",
+        "required": true,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "owner",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      }
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "@request.auth.id != \"\"",
+    "deleteRule": "@request.auth.id != \"\""
+  },
+  {
+    "id": "plan_members001",
+    "name": "plan_members",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "name": "plan_id",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "plans0000000001",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "user_id",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "role",
+        "type": "text",
+        "required": false,
+        "options": { "min": null, "max": null, "pattern": "" }
+      }
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "@request.auth.id != \"\"",
+    "deleteRule": "@request.auth.id != \"\""
+  },
+  {
+    "id": "crew_members001",
+    "name": "crew_members",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "name": "plan_id",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "plans0000000001",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "required": true,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "email",
+        "type": "email",
+        "required": false,
+        "options": { "exceptDomains": null, "onlyDomains": null }
+      },
+      {
+        "name": "sort_order",
+        "type": "number",
+        "required": false,
+        "options": { "min": null, "max": null, "noDecimal": false }
+      },
+      {
+        "name": "user_id",
+        "type": "relation",
+        "required": false,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      }
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "@request.auth.id != \"\"",
+    "deleteRule": "@request.auth.id != \"\""
+  },
+  {
+    "id": "assignments0001",
+    "name": "assignments",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "name": "plan_id",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "plans0000000001",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "date",
+        "type": "text",
+        "required": true,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "pos_id",
+        "type": "text",
+        "required": true,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "pos_label",
+        "type": "text",
+        "required": false,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "crew_name",
+        "type": "text",
+        "required": false,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "status",
+        "type": "text",
+        "required": false,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "proposed_by",
+        "type": "relation",
+        "required": false,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "responded_at",
+        "type": "date",
+        "required": false,
+        "options": { "min": "", "max": "" }
+      }
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "@request.auth.id != \"\"",
+    "deleteRule": "@request.auth.id != \"\""
+  },
+  {
+    "id": "crew_invites001",
+    "name": "crew_invites",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "name": "plan_id",
+        "type": "relation",
+        "required": false,
+        "options": {
+          "collectionId": "plans0000000001",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "crew_name",
+        "type": "text",
+        "required": true,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "crew_email",
+        "type": "email",
+        "required": true,
+        "options": { "exceptDomains": null, "onlyDomains": null }
+      },
+      {
+        "name": "type",
+        "type": "text",
+        "required": true,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "plan_name",
+        "type": "text",
+        "required": false,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
+        "name": "app_url",
+        "type": "text",
+        "required": false,
+        "options": { "min": null, "max": null, "pattern": "" }
+      }
+    ],
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "@request.auth.id != \"\"",
+    "deleteRule": "@request.auth.id != \"\""
+  }
+]
