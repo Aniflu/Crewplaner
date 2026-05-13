@@ -243,15 +243,16 @@ button.danger:hover{border-color:var(--warn);color:var(--warn);background:rgba(2
 /* Position list in sidebar */
 #posList{display:flex;flex-direction:column;gap:0;}
 .sb-pos{
-  display:grid;grid-template-columns:42px 1fr;gap:10px;align-items:center;
+  display:flex;align-items:center;gap:8px;
   padding:5px 14px;font-size:11px;
   cursor:pointer;
   border-left:2px solid transparent;
   transition:background .1s,border-color .1s;
+  min-width:0;
 }
 .sb-pos:hover{background:rgba(212,165,58,.05);border-left-color:var(--accent);}
-.sb-pos-short{color:var(--accent);font-weight:600;letter-spacing:.1em;font-size:10px;text-transform:uppercase;}
-.sb-pos-label{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-pos-short{color:var(--accent);font-weight:600;letter-spacing:.1em;font-size:10px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;max-width:90px;}
+.sb-pos-label{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
 
 /* ========== Table ========== */
 .table-wrap{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
