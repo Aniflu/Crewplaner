@@ -49,6 +49,7 @@ function startApp(){
   activePlanId=id;
   const name='Tour 2026';
   savePlansIndex([{id,name,created:_today(),modified:_today()}]);
+  _savePlanToLS(id);
   renderCrew();renderTable();
   renderPlanList();
 }

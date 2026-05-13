@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v2.1**
+- Aktuelle Version: **v2.1.1**
 - Live (GitHub Pages): https://m4dm0nky.github.io/Personalplan/
 - Pocketbase API: https://crewplanner.nyxlightwork.com
 - Pocketbase Admin UI: https://crewplanner.nyxlightwork.com/_/

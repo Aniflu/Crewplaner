@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.1 — 2026-05-13
+
+### Bugfix
+
+- **`js/init.js`** — `_savePlanToLS(id)` im Auto-Plan-Ersteller ergänzt.
+  Plan-Daten werden jetzt korrekt in localStorage gespeichert.
+  Verhindert: Plan verschwindet bei Reload, "Plan nicht gefunden"-Fehler beim Email-Speichern.
+
+---
+
 ## v2.1 — 2026-05-09
 
 ### Migration: Supabase → Pocketbase
