@@ -2,7 +2,7 @@
 // POCKETBASE_URL: URL deines Pocketbase-Servers (kein Trailing-Slash)
 // Beispiel: 'https://pb.deinedomain.de' oder 'http://deinserver:8090'
 
-const POCKETBASE_URL = 'https://crewplanner.nyxlightwork.de/api'; //never change this URL -- 'https://crewplanner.nyxlightwork.de/api';
+const POCKETBASE_URL = 'https://crewplanner.nyxlightwork.com/api';
 
 // Feature-Flag: auf false setzen um Pocketbase zu deaktivieren (localStorage-Modus)
 const SUPABASE_ENABLED = true;
