@@ -47,6 +47,20 @@ async function _createOrFetchPlanId(key) {
     console.warn('Plan-Sync: Suche fehlgeschlagen, versuche Anlegen...', e.message);
   }
 
+  // Fallback: Plan per owner suchen (falls name-Feld leer/verloren) und Namen reparieren
+  try {
+    const fallback = await pbFirst('plans', `owner = "${CURRENT_USER_ID}"`);
+    if (fallback) {
+      if (!fallback.name) {
+        await pbPatch('/api/collections/plans/records/' + fallback.id, { name: planName });
+      }
+      localStorage.setItem(key, fallback.id);
+      return fallback.id;
+    }
+  } catch (e) {
+    console.warn('Plan-Sync: Fallback-Suche fehlgeschlagen:', e.message);
+  }
+
   try {
     const created = await pbPost('/api/collections/plans/records', {
       name: planName, owner: CURRENT_USER_ID
@@ -114,7 +128,11 @@ async function loadAssignmentStatuses() {
 async function proposeCrew(dateStr, posId, crewName, crewEmail) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
-  if (!planId) return;
+  console.log('[propose] planId:', planId, 'crew:', crewName, 'date:', dateStr);
+  if (!planId) {
+    if (typeof showToast === 'function') showToast('⚠ Kein Plan gefunden – bitte neu einloggen', 6000);
+    return;
+  }
 
   const pos = typeof POSITIONS !== 'undefined' ? POSITIONS.find(p => p.id === posId) : null;
   const posLabel = pos?.label || posId;
@@ -132,7 +150,8 @@ async function proposeCrew(dateStr, posId, crewName, crewEmail) {
         status: 'proposed', proposed_by: CURRENT_USER_ID }
     );
   } catch (e) {
-    console.warn('proposeCrew Fehler:', e.message);
+    console.error('proposeCrew Fehler:', e.message);
+    if (typeof showToast === 'function') showToast('⚠ PB-Fehler: ' + e.message, 6000);
     return;
   }
 
@@ -267,12 +286,18 @@ async function saveCrewLink(crewName, email) {
   const planId = await _getActivePlanId();
   if (!planId) throw new Error('Plan nicht gefunden – bitte neu einloggen');
 
-  await pbUpsert(
-    'crew_members',
-    `plan_id = "${planId}" && name = "${crewName.replace(/"/g, '\\"')}"`,
-    { plan_id: planId, name: crewName, email, sort_order: crew.indexOf(crewName) },
-    { email }
-  );
+  try {
+    await pbUpsert(
+      'crew_members',
+      `plan_id = "${planId}" && name = "${crewName.replace(/"/g, '\\"')}"`,
+      { plan_id: planId, name: crewName, email, sort_order: crew.indexOf(crewName) },
+      { email }
+    );
+  } catch (e) {
+    console.error('saveCrewLink Fehler:', e.message);
+    if (typeof showToast === 'function') showToast('⚠ E-Mail-Speichern fehlgeschlagen: ' + e.message, 6000);
+    throw e;
+  }
   if (!crewMeta[crewName]) crewMeta[crewName] = {};
   crewMeta[crewName].email = email;
 }
