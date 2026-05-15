@@ -24,7 +24,7 @@ function pbDelete(path)       { return _pbFetch('DELETE', path);       }
 function pbList(collection, filter, sort, perPage) {
   const params = new URLSearchParams({
     filter: filter || '',
-    sort: sort || '-created',
+    sort: sort || '-id',
     perPage: perPage || 200
   });
   return pbGet('/api/collections/' + collection + '/records?' + params);
