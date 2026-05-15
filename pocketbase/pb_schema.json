@@ -4,267 +4,442 @@
     "name": "plans",
     "type": "base",
     "system": false,
-    "schema": [
-      {
-        "name": "name",
-        "type": "text",
-        "required": true,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "owner",
-        "type": "relation",
-        "required": true,
-        "options": {
-          "collectionId": "_pb_users_auth_",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      }
-    ],
-    "indexes": [],
     "listRule": "@request.auth.id != \"\"",
     "viewRule": "@request.auth.id != \"\"",
     "createRule": "@request.auth.id != \"\"",
     "updateRule": "@request.auth.id != \"\"",
-    "deleteRule": "@request.auth.id != \"\""
+    "deleteRule": "@request.auth.id != \"\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "", "hidden": false,
+        "id": "text3208210256",
+        "max": 15, "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "plans_name_001",
+        "max": 0, "min": 0,
+        "name": "name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "pbc_1736455494",
+        "help": "", "hidden": false,
+        "id": "plans_owner_001",
+        "maxSelect": 1, "minSelect": 0,
+        "name": "owner",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      }
+    ],
+    "indexes": []
   },
   {
     "id": "plan_members001",
     "name": "plan_members",
     "type": "base",
     "system": false,
-    "schema": [
-      {
-        "name": "plan_id",
-        "type": "relation",
-        "required": true,
-        "options": {
-          "collectionId": "plans0000000001",
-          "cascadeDelete": true,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      },
-      {
-        "name": "user_id",
-        "type": "relation",
-        "required": true,
-        "options": {
-          "collectionId": "_pb_users_auth_",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      },
-      {
-        "name": "role",
-        "type": "text",
-        "required": false,
-        "options": { "min": null, "max": null, "pattern": "" }
-      }
-    ],
-    "indexes": [],
     "listRule": "@request.auth.id != \"\"",
     "viewRule": "@request.auth.id != \"\"",
     "createRule": "@request.auth.id != \"\"",
     "updateRule": "@request.auth.id != \"\"",
-    "deleteRule": "@request.auth.id != \"\""
+    "deleteRule": "@request.auth.id != \"\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "", "hidden": false,
+        "id": "text3208210256",
+        "max": 15, "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "plans0000000001",
+        "help": "", "hidden": false,
+        "id": "pm_planid_001",
+        "maxSelect": 1, "minSelect": 0,
+        "name": "plan_id",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "pbc_1736455494",
+        "help": "", "hidden": false,
+        "id": "pm_userid_001",
+        "maxSelect": 1, "minSelect": 0,
+        "name": "user_id",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "pm_role_001",
+        "max": 0, "min": 0,
+        "name": "role",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      }
+    ],
+    "indexes": []
   },
   {
     "id": "crew_members001",
     "name": "crew_members",
     "type": "base",
     "system": false,
-    "schema": [
-      {
-        "name": "plan_id",
-        "type": "relation",
-        "required": true,
-        "options": {
-          "collectionId": "plans0000000001",
-          "cascadeDelete": true,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      },
-      {
-        "name": "name",
-        "type": "text",
-        "required": true,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "email",
-        "type": "email",
-        "required": false,
-        "options": { "exceptDomains": null, "onlyDomains": null }
-      },
-      {
-        "name": "sort_order",
-        "type": "number",
-        "required": false,
-        "options": { "min": null, "max": null, "noDecimal": false }
-      },
-      {
-        "name": "user_id",
-        "type": "relation",
-        "required": false,
-        "options": {
-          "collectionId": "_pb_users_auth_",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      }
-    ],
-    "indexes": [],
     "listRule": "@request.auth.id != \"\"",
     "viewRule": "@request.auth.id != \"\"",
     "createRule": "@request.auth.id != \"\"",
     "updateRule": "@request.auth.id != \"\"",
-    "deleteRule": "@request.auth.id != \"\""
+    "deleteRule": "@request.auth.id != \"\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "", "hidden": false,
+        "id": "text3208210256",
+        "max": 15, "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "plans0000000001",
+        "help": "", "hidden": false,
+        "id": "cm_planid_001",
+        "maxSelect": 1, "minSelect": 0,
+        "name": "plan_id",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "cm_name_001",
+        "max": 0, "min": 0,
+        "name": "name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "exceptDomains": null,
+        "help": "", "hidden": false,
+        "id": "cm_email_001",
+        "name": "email",
+        "onlyDomains": null,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "email"
+      },
+      {
+        "help": "", "hidden": false,
+        "id": "cm_sortorder_01",
+        "max": null, "min": null,
+        "name": "sort_order",
+        "noDecimal": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "pbc_1736455494",
+        "help": "", "hidden": false,
+        "id": "cm_userid_001",
+        "maxSelect": 1, "minSelect": 0,
+        "name": "user_id",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation"
+      }
+    ],
+    "indexes": []
   },
   {
     "id": "assignments0001",
     "name": "assignments",
     "type": "base",
     "system": false,
-    "schema": [
-      {
-        "name": "plan_id",
-        "type": "relation",
-        "required": true,
-        "options": {
-          "collectionId": "plans0000000001",
-          "cascadeDelete": true,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      },
-      {
-        "name": "date",
-        "type": "text",
-        "required": true,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "pos_id",
-        "type": "text",
-        "required": true,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "pos_label",
-        "type": "text",
-        "required": false,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "crew_name",
-        "type": "text",
-        "required": false,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "crew_email",
-        "type": "text",
-        "required": false,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "status",
-        "type": "text",
-        "required": false,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "proposed_by",
-        "type": "relation",
-        "required": false,
-        "options": {
-          "collectionId": "_pb_users_auth_",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      },
-      {
-        "name": "responded_at",
-        "type": "date",
-        "required": false,
-        "options": { "min": "", "max": "" }
-      }
-    ],
-    "indexes": [],
     "listRule": "@request.auth.id != \"\"",
     "viewRule": "@request.auth.id != \"\"",
     "createRule": "@request.auth.id != \"\"",
     "updateRule": "@request.auth.id != \"\"",
-    "deleteRule": "@request.auth.id != \"\""
+    "deleteRule": "@request.auth.id != \"\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "", "hidden": false,
+        "id": "text3208210256",
+        "max": 15, "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "plans0000000001",
+        "help": "", "hidden": false,
+        "id": "asgn_planid_001",
+        "maxSelect": 1, "minSelect": 0,
+        "name": "plan_id",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "asgn_date_001",
+        "max": 0, "min": 0,
+        "name": "date",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "asgn_posid_001",
+        "max": 0, "min": 0,
+        "name": "pos_id",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "asgn_poslbl_001",
+        "max": 0, "min": 0,
+        "name": "pos_label",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "asgn_crewnm_001",
+        "max": 0, "min": 0,
+        "name": "crew_name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "text1789087079",
+        "max": 0, "min": 0,
+        "name": "crew_email",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "asgn_status_001",
+        "max": 0, "min": 0,
+        "name": "status",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "pbc_1736455494",
+        "help": "", "hidden": false,
+        "id": "asgn_propby_001",
+        "maxSelect": 1, "minSelect": 0,
+        "name": "proposed_by",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "help": "", "hidden": false,
+        "id": "asgn_respat_001",
+        "max": "", "min": "",
+        "name": "responded_at",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      }
+    ],
+    "indexes": []
   },
   {
     "id": "crew_invites001",
     "name": "crew_invites",
     "type": "base",
     "system": false,
-    "schema": [
-      {
-        "name": "plan_id",
-        "type": "relation",
-        "required": false,
-        "options": {
-          "collectionId": "plans0000000001",
-          "cascadeDelete": true,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      },
-      {
-        "name": "crew_name",
-        "type": "text",
-        "required": true,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "crew_email",
-        "type": "email",
-        "required": true,
-        "options": { "exceptDomains": null, "onlyDomains": null }
-      },
-      {
-        "name": "type",
-        "type": "text",
-        "required": true,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "plan_name",
-        "type": "text",
-        "required": false,
-        "options": { "min": null, "max": null, "pattern": "" }
-      },
-      {
-        "name": "app_url",
-        "type": "text",
-        "required": false,
-        "options": { "min": null, "max": null, "pattern": "" }
-      }
-    ],
-    "indexes": [],
     "listRule": "@request.auth.id != \"\"",
     "viewRule": "@request.auth.id != \"\"",
     "createRule": "@request.auth.id != \"\"",
     "updateRule": "@request.auth.id != \"\"",
-    "deleteRule": "@request.auth.id != \"\""
+    "deleteRule": "@request.auth.id != \"\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "", "hidden": false,
+        "id": "text3208210256",
+        "max": 15, "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "plans0000000001",
+        "help": "", "hidden": false,
+        "id": "ci_planid_001",
+        "maxSelect": 1, "minSelect": 0,
+        "name": "plan_id",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "ci_crewname_001",
+        "max": 0, "min": 0,
+        "name": "crew_name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "exceptDomains": null,
+        "help": "", "hidden": false,
+        "id": "ci_crewemail_01",
+        "name": "crew_email",
+        "onlyDomains": null,
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "email"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "ci_type_001",
+        "max": 0, "min": 0,
+        "name": "type",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "ci_planname_001",
+        "max": 0, "min": 0,
+        "name": "plan_name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "", "hidden": false,
+        "id": "ci_appurl_001",
+        "max": 0, "min": 0,
+        "name": "app_url",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      }
+    ],
+    "indexes": []
   }
 ]
