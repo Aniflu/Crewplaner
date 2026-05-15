@@ -1,5 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
+// Version: 1.5
+console.log('[hook] main.pb.js v1.5 geladen');
 
 const RESEND_API_KEY = 're_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s';
 const FROM_EMAIL     = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
@@ -148,6 +150,7 @@ onRecordAfterCreateSuccess((e) => {
 // ── 2. Anfrage an Crew-Mitglied (assignment proposed) ─────────────────────────
 onRecordAfterCreateSuccess((e) => {
   const r = e.record;
+  console.log('[hook] CREATE assignments fired, status:', r.get('status'), 'id:', r.getId());
   if (r.get('status') !== 'proposed') return;
 
   const crewEmail = r.get('crew_email');
@@ -183,6 +186,7 @@ onRecordAfterCreateSuccess((e) => {
 onRecordAfterUpdateSuccess((e) => {
   const r      = e.record;
   const status = r.get('status');
+  console.log('[hook] UPDATE assignments fired, status:', status, 'id:', r.getId());
 
   // ── 3a. Anfrage an Crew (proposed via Update/Upsert) ──────────────────────
   if (status === 'proposed') {
