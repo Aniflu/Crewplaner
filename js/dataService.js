@@ -35,6 +35,7 @@ async function _getActivePlanId() {
 async function _createOrFetchPlanId(key) {
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
+
   try {
     const existing = await pbFirst('plans',
       `name = "${planName.replace(/"/g, '\\"')}" && owner = "${CURRENT_USER_ID}"`);
@@ -42,19 +43,27 @@ async function _createOrFetchPlanId(key) {
       localStorage.setItem(key, existing.id);
       return existing.id;
     }
+  } catch (e) {
+    console.warn('Plan-Sync: Suche fehlgeschlagen, versuche Anlegen...', e.message);
+  }
+
+  try {
     const created = await pbPost('/api/collections/plans/records', {
       name: planName, owner: CURRENT_USER_ID
     });
     if (created?.id) {
       localStorage.setItem(key, created.id);
-      await pbPost('/api/collections/plan_members/records', {
-        plan_id: created.id, user_id: CURRENT_USER_ID, role: 'owner'
-      });
+      try {
+        await pbPost('/api/collections/plan_members/records', {
+          plan_id: created.id, user_id: CURRENT_USER_ID, role: 'owner'
+        });
+      } catch (e) {
+        console.warn('Plan-Member-Fehler:', e.message);
+      }
       return created.id;
     }
   } catch (e) {
-    console.warn('Plan-Sync-Fehler:', e.message);
-    showToast('Pocketbase-Fehler: ' + e.message, '#e84a4a');
+    console.warn('Plan-Anlegen-Fehler:', e.message);
   }
   return null;
 }
