@@ -50,3 +50,35 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 git checkout v2.1-stable
 git push origin main --force
 ```
+
+## Dokumentation
+
+- **[Benutzer-Anleitung](docs/user/getting-started.md)** - Erste Schritte und grundlegende Nutzung
+- **[Sicherheitsrichtlinien](docs/security.md)** - Datenschutz, Zugriffsrechte und Best Practices
+- **[Datenbank-Struktur](docs/database-schema.md)** - Schema-Definitionen und ER-Modelle
+- **[FAQ](docs/faq.md)** - Häufige Fragen und Troubleshooting
+
+## Features & Roadmap
+
+### Aktuelle Features
+- **Ressourcenplanung**: Intuitive Zuordnung von Touren und Mitarbeitern
+- **Echtzeit-Synchronisation**: Änderungen spiegeln sich sofort wider
+- **Automatisierung**: Regelmäßige Aufgaben und intelligente Erinnerungen
+- **Reporting & Analytics**: Detaillierte Exporte (CSV, PDF, Excel)
+- **API-Integration**: RESTful API für externe Systeme
+- **Berechtigungen**: Granulare Rollen und Zugriffslevel
+- **Dashboard**: Live-Überblick über Kapazitäten und Auslastung
+
+### Roadmap
+- [x] MVP Release & Initialer Launch
+- [x] Beta-Tester-Feedback Integration
+- [ ] **Mobile App Q3 2026** (iOS & Android)
+- [ ] KI-gestützte Planungsvorschläge
+- [ ] Multi-Sprachunterstützung (DE, EN, FR)
+- [ ] Dark Mode & themenbasiertes Design
+
+## Support & Kontakt
+
+- **Support E-Mail:** support@personalplan.example.com
+- **GitHub Issues:** [Fehler melden & Feature-Requests](https://github.com/Personalplan/issues)
+- **Live Chat:** [Chat starten](https://chat.personalplan.example.com)
