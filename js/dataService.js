@@ -11,24 +11,37 @@ function _showMailError(msg) {
 
 // ── Plan-Sync: erstellt/holt Pocketbase-Plan-ID für aktiven localStorage-Plan ──
 // activePlanId kommt aus plans.js (globale Variable)
+let _planIdPromise = null;
+let _planIdPromiseKey = null;
+
 async function _getActivePlanId() {
   if (!SUPABASE_ENABLED || !CURRENT_USER_ID) return null;
   const key = 'tourplan_pb_' + (activePlanId || 'default');
   const stored = localStorage.getItem(key);
   if (stored) return stored;
 
+  // Singleton-Promise verhindert Race Condition bei parallelen Aufrufen.
+  // Key-Vergleich stellt sicher, dass nach switchPlan() ein neuer Request gemacht wird.
+  if (!_planIdPromise || _planIdPromiseKey !== key) {
+    _planIdPromiseKey = key;
+    _planIdPromise = _createOrFetchPlanId(key).finally(() => {
+      _planIdPromise = null;
+      _planIdPromiseKey = null;
+    });
+  }
+  return _planIdPromise;
+}
+
+async function _createOrFetchPlanId(key) {
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
-
   try {
-    // Prüfen ob Plan schon existiert (z.B. nach Cache-Löschung)
     const existing = await pbFirst('plans',
       `name = "${planName.replace(/"/g, '\\"')}" && owner = "${CURRENT_USER_ID}"`);
     if (existing) {
       localStorage.setItem(key, existing.id);
       return existing.id;
     }
-
     const created = await pbPost('/api/collections/plans/records', {
       name: planName, owner: CURRENT_USER_ID
     });

@@ -33,10 +33,12 @@ async function _authCheckAndStart() {
     document.body.style.visibility = 'visible';
     startApp();
 
-    Promise.all([loadCrewMeta(), loadAssignmentStatuses()]).then(() => {
-      renderTable();
-      if (typeof checkAndOpenMySchedule === 'function') checkAndOpenMySchedule();
-    });
+    Promise.all([loadCrewMeta(), loadAssignmentStatuses()])
+      .catch(e => console.error('Lade-Fehler:', e))
+      .then(() => {
+        renderTable();
+        if (typeof checkAndOpenMySchedule === 'function') checkAndOpenMySchedule();
+      });
   } catch (e) {
     console.error('Auth-Fehler:', e);
     document.body.style.visibility = 'visible';
