@@ -2,7 +2,7 @@
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
 
 const RESEND_API_KEY = 're_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s';
-const FROM_EMAIL     = 'Tour Crew Plan <noreply@nyxlightwork.de>';
+const FROM_EMAIL     = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
 const ADMIN_EMAIL    = 'madmaxmail@web.de';
 const APP_URL        = 'https://crewplanner.nyxlightwork.de';
 
