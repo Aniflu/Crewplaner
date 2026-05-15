@@ -55,40 +55,37 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push. Der `main` B
 
 | Was | Wert |
 |---|---|
-| Server SSH | `root@crewplanner.nyxlightwork.de` |
-| Pocketbase Container | `pocketbase` (Image: `pocketbase:local`) |
-| pb_data Pfad | `/mnt/hdd/pocketbase/pb_data` |
-| pb_hooks Pfad | `/mnt/hdd/pocketbase/pb_hooks` |
+| Server SSH Alias | `ssh hetzner` |
+| Pocketbase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` (Coolify-managed) |
+| pb_hooks Pfad | `/var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/` |
 | Admin-E-Mail | `madmaxmail@web.de` |
+| Frontend | `crewplanner.nyxlightwork.de` |
+| Pocketbase API | `api.crewplanner.nyxlightwork.de` |
+
+**Wichtig:** Container wird von **Coolify** verwaltet — niemals `docker stop/rm/run` manuell ausführen. Nur `docker restart` für Hook-Reload.
+
+**CORS** läuft über Traefik (nicht PocketBase). Erlaubte Origins: `crewplanner.nyxlightwork.de`, `aniflu.github.io`.
 
 ### Pocketbase Hook deployen
 
-Der Hook `.pb_hooks/main.pb.js` steuert E-Mail-Benachrichtigungen (proposed/declined/invite/reminder). Er muss auf den Server und der Container muss mit dem Volume neu gestartet werden:
+Hook aus GitHub holen + Container neu starten (alles in einem):
 
 ```bash
-# Hook übertragen
-scp .pb_hooks/main.pb.js root@crewplanner.nyxlightwork.de:/mnt/hdd/pocketbase/pb_hooks/main.pb.js
-
-# Container neu starten mit Hook-Volume
-ssh root@crewplanner.nyxlightwork.de "docker stop pocketbase && docker rm pocketbase && docker run -d \
-  --name pocketbase --restart always --network pocketbase_pocketbase_net \
-  -p 127.0.0.1:8090:8090 \
-  -v /mnt/hdd/pocketbase/pb_data:/pb/pb_data \
-  -v /mnt/hdd/pocketbase/pb_hooks:/pb/pb_hooks \
-  pocketbase:local"
-
-# Prüfen
-ssh root@crewplanner.nyxlightwork.de "docker logs pocketbase --tail 20"
+ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
+  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
+
+### E-Mail (Resend)
+
+Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner-Block).
+- Verifizierte Domain: `crewplanner.nyxlightwork.de`
+- Absender: `noreply@crewplanner.nyxlightwork.de`
+- PocketBase Mail settings: `smtp.resend.com:587`, Username `resend`, Password = API-Key
 
 ### Admin-User anlegen (Pocketbase Admin UI)
 
-`https://crewplanner.nyxlightwork.de/_/` → Collections → `users` → New record → Email: `madmaxmail@web.de`.
-Der User mit dieser E-Mail wird automatisch als Admin erkannt (`ADMIN_EMAIL` in `js/config.js`).
-
-### SMTP konfigurieren
-
-Pocketbase Admin UI → **Settings → Mail settings** → SMTP-Daten eintragen → Save → Send test email.
+`https://api.crewplanner.nyxlightwork.de/_/` → Collections → `users` → New record → Email: `madmaxmail@web.de`.
 
 ## Projektstruktur
 
