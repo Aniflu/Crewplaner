@@ -1,15 +1,14 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 1.7
-console.log('[hook] main.pb.js v1.7 geladen');
-
-var RESEND_API_KEY = 're_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s';
-var FROM_EMAIL     = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
-var ADMIN_EMAIL    = 'madmaxmail@web.de';
-var APP_URL        = 'https://crewplanner.nyxlightwork.de';
+// Version: 1.8
+console.log('[hook] main.pb.js v1.8 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
+  var RESEND_API_KEY = 're_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s';
+  var FROM_EMAIL     = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
+  var APP_URL        = 'https://crewplanner.nyxlightwork.de';
+
   var r       = e.record;
   var name    = r.get('crew_name');
   var email   = r.get('crew_email');
@@ -71,6 +70,10 @@ onRecordAfterCreateSuccess(function(e) {
 
 // ── 2. Anfrage an Crew-Mitglied (assignment proposed via CREATE) ───────────────
 onRecordAfterCreateSuccess(function(e) {
+  var RESEND_API_KEY = 're_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s';
+  var FROM_EMAIL     = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
+  var APP_URL        = 'https://crewplanner.nyxlightwork.de';
+
   var r = e.record;
   console.log('[hook] CREATE assignments fired, status:', r.get('status'), 'id:', r.getId());
   if (r.get('status') !== 'proposed') return;
@@ -120,6 +123,11 @@ onRecordAfterCreateSuccess(function(e) {
 
 // ── 3. Anfrage (proposed via UPDATE) oder Absage (declined) ───────────────────
 onRecordAfterUpdateSuccess(function(e) {
+  var RESEND_API_KEY = 're_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s';
+  var FROM_EMAIL     = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
+  var ADMIN_EMAIL    = 'madmaxmail@web.de';
+  var APP_URL        = 'https://crewplanner.nyxlightwork.de';
+
   var r      = e.record;
   var status = r.get('status');
   console.log('[hook] UPDATE assignments fired, status:', status, 'id:', r.getId());
