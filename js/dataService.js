@@ -41,6 +41,7 @@ async function _getActivePlanId() {
     }
   } catch (e) {
     console.warn('Plan-Sync-Fehler:', e.message);
+    showToast('Pocketbase-Fehler: ' + e.message, '#e84a4a');
   }
   return null;
 }
