@@ -5,10 +5,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Version & Live-URLs
 
 - Aktuelle Version: **v2.1.1**
-- Live: https://crewplanner.nyxlightwork.com
-- Pocketbase API: https://crewplanner.nyxlightwork.com
-- Pocketbase Admin UI: https://crewplanner.nyxlightwork.com/_/
+- Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
+- Frontend (Ziel): https://crewplanner.nyxlightwork.de
+- Pocketbase API: https://api.crewplanner.nyxlightwork.de
+- Pocketbase Admin UI: https://api.crewplanner.nyxlightwork.de/_/
 - GitHub Repo: https://github.com/Aniflu/Crewplaner
+
+## Routing-Architektur
+
+| Domain | Ziel |
+|---|---|
+| `crewplanner.nyxlightwork.de` | Frontend (nginx, Produktiv) |
+| `api.crewplanner.nyxlightwork.de` | Pocketbase API |
+
+**CORS** läuft über Traefik (nicht Pocketbase-Admin). Erlaubte Origins:
+- `https://crewplanner.nyxlightwork.de`
+- `https://aniflu.github.io`
+
+Kein StripPrefix — `POCKETBASE_URL` hat kein `/api`-Suffix.
 
 ## Tech-Stack
 
@@ -41,7 +55,7 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push. Der `main` B
 
 | Was | Wert |
 |---|---|
-| Server SSH | `root@crewplanner.nyxlightwork.com` |
+| Server SSH | `root@crewplanner.nyxlightwork.de` |
 | Pocketbase Container | `pocketbase` (Image: `pocketbase:local`) |
 | pb_data Pfad | `/mnt/hdd/pocketbase/pb_data` |
 | pb_hooks Pfad | `/mnt/hdd/pocketbase/pb_hooks` |
