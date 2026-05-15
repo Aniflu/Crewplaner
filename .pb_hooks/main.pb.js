@@ -179,10 +179,41 @@ onRecordAfterCreateSuccess((e) => {
 
 }, 'assignments');
 
-// ── 3. Absage an Admin (assignment declined) ──────────────────────────────────
+// ── 3. Anfrage (proposed) oder Absage (declined) bei Update ───────────────────
 onRecordAfterUpdateSuccess((e) => {
-  const r = e.record;
-  if (r.get('status') !== 'declined') return;
+  const r      = e.record;
+  const status = r.get('status');
+
+  // ── 3a. Anfrage an Crew (proposed via Update/Upsert) ──────────────────────
+  if (status === 'proposed') {
+    const crewEmail = r.get('crew_email');
+    const crewName  = r.get('crew_name');
+    const posLabel  = r.get('pos_label') || r.get('pos_id');
+    const fdate     = fmtDate(r.get('date'));
+    if (!crewEmail) {
+      console.error('[mail] proposed update: keine crew_email im Record', r.getId());
+      return;
+    }
+    const subject = 'ANFRAGE · ' + posLabel + ' · ' + fdate;
+    const html = tpl(`
+      <h1 style="font-size:40px;font-weight:bold;color:#ffffff;margin:0 0 6px 0;letter-spacing:-1px;">Neue Anfrage.</h1>
+      <p style="font-size:10px;color:#4a4a6a;letter-spacing:3px;margin:0 0 32px 0;">ANFRAGE · ${posLabel.toUpperCase()}</p>
+      <p style="font-size:13px;color:#9090b0;line-height:1.8;margin:0 0 4px 0;">
+        Hey ${crewName},<br><br>
+        du wurdest für folgenden Einsatz angefragt:
+      </p>
+      ${infoTable(
+        infoRow('POSITION', posLabel, '#e8c84a') +
+        infoRow('DATUM',    fdate,    '#ffffff')
+      )}
+      ${btn(APP_URL, 'BESTÄTIGEN / ABLEHNEN →', true)}
+    `);
+    sendMail(crewEmail, subject, html);
+    return;
+  }
+
+  // ── 3b. Absage an Admin (declined) ────────────────────────────────────────
+  if (status !== 'declined') return;
 
   const crewName = r.get('crew_name');
   const posLabel = r.get('pos_label') || r.get('pos_id');
