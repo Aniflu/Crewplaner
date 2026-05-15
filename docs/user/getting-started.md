@@ -10,7 +10,7 @@ Personalplan ist mehr als nur ein Kalender. Es ist dein digitales Werkzeug zur e
 
 So kommst du schnell und sicher an den Start:
 
-1. **Login:** Klicke auf den Link in deiner offiziellen Einladung oder gehe direkt auf die Web-Adresse: https://crewplanner.nyxlightwork.com
+1. **Login:** Klicke auf den Link in deiner offiziellen Einladung oder gehe direkt auf die Web-Adresse: https://crewplanner.nyxlightwork.de
 2. **Oberfläche:** Nach dem erfolgreichen Login landest du auf dem Dashboard. Hier siehst du auf einen Blick offene Touren, Team-Status und wichtige Statistiken.
 3. **Erste Aktion:** Klicke oben rechts auf den prominenten Button „+ Neue Tour".
 
@@ -94,7 +94,7 @@ A: Ja! Nutze die Template-Funktion. Unter „Templates" kannst du Touren-Vorlage
 Stöberst du in die Mangel? Kein Problem. Unser Team hilft dir gerne weiter:
 
 - **Hilfe im Chat:** Klicke auf das Fragezeichen-Icon unten rechts für Live-Chat
-- **Support-E-Mail:** support@crewplanner.nyxlightwork.com
+- **Support-E-Mail:** support@crewplanner.nyxlightwork.de
 - **Dokumentation:** Siehe auch `docs/faq.md` für erweiterte Fragen
 - **Feedback:** Melde Fehler direkt im Menü unter „Feedback" → „Bug Report"
 - **Feature-Anfragen:** Nutze „Feedback" → „Feature Request"

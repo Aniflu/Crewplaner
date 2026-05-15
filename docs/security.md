@@ -56,7 +56,7 @@ Der Admin-Zugang zu Pocketbase ist **kritisch** und muss streng geschützt sein.
 ```bash
 # .env.production (NIEMALS im Repo committen!)
 PB_DATABASE_URL="postgres://crewplan_user:SECURE_PASS_32_CHARS@db.internal/crewplan"
-PB_PUBLIC_URL="https://crewplanner.nyxlightwork.com"
+PB_PUBLIC_URL="https://crewplanner.nyxlightwork.de"
 PB_ADMIN_EMAIL="admin@your-company.com"
 PB_ADMIN_PASSWORD="admin_password_SECURE_32_CHARS"
 PB_SECRET_KEY="random_32_char_secret_for_jwt_signing"
@@ -65,7 +65,7 @@ PB_SECRET_KEY="random_32_char_secret_for_jwt_signing"
 ### Admin Token Management
 ```bash
 # Initiales Admin-Token generieren (lokal)
-curl -X POST https://crewplanner.nyxlightwork.com/api/auth/login \
+curl -X POST https://crewplanner.nyxlightwork.de/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "identity": "admin@your-company.com",
@@ -123,7 +123,7 @@ secrets:
 
 ---
 
-## 4. SSH-Zugang Sicherheit (root@crewplanner.nyxlightwork.com)
+## 4. SSH-Zugang Sicherheit (root@crewplanner.nyxlightwork.de)
 
 Der Server darf **NUR** über SSH-Keys erreichbar sein. Passwort-Login ist VERBOTEN.
 
@@ -147,10 +147,10 @@ Port 22
 ssh-keygen -t ed25519 -C "crew-admin@your-company.com" -f ~/.ssh/crew-deploy
 
 # Public Key zum Server hochladen (einmalig)
-ssh-copy-id -i ~/.ssh/crew-deploy.pub root@crewplanner.nyxlightwork.com
+ssh-copy-id -i ~/.ssh/crew-deploy.pub root@crewplanner.nyxlightwork.de
 
 # Deploy Script (nutze Key-Agent)
-ssh -i ~/.ssh/crew-deploy root@crewplanner.nyxlightwork.com "cd /app && git pull && npm run build"
+ssh -i ~/.ssh/crew-deploy root@crewplanner.nyxlightwork.de "cd /app && git pull && npm run build"
 ```
 
 **Warnung:**
@@ -226,7 +226,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh -i ~/.ssh/deploy_key root@crewplanner.nyxlightwork.com "cd /app && git pull && npm run deploy"
+          ssh -i ~/.ssh/deploy_key root@crewplanner.nyxlightwork.de "cd /app && git pull && npm run deploy"
           rm ~/.ssh/deploy_key  # Cleanup
 ```
 

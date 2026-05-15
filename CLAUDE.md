@@ -67,10 +67,10 @@ Der Hook `.pb_hooks/main.pb.js` steuert E-Mail-Benachrichtigungen (proposed/decl
 
 ```bash
 # Hook übertragen
-scp .pb_hooks/main.pb.js root@crewplanner.nyxlightwork.com:/mnt/hdd/pocketbase/pb_hooks/main.pb.js
+scp .pb_hooks/main.pb.js root@crewplanner.nyxlightwork.de:/mnt/hdd/pocketbase/pb_hooks/main.pb.js
 
 # Container neu starten mit Hook-Volume
-ssh root@crewplanner.nyxlightwork.com "docker stop pocketbase && docker rm pocketbase && docker run -d \
+ssh root@crewplanner.nyxlightwork.de "docker stop pocketbase && docker rm pocketbase && docker run -d \
   --name pocketbase --restart always --network pocketbase_pocketbase_net \
   -p 127.0.0.1:8090:8090 \
   -v /mnt/hdd/pocketbase/pb_data:/pb/pb_data \
@@ -78,12 +78,12 @@ ssh root@crewplanner.nyxlightwork.com "docker stop pocketbase && docker rm pocke
   pocketbase:local"
 
 # Prüfen
-ssh root@crewplanner.nyxlightwork.com "docker logs pocketbase --tail 20"
+ssh root@crewplanner.nyxlightwork.de "docker logs pocketbase --tail 20"
 ```
 
 ### Admin-User anlegen (Pocketbase Admin UI)
 
-`https://crewplanner.nyxlightwork.com/_/` → Collections → `users` → New record → Email: `madmaxmail@web.de`.
+`https://crewplanner.nyxlightwork.de/_/` → Collections → `users` → New record → Email: `madmaxmail@web.de`.
 Der User mit dieser E-Mail wird automatisch als Admin erkannt (`ADMIN_EMAIL` in `js/config.js`).
 
 ### SMTP konfigurieren

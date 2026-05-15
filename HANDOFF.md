@@ -21,8 +21,8 @@
 - GitHub Pages (statisches Hosting der Frontend-Dateien)
 
 **Live:** https://m4dm0nky.github.io/Personalplan/
-**Pocketbase Admin:** https://crewplanner.nyxlightwork.com/_/
-**Pocketbase API:** https://crewplanner.nyxlightwork.com
+**Pocketbase Admin:** https://crewplanner.nyxlightwork.de/_/
+**Pocketbase API:** https://crewplanner.nyxlightwork.de
 
 ---
 
@@ -32,7 +32,7 @@
 
 - Komplette Migration von Supabase → Pocketbase abgeschlossen
 - `js/pb.js` — neuer Pocketbase REST-Client (ersetzt Supabase SDK)
-- `js/config.js` — POCKETBASE_URL auf `https://crewplanner.nyxlightwork.com` gesetzt
+- `js/config.js` — POCKETBASE_URL auf `https://crewplanner.nyxlightwork.de` gesetzt
 - `js/authService.js` — Pocketbase JWT-Auth (localStorage: `pb_token`, `pb_user`)
 - `js/dataService.js` — alle CRUD-Operationen auf Pocketbase umgestellt
 - `login.html` — Login über Pocketbase Auth
@@ -60,7 +60,7 @@ Sie muss in einen gemounteten Ordner auf dem Host-System.
 
 **Im Repo liegt eine fertige ZIP:** `pocketbase-deploy.zip` (im Root)
 
-Alternativ manuell per SSH auf den Server (`root@crewplanner.nyxlightwork.com`):
+Alternativ manuell per SSH auf den Server (`root@crewplanner.nyxlightwork.de`):
 
 ### Schritt 1 — Verzeichnis anlegen (auf dem Server)
 ```bash
@@ -69,17 +69,17 @@ mkdir -p /mnt/hdd/pocketbase/pb_hooks
 
 ### Schritt 2 — Hook-Datei übertragen (vom lokalen Rechner)
 ```bash
-scp .pb_hooks/main.pb.js root@crewplanner.nyxlightwork.com:/mnt/hdd/pocketbase/pb_hooks/main.pb.js
+scp .pb_hooks/main.pb.js root@crewplanner.nyxlightwork.de:/mnt/hdd/pocketbase/pb_hooks/main.pb.js
 ```
 
 ### Schritt 3 — Alten Container stoppen
 ```bash
-ssh root@crewplanner.nyxlightwork.com "docker stop pocketbase && docker rm pocketbase"
+ssh root@crewplanner.nyxlightwork.de "docker stop pocketbase && docker rm pocketbase"
 ```
 
 ### Schritt 4 — Container neu starten mit Hook-Volume
 ```bash
-ssh root@crewplanner.nyxlightwork.com "docker run -d \
+ssh root@crewplanner.nyxlightwork.de "docker run -d \
   --name pocketbase \
   --restart always \
   --network pocketbase_pocketbase_net \
@@ -91,14 +91,14 @@ ssh root@crewplanner.nyxlightwork.com "docker run -d \
 
 ### Schritt 5 — Prüfen
 ```bash
-ssh root@crewplanner.nyxlightwork.com "docker logs pocketbase --tail 20"
+ssh root@crewplanner.nyxlightwork.de "docker logs pocketbase --tail 20"
 ```
 
 ---
 
 ## 4. SMTP konfigurieren
 
-Pocketbase Admin UI → `https://crewplanner.nyxlightwork.com/_/` → **Settings → Mail settings**
+Pocketbase Admin UI → `https://crewplanner.nyxlightwork.de/_/` → **Settings → Mail settings**
 
 | Feld | Was eintragen |
 |---|---|
@@ -125,7 +125,7 @@ GitHub Pages aktualisiert sich automatisch innerhalb ~1 Minute.
 
 ## 6. Admin-User anlegen
 
-In der Pocketbase Admin UI (`https://crewplanner.nyxlightwork.com/_/`):
+In der Pocketbase Admin UI (`https://crewplanner.nyxlightwork.de/_/`):
 
 1. **Collections** → `users` → **New record**
 2. Email: `madmaxmail@web.de`
@@ -223,12 +223,12 @@ Kein npm, kein Build-Step. Datei ändern → Browser neu laden → fertig.
 
 | Was | Wert |
 |---|---|
-| Pocketbase Admin | https://crewplanner.nyxlightwork.com/_/ |
-| Pocketbase API | https://crewplanner.nyxlightwork.com |
+| Pocketbase Admin | https://crewplanner.nyxlightwork.de/_/ |
+| Pocketbase API | https://crewplanner.nyxlightwork.de |
 | Admin-E-Mail | madmaxmail@web.de |
 | GitHub Repo | https://github.com/M4dm0nky/Personalplan |
 | Live (GitHub Pages) | https://m4dm0nky.github.io/Personalplan/ |
-| Server SSH | root@crewplanner.nyxlightwork.com |
+| Server SSH | root@crewplanner.nyxlightwork.de |
 | Pocketbase Container | `pocketbase` (Image: `pocketbase:local`) |
 | pb_data Pfad | `/mnt/hdd/pocketbase/pb_data` |
 | pb_hooks Pfad | `/mnt/hdd/pocketbase/pb_hooks` |

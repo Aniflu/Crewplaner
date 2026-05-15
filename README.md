@@ -1,7 +1,7 @@
 # Tour / Crew — Personalplan
 
-**Live-App:** https://crewplanner.nyxlightwork.com
-**Login:** https://crewplanner.nyxlightwork.com/login.html
+**Live-App:** https://crewplanner.nyxlightwork.de
+**Login:** https://crewplanner.nyxlightwork.de/login.html
 
 Crew-Scheduling-App für Tourneen. Der Admin weist Crew-Mitglieder pro Position und Tag zu, Crew bestätigt oder lehnt ab — Benachrichtigungen per E-Mail via Pocketbase-Hook.
 
@@ -21,11 +21,11 @@ Crew-Scheduling-App für Tourneen. Der Admin weist Crew-Mitglieder pro Position 
 
 | Was | Wert |
 |---|---|
-| Live | https://crewplanner.nyxlightwork.com |
-| Pocketbase API | https://crewplanner.nyxlightwork.com |
-| Pocketbase Admin UI | https://crewplanner.nyxlightwork.com/_/ |
+| Live | https://crewplanner.nyxlightwork.de |
+| Pocketbase API | https://crewplanner.nyxlightwork.de |
+| Pocketbase Admin UI | https://crewplanner.nyxlightwork.de/_/ |
 | GitHub Repo | https://github.com/Aniflu/Crewplaner |
-| Server SSH | `root@crewplanner.nyxlightwork.com` |
+| Server SSH | `root@crewplanner.nyxlightwork.de` |
 
 ## Lokale Entwicklung
 
