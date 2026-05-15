@@ -38,7 +38,12 @@ async function pbFirst(collection, filter) {
 
 // ── Upsert: existierenden Record aktualisieren oder neuen anlegen ──────────────
 async function pbUpsert(collection, filter, createData, updateData) {
-  const existing = await pbFirst(collection, filter);
+  let existing = null;
+  try {
+    existing = await pbFirst(collection, filter);
+  } catch (e) {
+    console.warn('pbUpsert Suche fehlgeschlagen, versuche Anlegen...', e.message);
+  }
   if (existing) {
     return pbPatch(
       '/api/collections/' + collection + '/records/' + existing.id,
