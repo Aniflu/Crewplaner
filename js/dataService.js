@@ -125,9 +125,11 @@ async function proposeCrew(dateStr, posId, crewName, crewEmail) {
       `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`,
       {
         plan_id: planId, date: dateStr, pos_id: posId, pos_label: posLabel,
-        crew_name: crewName, status: 'proposed', proposed_by: CURRENT_USER_ID
+        crew_name: crewName, crew_email: crewEmail || '',
+        status: 'proposed', proposed_by: CURRENT_USER_ID
       },
-      { crew_name: crewName, pos_label: posLabel, status: 'proposed', proposed_by: CURRENT_USER_ID }
+      { crew_name: crewName, pos_label: posLabel, crew_email: crewEmail || '',
+        status: 'proposed', proposed_by: CURRENT_USER_ID }
     );
   } catch (e) {
     console.warn('proposeCrew Fehler:', e.message);
@@ -223,9 +225,11 @@ async function bulkProposeCrew(slots) {
       `plan_id = "${planId}" && date = "${s.date}" && pos_id = "${s.posId}"`,
       {
         plan_id: planId, date: s.date, pos_id: s.posId, pos_label: pos?.label || s.posId,
-        crew_name: s.crewName, status: 'proposed', proposed_by: CURRENT_USER_ID
+        crew_name: s.crewName, crew_email: s.crewEmail || '',
+        status: 'proposed', proposed_by: CURRENT_USER_ID
       },
-      { crew_name: s.crewName, pos_label: pos?.label || s.posId, status: 'proposed', proposed_by: CURRENT_USER_ID }
+      { crew_name: s.crewName, pos_label: pos?.label || s.posId, crew_email: s.crewEmail || '',
+        status: 'proposed', proposed_by: CURRENT_USER_ID }
     );
   }));
 

@@ -150,40 +150,32 @@ onRecordAfterCreateRequest((e) => {
   const r = e.record;
   if (r.get('status') !== 'proposed') return;
 
-  const planId   = r.get('plan_id');
-  const crewName = r.get('crew_name');
-  const posLabel = r.get('pos_label') || r.get('pos_id');
-  const date     = r.get('date');
+  const crewEmail = r.get('crew_email');
+  const crewName  = r.get('crew_name');
+  const posLabel  = r.get('pos_label') || r.get('pos_id');
+  const date      = r.get('date');
 
-  try {
-    const members = $app.dao().findRecordsByFilter(
-      'crew_members',
-      'plan_id = "' + planId + '" && name = "' + crewName.replace(/"/g, '\\"') + '"',
-      '', 1, 0
-    );
-    if (!members || !members.length) return;
-    const crewEmail = members[0].get('email');
-    if (!crewEmail) return;
-
-    const fdate   = fmtDate(date);
-    const subject = 'ANFRAGE · ' + posLabel + ' · ' + fdate;
-    const html = tpl(`
-      <h1 style="font-size:40px;font-weight:bold;color:#ffffff;margin:0 0 6px 0;letter-spacing:-1px;">Neue Anfrage.</h1>
-      <p style="font-size:10px;color:#4a4a6a;letter-spacing:3px;margin:0 0 32px 0;">ANFRAGE · ${posLabel.toUpperCase()}</p>
-      <p style="font-size:13px;color:#9090b0;line-height:1.8;margin:0 0 4px 0;">
-        Hey ${crewName},<br><br>
-        du wurdest für folgenden Einsatz angefragt:
-      </p>
-      ${infoTable(
-        infoRow('POSITION', posLabel, '#e8c84a') +
-        infoRow('DATUM',    fdate,    '#ffffff')
-      )}
-      ${btn(APP_URL, 'BESTÄTIGEN / ABLEHNEN →', true)}
-    `);
-    sendMail(crewEmail, subject, html);
-  } catch (err) {
-    console.error('[mail] proposed Fehler:', err.message);
+  if (!crewEmail) {
+    console.error('[mail] proposed: keine crew_email im Record', r.getId());
+    return;
   }
+
+  const fdate   = fmtDate(date);
+  const subject = 'ANFRAGE · ' + posLabel + ' · ' + fdate;
+  const html = tpl(`
+    <h1 style="font-size:40px;font-weight:bold;color:#ffffff;margin:0 0 6px 0;letter-spacing:-1px;">Neue Anfrage.</h1>
+    <p style="font-size:10px;color:#4a4a6a;letter-spacing:3px;margin:0 0 32px 0;">ANFRAGE · ${posLabel.toUpperCase()}</p>
+    <p style="font-size:13px;color:#9090b0;line-height:1.8;margin:0 0 4px 0;">
+      Hey ${crewName},<br><br>
+      du wurdest für folgenden Einsatz angefragt:
+    </p>
+    ${infoTable(
+      infoRow('POSITION', posLabel, '#e8c84a') +
+      infoRow('DATUM',    fdate,    '#ffffff')
+    )}
+    ${btn(APP_URL, 'BESTÄTIGEN / ABLEHNEN →', true)}
+  `);
+  sendMail(crewEmail, subject, html);
 
 }, 'assignments');
 

@@ -136,9 +136,10 @@ async function requestForPos(e,posId){
   if(!SUPABASE_ENABLED){showToast('Supabase nicht aktiv','#e84a4a');return;}
   if(Object.keys(crewMeta).length===0)await loadCrewMeta();
   if(!(crewMeta[crewName]||{}).email){showToast(`${crewName}: Keine E-Mail hinterlegt`,'#e84a4a');return;}
+  const crewEmail=crewMeta[crewName]?.email||'';
   const slots=TOUR_DATES
     .filter(day=>day.type!=='off'&&!assignments[day.date]?.[posId]&&assignmentStatuses[day.date]?.[posId]?.status!=='confirmed')
-    .map(day=>({date:day.date,posId,crewName}));
+    .map(day=>({date:day.date,posId,crewName,crewEmail}));
   if(!slots.length){showToast('Alle Tage bereits bestätigt ✓','#4ae8a0');return;}
   await bulkProposeCrew(slots);
   renderTable();
