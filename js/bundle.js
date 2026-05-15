@@ -111,6 +111,20 @@ function openCrewDD(e,dateStr,posId){
       renderTable();
     }});
   }
+  if(si && !isPending(si)){
+    items.push({label:'✕ Besetzung aufheben',cls:'danger',action:async()=>{
+      closeDD();
+      try{
+        await cancelProposal(dateStr,posId);
+        if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
+        if(assignments[dateStr])delete assignments[dateStr][posId];
+        showToast('Besetzung aufgehoben ✓','#4ae8a0');
+      }catch(err){
+        showToast('Fehler: '+err.message,'#e84a4a');
+      }
+      renderTable();
+    }});
+  }
   if(def)items.push({label:`↩ Standard: ${def}`,cls:'reset',action:()=>{if(!assignments[dateStr])assignments[dateStr]={};delete assignments[dateStr][posId];closeDD();renderTable();}});
   items.push({label:'— Nicht besetzt',cls:'clear',action:()=>{setAssign(dateStr,posId,'');closeDD();}});
   items.push({label:'⚠ Offen / Unbesetzt',cls:'offen',color:'#e07060',action:()=>{setAssign(dateStr,posId,OFFEN);closeDD();}});
