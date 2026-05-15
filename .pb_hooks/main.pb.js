@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 1.5
-console.log('[hook] main.pb.js v1.5 geladen');
+// Version: 1.6
+console.log('[hook] main.pb.js v1.6 geladen');
 
 const RESEND_API_KEY = 're_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s';
 const FROM_EMAIL     = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
@@ -9,7 +9,7 @@ const ADMIN_EMAIL    = 'madmaxmail@web.de';
 const APP_URL        = 'https://crewplanner.nyxlightwork.de';
 
 // ── E-Mail senden via Resend REST API ─────────────────────────────────────────
-function sendMail(to, subject, html) {
+var sendMail = function(to, subject, html) {
   try {
     const res = $http.send({
       url:    'https://api.resend.com/emails',
@@ -31,7 +31,7 @@ function sendMail(to, subject, html) {
 }
 
 // ── HTML-Template (nyx lightwork dark style) ──────────────────────────────────
-function tpl(content) {
+var tpl = function(content) {
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -71,7 +71,7 @@ function tpl(content) {
 </html>`;
 }
 
-function btn(url, label, gold) {
+var btn = function(url, label, gold) {
   const bg    = gold ? '#e8c84a' : '#1a1a32';
   const color = gold ? '#0d0d1a' : '#8080a0';
   const brd   = gold ? '' : 'border:1px solid #2a2a4a;';
@@ -82,7 +82,7 @@ function btn(url, label, gold) {
 </table>`;
 }
 
-function infoRow(label, value, accent) {
+var infoRow = function(label, value, accent) {
   const c = accent || '#ffffff';
   return `<tr>
     <td style="padding:11px 16px;font-size:9px;color:#4a4a6a;letter-spacing:2px;border-bottom:1px solid #1a1a32;white-space:nowrap;">${label}</td>
@@ -90,13 +90,13 @@ function infoRow(label, value, accent) {
   </tr>`;
 }
 
-function infoTable(rows) {
+var infoTable = function(rows) {
   return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #1a1a32;border-radius:2px;">
     ${rows}
   </table>`;
 }
 
-function fmtDate(dateStr) {
+var fmtDate = function(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d)) return dateStr;
   return d.getDate().toString().padStart(2,'0') + '.' +
