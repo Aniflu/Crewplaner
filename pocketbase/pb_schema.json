@@ -174,6 +174,12 @@
         "options": { "min": null, "max": null, "pattern": "" }
       },
       {
+        "name": "crew_email",
+        "type": "text",
+        "required": false,
+        "options": { "min": null, "max": null, "pattern": "" }
+      },
+      {
         "name": "status",
         "type": "text",
         "required": false,
