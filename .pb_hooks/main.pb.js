@@ -103,7 +103,7 @@ function fmtDate(dateStr) {
 }
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
-onRecordAfterCreateRequest((e) => {
+onRecordAfterCreateSuccess((e) => {
   const r        = e.record;
   const name     = r.get('crew_name');
   const email    = r.get('crew_email');
@@ -146,7 +146,7 @@ onRecordAfterCreateRequest((e) => {
 }, 'crew_invites');
 
 // ── 2. Anfrage an Crew-Mitglied (assignment proposed) ─────────────────────────
-onRecordAfterCreateRequest((e) => {
+onRecordAfterCreateSuccess((e) => {
   const r = e.record;
   if (r.get('status') !== 'proposed') return;
 
@@ -180,7 +180,7 @@ onRecordAfterCreateRequest((e) => {
 }, 'assignments');
 
 // ── 3. Absage an Admin (assignment declined) ──────────────────────────────────
-onRecordAfterUpdateRequest((e) => {
+onRecordAfterUpdateSuccess((e) => {
   const r = e.record;
   if (r.get('status') !== 'declined') return;
 
