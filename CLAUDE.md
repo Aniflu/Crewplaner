@@ -6,10 +6,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Aktuelle Version: **v0.8.5**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
-- Frontend (Ziel): https://crewplanner.nyxlightwork.de
+- Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
 - Pocketbase Admin UI: https://api.crewplanner.nyxlightwork.de/_/
 - GitHub Repo: https://github.com/Aniflu/Crewplaner
+
+---
+
+## Aktueller Stand (Stand: 2026-05-15)
+
+### Was funktioniert ✓
+- Login/Logout via PocketBase (`madmaxmail@web.de` = Admin)
+- Plan-Sync: localStorage ↔ PocketBase (plans, crew_members)
+- Crew-Mitglieder mit E-Mail verknüpfen (Sidebar → E-Mail-Icon)
+- Einladungs-E-Mails & Erinnerungen (`crew_invites` Hook) — bestätigt funktionierend
+- Hook v2.0 in GitHub: weißes E-Mail-Design, zwei Buttons (✓ BESTÄTIGEN / ✗ ABLEHNEN) mit `?action=confirm&aid=RECORD_ID`
+- `authService.js`: `_handleEmailAction()` — verarbeitet `?action=confirm/decline&aid=...` nach Login automatisch
+- "✕ Besetzung aufheben" im Dropdown (für `confirmed`-Assignments)
+- "✕ Anfrage zurückziehen" im Dropdown (für `proposed`/`declined`-Assignments)
+
+### Was NOCH NICHT GETESTET ist ⏳
+- Vollständiger E-Mail-Flow: Crew anfragen → E-Mail kommt weiß an → "✓ BESTÄTIGEN" klicken → Zelle wird grün
+- "✗ ABLEHNEN" → Admin bekommt Abgelehnt-E-Mail → Zelle rot
+- "✕ Besetzung aufheben" auf einer grünen (confirmed) Zelle
+
+### Nächste Schritte zum Testen
+1. Hook v2.0 deployen (einmaliger Befehl, siehe unten unter "Hook deployen")
+2. `Cmd+Shift+R` (Hard-Reload) im Browser → authService.js v29 geladen
+3. Crew-Mitglied in eine Zelle eintragen → Zelle zeigt `⏳ Name` (gelb) → E-Mail sollte ankommen
+4. E-Mail öffnen → weißes Design? → "✓ BESTÄTIGEN" klicken → App öffnet → Toast + Zelle grün `✓ Name`?
+5. Docker-Logs für Diagnose: `ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 30"`
+
+---
+
+## Zugänge & API-Keys
+
+| Was | Wert |
+|---|---|
+| Admin-Login (App + PB Admin UI) | `madmaxmail@web.de` |
+| Resend API-Key | `re_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s` |
+| Resend Absender | `noreply@crewplanner.nyxlightwork.de` |
+| Resend verifizierte Domain | `crewplanner.nyxlightwork.de` |
+| GitHub | https://github.com/Aniflu/Crewplaner (main = Production) |
+| Server SSH Alias | `ssh hetzner` |
+| PocketBase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` (Coolify-managed) |
+| pb_hooks Pfad | `/var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/` |
+
+---
 
 ## Routing-Architektur
 
@@ -24,6 +67,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Kein StripPrefix — `POCKETBASE_URL` hat kein `/api`-Suffix.
 
+---
+
 ## Tech-Stack
 
 - **Vanilla JavaScript** — kein Framework, keine Bibliotheken, kein Build-Step
@@ -31,6 +76,8 @@ Kein StripPrefix — `POCKETBASE_URL` hat kein `/api`-Suffix.
 - **localStorage** — persistente Datenspeicherung im Browser
 - **Pocketbase** — Self-hosted Backend: Auth, Datenbank (SQLite), JS-Hooks für E-Mails
 - **GitHub Pages** — statisches Hosting (Frontend)
+
+---
 
 ## Lokale Entwicklung
 
@@ -41,7 +88,21 @@ python3 -m http.server 8080
 
 Datei in `js/` oder `styles.css` bearbeiten → Browser-Tab neu laden → fertig. Kein npm, kein Build.
 
-**Cache-Bust:** Nach JS/CSS-Änderungen `?v=N` in `index.html` + `login.html` hochzählen (aktuell `v=24` für pb.js/config.js, `v=23` für den Rest).
+**Cache-Bust:** Nach JS/CSS-Änderungen `?v=N` in `index.html` + `login.html` hochzählen.
+
+Aktuelle Versionen (Stand 2026-05-15):
+
+| Datei | Version |
+|---|---|
+| `config.js` | v29 |
+| `pb.js` | v31 |
+| `dataService.js` | v33 |
+| `authService.js` | v29 |
+| `dropdown.js` | v24 |
+| `bundle.js` | v24 |
+| alle anderen | v23 |
+
+---
 
 ## Deploy zu Production (GitHub Pages)
 
@@ -51,16 +112,9 @@ git push origin main
 
 GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push. Der `main` Branch ist der Produktions-Branch.
 
-## Production-Infrastruktur (Server)
+---
 
-| Was | Wert |
-|---|---|
-| Server SSH Alias | `ssh hetzner` |
-| Pocketbase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` (Coolify-managed) |
-| pb_hooks Pfad | `/var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/` |
-| Admin-E-Mail | `madmaxmail@web.de` |
-| Frontend | `crewplanner.nyxlightwork.de` |
-| Pocketbase API | `api.crewplanner.nyxlightwork.de` |
+## Production-Infrastruktur (Server)
 
 **Wichtig:** Container wird von **Coolify** verwaltet — niemals `docker stop/rm/run` manuell ausführen. Nur `docker restart` für Hook-Reload.
 
@@ -76,9 +130,19 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
 
+Aktuell deployte Hook-Version: **v2.0** (weißes E-Mail-Design + confirm/decline URL-Params)
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.0 geladen`
+
+### Docker-Logs live beobachten
+
+```bash
+ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 50 -f"
+```
+
 ### E-Mail (Resend)
 
-Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner-Block).
+Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner-Block auf Port 25).
+- API-Key: `re_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s`
 - Verifizierte Domain: `crewplanner.nyxlightwork.de`
 - Absender: `noreply@crewplanner.nyxlightwork.de`
 - PocketBase Mail settings: `smtp.resend.com:587`, Username `resend`, Password = API-Key
@@ -87,6 +151,8 @@ Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner-Block).
 
 `https://api.crewplanner.nyxlightwork.de/_/` → Collections → `users` → New record → Email: `madmaxmail@web.de`.
 
+---
+
 ## Projektstruktur
 
 ```
@@ -94,14 +160,14 @@ Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner-Block).
 ├── login.html            ← Login-Seite (Pocketbase Auth)
 ├── styles.css
 ├── .pb_hooks/
-│   └── main.pb.js        ← Server-seitige E-Mail-Hooks (Pocketbase Goja-Engine)
+│   └── main.pb.js        ← Server-seitige E-Mail-Hooks (Pocketbase Goja-Engine) — v2.0
 ├── pocketbase/
 │   └── pb_schema.json    ← Collections-Schema für Pocketbase-Import
 └── js/
-    ├── config.js         ← POCKETBASE_URL, ADMIN_EMAIL
+    ├── config.js         ← POCKETBASE_URL, ADMIN_EMAIL, SUPABASE_ENABLED
     ├── pb.js             ← Pocketbase REST-Client (pbGet, pbPost, pbPatch, pbDelete, pbList, pbFirst, pbUpsert)
     ├── dataService.js    ← Pocketbase CRUD: proposeCrew, cancelProposal, bulkProposeCrew, loadCrewMeta, loadAssignmentStatuses
-    ├── authService.js    ← Login/Logout, JWT aus localStorage, IS_ADMIN
+    ├── authService.js    ← Login/Logout, JWT aus localStorage, IS_ADMIN, _handleEmailAction()
     ├── state.js          ← Globale Variablen: POSITIONS, TOUR_DATES, crew, assignments, assignmentStatuses
     ├── utils.js          ← getVal(), isPending(), showToast(), fmtD(), genId(), esc()
     ├── render.js         ← renderTable(), renderHead(), renderBody()
@@ -110,6 +176,8 @@ Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner-Block).
     ├── init.js           ← App-Start: loadLogosGlobal(), initPlans(), render()
     └── ...               ← blockview, crewview, plans, pdf, persistence, sidebar, stats, tourblock, types
 ```
+
+---
 
 ## Architektur-Gotchas
 
@@ -130,7 +198,56 @@ assignmentStatuses[date][posId] → Pocketbase-Cache { status, crewName, propose
 
 **`isPending(si)`** in `utils.js` — prüft `si.status === 'proposed' || 'declined'`; alle Status-Checks über diese Funktion.
 
-**E-Mails via Pocketbase-Hook** — `proposeCrew()` und `declineAssignment()` triggern automatisch `.pb_hooks/main.pb.js`. Kein Frontend-E-Mail-Code nötig.
+**E-Mails via Pocketbase-Hook** — `proposeCrew()` triggert automatisch `.pb_hooks/main.pb.js`. Kein Frontend-E-Mail-Code nötig.
+
+**`SUPABASE_ENABLED`** in `config.js` — trotz irreführendem Namen: `true` = Pocketbase aktiv, `false` = localStorage-only-Modus.
+
+---
+
+## E-Mail-Bestätigungs-Flow (v2.0)
+
+```
+Admin wählt Crew → proposeCrew() → PB assignment record (status=proposed)
+  → Hook CREATE fired → E-Mail an crew_email
+  → E-Mail: weißes Design, zwei Buttons:
+      [✓ BESTÄTIGEN →]  https://crewplanner.nyxlightwork.de?action=confirm&aid=RECORD_ID
+      [✗ ABLEHNEN →]   https://crewplanner.nyxlightwork.de?action=decline&aid=RECORD_ID
+  → Crew klickt Button → App öffnet → Login falls nötig
+  → _handleEmailAction() in authService.js → pbPatch(aid, {status:'confirmed'})
+  → loadAssignmentStatuses() → renderTable() → Zelle grün ✓
+```
+
+Bei Ablehnen: Hook UPDATE fired (status=declined) → E-Mail an Admin (`madmaxmail@web.de`).
+
+---
+
+## Bekannte Gotchas & Debugging-Wissen
+
+### PocketBase Goja-Isolation (KRITISCH)
+Hook-Callbacks laufen in vollständig isoliertem Kontext. Keine äußeren Scope-Variablen
+zugänglich — auch nicht `var`-Deklarationen außerhalb des Callbacks. Alle Werte (URLs,
+API-Keys, Farben) müssen als String-Literale **innerhalb jeder verschachtelten Funktion**
+hardcoded sein. Gelernt durch 4 Versionen (v1.6–v1.9) Debugging. Nie außerhalb definieren!
+
+### sort=-created → 400-Fehler
+Nach PocketBase-Schema-Import erkennt PB `created` nicht als sortierbares Feld.
+Lösung: Default-Sort in `pb.js` auf `-id` geändert (`sort: sort || '-id'`). Nie zurückändern.
+
+### pbUpsert → Duplicate Records
+Wenn `pbFirst` einen 400-Fehler wirft, fällt `pbUpsert` durch zu `pbPost` und erstellt Duplikate.
+Symptom: mehrfach gespeicherte `crew_members`. Fix: `-id`-Sort behebt das zugrundeliegende Problem.
+
+### Plans-Record verloren (Data-Loss-Szenario)
+Nach Schema-Wipe hatte plans-Record `name=N/A, owner=N/A`. Symptom: Alle PB-Operationen
+schlagen still fehl (planId=null). Fix: PB Admin → plans-Record manuell reparieren
+(name + owner setzen). Code-Fallback in `_createOrFetchPlanId()` (dataService.js) sucht Plan
+per owner allein falls name-Filter fehlschlägt.
+
+### E-Mail landet im Spam (web.de)
+web.de filtert aggressiv. Resend-Domain ist verifiziert, SPF/DKIM gesetzt. Trotzdem
+manchmal im Spam. Nichts kaputt — User muss Spam-Ordner prüfen.
+
+---
 
 ## Pocketbase Collections
 
@@ -138,9 +255,13 @@ assignmentStatuses[date][posId] → Pocketbase-Cache { status, crewName, propose
 plans           { id, name, owner(→users) }
 plan_members    { plan_id(→plans), user_id(→users), role }
 crew_members    { plan_id(→plans), name, email, sort_order, user_id(→users) }
-assignments     { plan_id, date, pos_id, pos_label, crew_name, status, proposed_by, responded_at }
+assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
 crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url }
 ```
+
+Assignment-Status-Werte: `proposed` → `confirmed` | `declined`
+
+---
 
 ## localStorage Keys
 
@@ -154,12 +275,16 @@ crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url }
 | `pb_user` | Pocketbase User-Objekt (JSON) |
 | `tourplan_pb_<planId>` | Pocketbase Plan-ID für aktiven Plan |
 
+---
+
 ## Konventionen
 
 - **Sprache:** Alle UI-Texte auf **Deutsch**
 - **Farbpalette:** Gold `#e8c84a`, Grün `#4ae8a0`, Rot `#e84a4a`, Dark BG `#1a1a2e`
 - **Kein Modulsystem** — alle JS-Dateien teilen den globalen Scope
-- **`SUPABASE_ENABLED`** in `config.js` — trotz irreführendem Namen: auf `true` = Pocketbase aktiv, `false` = localStorage-only-Modus
+- **Font:** `'IBM Plex Mono', monospace` (UI), `'Courier New'` (E-Mail-Templates)
+
+---
 
 ## LLM Council Skill
 
