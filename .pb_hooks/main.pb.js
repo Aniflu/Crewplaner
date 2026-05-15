@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 1.9
-console.log('[hook] main.pb.js v1.9 geladen');
+// Version: 2.0
+console.log('[hook] main.pb.js v2.0 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -26,26 +26,37 @@ onRecordAfterCreateSuccess(function(e) {
     } catch (err) { console.error('[mail] Fehler:', err.message); }
   };
 
-  var mkBtn = function(url, label) {
-    return '<table cellpadding="0" cellspacing="0" style="margin:32px 0;"><tr><td style="background:#e8c84a;border-radius:2px;"><a href="' + url + '" style="display:block;padding:13px 28px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#0d0d1a;text-decoration:none;letter-spacing:3px;">' + label + '</a></td></tr></table>';
+  var mkBtn = function(url, label, bg, color) {
+    var _bg    = bg    || '#e8c84a';
+    var _color = color || '#0d0d1a';
+    return '<table cellpadding="0" cellspacing="0" style="margin:8px 0;"><tr><td style="background:' + _bg + ';border-radius:2px;"><a href="' + url + '" style="display:block;padding:13px 28px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:' + _color + ';text-decoration:none;letter-spacing:3px;">' + label + '</a></td></tr></table>';
   };
 
   var wrap = function(content) {
-    return '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#0d0d1a;font-family:\'Courier New\',Courier,monospace;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d1a;padding:48px 20px;"><tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;"><tr><td style="padding-bottom:28px;border-bottom:1px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr><tr><td style="padding:36px 0;">' + content + '</td></tr><tr><td style="padding-top:24px;border-top:1px solid #1a1a32;"><p style="font-size:9px;color:#2a2a4a;letter-spacing:2px;margin:0;text-transform:uppercase;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr></table></td></tr></table></body></html>';
+    return '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"></head>' +
+      '<body style="margin:0;padding:0;background:#f8f9fb;font-family:\'Courier New\',Courier,monospace;">' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;padding:48px 20px;"><tr><td align="center">' +
+      '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e8e8e8;border-radius:4px;">' +
+      '<tr><td style="padding:28px 36px;border-bottom:2px solid #e8c84a;">' +
+      '<span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
+      '<tr><td style="padding:36px 36px;">' + content + '</td></tr>' +
+      '<tr><td style="padding:20px 36px;border-top:1px solid #e8e8e8;">' +
+      '<p style="font-size:9px;color:#999999;letter-spacing:2px;margin:0;text-transform:uppercase;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p>' +
+      '</td></tr></table></td></tr></table></body></html>';
   };
 
   if (type === 'invite') {
     sendMail(email, 'CREW INVITE · ' + plan, wrap(
-      '<h1 style="font-size:40px;font-weight:bold;color:#ffffff;margin:0 0 6px 0;">Du bist dabei.</h1>' +
-      '<p style="font-size:10px;color:#4a4a6a;letter-spacing:3px;margin:0 0 32px 0;">CREW INVITE · ' + plan.toUpperCase() + '</p>' +
-      '<p style="font-size:13px;color:#9090b0;line-height:1.8;margin:0;">Hey ' + name + ',<br><br>du wurdest für <strong style="color:#e8c84a;">' + plan + '</strong> eingeladen.</p>' +
+      '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Du bist dabei.</h1>' +
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">CREW INVITE · ' + plan + '</p>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Hey ' + name + ',<br><br>du wurdest für <strong style="color:#1a1a2e;">' + plan + '</strong> eingeladen.</p>' +
       mkBtn(appUrl, 'EINSÄTZE BESTÄTIGEN →')
     ));
   } else if (type === 'reminder') {
     sendMail(email, 'REMINDER · ' + plan, wrap(
-      '<h1 style="font-size:40px;font-weight:bold;color:#ffffff;margin:0 0 6px 0;">Noch ausstehend.</h1>' +
-      '<p style="font-size:10px;color:#4a4a6a;letter-spacing:3px;margin:0 0 32px 0;">REMINDER · ' + plan.toUpperCase() + '</p>' +
-      '<p style="font-size:13px;color:#9090b0;line-height:1.8;margin:0;">Hey ' + name + ',<br><br>bitte bestätige oder lehne deine Einsätze für <strong style="color:#e8c84a;">' + plan + '</strong> ab.</p>' +
+      '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Noch ausstehend.</h1>' +
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">REMINDER · ' + plan + '</p>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Hey ' + name + ',<br><br>bitte bestätige oder lehne deine Einsätze für <strong style="color:#1a1a2e;">' + plan + '</strong> ab.</p>' +
       mkBtn(appUrl, 'JETZT BESTÄTIGEN →')
     ));
   }
@@ -64,7 +75,8 @@ onRecordAfterCreateSuccess(function(e) {
   var crewName  = r.get('crew_name');
   var posLabel  = r.get('pos_label') || r.get('pos_id');
   var date      = r.get('date');
-  if (!crewEmail) { console.error('[mail] proposed create: keine crew_email', r.getId()); return; }
+  var aid       = r.getId();
+  if (!crewEmail) { console.error('[mail] proposed create: keine crew_email', aid); return; }
 
   var d = new Date(date);
   var fdate = isNaN(d) ? date : (('0'+d.getDate()).slice(-2) + '.' + ('0'+(d.getMonth()+1)).slice(-2) + '.' + d.getFullYear());
@@ -83,18 +95,31 @@ onRecordAfterCreateSuccess(function(e) {
     } catch (err) { console.error('[mail] Fehler:', err.message); }
   };
 
+  var confirmUrl = 'https://crewplanner.nyxlightwork.de?action=confirm&aid=' + aid;
+  var declineUrl = 'https://crewplanner.nyxlightwork.de?action=decline&aid=' + aid;
+
   sendMail(crewEmail, 'ANFRAGE · ' + posLabel + ' · ' + fdate,
-    '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#0d0d1a;font-family:\'Courier New\',Courier,monospace;">' +
-    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d1a;padding:48px 20px;"><tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">' +
-    '<tr><td style="padding-bottom:28px;border-bottom:1px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
-    '<tr><td style="padding:36px 0;"><h1 style="font-size:40px;color:#ffffff;margin:0 0 6px 0;">Neue Anfrage.</h1>' +
-    '<p style="font-size:13px;color:#9090b0;line-height:1.8;margin:0 0 4px 0;">Hey ' + crewName + ',<br><br>du wurdest angefragt:</p>' +
-    '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #1a1a32;">' +
-    '<tr><td style="padding:11px 16px;font-size:9px;color:#4a4a6a;">POSITION</td><td style="padding:11px 16px;font-size:13px;color:#e8c84a;">' + posLabel + '</td></tr>' +
-    '<tr><td style="padding:11px 16px;font-size:9px;color:#4a4a6a;">DATUM</td><td style="padding:11px 16px;font-size:13px;color:#ffffff;">' + fdate + '</td></tr>' +
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+    '<body style="margin:0;padding:0;background:#f8f9fb;font-family:\'Courier New\',Courier,monospace;">' +
+    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;padding:48px 20px;"><tr><td align="center">' +
+    '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e8e8e8;border-radius:4px;">' +
+    '<tr><td style="padding:28px 36px;border-bottom:2px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
+    '<tr><td style="padding:36px 36px;">' +
+    '<h1 style="font-size:36px;color:#1a1a2e;margin:0 0 6px 0;">Neue Anfrage.</h1>' +
+    '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">CREW ANFRAGE</p>' +
+    '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey ' + crewName + ',<br><br>du wurdest angefragt:</p>' +
+    '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
+    '<tr style="background:#f8f9fb;"><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #e8e8e8;">POSITION</td>' +
+    '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + posLabel + '</td></tr>' +
+    '<tr><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;">DATUM</td>' +
+    '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;">' + fdate + '</td></tr>' +
     '</table>' +
-    '<table cellpadding="0" cellspacing="0" style="margin:32px 0;"><tr><td style="background:#e8c84a;border-radius:2px;"><a href="https://crewplanner.nyxlightwork.de" style="display:block;padding:13px 28px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#0d0d1a;text-decoration:none;letter-spacing:3px;">BESTÄTIGEN / ABLEHNEN →</a></td></tr></table>' +
-    '</td></tr><tr><td style="padding-top:24px;border-top:1px solid #1a1a32;"><p style="font-size:9px;color:#2a2a4a;margin:0;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr>' +
+    '<table cellpadding="0" cellspacing="0"><tr>' +
+    '<td style="padding-right:12px;"><table cellpadding="0" cellspacing="0"><tr><td style="background:#e8c84a;border-radius:2px;"><a href="' + confirmUrl + '" style="display:block;padding:13px 24px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#0d0d1a;text-decoration:none;letter-spacing:3px;">✓ BESTÄTIGEN →</a></td></tr></table></td>' +
+    '<td><table cellpadding="0" cellspacing="0"><tr><td style="background:#ffffff;border:1px solid #e8e8e8;border-radius:2px;"><a href="' + declineUrl + '" style="display:block;padding:13px 24px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#555570;text-decoration:none;letter-spacing:3px;">✗ ABLEHNEN →</a></td></tr></table></td>' +
+    '</tr></table>' +
+    '</td></tr>' +
+    '<tr><td style="padding:20px 36px;border-top:1px solid #e8e8e8;"><p style="font-size:9px;color:#999999;letter-spacing:2px;margin:0;text-transform:uppercase;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr>' +
     '</table></td></tr></table></body></html>'
   );
 }, 'assignments');
@@ -123,24 +148,38 @@ onRecordAfterUpdateSuccess(function(e) {
   var d        = new Date(date);
   var fdate    = isNaN(d) ? date : (('0'+d.getDate()).slice(-2) + '.' + ('0'+(d.getMonth()+1)).slice(-2) + '.' + d.getFullYear());
   var posLabel = r.get('pos_label') || r.get('pos_id');
+  var aid      = r.getId();
 
   if (status === 'proposed') {
     var crewEmail = r.get('crew_email');
     var crewName  = r.get('crew_name');
-    if (!crewEmail) { console.error('[mail] proposed update: keine crew_email', r.getId()); return; }
+    if (!crewEmail) { console.error('[mail] proposed update: keine crew_email', aid); return; }
+
+    var confirmUrl2 = 'https://crewplanner.nyxlightwork.de?action=confirm&aid=' + aid;
+    var declineUrl2 = 'https://crewplanner.nyxlightwork.de?action=decline&aid=' + aid;
 
     sendMail(crewEmail, 'ANFRAGE · ' + posLabel + ' · ' + fdate,
-      '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#0d0d1a;font-family:\'Courier New\',Courier,monospace;">' +
-      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d1a;padding:48px 20px;"><tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">' +
-      '<tr><td style="padding-bottom:28px;border-bottom:1px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
-      '<tr><td style="padding:36px 0;"><h1 style="font-size:40px;color:#ffffff;margin:0 0 6px 0;">Neue Anfrage.</h1>' +
-      '<p style="font-size:13px;color:#9090b0;line-height:1.8;margin:0 0 4px 0;">Hey ' + crewName + ',<br><br>du wurdest angefragt:</p>' +
-      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #1a1a32;">' +
-      '<tr><td style="padding:11px 16px;font-size:9px;color:#4a4a6a;">POSITION</td><td style="padding:11px 16px;font-size:13px;color:#e8c84a;">' + posLabel + '</td></tr>' +
-      '<tr><td style="padding:11px 16px;font-size:9px;color:#4a4a6a;">DATUM</td><td style="padding:11px 16px;font-size:13px;color:#ffffff;">' + fdate + '</td></tr>' +
+      '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+      '<body style="margin:0;padding:0;background:#f8f9fb;font-family:\'Courier New\',Courier,monospace;">' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;padding:48px 20px;"><tr><td align="center">' +
+      '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e8e8e8;border-radius:4px;">' +
+      '<tr><td style="padding:28px 36px;border-bottom:2px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
+      '<tr><td style="padding:36px 36px;">' +
+      '<h1 style="font-size:36px;color:#1a1a2e;margin:0 0 6px 0;">Neue Anfrage.</h1>' +
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">CREW ANFRAGE</p>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey ' + crewName + ',<br><br>du wurdest angefragt:</p>' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
+      '<tr style="background:#f8f9fb;"><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #e8e8e8;">POSITION</td>' +
+      '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + posLabel + '</td></tr>' +
+      '<tr><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;">DATUM</td>' +
+      '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;">' + fdate + '</td></tr>' +
       '</table>' +
-      '<table cellpadding="0" cellspacing="0" style="margin:32px 0;"><tr><td style="background:#e8c84a;border-radius:2px;"><a href="https://crewplanner.nyxlightwork.de" style="display:block;padding:13px 28px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#0d0d1a;text-decoration:none;letter-spacing:3px;">BESTÄTIGEN / ABLEHNEN →</a></td></tr></table>' +
-      '</td></tr><tr><td style="padding-top:24px;border-top:1px solid #1a1a32;"><p style="font-size:9px;color:#2a2a4a;margin:0;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr>' +
+      '<table cellpadding="0" cellspacing="0"><tr>' +
+      '<td style="padding-right:12px;"><table cellpadding="0" cellspacing="0"><tr><td style="background:#e8c84a;border-radius:2px;"><a href="' + confirmUrl2 + '" style="display:block;padding:13px 24px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#0d0d1a;text-decoration:none;letter-spacing:3px;">✓ BESTÄTIGEN →</a></td></tr></table></td>' +
+      '<td><table cellpadding="0" cellspacing="0"><tr><td style="background:#ffffff;border:1px solid #e8e8e8;border-radius:2px;"><a href="' + declineUrl2 + '" style="display:block;padding:13px 24px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#555570;text-decoration:none;letter-spacing:3px;">✗ ABLEHNEN →</a></td></tr></table></td>' +
+      '</tr></table>' +
+      '</td></tr>' +
+      '<tr><td style="padding:20px 36px;border-top:1px solid #e8e8e8;"><p style="font-size:9px;color:#999999;letter-spacing:2px;margin:0;text-transform:uppercase;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr>' +
       '</table></td></tr></table></body></html>'
     );
     return;
@@ -150,18 +189,26 @@ onRecordAfterUpdateSuccess(function(e) {
 
   var crewName = r.get('crew_name');
   sendMail('madmaxmail@web.de', 'ABGELEHNT · ' + posLabel + ' · ' + fdate,
-    '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#0d0d1a;font-family:\'Courier New\',Courier,monospace;">' +
-    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d1a;padding:48px 20px;"><tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">' +
-    '<tr><td style="padding-bottom:28px;border-bottom:1px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
-    '<tr><td style="padding:36px 0;"><h1 style="font-size:40px;color:#e84a4a;margin:0 0 6px 0;">Abgelehnt.</h1>' +
-    '<p style="font-size:13px;color:#9090b0;line-height:1.8;margin:0 0 4px 0;"><strong style="color:#e84a4a;">' + crewName + '</strong> hat abgelehnt:</p>' +
-    '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #1a1a32;">' +
-    '<tr><td style="padding:11px 16px;font-size:9px;color:#4a4a6a;">POSITION</td><td style="padding:11px 16px;font-size:13px;color:#e8c84a;">' + posLabel + '</td></tr>' +
-    '<tr><td style="padding:11px 16px;font-size:9px;color:#4a4a6a;">DATUM</td><td style="padding:11px 16px;font-size:13px;color:#ffffff;">' + fdate + '</td></tr>' +
-    '<tr><td style="padding:11px 16px;font-size:9px;color:#4a4a6a;">CREW</td><td style="padding:11px 16px;font-size:13px;color:#e84a4a;">' + crewName + '</td></tr>' +
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+    '<body style="margin:0;padding:0;background:#f8f9fb;font-family:\'Courier New\',Courier,monospace;">' +
+    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;padding:48px 20px;"><tr><td align="center">' +
+    '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e8e8e8;border-radius:4px;">' +
+    '<tr><td style="padding:28px 36px;border-bottom:2px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
+    '<tr><td style="padding:36px 36px;">' +
+    '<h1 style="font-size:36px;color:#e84a4a;margin:0 0 6px 0;">Abgelehnt.</h1>' +
+    '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">CREW ABSAGE</p>' +
+    '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;"><strong style="color:#e84a4a;">' + crewName + '</strong> hat abgelehnt:</p>' +
+    '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
+    '<tr style="background:#f8f9fb;"><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #e8e8e8;">POSITION</td>' +
+    '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + posLabel + '</td></tr>' +
+    '<tr style="background:#f8f9fb;"><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #e8e8e8;">DATUM</td>' +
+    '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;border-bottom:1px solid #e8e8e8;">' + fdate + '</td></tr>' +
+    '<tr><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;">CREW</td>' +
+    '<td style="padding:11px 16px;font-size:13px;color:#e84a4a;font-weight:bold;">' + crewName + '</td></tr>' +
     '</table>' +
-    '<table cellpadding="0" cellspacing="0" style="margin:32px 0;"><tr><td style="background:#1a1a32;border:1px solid #2a2a4a;border-radius:2px;"><a href="https://crewplanner.nyxlightwork.de" style="display:block;padding:13px 28px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#8080a0;text-decoration:none;letter-spacing:3px;">PLAN ÖFFNEN →</a></td></tr></table>' +
-    '</td></tr><tr><td style="padding-top:24px;border-top:1px solid #1a1a32;"><p style="font-size:9px;color:#2a2a4a;margin:0;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr>' +
+    '<table cellpadding="0" cellspacing="0"><tr><td style="background:#f8f9fb;border:1px solid #e8e8e8;border-radius:2px;"><a href="https://crewplanner.nyxlightwork.de" style="display:block;padding:13px 24px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#555570;text-decoration:none;letter-spacing:3px;">PLAN ÖFFNEN →</a></td></tr></table>' +
+    '</td></tr>' +
+    '<tr><td style="padding:20px 36px;border-top:1px solid #e8e8e8;"><p style="font-size:9px;color:#999999;letter-spacing:2px;margin:0;text-transform:uppercase;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr>' +
     '</table></td></tr></table></body></html>'
   );
 }, 'assignments');

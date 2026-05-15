@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v2.1.1**
+- Aktuelle Version: **v0.8.5**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Ziel): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de

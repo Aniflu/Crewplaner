@@ -38,6 +38,7 @@ async function _authCheckAndStart() {
       .then(() => {
         renderTable();
         if (typeof checkAndOpenMySchedule === 'function') checkAndOpenMySchedule();
+        _handleEmailAction();
       });
   } catch (e) {
     console.error('Auth-Fehler:', e);
@@ -62,6 +63,30 @@ async function logout() {
   localStorage.removeItem('pb_token');
   localStorage.removeItem('pb_user');
   window.location.href = 'login.html';
+}
+
+async function _handleEmailAction() {
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get('action');
+  const aid    = params.get('aid');
+  if (!action || !aid || !SUPABASE_ENABLED) return;
+  history.replaceState({}, '', window.location.pathname);
+  try {
+    const payload = { responded_at: new Date().toISOString() };
+    if (action === 'confirm') {
+      payload.status = 'confirmed';
+      await pbPatch('/api/collections/assignments/records/' + aid, payload);
+      showToast('Einsatz bestätigt ✓', '#4ae8a0');
+    } else if (action === 'decline') {
+      payload.status = 'declined';
+      await pbPatch('/api/collections/assignments/records/' + aid, payload);
+      showToast('Einsatz abgelehnt', '#e84a4a');
+    } else { return; }
+    await loadAssignmentStatuses();
+    renderTable();
+  } catch(e) {
+    showToast('Fehler: ' + e.message, '#e84a4a');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
