@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.8.5**
+- Aktuelle Version: **v0.8.5.1**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -13,7 +13,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-## Aktueller Stand (Stand: 2026-05-15)
+## Versionierung
+
+```
+v0.8.5.x  — Patch-Fixes am E-Mail-Einladungs-Feature (aktuell)
+             Jeder Fix: letzte Stelle +1  (0.8.5.1 → 0.8.5.2 → ...)
+v0.8.6    — Nächste Feature-Stufe (erst wenn E-Mail-Flow vollständig getestet)
+```
+
+**Regel:** Nach JEDEM Fix die Version synchron erhöhen in:
+1. `index.html` — `<span class="tour-tag">Personalplan · vX.X.X</span>` (sichtbar in der App — daran testet der User!)
+2. `CLAUDE.md` — "Aktuelle Version"
+3. `README.md` — Version-Zeile
+
+Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe vorschlagen.
+
+---
+
+## Aktueller Stand (Stand: 2026-05-16)
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase (`madmaxmail@web.de` = Admin)
