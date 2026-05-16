@@ -100,6 +100,8 @@ function openCrewDD(e,dateStr,posId){
     items.push({label:'✕ Anfrage zurückziehen',cls:'danger',action:async()=>{
       closeDD();
       try{
+        const _email=crewMeta?.[si.crewName]?.email;
+        if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
         await cancelProposal(dateStr,posId);
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
         if(assignments[dateStr])delete assignments[dateStr][posId];
@@ -115,6 +117,8 @@ function openCrewDD(e,dateStr,posId){
     items.push({label:'✕ Besetzung aufheben',cls:'danger',action:async()=>{
       closeDD();
       try{
+        const _email=crewMeta?.[si.crewName]?.email;
+        if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
         await cancelProposal(dateStr,posId);
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
         if(assignments[dateStr])delete assignments[dateStr][posId];

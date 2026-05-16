@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 2.1
-console.log('[hook] main.pb.js v2.1 geladen');
+// Version: 2.2
+console.log('[hook] main.pb.js v2.2 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -59,6 +59,27 @@ onRecordAfterCreateSuccess(function(e) {
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Hey ' + name + ',<br><br>bitte bestätige oder lehne deine Einsätze für <strong style="color:#1a1a2e;">' + plan + '</strong> ab.</p>' +
       mkBtn(appUrl, 'JETZT BESTÄTIGEN →')
     ));
+  } else if (type === 'cancellation') {
+    var slots = [];
+    try { slots = JSON.parse(appUrl || '[]'); } catch (_) {}
+    var rowsHtml = '';
+    for (var i = 0; i < slots.length; i++) {
+      var s = slots[i];
+      var d2 = new Date(s.date);
+      var fd2 = isNaN(d2.getTime()) ? s.date : (('0'+d2.getDate()).slice(-2) + '.' + ('0'+(d2.getMonth()+1)).slice(-2) + '.' + d2.getFullYear());
+      rowsHtml += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + s.posLabel + '</td>' +
+        '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">' + fd2 + '</td></tr>';
+    }
+    sendMail(email, 'ABSAGE · ' + plan, wrap(
+      '<h1 style="font-size:36px;font-weight:bold;color:#e84a4a;margin:0 0 6px 0;">Leider abgesagt.</h1>' +
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">ABSAGE · ' + plan + '</p>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey ' + name + ',<br><br>folgende Eins&auml;tze wurden leider abgesagt:</p>' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
+      '<tr style="background:#f8f9fb;"><td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td>' +
+      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td></tr>' +
+      rowsHtml + '</table>'
+    ));
+    console.log('[hook] cancellation email sent to ' + email + ' (' + slots.length + ' slots)');
   }
 
   try { $app.dao().deleteRecord(r); } catch (_) {}

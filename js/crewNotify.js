@@ -1,5 +1,20 @@
 // ── Crew-Benachrichtigung Modal (nur Admin) ────────────────────────────────────
 const CREW_INVITES_KEY = 'tourplan_crew_invites';
+const PENDING_CANCELLATIONS_KEY = 'tourplan_pending_cancellations';
+
+function _storePendingCancellation(crewName, email, dateStr, posLabel) {
+  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  if (!q[crewName]) q[crewName] = { email, slots: [] };
+  const exists = q[crewName].slots.some(s => s.date === dateStr && s.posLabel === posLabel);
+  if (!exists) q[crewName].slots.push({ date: dateStr, posLabel });
+  localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(q));
+}
+
+function _clearPendingCancellations(crewName) {
+  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  delete q[crewName];
+  localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(q));
+}
 
 function _loadInvites() {
   try { return JSON.parse(localStorage.getItem(CREW_INVITES_KEY) || '{}'); } catch { return {}; }
@@ -39,10 +54,12 @@ function openCrewNotifyModal() {
 }
 
 function _renderCrewNotifyList() {
+  const pending = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
   const rows = crew.map((name, i) => {
     const meta = crewMeta[name] || {};
     const dot = CREW_COLORS[i % CREW_COLORS.length];
     const status = _getCrewInviteStatus(name);
+    const pendingCount = pending[name]?.slots?.length || 0;
 
     if (!meta.email) {
       return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;opacity:.45;">
@@ -64,11 +81,15 @@ function _renderCrewNotifyList() {
       btn = `<button class="mbtn primary sm" onclick="sendInvite('${name.replace(/'/g,"\\'")}','invite')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">📧 Einladen</button>`;
     }
 
-    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-      <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
+    const cancelBtn = pendingCount > 0
+      ? `<div style="margin-top:5px;"><button class="mbtn sm" onclick="sendCancellationSummary('${name.replace(/'/g,"\\'")}');" style="font-size:.58rem;padding:3px 7px;background:#e84a4a;color:#fff;border:none;">✕ ${pendingCount} Absage${pendingCount > 1 ? 'n' : ''} senden</button></div>`
+      : '';
+
+    return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
+      <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:5px;"></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:.65rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
-        ${badge}
+        ${badge}${cancelBtn}
       </div>
       ${btn}
     </div>`;
@@ -82,6 +103,20 @@ function _renderCrewNotifyList() {
     <div class="mactions" style="margin-top:8px;">
       <button class="mbtn" onclick="closeModal('sharedModal')">Schließen</button>
     </div>`;
+}
+
+async function sendCancellationSummary(crewName) {
+  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  const entry = q[crewName];
+  if (!entry || !entry.slots.length) return;
+  try {
+    await sendCancellationNotice(crewName, entry.email, entry.slots);
+    _clearPendingCancellations(crewName);
+    showToast(`${crewName}: Absage-Mail gesendet ✓`, '#4ae8a0');
+    _renderCrewNotifyList();
+  } catch(e) {
+    showToast('Fehler: ' + e.message, '#e84a4a');
+  }
 }
 
 async function sendInvite(crewName, type) {

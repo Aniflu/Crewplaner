@@ -260,6 +260,25 @@ async function bulkProposeCrew(slots) {
   });
 }
 
+// ── Absage-Sammel-E-Mail an Crew-Mitglied (via Pocketbase-Hook) ───────────────
+async function sendCancellationNotice(crewName, crewEmail, slots) {
+  if (!SUPABASE_ENABLED || !crewEmail) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
+  const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
+  try {
+    await pbPost('/api/collections/crew_invites/records', {
+      plan_id: planId, crew_name: crewName, crew_email: crewEmail,
+      type: 'cancellation', plan_name: planName,
+      app_url: JSON.stringify(slots)
+    });
+  } catch (e) {
+    console.warn('sendCancellationNotice Fehler:', e.message);
+    _showMailError(e.message);
+  }
+}
+
 // ── Crew einladen / Erinnerung schicken (E-Mail via Pocketbase-Hook) ──────────
 async function sendCrewInvite(crewName, crewEmail, type) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
