@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 2.0
-console.log('[hook] main.pb.js v2.0 geladen');
+// Version: 2.1
+console.log('[hook] main.pb.js v2.1 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -68,14 +68,14 @@ onRecordAfterCreateSuccess(function(e) {
 // ── 2. Anfrage an Crew-Mitglied (assignment proposed via CREATE) ───────────────
 onRecordAfterCreateSuccess(function(e) {
   var r = e.record;
-  console.log('[hook] CREATE assignments fired, status:', r.get('status'), 'id:', r.getId());
+  console.log('[hook] CREATE assignments fired, status:', r.get('status'), 'id:', r.id);
   if (r.get('status') !== 'proposed') return;
 
   var crewEmail = r.get('crew_email');
   var crewName  = r.get('crew_name');
   var posLabel  = r.get('pos_label') || r.get('pos_id');
   var date      = r.get('date');
-  var aid       = r.getId();
+  var aid       = r.id;
   if (!crewEmail) { console.error('[mail] proposed create: keine crew_email', aid); return; }
 
   var d = new Date(date);
@@ -128,7 +128,7 @@ onRecordAfterCreateSuccess(function(e) {
 onRecordAfterUpdateSuccess(function(e) {
   var r      = e.record;
   var status = r.get('status');
-  console.log('[hook] UPDATE assignments fired, status:', status, 'id:', r.getId());
+  console.log('[hook] UPDATE assignments fired, status:', status, 'id:', r.id);
 
   var sendMail = function(to, subject, html) {
     var _key  = 're_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s';
@@ -148,7 +148,7 @@ onRecordAfterUpdateSuccess(function(e) {
   var d        = new Date(date);
   var fdate    = isNaN(d) ? date : (('0'+d.getDate()).slice(-2) + '.' + ('0'+(d.getMonth()+1)).slice(-2) + '.' + d.getFullYear());
   var posLabel = r.get('pos_label') || r.get('pos_id');
-  var aid      = r.getId();
+  var aid      = r.id;
 
   if (status === 'proposed') {
     var crewEmail = r.get('crew_email');
