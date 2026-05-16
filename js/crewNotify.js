@@ -17,7 +17,10 @@ function _getCrewInviteStatus(name) {
     Object.values(day).some(s => s.crewName === name && s.status === 'confirmed')
   );
   if (hasConfirmed) return 'confirmed';
-  if (invites[name]) return 'invited_pending';
+  const hasActive = Object.values(assignmentStatuses || {}).some(day =>
+    Object.values(day).some(s => s.crewName === name && isPending(s))
+  );
+  if (invites[name] && hasActive) return 'invited_pending';
   return 'not_invited';
 }
 
