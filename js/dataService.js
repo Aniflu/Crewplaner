@@ -144,14 +144,14 @@ async function proposeCrew(dateStr, posId, crewName, crewEmail) {
       {
         plan_id: planId, date: dateStr, pos_id: posId, pos_label: posLabel,
         crew_name: crewName, crew_email: crewEmail || '',
-        status: 'proposed', proposed_by: CURRENT_USER_ID
+        status: 'proposed'
       },
       { crew_name: crewName, pos_label: posLabel, crew_email: crewEmail || '',
-        status: 'proposed', proposed_by: CURRENT_USER_ID }
+        status: 'proposed' }
     );
   } catch (e) {
     console.error('proposeCrew Fehler:', e.message);
-    if (typeof showToast === 'function') showToast('⚠ PB-Fehler: ' + e.message, 6000);
+    if (typeof showToast === 'function') showToast('⚠ PB-Fehler: ' + e.message, '#e84a4a');
     return;
   }
 
@@ -245,10 +245,10 @@ async function bulkProposeCrew(slots) {
       {
         plan_id: planId, date: s.date, pos_id: s.posId, pos_label: pos?.label || s.posId,
         crew_name: s.crewName, crew_email: s.crewEmail || '',
-        status: 'proposed', proposed_by: CURRENT_USER_ID
+        status: 'proposed'
       },
       { crew_name: s.crewName, pos_label: pos?.label || s.posId, crew_email: s.crewEmail || '',
-        status: 'proposed', proposed_by: CURRENT_USER_ID }
+        status: 'proposed' }
     );
   }));
 

@@ -32,7 +32,7 @@ function pbList(collection, filter, sort, perPage) {
 
 // ── Ersten Treffer einer Filter-Abfrage holen ──────────────────────────────────
 async function pbFirst(collection, filter) {
-  const data = await pbList(collection, filter, '-created', 1);
+  const data = await pbList(collection, filter, '-id', 1);
   return data?.items?.[0] || null;
 }
 

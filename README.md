@@ -7,7 +7,7 @@ Crew-Scheduling-App für Tourneen. Der Admin weist Crew-Mitglieder pro Position 
 
 ## Version
 
-**v0.8.5.1** — [Changelog](CHANGELOG.md)
+**v0.8.5.2** — [Changelog](CHANGELOG.md)
 
 ## Tech-Stack
 
