@@ -11,7 +11,10 @@ async function _pbFetch(method, path, body) {
   const res = await fetch(POCKETBASE_URL + path, opts);
   if (res.status === 204) return null;
   const json = await res.json();
-  if (!res.ok) throw new Error(json.message || 'Pocketbase Fehler ' + res.status);
+  if (!res.ok) {
+    if (json.data) console.error('[pb] Validierungsfehler:', JSON.stringify(json.data));
+    throw new Error(json.message || 'Pocketbase Fehler ' + res.status);
+  }
   return json;
 }
 
