@@ -165,7 +165,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
 
-Aktuell deployte Hook-Version: **v2.8** (Resend HTTP API, $getEnv('RESEND_KEY'))
+Aktuell deployte Hook-Version: **v2.9** (Resend HTTP API, $getEnv('RESEND_KEY'))
 Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.8 geladen`
 
 ### Docker-Logs live beobachten

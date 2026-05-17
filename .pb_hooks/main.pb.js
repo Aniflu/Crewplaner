@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 2.8
-console.log('[hook] main.pb.js v2.8 geladen');
+// Version: 2.9
+console.log('[hook] main.pb.js v2.9 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -258,3 +258,42 @@ onRecordAfterUpdateSuccess(function(e) {
     '</table></td></tr></table></body></html>'
   );
 }, 'assignments');
+
+// ── 4. Passwort-Reset-E-Mail (via Resend, statt PB SMTP) ─────────────────────
+onMailerBeforeRecordResetPasswordSend(function(e) {
+  var email    = e.record.get('email');
+  var token    = e.token;
+  var resetUrl = 'https://aniflu.github.io/Crewplaner/login.html?token=' + token;
+
+  var _key  = $getEnv('RESEND_KEY');
+  var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
+
+  var btn = '<table cellpadding="0" cellspacing="0" style="margin:8px 0;"><tr><td style="background:#e8c84a;border-radius:2px;"><a href="' + resetUrl + '" style="display:block;padding:13px 28px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#0d0d1a;text-decoration:none;letter-spacing:3px;">PASSWORT FESTLEGEN &#x2192;</a></td></tr></table>';
+
+  var html = '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"></head>' +
+    '<body style="margin:0;padding:0;background:#f8f9fb;font-family:\'Courier New\',Courier,monospace;">' +
+    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;padding:48px 20px;"><tr><td align="center">' +
+    '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e8e8e8;border-radius:4px;">' +
+    '<tr><td style="padding:28px 36px;border-bottom:2px solid #e8c84a;">' +
+    '<span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
+    '<tr><td style="padding:36px 36px;">' +
+    '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Passwort festlegen.</h1>' +
+    '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">TOUR CREW PLAN · ZUGANG</p>' +
+    '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Klicke auf den Button um dein Passwort zu setzen und dich einzuloggen.<br>Der Link ist <strong style="color:#1a1a2e;">24 Stunden g&uuml;ltig.</strong></p>' +
+    btn +
+    '<p style="font-size:11px;color:#999999;margin:24px 0 0 0;">Falls du diese E-Mail nicht erwartet hast, kannst du sie einfach ignorieren.</p>' +
+    '</td></tr>' +
+    '<tr><td style="padding:20px 36px;border-top:1px solid #e8e8e8;">' +
+    '<p style="font-size:9px;color:#999999;letter-spacing:2px;margin:0;text-transform:uppercase;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p>' +
+    '</td></tr></table></td></tr></table></body></html>';
+
+  try {
+    var res = $http.send({
+      url: 'https://api.resend.com/emails', method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + _key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: _from, to: [email], subject: 'Passwort festlegen · Tour Crew Plan', html: html })
+    });
+    if (res.statusCode >= 400) { console.error('[mail] Reset-Mail Resend Fehler ' + res.statusCode + ':', res.raw); }
+    else { console.log('[mail] Reset-Mail gesendet an ' + email); }
+  } catch (err) { console.error('[mail] Reset-Mail Fehler:', err.message); }
+}, 'users');
