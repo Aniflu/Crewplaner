@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manager-Anleitung — Tour Crew Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #1a1a2e; color: #c8cdd5;
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  min-height: 100vh; padding: 0 0 64px 0;
+}
+.header {
+  background: #12122a; border-bottom: 2px solid #e8c84a;
+  padding: 28px 40px; display: flex; align-items: center; gap: 20px;
+}
+.header-label { font-size: .6rem; letter-spacing: .15em; text-transform: uppercase; color: #e8c84a; margin-bottom: 4px; }
+.header-title { font-size: 1.4rem; font-weight: 600; color: #f0f0f0; }
+.role-badge {
+  margin-left: auto; background: #4ae8a0; color: #0d0d1a;
+  font-size: .55rem; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; padding: 6px 14px; border-radius: 2px;
+}
+.content { max-width: 680px; margin: 0 auto; padding: 48px 24px; }
+.section { margin-bottom: 48px; }
+.section-num { font-size: .55rem; letter-spacing: .15em; text-transform: uppercase; color: #e8c84a; margin-bottom: 8px; }
+.section-title { font-size: 1rem; font-weight: 600; color: #f0f0f0; margin-bottom: 16px; }
+.section-body { font-size: .75rem; line-height: 1.9; color: #8a90a0; }
+.step {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: #12122a; border: 1px solid #2a2a40; border-radius: 4px;
+  padding: 16px 20px; margin-bottom: 10px;
+}
+.step-num {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+  background: #4ae8a0; color: #0d0d1a; font-size: .6rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.step-text { font-size: .72rem; line-height: 1.8; color: #c8cdd5; }
+.step-text strong { color: #f0f0f0; }
+.highlight {
+  background: #12122a; border-left: 3px solid #4ae8a0;
+  padding: 14px 20px; border-radius: 0 4px 4px 0; margin: 16px 0;
+  font-size: .72rem; line-height: 1.8; color: #c8cdd5;
+}
+.warn {
+  background: #12122a; border-left: 3px solid #e8c84a;
+  padding: 14px 20px; border-radius: 0 4px 4px 0; margin: 16px 0;
+  font-size: .72rem; line-height: 1.8; color: #c8cdd5;
+}
+.feature-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px;
+}
+@media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
+.feature-card {
+  background: #12122a; border: 1px solid #2a2a40; border-radius: 4px; padding: 14px 16px;
+}
+.feature-card-title { font-size: .65rem; font-weight: 600; color: #f0f0f0; margin-bottom: 6px; }
+.feature-card-body { font-size: .65rem; line-height: 1.7; color: #8a90a0; }
+.kbd {
+  display: inline-block; background: #2a2a40; border: 1px solid #3a3a50;
+  border-radius: 3px; padding: 2px 8px; font-size: .6rem; color: #c8cdd5;
+}
+.footer {
+  margin-top: 64px; padding-top: 24px; border-top: 1px solid #2a2a40;
+  font-size: .6rem; color: #3a3a50; letter-spacing: .08em; text-align: center;
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-label">Tour Crew Plan · Anleitung</div>
+    <div class="header-title">Für Manager &amp; Tourmanager</div>
+  </div>
+  <div class="role-badge">Manager</div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-num">Überblick</div>
+    <div class="section-title">Was kannst du als Manager?</div>
+    <div class="section-body">Als Manager verwaltest du den kompletten Tourplan — du erstellst Touren, weist Crew-Mitglieder zu, sendest Einladungen und hast Zugriff auf die Manager-Konsole mit Werkzeugen für Export, PDF und Benachrichtigungen.</div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-title">Tourenplan</div>
+        <div class="feature-card-body">Tage anlegen, Positionen besetzen, Crew per Dropdown zuweisen</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title">Crew-Verwaltung</div>
+        <div class="feature-card-body">E-Mails hinterlegen, Einladungen senden, Erinnerungen verschicken</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title">Export</div>
+        <div class="feature-card-body">PDF-Druck, JSON-Backup, Kalender-Export (.ics)</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title">Booker-Link</div>
+        <div class="feature-card-body">Öffentlichen Read-only-Link generieren — kein Login nötig</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-num">Erste Schritte</div>
+    <div class="section-title">Einloggen &amp; Plan öffnen</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Öffne <strong>crewplanner.nyxlightwork.de/login.html</strong> und logge dich mit deiner E-Mail und deinem Passwort ein.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Du landest auf dem Tourenplan. In der linken Sidebar siehst du alle deine Pläne — klicke auf einen Plan um ihn zu öffnen, oder erstelle einen neuen mit <strong>„+ Neuer Plan"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Für erweiterte Werkzeuge klicke oben auf <strong>„⚙ Konsole"</strong> — dort findest du Crew-Benachrichtigungen, Export und den Booker-Link.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-num">Crew zuweisen</div>
+    <div class="section-title">Positionen besetzen</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Klicke auf eine Zelle im Plan (Datum × Position). Ein Dropdown öffnet sich mit deiner Crew-Liste.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Wähle ein Crew-Mitglied — hat es eine E-Mail hinterlegt, siehst du <strong>📧</strong> vor dem Namen. Die Anfrage wird automatisch per E-Mail gesendet.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Die Zelle zeigt den Status: <strong>Gelb</strong> = ausstehend, <strong>Grün</strong> = bestätigt, <strong>Rot</strong> = abgelehnt.</div>
+    </div>
+    <div class="warn">
+      Bei Ablehnung bekommst du automatisch eine E-Mail — du kannst dann jemand anderen zuweisen.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-num">Konsole / Werkzeuge</div>
+    <div class="section-title">Manager-Konsole nutzen</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Klicke auf <strong>„⚙ Konsole"</strong> → <strong>Werkzeuge-Tab</strong> → Plan aus dem Dropdown wählen.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Crew verknüpfen:</strong> E-Mail-Adressen pro Crew-Mitglied hinterlegen — nötig damit E-Mails gesendet werden können.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text"><strong>Crew benachrichtigen:</strong> Einladung oder Erinnerung an einzelne Crew-Mitglieder senden.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text"><strong>Mitarbeiter einladen:</strong> Name + E-Mail eingeben → Einladungsmail mit Registrierungs-Link senden (für Manager, Booker etc.).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-text"><strong>Öffentlicher Link:</strong> „Link generieren" erstellt einen Read-only-Link für Booker — kein Login nötig. Link einfach per E-Mail oder WhatsApp weiterleiten.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-num">Häufige Fragen</div>
+    <div class="section-title">Troubleshooting</div>
+    <div class="highlight">
+      <strong>Crew bekommt keine E-Mails?</strong><br>
+      Konsole → Werkzeuge → „Crew verknüpfen" prüfen — E-Mail muss dort eingetragen sein.
+    </div>
+    <div class="highlight">
+      <strong>Plan lädt nicht?</strong><br>
+      In der Touransicht → Sidebar → Plan anklicken → „Speichern". Dann in der Konsole „↺ Neu laden".
+    </div>
+    <div class="highlight">
+      <strong>Neue Benutzer hinzufügen?</strong><br>
+      Konsole → Werkzeuge → „Mitarbeiter einladen" — E-Mail wird automatisch gesendet. Rolle anschließend im Benutzer-Tab setzen (nur Superadmin).
+    </div>
+  </div>
+
+  <div class="footer">
+    Tour Crew Plan · Nyx Lightwork · crewplanner.nyxlightwork.de
+  </div>
+
+</div>
+</body>
+</html>

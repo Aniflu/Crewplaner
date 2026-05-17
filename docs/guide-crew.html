@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crew-Anleitung — Tour Crew Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #1a1a2e; color: #c8cdd5;
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  min-height: 100vh; padding: 0 0 64px 0;
+}
+.header {
+  background: #12122a; border-bottom: 2px solid #e8c84a;
+  padding: 28px 40px; display: flex; align-items: center; gap: 20px;
+}
+.header-label {
+  font-size: .6rem; letter-spacing: .15em; text-transform: uppercase;
+  color: #e8c84a; margin-bottom: 4px;
+}
+.header-title { font-size: 1.4rem; font-weight: 600; color: #f0f0f0; }
+.role-badge {
+  margin-left: auto; background: #e8c84a; color: #0d0d1a;
+  font-size: .55rem; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; padding: 6px 14px; border-radius: 2px;
+}
+.content { max-width: 680px; margin: 0 auto; padding: 48px 24px; }
+.section { margin-bottom: 48px; }
+.section-num {
+  font-size: .55rem; letter-spacing: .15em; text-transform: uppercase;
+  color: #e8c84a; margin-bottom: 8px;
+}
+.section-title { font-size: 1rem; font-weight: 600; color: #f0f0f0; margin-bottom: 16px; }
+.section-body { font-size: .75rem; line-height: 1.9; color: #8a90a0; }
+.step {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: #12122a; border: 1px solid #2a2a40; border-radius: 4px;
+  padding: 16px 20px; margin-bottom: 10px;
+}
+.step-num {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+  background: #e8c84a; color: #0d0d1a; font-size: .6rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.step-text { font-size: .72rem; line-height: 1.8; color: #c8cdd5; }
+.step-text strong { color: #f0f0f0; }
+.highlight {
+  background: #12122a; border-left: 3px solid #e8c84a;
+  padding: 14px 20px; border-radius: 0 4px 4px 0; margin: 16px 0;
+  font-size: .72rem; line-height: 1.8; color: #c8cdd5;
+}
+.btn-demo {
+  display: inline-block; padding: 10px 22px; font-family: 'IBM Plex Mono', monospace;
+  font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  border-radius: 2px; margin-right: 8px; margin-top: 8px; text-decoration: none;
+}
+.btn-confirm { background: #e8c84a; color: #0d0d1a; }
+.btn-decline { background: #ffffff; border: 1px solid #ddd; color: #555; }
+.status-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+}
+.dot-green { background: #4ae8a0; }
+.dot-red { background: #e84a4a; }
+.dot-yellow { background: #e8c84a; }
+.footer {
+  margin-top: 64px; padding-top: 24px; border-top: 1px solid #2a2a40;
+  font-size: .6rem; color: #3a3a50; letter-spacing: .08em; text-align: center;
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-label">Tour Crew Plan · Anleitung</div>
+    <div class="header-title">Für Crew-Mitglieder</div>
+  </div>
+  <div class="role-badge">Crew</div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-num">Überblick</div>
+    <div class="section-title">Was ist der Tour Crew Plan?</div>
+    <div class="section-body">
+      Der Tour Crew Plan ist das zentrale Planungstool für Tourneen. Dein Manager weist dir Positionen für bestimmte Tage zu — du bekommst per E-Mail eine Anfrage und kannst mit einem Klick bestätigen oder ablehnen.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-num">Schritt 1</div>
+    <div class="section-title">Konto erstellen</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Du hast eine Einladungsmail erhalten. Klicke auf den Button <strong>„Konto erstellen"</strong> in der E-Mail.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Gib deine <strong>E-Mail-Adresse</strong> (dieselbe, an die du die Einladung bekommen hast) und ein <strong>Passwort</strong> (min. 8 Zeichen) ein.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Klicke auf <strong>„Registrieren"</strong> — du wirst automatisch eingeloggt.</div>
+    </div>
+    <div class="highlight">
+      Du hast bereits ein Konto? Dann einfach einloggen — kein neues Konto nötig.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-num">Schritt 2</div>
+    <div class="section-title">Einsatz bestätigen oder ablehnen</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Wenn dein Manager dich für einen Einsatz anfrägt, bekommst du eine E-Mail mit zwei Buttons:</div>
+    </div>
+    <div style="padding: 0 16px 16px 56px;">
+      <span class="btn-demo btn-confirm">✓ Bestätigen →</span>
+      <span class="btn-demo btn-decline">✗ Ablehnen →</span>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Klicke auf den passenden Button. Falls du noch nicht eingeloggt bist, wirst du kurz zur Login-Seite weitergeleitet — danach wird deine Antwort automatisch gespeichert.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Dein Manager wird bei einer Ablehnung automatisch benachrichtigt.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-num">Schritt 3</div>
+    <div class="section-title">Deine Einsätze in der App sehen</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Logge dich unter <strong>crewplanner.nyxlightwork.de</strong> ein.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Du siehst den Tourenplan mit deinen zugewiesenen Positionen. Die Farben zeigen den Status:</div>
+    </div>
+    <div style="padding: 8px 16px 8px 56px; font-size: .72rem; line-height: 2.2; color: #c8cdd5;">
+      <div><span class="status-dot dot-yellow"></span><strong>Gelb</strong> — Anfrage ausstehend</div>
+      <div><span class="status-dot dot-green"></span><strong>Grün</strong> — Bestätigt</div>
+      <div><span class="status-dot dot-red"></span><strong>Rot</strong> — Abgelehnt</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-num">Häufige Fragen</div>
+    <div class="section-title">Troubleshooting</div>
+    <div class="highlight">
+      <strong>E-Mail nicht erhalten?</strong><br>
+      Bitte Spam-Ordner prüfen — insbesondere bei web.de und GMX kann die Mail dort landen.
+    </div>
+    <div class="highlight">
+      <strong>Link in der E-Mail funktioniert nicht?</strong><br>
+      Einfach direkt einloggen unter crewplanner.nyxlightwork.de — deine Anfragen sind dort trotzdem sichtbar.
+    </div>
+    <div class="highlight">
+      <strong>Passwort vergessen?</strong><br>
+      Wende dich an deinen Manager — er kann dein Konto zurücksetzen.
+    </div>
+  </div>
+
+  <div class="footer">
+    Tour Crew Plan · Nyx Lightwork · crewplanner.nyxlightwork.de
+  </div>
+
+</div>
+</body>
+</html>
