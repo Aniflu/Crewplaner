@@ -7,6 +7,7 @@ async function _authCheckAndStart() {
     const userStr = localStorage.getItem('pb_user');
 
     if (!token || !userStr) {
+      if (window.location.search) localStorage.setItem('pendingEmailAction', window.location.search);
       window.location.href = 'login.html';
       return;
     }
@@ -22,6 +23,7 @@ async function _authCheckAndStart() {
       // Token abgelaufen oder ungültig
       localStorage.removeItem('pb_token');
       localStorage.removeItem('pb_user');
+      if (window.location.search) localStorage.setItem('pendingEmailAction', window.location.search);
       window.location.href = 'login.html';
       return;
     }

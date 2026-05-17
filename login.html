@@ -133,6 +133,28 @@
 
   .reset-link:hover { color: #e8c84a; }
 
+  .toggle-link {
+    display: block;
+    text-align: center;
+    margin-top: 14px;
+    font-size: .6rem;
+    color: #5a6070;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .toggle-link:hover { color: #e8c84a; }
+
+  .invite-banner {
+    background: #e8c84a;
+    color: #1a1a2e;
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: .68rem;
+    text-align: center;
+    display: none;
+  }
+
   .success-msg {
     background: rgba(74, 232, 160, .1);
     border: 1px solid rgba(74, 232, 160, .25);
@@ -154,30 +176,61 @@
   </div>
 
   <div class="login-card">
-    <div class="field">
-      <label for="email">E-Mail</label>
-      <input type="email" id="email" placeholder="name@beispiel.de" autocomplete="email">
+    <div class="invite-banner" id="inviteBanner">Du wurdest zu einem Einsatz eingeladen. Bitte anmelden oder Konto erstellen.</div>
+
+    <div id="loginWrap">
+      <div class="field">
+        <label for="email">E-Mail</label>
+        <input type="email" id="email" placeholder="name@beispiel.de" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="password">Passwort</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-login" id="btnLogin" onclick="doLogin()">Anmelden</button>
+      <button class="reset-link" onclick="doPasswordReset()">Passwort vergessen?</button>
     </div>
-    <div class="field">
-      <label for="password">Passwort</label>
-      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+
+    <div id="registerWrap" style="display:none">
+      <div class="field">
+        <label for="regEmail">E-Mail</label>
+        <input type="email" id="regEmail" placeholder="name@beispiel.de" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="regPw">Passwort</label>
+        <input type="password" id="regPw" placeholder="Mindestens 8 Zeichen" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="regPwConfirm">Passwort bestätigen</label>
+        <input type="password" id="regPwConfirm" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <button class="btn-login" id="btnRegister" onclick="doRegister()">Konto erstellen</button>
     </div>
-    <button class="btn-login" id="btnLogin" onclick="doLogin()">Anmelden</button>
+
     <div class="error-msg" id="errorMsg"></div>
     <div class="success-msg" id="successMsg"></div>
-    <button class="reset-link" onclick="doPasswordReset()">Passwort vergessen?</button>
+    <a href="#" class="toggle-link" id="toggleRegisterLink" onclick="toggleRegister(); return false;">Noch kein Konto? Registrieren</a>
   </div>
 </div>
 
 <script>
+  function _redirectAfterAuth() {
+    const pending = localStorage.getItem('pendingEmailAction');
+    localStorage.removeItem('pendingEmailAction');
+    window.location.href = pending ? 'index.html' + pending : 'index.html';
+  }
+
   // Bereits eingeloggt → direkt weiterleiten
   (function() {
+    if (localStorage.getItem('pendingEmailAction')) {
+      document.getElementById('inviteBanner').style.display = 'block';
+    }
     const token = localStorage.getItem('pb_token');
     if (!token) return;
     pbPost('/api/collections/users/auth-refresh').then(data => {
       localStorage.setItem('pb_token', data.token);
       localStorage.setItem('pb_user', JSON.stringify(data.record));
-      window.location.href = 'index.html';
+      _redirectAfterAuth();
     }).catch(() => {
       localStorage.removeItem('pb_token');
       localStorage.removeItem('pb_user');
@@ -187,6 +240,17 @@
   document.getElementById('password').addEventListener('keydown', e => {
     if (e.key === 'Enter') doLogin();
   });
+
+  function toggleRegister() {
+    const showReg = document.getElementById('registerWrap').style.display === 'none';
+    document.getElementById('registerWrap').style.display = showReg ? 'block' : 'none';
+    document.getElementById('loginWrap').style.display = showReg ? 'none' : 'block';
+    document.getElementById('toggleRegisterLink').textContent = showReg
+      ? 'Bereits registriert? Anmelden'
+      : 'Noch kein Konto? Registrieren';
+    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('successMsg').style.display = 'none';
+  }
 
   async function doLogin() {
     const email    = document.getElementById('email').value.trim();
@@ -208,11 +272,36 @@
       localStorage.setItem('pb_token', data.token);
       localStorage.setItem('pb_user', JSON.stringify(data.record));
       btn.textContent = 'Weiterleiten…';
-      window.location.href = 'index.html';
+      _redirectAfterAuth();
     } catch (e) {
       btn.disabled = false;
       btn.textContent = 'Anmelden';
       showError(_translateError(e.message));
+    }
+  }
+
+  async function doRegister() {
+    const email = (document.getElementById('regEmail')?.value || '').trim();
+    const password = document.getElementById('regPw')?.value || '';
+    const passwordConfirm = document.getElementById('regPwConfirm')?.value || '';
+    document.getElementById('errorMsg').style.display = 'none';
+    if (!email || !password) { showError('Bitte alle Felder ausfüllen.'); return; }
+    if (password !== passwordConfirm) { showError('Passwörter stimmen nicht überein.'); return; }
+    if (password.length < 8) { showError('Passwort muss mindestens 8 Zeichen lang sein.'); return; }
+    const btn = document.getElementById('btnRegister');
+    btn.disabled = true;
+    btn.textContent = 'Konto wird erstellt…';
+    try {
+      await pbPost('/api/collections/users/records', { email, password, passwordConfirm });
+      const auth = await pbPost('/api/collections/users/auth-with-password', { identity: email, password });
+      localStorage.setItem('pb_token', auth.token);
+      localStorage.setItem('pb_user', JSON.stringify(auth.record));
+      btn.textContent = 'Weiterleiten…';
+      _redirectAfterAuth();
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Konto erstellen';
+      showError('Registrierung fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler'));
     }
   }
 

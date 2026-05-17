@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.8.5.6**
+- Aktuelle Version: **v0.8.5.9**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -107,16 +107,19 @@ Datei in `js/` oder `styles.css` bearbeiten → Browser-Tab neu laden → fertig
 
 **Cache-Bust:** Nach JS/CSS-Änderungen `?v=N` in `index.html` + `login.html` hochzählen.
 
-Aktuelle Versionen (Stand 2026-05-15):
+Aktuelle Versionen (Stand 2026-05-17):
 
 | Datei | Version |
 |---|---|
 | `config.js` | v29 |
 | `pb.js` | v31 |
 | `dataService.js` | v33 |
-| `authService.js` | v29 |
-| `dropdown.js` | v24 |
-| `bundle.js` | v24 |
+| `authService.js` | v30 |
+| `dropdown.js` | v25 |
+| `bundle.js` | v25 |
+| `crewNotify.js` | v26 |
+| `plans.js` | v24 |
+| `state.js` | v24 |
 | alle anderen | v23 |
 
 ---

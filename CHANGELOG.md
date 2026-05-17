@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.8.5.9 — 2026-05-17
+
+### Neu: Crew-Mitglied Onboarding-Flow
+
+- **`login.html`** — Registrierungsformular hinzugefügt ("Noch kein Konto? Registrieren")
+  - Erstes Öffnen der App nach Einladungs-E-Mail zeigt gelben Banner "Du wurdest zu einem Einsatz eingeladen"
+  - Crew-Mitglieder können sich selbst ein Pocketbase-Konto anlegen (E-Mail + Passwort)
+  - Nach Registrierung: automatischer Login + Weiterleitung zur App
+- **`js/authService.js`** — `?action=confirm&aid=...` Parameter werden vor dem Login-Redirect in localStorage gerettet und nach dem Login automatisch verarbeitet
+
+### Bugfix
+
+- **`js/authService.js`** — Query-Parameter gingen beim Redirect zu `login.html` verloren (beide Pfade gefixt: fehlendes Token + abgelaufenes Token)
+
+---
+
+## v0.8.5.8 — 2026-05-17
+
+### Bugfix
+
+- **`js/plans.js`** — `confirmRenamePlan()` synct neuen Plan-Namen jetzt auch in Pocketbase via `pbPatch` (bisher nur localStorage)
+
+---
+
+## v0.8.5.7 — 2026-05-17
+
+### Neu: Absage-Queue Banner
+
+- **`js/crewNotify.js`** — `renderCancellationBanner()`, `flushAllCancellations()`, `clearAllCancellations()` hinzugefügt
+- **`index.html`** — Roter floating Banner bei entfernten bestätigten Slots; "ABSAGEN SENDEN" schickt Sammel-Mail pro Crew-Mitglied
+
+---
+
 ## v2.1.1 — 2026-05-13
 
 ### Bugfix
