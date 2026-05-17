@@ -63,11 +63,19 @@ function renamePlan(id){
   openModal('sharedModal');setTimeout(()=>{const i=document.getElementById('renamePlanInput');if(i){i.focus();i.select();}},50);
 }
 
-function confirmRenamePlan(id){
+async function confirmRenamePlan(id){
   const name=(document.getElementById('renamePlanInput')?.value||'').trim();if(!name)return;
   const plans=getPlansIndex();const plan=plans.find(p=>p.id===id);
   if(plan){plan.name=name;savePlansIndex(plans);}
-  closeModal('sharedModal');renderPlanList();showToast('Umbenannt ✓','#2d6a3f');
+  closeModal('sharedModal');renderPlanList();
+  if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED){
+    const pbId=localStorage.getItem('tourplan_pb_'+id);
+    if(pbId){
+      try{await pbPatch('plans',pbId,{name});}
+      catch(e){showToast('Lokal gespeichert – PB-Sync fehlgeschlagen','#e8c84a');return;}
+    }
+  }
+  showToast('Umbenannt ✓','#2d6a3f');
 }
 
 function openNewPlan(){
