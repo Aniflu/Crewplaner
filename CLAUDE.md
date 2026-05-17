@@ -68,9 +68,8 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 | Was | Wert |
 |---|---|
 | Admin-Login (App + PB Admin UI) | `madmaxmail@web.de` |
-| Resend API-Key | `re_Suse3V78_FhvG2LoBKzVXgQJX9VhCoDdy` |
-| Resend Absender | `noreply@crewplanner.nyxlightwork.de` |
-| Resend verifizierte Domain | `crewplanner.nyxlightwork.de` |
+| E-Mail SMTP | `10.0.1.1:587` (Hetzner Postfix, kein Auth) |
+| E-Mail Absender | `noreply@crewplanner.nyxlightwork.de` |
 | GitHub | https://github.com/Aniflu/Crewplaner (main = Production) |
 | Server SSH Alias | `ssh hetzner` |
 | PocketBase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` (Coolify-managed) |
@@ -162,8 +161,8 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
 
-Aktuell deployte Hook-Version: **v2.3** (Resend API Key via $getEnv statt Hardcode)
-Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.3 geladen`
+Aktuell deployte Hook-Version: **v2.4** (Hetzner Postfix SMTP via $app.newMailClient())
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.4 geladen`
 
 ### Docker-Logs live beobachten
 
@@ -171,13 +170,12 @@ Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.3 geladen`
 ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 50 -f"
 ```
 
-### E-Mail (Resend)
+### E-Mail (Hetzner Postfix)
 
-Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner-Block auf Port 25).
-- API-Key: `re_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s`
-- Verifizierte Domain: `crewplanner.nyxlightwork.de`
+Hook sendet via `$app.newMailClient()` → Hetzner Postfix auf Docker-Host (kein Resend mehr).
+- SMTP: `10.0.1.1:587` STARTTLS, kein Auth
 - Absender: `noreply@crewplanner.nyxlightwork.de`
-- PocketBase Mail settings: `smtp.resend.com:587`, Username `resend`, Password = API-Key
+- Config: PB Admin UI → Settings → Mail settings
 
 ### Admin-User anlegen (Pocketbase Admin UI)
 
@@ -276,8 +274,8 @@ schlagen still fehl (planId=null). Fix: PB Admin → plans-Record manuell repari
 per owner allein falls name-Filter fehlschlägt.
 
 ### E-Mail landet im Spam (web.de)
-web.de filtert aggressiv. Resend-Domain ist verifiziert, SPF/DKIM gesetzt. Trotzdem
-manchmal im Spam. Nichts kaputt — User muss Spam-Ordner prüfen.
+web.de filtert aggressiv. SPF/DKIM für crewplanner.nyxlightwork.de prüfen falls E-Mails
+nicht ankommen. Nichts kaputt — User muss Spam-Ordner prüfen.
 
 ---
 

@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
-// PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 2.3
-console.log('[hook] main.pb.js v2.3 geladen');
+// PocketBase Goja JS Hook · Hetzner Postfix SMTP via PB MailClient
+// Version: 2.4
+console.log('[hook] main.pb.js v2.4 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -13,16 +13,14 @@ onRecordAfterCreateSuccess(function(e) {
   var appUrl = r.get('app_url')   || 'https://crewplanner.nyxlightwork.de';
 
   var sendMail = function(to, subject, html) {
-    var _key  = $getEnv('RESEND_KEY');
-    var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
     try {
-      var res = $http.send({
-        url: 'https://api.resend.com/emails', method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + _key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: _from, to: [to], subject: subject, html: html })
-      });
-      if (res.statusCode >= 400) { console.error('[mail] Resend Fehler ' + res.statusCode + ':', res.raw); }
-      else { console.log('[mail] Gesendet an ' + to + ' · ' + subject); }
+      $app.newMailClient().send(new MailerMessage({
+        from: new MailerAddress({ address: 'noreply@crewplanner.nyxlightwork.de', name: 'Tour Crew Plan' }),
+        to: [new MailerAddress({ address: to })],
+        subject: subject,
+        html: html
+      }));
+      console.log('[mail] Gesendet an ' + to + ' · ' + subject);
     } catch (err) { console.error('[mail] Fehler:', err.message); }
   };
 
@@ -103,16 +101,14 @@ onRecordAfterCreateSuccess(function(e) {
   var fdate = isNaN(d) ? date : (('0'+d.getDate()).slice(-2) + '.' + ('0'+(d.getMonth()+1)).slice(-2) + '.' + d.getFullYear());
 
   var sendMail = function(to, subject, html) {
-    var _key  = $getEnv('RESEND_KEY');
-    var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
     try {
-      var res = $http.send({
-        url: 'https://api.resend.com/emails', method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + _key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: _from, to: [to], subject: subject, html: html })
-      });
-      if (res.statusCode >= 400) { console.error('[mail] Resend Fehler ' + res.statusCode + ':', res.raw); }
-      else { console.log('[mail] Gesendet an ' + to + ' · ' + subject); }
+      $app.newMailClient().send(new MailerMessage({
+        from: new MailerAddress({ address: 'noreply@crewplanner.nyxlightwork.de', name: 'Tour Crew Plan' }),
+        to: [new MailerAddress({ address: to })],
+        subject: subject,
+        html: html
+      }));
+      console.log('[mail] Gesendet an ' + to + ' · ' + subject);
     } catch (err) { console.error('[mail] Fehler:', err.message); }
   };
 
@@ -152,16 +148,14 @@ onRecordAfterUpdateSuccess(function(e) {
   console.log('[hook] UPDATE assignments fired, status:', status, 'id:', r.id);
 
   var sendMail = function(to, subject, html) {
-    var _key  = $getEnv('RESEND_KEY');
-    var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
     try {
-      var res = $http.send({
-        url: 'https://api.resend.com/emails', method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + _key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: _from, to: [to], subject: subject, html: html })
-      });
-      if (res.statusCode >= 400) { console.error('[mail] Resend Fehler ' + res.statusCode + ':', res.raw); }
-      else { console.log('[mail] Gesendet an ' + to + ' · ' + subject); }
+      $app.newMailClient().send(new MailerMessage({
+        from: new MailerAddress({ address: 'noreply@crewplanner.nyxlightwork.de', name: 'Tour Crew Plan' }),
+        to: [new MailerAddress({ address: to })],
+        subject: subject,
+        html: html
+      }));
+      console.log('[mail] Gesendet an ' + to + ' · ' + subject);
     } catch (err) { console.error('[mail] Fehler:', err.message); }
   };
 
