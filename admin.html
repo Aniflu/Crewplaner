@@ -1137,7 +1137,7 @@ async function loadSelectedPlan() {
       return;
     }
 
-    _wrkPlanData = JSON.parse(plan.plan_data);
+    _wrkPlanData = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
 
     // Set globals for pdf.js
     TOUR_DATES = _wrkPlanData.tourDates || [];
