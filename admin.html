@@ -576,6 +576,28 @@ body {
           </div>
         </div>
 
+        <!-- Mitarbeiter einladen -->
+        <div class="tool-card full-width">
+          <div class="tool-card-title">Mitarbeiter einladen</div>
+          <div class="tool-card-sub">Einladungsmail für Manager, Booker oder andere Rollen senden</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <input id="inviteName" class="tool-input" placeholder="Name" style="max-width:180px;">
+            <input id="inviteEmail" class="tool-input" placeholder="E-Mail" style="max-width:220px;">
+            <button class="btn btn-gold btn-sm" onclick="sendStaffInvite()">Einladung senden</button>
+          </div>
+        </div>
+
+        <!-- Öffentlicher Link -->
+        <div class="tool-card full-width">
+          <div class="tool-card-title">Öffentlicher Link</div>
+          <div class="tool-card-sub">Read-only Ansicht für Booker — kein Login nötig</div>
+          <div id="viewLinkBox" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+            <input id="viewLinkUrl" class="tool-input" readonly style="max-width:420px;">
+            <button class="btn btn-ghost btn-sm" onclick="copyViewLink()">Kopieren</button>
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="generateViewLink()">Link generieren</button>
+        </div>
+
       </div><!-- end tool-grid -->
     </div><!-- end wrkPlanLoaded -->
 
@@ -1087,6 +1109,44 @@ function loadPlanIntoTourview() {
   // Aktiven Plan merken → init.js konsumiert diesen beim Start
   localStorage.setItem('tourplan_active_plan', localId);
   window.location.href = 'index.html';
+}
+
+// ── Werkzeuge: Mitarbeiter einladen ───────────────────────────────────────────
+async function sendStaffInvite() {
+  const name  = (document.getElementById('inviteName').value  || '').trim();
+  const email = (document.getElementById('inviteEmail').value || '').trim();
+  if (!name || !email) { adminToast('Name und E-Mail erforderlich', '#e84a4a'); return; }
+  const planName = _wrkPlanName || 'Tour Plan';
+  const appUrl   = window.location.origin + '/login.html';
+  try {
+    await pbPost('/api/collections/crew_invites/records', {
+      plan_id: _wrkPbPlanId, crew_name: name, crew_email: email,
+      type: 'staff_invite', plan_name: planName, app_url: appUrl
+    });
+    adminToast('Einladung gesendet ✓', '#4ae8a0');
+    document.getElementById('inviteName').value  = '';
+    document.getElementById('inviteEmail').value = '';
+  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+}
+
+// ── Werkzeuge: Öffentlicher View-Link ─────────────────────────────────────────
+async function generateViewLink() {
+  const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+  try {
+    await pbPatch('/api/collections/plans/records/' + _wrkPbPlanId, { view_token: token });
+    const url = window.location.origin + '/view.html?token=' + token;
+    const box = document.getElementById('viewLinkBox');
+    document.getElementById('viewLinkUrl').value = url;
+    box.style.display = 'flex';
+    adminToast('Link generiert ✓', '#4ae8a0');
+  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+}
+
+function copyViewLink() {
+  navigator.clipboard.writeText(document.getElementById('viewLinkUrl').value)
+    .then(() => adminToast('Kopiert ✓', '#4ae8a0'))
+    .catch(() => adminToast('Kopieren fehlgeschlagen', '#e84a4a'));
 }
 
 // ── Werkzeuge: Plan laden ──────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 2.5
-console.log('[hook] main.pb.js v2.5 geladen');
+// Version: 2.6
+console.log('[hook] main.pb.js v2.6 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -80,6 +80,15 @@ onRecordAfterCreateSuccess(function(e) {
       rowsHtml + '</table>'
     ));
     console.log('[hook] cancellation email sent to ' + email + ' (' + slots.length + ' slots)');
+  }
+
+  } else if (type === 'staff_invite') {
+    sendMail(email, 'EINLADUNG · ' + plan, wrap(
+      '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Du wurdest eingeladen.</h1>' +
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">EINLADUNG · ' + plan + '</p>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Hey ' + name + ',<br><br>du wurdest f&uuml;r <strong style="color:#1a1a2e;">' + plan + '</strong> eingeladen. Klicke unten um ein Konto zu erstellen:</p>' +
+      mkBtn(appUrl, 'KONTO ERSTELLEN &rarr;')
+    ));
   }
 
   try { $app.dao().deleteRecord(r); } catch (_) {}

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.3**
+- Aktuelle Version: **v0.9.4**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -16,7 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.3    — Security-Fixes + Code-Review (aktuell)
+v0.9.4    — Einladungssystem + Öffentlicher Booker-View-Link (aktuell)
+v0.9.3    — Security-Fixes + Code-Review
 v0.9.2    — Admin-Konsole Dropdown-Fix + Plan in Touransicht laden
 v0.9.1    — Manager-Konsole + Werkzeuge-Tab + Bug-Fixes
 v0.9.0    — Multi-Rollen-System (RBAC): superadmin, manager, booker, crew
@@ -162,8 +163,8 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
 
-Aktuell deployte Hook-Version: **v2.5** (Resend HTTP API, $getEnv('RESEND_KEY'))
-Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.5 geladen`
+Aktuell deployte Hook-Version: **v2.6** (Resend HTTP API, $getEnv('RESEND_KEY'))
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.6 geladen`
 
 ### Docker-Logs live beobachten
 
@@ -189,6 +190,7 @@ Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner IP-Reputation-Problem
 ```
 ├── index.html            ← HTML-Gerüst + <script> Ladereihenfolge (kritisch!)
 ├── login.html            ← Login-Seite (Pocketbase Auth)
+├── view.html             ← Öffentliche Read-only-Ansicht (kein Login, Token-basiert)
 ├── styles.css
 ├── .pb_hooks/
 │   └── main.pb.js        ← Server-seitige E-Mail-Hooks (Pocketbase Goja-Engine) — v2.0

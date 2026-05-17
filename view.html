@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tour Plan — Ansicht</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="js/config.js?v=29"></script>
+<script src="js/pb.js?v=33"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a2e; color: #c8cdd5; font-family: 'IBM Plex Mono', monospace; min-height: 100vh; }
+.view-header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 18px 24px; border-bottom: 2px solid #e8c84a;
+  background: #12122a;
+}
+.view-header-title { font-size: 1.1rem; font-weight: 600; color: #e8c84a; letter-spacing: .05em; }
+.view-header-sub { font-size: .6rem; color: #5a6070; letter-spacing: .08em; text-transform: uppercase; margin-top: 2px; }
+.view-badge {
+  margin-left: auto; font-size: .55rem; letter-spacing: .12em; text-transform: uppercase;
+  color: #5a6070; background: #1a1a2e; border: 1px solid #2a2a40; border-radius: 2px;
+  padding: 4px 10px;
+}
+.table-wrap { overflow-x: auto; padding: 0; }
+#viewError {
+  display: none; padding: 48px 24px; text-align: center;
+  font-size: .75rem; color: #e84a4a; letter-spacing: .05em;
+}
+#viewLoading {
+  padding: 48px 24px; text-align: center;
+  font-size: .7rem; color: #5a6070; letter-spacing: .08em; text-transform: uppercase;
+}
+/* Toast stub */
+#toast { display: none; }
+/* Hide elements that require interaction */
+.cell-dd, .dd-wrap { pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div class="view-header">
+  <div>
+    <div class="view-header-title" id="viewPlanName">Tour Plan</div>
+    <div class="view-header-sub">Personalplan · Read-only</div>
+  </div>
+  <div class="view-badge">Ansicht</div>
+</div>
+
+<div id="viewLoading">Plan wird geladen…</div>
+<div id="viewError"></div>
+
+<!-- Benötigte Stubs für render.js -->
+<div id="viewTable">
+  <div class="table-wrap">
+    <table>
+      <thead id="tHead"></thead>
+      <tbody id="tBody"></tbody>
+    </table>
+  </div>
+</div>
+<div id="viewBlocks" style="display:none;"></div>
+<div id="viewCrew" style="display:none;"></div>
+<div id="viewMeta" style="display:none;"></div>
+<div id="statsBar" style="display:none;"></div>
+<div id="toast"></div>
+
+<link rel="stylesheet" href="styles.css?v=23">
+<script src="js/state.js?v=25"></script>
+<script src="js/utils.js?v=23"></script>
+<script src="js/types.js?v=23"></script>
+<script src="js/render.js?v=24"></script>
+<script>
+// Read-only Modus — keine Dropdowns, keine Bearbeitungsfunktionen
+IS_MANAGER     = false;
+IS_SUPERADMIN  = false;
+IS_BOOKER      = true;
+IS_CREW        = false;
+SUPABASE_ENABLED = true;
+
+// Stubs für Funktionen die render.js ggf. aufruft
+function showDD() {}
+function openCrewDD() {}
+function updateStats() {}
+
+(async function() {
+  const token = new URLSearchParams(window.location.search).get('token');
+  if (!token) {
+    document.getElementById('viewLoading').style.display = 'none';
+    const err = document.getElementById('viewError');
+    err.textContent = 'Kein Token angegeben.';
+    err.style.display = 'block';
+    return;
+  }
+
+  try {
+    const data = await pbGet('/api/collections/plans/records?filter='
+      + encodeURIComponent('view_token="' + token + '"') + '&perPage=1&sort=-id');
+    const plan = (data.items || [])[0];
+    if (!plan) throw new Error('Plan nicht gefunden oder Link ungültig.');
+
+    const pd = typeof plan.plan_data === 'string'
+      ? JSON.parse(plan.plan_data)
+      : plan.plan_data;
+    if (!pd || !pd.tourDates) throw new Error('Plan enthält keine Daten.');
+
+    // Globals für render.js befüllen
+    crew               = pd.crew        || [];
+    POSITIONS          = pd.positions   || [];
+    TOUR_DATES         = pd.tourDates   || [];
+    assignments        = pd.assignments || {};
+    defaultCrew        = pd.defaultCrew || {};
+    assignmentStatuses = {};
+
+    document.getElementById('viewPlanName').textContent = plan.name || 'Tour Plan';
+    document.getElementById('viewLoading').style.display = 'none';
+    renderTable();
+  } catch(e) {
+    document.getElementById('viewLoading').style.display = 'none';
+    const err = document.getElementById('viewError');
+    err.textContent = 'Fehler: ' + e.message;
+    err.style.display = 'block';
+  }
+})();
+</script>
+</body>
+</html>
