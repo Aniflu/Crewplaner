@@ -49,7 +49,51 @@ function startApp(){
     }
   }
 
-  // Kein Plan vorhanden → Standard-Plan erstellen
+  // Erster Login für Manager/Superadmin → Demo-Plan laden
+  if(plans.length===0&&(IS_MANAGER||IS_SUPERADMIN)){
+    const _demoPlan={version:3,
+      crew:['Marco Bauer','Lisa Hoffmann','Tim Schulz','Jana Keller','David Neumann','Sophie Braun'],
+      positions:[
+        {id:'gl',label:'GL',short:'GL'},{id:'sys',label:'System',short:'SYS'},
+        {id:'lt1',label:'Licht 1',short:'LT1'},{id:'lt2',label:'Licht 2',short:'LT2'},
+        {id:'foh',label:'FOH Sound',short:'FOH'},{id:'mon',label:'Monitor',short:'MON'}
+      ],
+      defaultCrew:{gl:'Marco Bauer',sys:'Lisa Hoffmann',foh:'Tim Schulz'},
+      tourDates:[
+        {date:'2026-07-14',type:'reise', typeLabel:'Reise',      loc:'Berlin → Hamburg'},
+        {date:'2026-07-15',type:'prep',  typeLabel:'Aufbau',     loc:'Hamburg · Barclays Arena'},
+        {date:'2026-07-16',type:'show',  typeLabel:'Show',       loc:'Hamburg · Barclays Arena'},
+        {date:'2026-07-17',type:'reise', typeLabel:'Nightliner', loc:'Hamburg → Köln'},
+        {date:'2026-07-18',type:'prep',  typeLabel:'Aufbau',     loc:'Köln · LANXESS Arena'},
+        {date:'2026-07-19',type:'show',  typeLabel:'Show',       loc:'Köln · LANXESS Arena'},
+        {date:'2026-07-20',type:'off',   typeLabel:'OFF',        loc:'Köln'},
+        {date:'2026-07-21',type:'reise', typeLabel:'Nightliner', loc:'Köln → München'},
+        {date:'2026-07-22',type:'prep',  typeLabel:'Aufbau',     loc:'München · Olympiahalle'},
+        {date:'2026-07-23',type:'show',  typeLabel:'Show',       loc:'München · Olympiahalle'}
+      ],
+      assignments:{
+        '2026-07-14':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',foh:'Tim Schulz'},
+        '2026-07-15':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
+        '2026-07-16':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
+        '2026-07-17':{gl:'Marco Bauer',sys:'Lisa Hoffmann',foh:'Tim Schulz'},
+        '2026-07-18':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
+        '2026-07-19':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
+        '2026-07-21':{gl:'Marco Bauer',sys:'Lisa Hoffmann',foh:'Tim Schulz'},
+        '2026-07-22':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
+        '2026-07-23':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'}
+      }
+    };
+    const demoId=genPlanId();
+    activePlanId=demoId;
+    localStorage.setItem(PLAN_PREFIX+demoId,JSON.stringify(_demoPlan));
+    savePlansIndex([{id:demoId,name:'🎸 Demo Tour — Europa 2026',created:_today(),modified:_today()}]);
+    applyData(_demoPlan);
+    renderPlanList();
+    showToast('Willkommen! Demo-Plan geladen ✓','#e8c84a');
+    return;
+  }
+
+  // Kein Plan vorhanden → leeren Standard-Plan erstellen
   const id=genPlanId();
   activePlanId=id;
   const name='Tour 2026';

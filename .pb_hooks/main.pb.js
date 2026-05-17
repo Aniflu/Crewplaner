@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 2.7
-console.log('[hook] main.pb.js v2.7 geladen');
+// Version: 2.8
+console.log('[hook] main.pb.js v2.8 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -83,6 +83,19 @@ onRecordAfterCreateSuccess(function(e) {
       rowsHtml + '</table>'
     ));
     console.log('[hook] cancellation email sent to ' + email + ' (' + slots.length + ' slots)');
+  } else if (type === 'love_invite') {
+    var _lGuide = 'https://aniflu.github.io/Crewplaner/docs/guide-admin.html';
+    sendMail(email, '♥ Du wirst gebraucht · ' + plan, wrap(
+      '<div style="text-align:center;padding:8px 0 24px 0;"><div style="font-size:64px;line-height:1;">♥</div></div>' +
+      '<h1 style="font-size:32px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;text-align:center;">Ich hab dich lieb.</h1>' +
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;text-align:center;">EINLADUNG · ' + plan + '</p>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.9;margin:0 0 24px 0;">Hey ' + name + ',<br><br>' +
+      'ich hab dich lieb &mdash; und deswegen will ich, dass du dabei bist. ♥<br><br>' +
+      'Du wirst Superadmin bei <strong style="color:#1a1a2e;">' + plan + '</strong>. ' +
+      'Erstell dir ein Konto und ich zeig dir den Rest:</p>' +
+      mkBtn(appUrl, 'KONTO ERSTELLEN &rarr;') +
+      mkBtn(_lGuide, 'ANLEITUNG &rarr;', '#f8f9fb', '#555570')
+    ));
   } else if (type === 'staff_invite') {
     var _guideUrl = 'https://aniflu.github.io/Crewplaner/docs/guide-admin.html';
     sendMail(email, 'EINLADUNG · ' + plan, wrap(

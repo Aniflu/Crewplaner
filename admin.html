@@ -584,6 +584,7 @@ body {
             <input id="inviteName" class="tool-input" placeholder="Name" style="max-width:180px;">
             <input id="inviteEmail" class="tool-input" placeholder="E-Mail" style="max-width:220px;">
             <button class="btn btn-gold btn-sm" onclick="sendStaffInvite()">Einladung senden</button>
+            <button class="btn btn-ghost btn-sm" onclick="sendLoveInvite()" style="color:#e84a4a;">♥ Liebeseinladung</button>
           </div>
         </div>
 
@@ -1124,6 +1125,23 @@ async function sendStaffInvite() {
       type: 'staff_invite', plan_name: planName, app_url: appUrl
     });
     adminToast('Einladung gesendet ✓', '#4ae8a0');
+    document.getElementById('inviteName').value  = '';
+    document.getElementById('inviteEmail').value = '';
+  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+}
+
+async function sendLoveInvite() {
+  const name  = (document.getElementById('inviteName').value  || '').trim();
+  const email = (document.getElementById('inviteEmail').value || '').trim();
+  if (!name || !email) { adminToast('Name und E-Mail erforderlich', '#e84a4a'); return; }
+  const planName = _wrkPlanName || 'Tour Plan';
+  const appUrl   = window.location.origin + '/login.html';
+  try {
+    await pbPost('/api/collections/crew_invites/records', {
+      plan_id: _wrkPbPlanId, crew_name: name, crew_email: email,
+      type: 'love_invite', plan_name: planName, app_url: appUrl
+    });
+    adminToast('♥ Gesendet!', '#e84a4a');
     document.getElementById('inviteName').value  = '';
     document.getElementById('inviteEmail').value = '';
   } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
