@@ -626,10 +626,6 @@ body {
           <input type="email" id="newUserEmail" placeholder="name@beispiel.de" style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:4px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#c8cdd5;outline:none;width:220px;">
         </div>
         <div>
-          <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Passwort</label>
-          <input type="password" id="newUserPassword" placeholder="Min. 8 Zeichen" style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:4px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#c8cdd5;outline:none;width:160px;">
-        </div>
-        <div>
           <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Rolle</label>
           <select id="newUserRole" class="role-select">
             <option value="crew">Crew</option>
@@ -916,7 +912,6 @@ function toggleNewUserForm(show) {
   document.getElementById('newUserForm').style.display = show ? 'block' : 'none';
   if (show) {
     document.getElementById('newUserEmail').value = '';
-    document.getElementById('newUserPassword').value = '';
     document.getElementById('newUserRole').value = 'crew';
     document.getElementById('newUserError').style.display = 'none';
     setTimeout(() => document.getElementById('newUserEmail').focus(), 50);
@@ -924,24 +919,30 @@ function toggleNewUserForm(show) {
 }
 
 async function createUser() {
-  const email    = (document.getElementById('newUserEmail').value || '').trim();
-  const password = document.getElementById('newUserPassword').value || '';
-  const role     = document.getElementById('newUserRole').value || 'crew';
-  const errEl    = document.getElementById('newUserError');
-
+  const email = (document.getElementById('newUserEmail').value || '').trim();
+  const role  = document.getElementById('newUserRole').value || 'crew';
+  const errEl = document.getElementById('newUserError');
   errEl.style.display = 'none';
   if (!email) { errEl.textContent = 'Bitte E-Mail eingeben.'; errEl.style.display = 'block'; return; }
-  if (password.length < 8) { errEl.textContent = 'Passwort muss mindestens 8 Zeichen lang sein.'; errEl.style.display = 'block'; return; }
 
+  const tempPw = crypto.randomUUID().replace(/-/g, '') + 'Aa1!';
   try {
-    await pbPost('/api/collections/users/records', { email, password, passwordConfirm: password, role });
-    adminToast('Benutzer angelegt ✓', '#4ae8a0');
+    await pbPost('/api/collections/users/records', { email, password: tempPw, passwordConfirm: tempPw, role });
+    await pbPost('/api/collections/users/request-password-reset', { email });
+    adminToast('Benutzer angelegt — Reset-Link gesendet ✓', '#4ae8a0');
     toggleNewUserForm(false);
     loadUsers();
   } catch(e) {
     errEl.textContent = 'Fehler: ' + (e.message || 'Unbekannter Fehler');
     errEl.style.display = 'block';
   }
+}
+
+async function resetUserPassword(email) {
+  try {
+    await pbPost('/api/collections/users/request-password-reset', { email });
+    adminToast('Reset-Link an ' + email + ' gesendet ✓', '#4ae8a0');
+  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
 }
 
 // ── Users ──────────────────────────────────────────────────────────────────────
@@ -991,7 +992,8 @@ function renderUsers(users) {
       </td>
       <td>${verified}</td>
       <td>${created}</td>
-      <td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" data-email="${esc(u.email)}" onclick="resetUserPassword(this.dataset.email)">🔑 Reset</button>
         <button class="btn btn-danger btn-sm" data-uid="${u.id}" data-email="${esc(u.email)}" onclick="removeUser(this.dataset.uid,this.dataset.email)">Entfernen</button>
       </td>
     </tr>`;

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.5**
+- Aktuelle Version: **v0.9.6**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -16,7 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.5    — Partner-Einladungsmail (♥) + Demo-Plan für neue Manager (aktuell)
+v0.9.6    — Passwortloses Anlegen: kein Passwortfeld, Auto-Reset-Mail, 🔑-Button (aktuell)
+v0.9.5    — Partner-Einladungsmail (♥) + Demo-Plan für neue Manager
 v0.9.4    — Einladungssystem + Öffentlicher Booker-View-Link
 v0.9.3    — Security-Fixes + Code-Review
 v0.9.2    — Admin-Konsole Dropdown-Fix + Plan in Touransicht laden

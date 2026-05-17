@@ -207,6 +207,19 @@
       <button class="btn-login" id="btnRegister" onclick="doRegister()">Konto erstellen</button>
     </div>
 
+    <div id="resetBox" style="display:none">
+      <div style="font-size:.6rem;color:#e8c84a;letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px;">Passwort festlegen</div>
+      <div class="field">
+        <label for="resetPw1">Neues Passwort</label>
+        <input type="password" id="resetPw1" placeholder="Mindestens 8 Zeichen" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="resetPw2">Passwort wiederholen</label>
+        <input type="password" id="resetPw2" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <button class="btn-login" onclick="doConfirmReset()">Passwort speichern</button>
+    </div>
+
     <div class="error-msg" id="errorMsg"></div>
     <div class="success-msg" id="successMsg"></div>
     <a href="#" class="toggle-link" id="toggleRegisterLink" onclick="toggleRegister(); return false;">Noch kein Konto? Registrieren</a>
@@ -214,6 +227,39 @@
 </div>
 
 <script>
+  const _resetToken = new URLSearchParams(window.location.search).get('token');
+  if (_resetToken) {
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('loginWrap').style.display       = 'none';
+      document.getElementById('registerWrap').style.display    = 'none';
+      document.getElementById('toggleRegisterLink').style.display = 'none';
+      document.getElementById('resetBox').style.display        = 'block';
+    });
+  }
+
+  async function doConfirmReset() {
+    const pw1 = document.getElementById('resetPw1').value;
+    const pw2 = document.getElementById('resetPw2').value;
+    const err = document.getElementById('errorMsg');
+    err.style.display = 'none';
+    if (pw1.length < 8) { err.textContent = 'Mindestens 8 Zeichen.'; err.style.display = 'block'; return; }
+    if (pw1 !== pw2)    { err.textContent = 'Passwörter stimmen nicht überein.'; err.style.display = 'block'; return; }
+    try {
+      await pbPost('/api/collections/users/confirm-password-reset', {
+        token: _resetToken, password: pw1, passwordConfirm: pw2
+      });
+      document.getElementById('resetBox').style.display        = 'none';
+      document.getElementById('loginWrap').style.display       = 'block';
+      document.getElementById('toggleRegisterLink').style.display = 'block';
+      document.getElementById('successMsg').textContent = 'Passwort gesetzt ✓ — bitte einloggen.';
+      document.getElementById('successMsg').style.display = 'block';
+      window.history.replaceState({}, '', window.location.pathname);
+    } catch(e) {
+      err.textContent = 'Fehler: ' + (e.message || 'Token abgelaufen oder ungültig.');
+      err.style.display = 'block';
+    }
+  }
+
   function _redirectAfterAuth() {
     const pending = localStorage.getItem('pendingEmailAction');
     localStorage.removeItem('pendingEmailAction');
