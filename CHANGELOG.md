@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.9.2 — 2026-05-17
+
+### Bug-Fixes & Verbesserungen
+
+- **`admin.html`** — Plan-Dropdown war leer: `sort=-created` → `sort=-id` (bekanntes PB-Gotcha, CLAUDE.md dokumentiert)
+- **`index.html`** — Button-Label "Konsole öffnen" → "Admin Konsole"; Version v0.9.2
+- **`js/init.js`** (v28→v29) — `tourplan_active_plan` aus localStorage konsumieren: ermöglicht direktes Aktivieren eines Plans beim Start von index.html
+- **`admin.html`** — Button "→ In Touransicht laden" im Werkzeuge-Tab: schreibt plan_data in localStorage, setzt aktiven Plan und öffnet index.html
+
+---
+
 ## v0.9.1 — 2026-05-17
 
 ### Neu: Manager-Konsole + Werkzeuge-Tab

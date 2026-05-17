@@ -488,6 +488,9 @@ body {
           <div class="plan-info-cell"><div class="plan-info-val" id="wrkInfoCrew">0</div><div class="plan-info-lbl">Crew</div></div>
           <div class="plan-info-cell"><div class="plan-info-val" id="wrkInfoPos">0</div><div class="plan-info-lbl">Positionen</div></div>
         </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-primary btn-sm" onclick="loadPlanIntoTourview()">→ In Touransicht laden</button>
+        </div>
       </div>
 
       <div class="tool-grid">
@@ -1020,7 +1023,7 @@ async function loadPlans() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="4" class="loading">Lädt…</td></tr>';
   try {
-    const data = await pbGet('/api/collections/plans/records?perPage=200&sort=-created');
+    const data = await pbGet('/api/collections/plans/records?perPage=200&sort=-id');
     const items = data.items || [];
     if (!items.length) {
       tbody.innerHTML = '<tr><td colspan="4" class="loading">Keine Pläne gefunden.</td></tr>';
@@ -1054,6 +1057,39 @@ async function deletePlanAdmin(planId, planName) {
   }
 }
 
+// ── Werkzeuge: Plan in Touransicht laden ──────────────────────────────────────
+function loadPlanIntoTourview() {
+  if (!_wrkPlanData) { adminToast('Kein Plan geladen', '#e84a4a'); return; }
+
+  // Prüfen ob dieser PB-Plan schon eine lokale ID hat
+  let localId = null;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith('tourplan_pb_') && localStorage.getItem(key) === _wrkPbPlanId) {
+      localId = key.replace('tourplan_pb_', '');
+      break;
+    }
+  }
+  if (!localId) localId = 'p' + Date.now().toString(36);
+
+  // Plan-Daten in localStorage speichern
+  localStorage.setItem('tourplan_plan_' + localId, JSON.stringify(_wrkPlanData));
+  localStorage.setItem('tourplan_pb_' + localId, _wrkPbPlanId);
+
+  // Pläne-Index aktualisieren
+  let plans = [];
+  try { plans = JSON.parse(localStorage.getItem('tourplan_plans') || '[]'); } catch {}
+  if (!plans.find(p => p.id === localId)) {
+    const today = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'2-digit'});
+    plans.push({ id: localId, name: _wrkPlanName, created: today, modified: today });
+    localStorage.setItem('tourplan_plans', JSON.stringify(plans));
+  }
+
+  // Aktiven Plan merken → init.js konsumiert diesen beim Start
+  localStorage.setItem('tourplan_active_plan', localId);
+  window.location.href = 'index.html';
+}
+
 // ── Werkzeuge: Plan laden ──────────────────────────────────────────────────────
 async function loadAdminPlans() {
   const sel = document.getElementById('wrkPlanSelect');
@@ -1063,7 +1099,7 @@ async function loadAdminPlans() {
   try {
     const pbUser = JSON.parse(localStorage.getItem('pb_user') || '{}');
     const userId = pbUser.id;
-    let url = '/api/collections/plans/records?perPage=200&sort=-created';
+    let url = '/api/collections/plans/records?perPage=200&sort=-id';
     if (!_IS_SUPERADMIN_CONSOLE && userId) {
       url += '&filter=' + encodeURIComponent(`owner="${userId}"`);
     }

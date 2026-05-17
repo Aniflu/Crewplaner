@@ -35,8 +35,13 @@ function startApp(){
     }catch(e){}
   }
 
+  // Von admin.html: Plan direkt aktivieren
+  const pendingPlan=localStorage.getItem('tourplan_active_plan');
+  localStorage.removeItem('tourplan_active_plan');
+
   if(plans.length>0){
-    activePlanId=plans[0].id;
+    const startId=(pendingPlan&&plans.find(p=>p.id===pendingPlan))?pendingPlan:plans[0].id;
+    activePlanId=startId;
     if(_loadPlanFromLS(activePlanId)){
       renderPlanList();
       showToast('Plan geladen ✓','#4f81bd');

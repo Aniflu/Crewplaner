@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.1**
+- Aktuelle Version: **v0.9.2**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -16,7 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.1    — Manager-Konsole + Werkzeuge-Tab + Bug-Fixes (aktuell)
+v0.9.2    — Admin-Konsole Dropdown-Fix + Plan in Touransicht laden (aktuell)
+v0.9.1    — Manager-Konsole + Werkzeuge-Tab + Bug-Fixes
 v0.9.0    — Multi-Rollen-System (RBAC): superadmin, manager, booker, crew
 v0.9.x    — Dynamischer Permission-Builder, Plan-scoped Rollen, User-Einladung aus Admin-Konsole
 v1.0      — Stable Release
@@ -129,6 +130,7 @@ Aktuelle Versionen (Stand 2026-05-17):
 | `crewLink.js` | v24 |
 | `userView.js` | v24 |
 | `plans.js` | v26 |
+| `init.js` | v29 |
 | alle anderen | v23 |
 
 ---
