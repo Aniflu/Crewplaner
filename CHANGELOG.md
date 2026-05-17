@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.9.1 — 2026-05-17
+
+### Neu: Manager-Konsole + Werkzeuge-Tab
+
+- **`admin.html`** — Zugang jetzt für `manager` + `superadmin`; Manager-Rolle sieht Werkzeuge-Tab, Superadmin zusätzlich Benutzer/Rollen/Pläne
+- **`admin.html` → Werkzeuge-Tab** (neu) — Plan-Auswahl aus PocketBase, Plan-Infos, Crew verknüpfen inline, Crew benachrichtigen (Einladung/Erinnerung), JSON Export/Import, PDF Export (via pdf.js), Kalender .ics, Logos-Verwaltung
+- **`js/plans.js`** (v25→v26) — `plan_data` wird nach dem lokalen Speichern automatisch in PB synchronisiert (silent fail); `confirmRenamePlan` Bug gefixt (falscher `pbPatch`-Aufruf)
+- **`js/authService.js`** (v31→v32) — Superadmin-Auto-Redirect entfernt (verursachte Loop bei „Zu meinen Touren"); `btnKonsole` statt `btnCrewLink/btnCrewNotify` in `_showUserBadge`
+- **`index.html`** — Sidebar bereinigt: PDF, ICS, Logos, Tagesarten, Crew verknüpfen, Crew benachrichtigen entfernt; `⚙ Konsole öffnen`-Button für Manager/Superadmin hinzugefügt; Version v0.9.1
+
+### Bug-Fixes
+
+- **Redirect-Loop** (authService.js): Superadmin konnte „Zu meinen Touren" nicht nutzen → Auto-Redirect entfernt
+- **Pläne-Tab Error** (admin.html): `expand=owner` aus Query entfernt → keine API-Rule-Fehler mehr
+- **`confirmRenamePlan`** (plans.js): `pbPatch('plans', pbId, {name})` war falscher API-Aufruf → korrekt: `pbPatch('/api/collections/plans/records/'+pbId, {name})`
+
+### Manuelle PocketBase-Schritte erforderlich
+
+1. **`plans` Collection → `plan_data` Feld** (JSON oder Text, nicht required) — nötig für Werkzeuge-Tab
+2. **`plans` Collection → List rule**: `@request.auth.role = "superadmin" || @request.auth.id = owner`
+3. **`plans` Collection → View/Update rule**: `@request.auth.id = owner || @request.auth.role = "superadmin"`
+
+---
+
 ## v0.9.0 — 2026-05-17
 
 ### Neu: Multi-Rollen-System (RBAC)

@@ -22,7 +22,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.9.0</span>
+            <span class="tour-tag">Personalplan · v0.9.1</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -53,13 +53,8 @@
         <button class="green" onclick="openTourBlock()"><span class="sb-gl">▶</span>Tourblock einfügen</button>
         <button class="green" onclick="openBlockRange()"><span class="sb-gl">▶</span>Bereich → Block</button>
         <button onclick="openAddDate()"><span class="sb-gl">+</span>Datum hinzufügen</button>
-        <button onclick="openPDFFilter()"><span class="sb-gl">▾</span>PDF Export</button>
-        <button onclick="openCalendarExport()"><span class="sb-gl">▾</span>Kalender .ics</button>
-        <button onclick="openLogosModal()"><span class="sb-gl">▾</span>Logos</button>
-        <button onclick="openTypeManager()"><span class="sb-gl">▾</span>Tagesarten</button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
-        <button id="btnCrewLink" onclick="openCrewLinkModal()" style="display:none;"><span class="sb-gl">✉</span>Crew verknüpfen</button>
-        <button id="btnCrewNotify" onclick="openCrewNotifyModal()" style="display:none;"><span class="sb-gl">📣</span>Crew benachrichtigen</button>
+        <button id="btnKonsole" onclick="window.location.href='admin.html'" style="display:none;"><span class="sb-gl">⚙</span>Konsole öffnen</button>
       </div>
     </div>
     <div class="sidebar-section">
@@ -319,7 +314,7 @@
 <script src="js/pb.js?v=33"></script>
 <script src="js/config.js?v=29"></script>
 <script src="js/dataService.js?v=37"></script>
-<script src="js/authService.js?v=31"></script>
+<script src="js/authService.js?v=32"></script>
 <script src="js/state.js?v=25"></script>
 <script src="js/rbac.js?v=1"></script>
 <script src="js/types.js?v=23"></script>
@@ -330,7 +325,7 @@
 <script src="js/tourblock.js?v=23"></script>
 <script src="js/stats.js?v=23"></script>
 <script src="js/sidebar.js?v=23"></script>
-<script src="js/plans.js?v=25"></script>
+<script src="js/plans.js?v=26"></script>
 <script src="js/pdf.js?v=23"></script>
 <script src="js/persistence.js?v=23"></script>
 <script src="js/blockview.js?v=23"></script>

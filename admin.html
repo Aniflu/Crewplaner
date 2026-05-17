@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Konsole — Tour/Crew</title>
+<title>Konsole — Tour/Crew</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script src="js/pb.js?v=31"></script>
+<script src="js/pb.js?v=33"></script>
 <script src="js/config.js?v=29"></script>
+<script src="js/pdf.js?v=23"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -72,8 +73,10 @@ body {
   transition: opacity .15s;
 }
 .btn:hover { opacity: .85; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
 .btn-primary { background: #e8c84a; color: #1a1a2e; }
 .btn-ghost { background: transparent; border: 1px solid #2a2a40; color: #c8cdd5; }
+.btn-green { background: rgba(74,232,160,.15); border: 1px solid rgba(74,232,160,.3); color: #4ae8a0; }
 .btn-danger { background: rgba(232,74,74,.15); border: 1px solid rgba(232,74,74,.3); color: #e84a4a; }
 .btn-sm { padding: 5px 10px; font-size: .65rem; }
 
@@ -179,14 +182,8 @@ body {
 .role-booker { background: rgba(79,129,189,.15); color: #7ab0e0; border: 1px solid rgba(79,129,189,.3); }
 .role-crew { background: rgba(90,96,112,.15); color: #7a8090; border: 1px solid rgba(90,96,112,.3); }
 
-.verified-badge {
-  font-size: .6rem;
-  color: #4ae8a0;
-}
-.unverified-badge {
-  font-size: .6rem;
-  color: #5a6070;
-}
+.verified-badge { font-size: .6rem; color: #4ae8a0; }
+.unverified-badge { font-size: .6rem; color: #5a6070; }
 
 .toast {
   position: fixed;
@@ -215,17 +212,8 @@ body {
   padding: 16px;
 }
 
-.role-card-name {
-  font-size: .75rem;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.role-card-count {
-  font-size: .6rem;
-  color: #5a6070;
-  margin-bottom: 12px;
-}
+.role-card-name { font-size: .75rem; font-weight: 600; margin-bottom: 4px; }
+.role-card-count { font-size: .6rem; color: #5a6070; margin-bottom: 12px; }
 
 .role-perm-list {
   list-style: none;
@@ -238,10 +226,7 @@ body {
 .role-perm-list li.no::before { content: '✗ '; color: #e84a4a; }
 .role-perm-list li.no { color: #4a5060; }
 
-.plan-status {
-  font-size: .6rem;
-  color: #5a6070;
-}
+.plan-status { font-size: .6rem; color: #5a6070; }
 
 .search-bar {
   display: flex;
@@ -266,6 +251,188 @@ body {
 
 .loading { color: #5a6070; font-size: .7rem; padding: 24px 0; }
 .error-text { color: #e84a4a; font-size: .7rem; padding: 8px 0; }
+
+/* ── Werkzeuge Tab ─────────────────────────────────────────────────────────── */
+.tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 800px) { .tool-grid { grid-template-columns: 1fr; } }
+
+.tool-card {
+  background: #12121f;
+  border: 1px solid #2a2a40;
+  border-radius: 6px;
+  padding: 18px;
+}
+
+.tool-card.full-width { grid-column: 1 / -1; }
+
+.tool-card-title {
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: #fff;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.tool-card-sub {
+  font-size: .6rem;
+  color: #5a6070;
+  margin-bottom: 14px;
+}
+
+.tool-input {
+  width: 100%;
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 3px;
+  padding: 7px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .7rem;
+  color: #c8cdd5;
+  outline: none;
+}
+.tool-input:focus { border-color: #e8c84a; }
+
+.tool-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+.plan-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.plan-info-cell {
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.plan-info-val {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #e8c84a;
+  line-height: 1;
+}
+
+.plan-info-lbl {
+  font-size: .55rem;
+  color: #5a6070;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-top: 2px;
+}
+
+.crew-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.crew-notify-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  background: #1a1a2e;
+  border-radius: 4px;
+}
+
+.logo-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.logo-thumb {
+  width: 60px;
+  height: 36px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 3px;
+  display: none;
+}
+
+/* ── Modals ────────────────────────────────────────────────────────────────── */
+.modal-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  z-index: 9000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-box {
+  background: #12121f;
+  border: 1px solid #2a2a40;
+  border-radius: 8px;
+  padding: 24px;
+  min-width: 320px;
+  max-width: 560px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.modal-title {
+  font-size: .78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #e8c84a;
+  margin-bottom: 18px;
+}
+.mf { margin-bottom: 14px; }
+.ml {
+  display: block;
+  font-size: .58rem;
+  color: #5a6070;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+}
+.mactions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.mbtn {
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 7px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .68rem;
+  color: #c8cdd5;
+  cursor: pointer;
+}
+.mbtn.primary { background: #e8c84a; color: #1a1a2e; border-color: #e8c84a; font-weight: 600; }
+
+/* PDF view choice */
+.pdf-view-choice { display: flex; gap: 8px; flex-wrap: wrap; }
+.pvc {
+  flex: 1;
+  min-width: 100px;
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .65rem;
+  color: #7a8090;
+  cursor: pointer;
+  text-align: left;
+}
+.pvc.active { border-color: #e8c84a; color: #e8c84a; background: rgba(232,200,74,.08); }
+.pvc-ic { display: block; font-size: 1rem; margin-bottom: 2px; }
+.pvc-lbl { display: block; font-weight: 600; }
+.pvc-desc { display: block; font-size: .55rem; color: #5a6070; margin-top: 2px; line-height: 1.3; }
 </style>
 </head>
 <body>
@@ -273,7 +440,7 @@ body {
 <div class="admin-header">
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
-    <span class="badge">Admin Konsole</span>
+    <span class="badge" id="consoleBadge">Konsole</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -282,16 +449,140 @@ body {
   </div>
 </div>
 
-<div class="admin-nav">
-  <button class="nav-tab active" data-tab="users" onclick="switchTab('users')">Benutzer</button>
-  <button class="nav-tab" data-tab="roles" onclick="switchTab('roles')">Rollen</button>
-  <button class="nav-tab" data-tab="plans" onclick="switchTab('plans')">Pläne</button>
+<div class="admin-nav" id="adminNav">
+  <button class="nav-tab active" data-tab="werkzeuge" onclick="switchTab('werkzeuge')">Werkzeuge</button>
+  <button class="nav-tab superadmin-only" data-tab="users" onclick="switchTab('users')" style="display:none;">Benutzer</button>
+  <button class="nav-tab superadmin-only" data-tab="roles" onclick="switchTab('roles')" style="display:none;">Rollen</button>
+  <button class="nav-tab superadmin-only" data-tab="plans" onclick="switchTab('plans')" style="display:none;">Pläne</button>
 </div>
 
 <div class="admin-content">
 
+  <!-- WERKZEUGE -->
+  <div class="section active" id="tabWerkzeuge">
+    <div class="section-title">Werkzeuge</div>
+    <div class="section-sub">Plan auswählen und verwalten</div>
+
+    <!-- Plan Auswahl -->
+    <div class="tool-card full-width" style="margin-bottom:16px;">
+      <div class="tool-card-title">Plan auswählen</div>
+      <div class="tool-card-sub">Plan aus PocketBase laden — plan_data wird nach dem Speichern in der App synchronisiert</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="wrkPlanSelect" class="tool-input" style="max-width:340px;" onchange="loadSelectedPlan()">
+          <option value="">— Plan wählen —</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadAdminPlans()">↺ Neu laden</button>
+      </div>
+      <div id="wrkPlanLoading" style="font-size:.65rem;color:#5a6070;margin-top:8px;display:none;">Lädt…</div>
+      <div id="wrkPlanError" style="font-size:.65rem;color:#e84a4a;margin-top:8px;display:none;"></div>
+    </div>
+
+    <!-- Plan Info + Tools (nur wenn Plan geladen) -->
+    <div id="wrkPlanLoaded" style="display:none;">
+
+      <!-- Info -->
+      <div class="tool-card full-width" style="margin-bottom:16px;">
+        <div class="tool-card-title" id="wrkPlanTitle">Plan</div>
+        <div class="plan-info-grid">
+          <div class="plan-info-cell"><div class="plan-info-val" id="wrkInfoDates">0</div><div class="plan-info-lbl">Tage</div></div>
+          <div class="plan-info-cell"><div class="plan-info-val" id="wrkInfoCrew">0</div><div class="plan-info-lbl">Crew</div></div>
+          <div class="plan-info-cell"><div class="plan-info-val" id="wrkInfoPos">0</div><div class="plan-info-lbl">Positionen</div></div>
+        </div>
+      </div>
+
+      <div class="tool-grid">
+
+        <!-- Crew verknüpfen -->
+        <div class="tool-card">
+          <div class="tool-card-title">Crew verknüpfen</div>
+          <div class="tool-card-sub">E-Mail-Adresse pro Crew-Mitglied hinterlegen</div>
+          <div id="wrkCrewLinkList"></div>
+        </div>
+
+        <!-- Crew benachrichtigen -->
+        <div class="tool-card">
+          <div class="tool-card-title">Crew benachrichtigen</div>
+          <div class="tool-card-sub">Einladung oder Erinnerung per E-Mail senden</div>
+          <div id="wrkNotifyList"></div>
+        </div>
+
+        <!-- Export / Import -->
+        <div class="tool-card">
+          <div class="tool-card-title">Export &amp; Import</div>
+          <div class="tool-card-sub">Plan-Daten als JSON sichern oder wiederherstellen</div>
+          <div class="tool-btn-row" style="margin-top:0;">
+            <button class="btn btn-ghost btn-sm" onclick="exportAdminPlanJSON()">⬇ JSON exportieren</button>
+            <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+              ⬆ JSON importieren
+              <input type="file" accept=".json" style="display:none;" onchange="onAdminImportFile(event)">
+            </label>
+          </div>
+        </div>
+
+        <!-- PDF & Kalender -->
+        <div class="tool-card">
+          <div class="tool-card-title">PDF &amp; Kalender</div>
+          <div class="tool-card-sub">Druckansicht oder .ics für Kalender-Apps</div>
+          <div class="tool-btn-row" style="margin-top:0;">
+            <button class="btn btn-ghost btn-sm" onclick="openAdminPDF()">▾ PDF Export</button>
+            <button class="btn btn-ghost btn-sm" onclick="openAdminICS()">📅 Kalender .ics</button>
+          </div>
+        </div>
+
+        <!-- Logos -->
+        <div class="tool-card full-width">
+          <div class="tool-card-title">Logos</div>
+          <div class="tool-card-sub">Logos sind plan-unabhängig und werden im Browser gespeichert</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
+            <!-- Planer -->
+            <div style="padding:10px;background:#1a1a2e;border-radius:4px;">
+              <div style="font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Planer</div>
+              <img id="admLogo_planer" class="logo-thumb">
+              <div style="display:flex;gap:6px;margin-top:6px;">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                  Hochladen
+                  <input type="file" accept="image/*" style="display:none;" onchange="handleAdminLogo('planer',this)">
+                </label>
+                <button class="btn btn-danger btn-sm" id="admLogoRm_planer" onclick="removeAdminLogo('planer')" style="display:none;">✕</button>
+              </div>
+            </div>
+            <!-- Band -->
+            <div style="padding:10px;background:#1a1a2e;border-radius:4px;">
+              <div style="font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Band</div>
+              <img id="admLogo_band" class="logo-thumb">
+              <div style="display:flex;gap:6px;margin-top:6px;">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                  Hochladen
+                  <input type="file" accept="image/*" style="display:none;" onchange="handleAdminLogo('band',this)">
+                </label>
+                <button class="btn btn-danger btn-sm" id="admLogoRm_band" onclick="removeAdminLogo('band')" style="display:none;">✕</button>
+              </div>
+            </div>
+            <!-- Booking -->
+            <div style="padding:10px;background:#1a1a2e;border-radius:4px;">
+              <div style="font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Booking</div>
+              <img id="admLogo_booking" class="logo-thumb">
+              <div style="display:flex;gap:6px;margin-top:6px;">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                  Hochladen
+                  <input type="file" accept="image/*" style="display:none;" onchange="handleAdminLogo('booking',this)">
+                </label>
+                <button class="btn btn-danger btn-sm" id="admLogoRm_booking" onclick="removeAdminLogo('booking')" style="display:none;">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end tool-grid -->
+    </div><!-- end wrkPlanLoaded -->
+
+    <div id="wrkNoData" style="color:#5a6070;font-size:.7rem;padding:16px 0;display:none;">
+      Kein plan_data vorhanden. Plan in der App öffnen und speichern — dann hier neu laden.
+    </div>
+  </div>
+
   <!-- BENUTZER -->
-  <div class="section active" id="tabUsers">
+  <div class="section" id="tabUsers">
     <div class="section-title">Benutzer verwalten</div>
     <div class="section-sub">Rollen zuweisen und Accounts verwalten</div>
 
@@ -347,7 +638,7 @@ body {
 
   <!-- ROLLEN -->
   <div class="section" id="tabRoles">
-    <div class="section-title">Rollen & Berechtigungen</div>
+    <div class="section-title">Rollen &amp; Berechtigungen</div>
     <div class="section-sub">Übersicht der verfügbaren Standardrollen</div>
 
     <div class="role-grid">
@@ -366,7 +657,7 @@ body {
         <div class="role-card-name"><span class="role-badge role-manager">Manager</span></div>
         <div class="role-card-count" id="countManager">— Benutzer</div>
         <ul class="role-perm-list">
-          <li class="no">Admin-Konsole</li>
+          <li>Konsole: Werkzeuge-Tab</li>
           <li>Pläne erstellen &amp; verwalten</li>
           <li>Crew zuweisen</li>
           <li>Einladungen &amp; Erinnerungen senden</li>
@@ -380,8 +671,8 @@ body {
           <li class="no">Pläne ändern</li>
           <li>Alle Assignments lesen</li>
           <li>Status sehen (bestätigt/offen/abgelehnt)</li>
-          <li>PDF/Kalender Export</li>
           <li class="no">Crew zuweisen</li>
+          <li class="no">E-Mails senden</li>
         </ul>
       </div>
       <div class="role-card">
@@ -407,7 +698,7 @@ body {
       <thead>
         <tr>
           <th>Plan-Name</th>
-          <th>Besitzer</th>
+          <th>Besitzer (ID)</th>
           <th>Erstellt</th>
           <th>Aktionen</th>
         </tr>
@@ -418,12 +709,110 @@ body {
     </table>
   </div>
 
+</div><!-- admin-content -->
+
+<!-- PDF MODAL -->
+<div class="modal-bg" id="pdfModal">
+  <div class="modal-box" style="width:480px;">
+    <div class="modal-title">PDF Export</div>
+    <div class="mf">
+      <label class="ml">Ansicht</label>
+      <div class="pdf-view-choice" id="pdfViewChoice">
+        <button type="button" class="pvc active" data-view="table" onclick="pdfSetView('table')"><span class="pvc-ic">▦</span><span class="pvc-lbl">Tabelle</span><span class="pvc-desc">Volle Kreuztabelle</span></button>
+        <button type="button" class="pvc" data-view="blocks" onclick="pdfSetView('blocks')"><span class="pvc-ic">▨</span><span class="pvc-lbl">Blöcke</span><span class="pvc-desc">Tourblock-Übersicht</span></button>
+        <button type="button" class="pvc" data-view="crew" onclick="pdfSetView('crew')"><span class="pvc-ic">▰</span><span class="pvc-lbl">Crew</span><span class="pvc-desc">Timeline pro Person</span></button>
+      </div>
+    </div>
+    <div class="mf" id="pdfPosWrap">
+      <label class="ml">Positionen</label>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button class="mbtn" style="font-size:10px;padding:3px 8px;" onclick="pdfToggleAll('pdfPosCbs',true)">Alle</button>
+        <button class="mbtn" style="font-size:10px;padding:3px 8px;" onclick="pdfToggleAll('pdfPosCbs',false)">Keine</button>
+      </div>
+      <div id="pdfPosCbs" style="display:flex;flex-direction:column;gap:5px;margin-top:4px;"></div>
+    </div>
+    <div class="mf">
+      <label class="ml">Crew-Mitglieder</label>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button class="mbtn" style="font-size:10px;padding:3px 8px;" onclick="pdfToggleAll('pdfCrewCbs',true)">Alle</button>
+        <button class="mbtn" style="font-size:10px;padding:3px 8px;" onclick="pdfToggleAll('pdfCrewCbs',false)">Keine</button>
+      </div>
+      <div id="pdfCrewCbs" style="display:flex;flex-direction:column;gap:5px;margin-top:4px;"></div>
+    </div>
+    <div class="mf">
+      <label class="ml">Tagesarten</label>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfShow" checked style="accent-color:#5fcc8a;"> <span style="color:#5fcc8a;">■ </span> Show</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfReise" checked style="accent-color:#6aa7e8;"> <span style="color:#6aa7e8;">■ </span> Reise</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfPrep" checked style="accent-color:#e89a4a;"> <span style="color:#e89a4a;">■ </span> Aufbau / Probe</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfOff" checked style="accent-color:#6a6f78;"> <span style="color:#6a6f78;">■ </span> OFF / Sonstiges</label>
+      </div>
+    </div>
+    <div class="mactions">
+      <button class="mbtn" onclick="closeModal('pdfModal')">Abbrechen</button>
+      <button class="mbtn primary" onclick="generatePDF()">▶ Druckansicht</button>
+    </div>
+  </div>
+</div>
+
+<!-- KALENDER MODAL -->
+<div class="modal-bg" id="calModal">
+  <div class="modal-box" style="width:320px;">
+    <div class="modal-title">📅 Kalender exportieren</div>
+    <div style="font-size:.62rem;color:#5a6070;margin-bottom:14px;text-transform:uppercase;letter-spacing:.08em;">Importierbar in Apple Kalender, Google, Outlook</div>
+    <div class="mf">
+      <label class="ml">Tagesarten</label>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calShow" checked style="accent-color:#4caf72;"> <span style="color:#4caf72;">■ </span> Show</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calReise" checked style="accent-color:#d4b84a;"> <span style="color:#d4b84a;">■ </span> Reise</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calPrep" checked style="accent-color:#5b8ac4;"> <span style="color:#5b8ac4;">■ </span> Aufbau / Probe</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calOff" style="accent-color:#888;"> <span style="color:#888;">■ </span> OFF / Sonstiges</label>
+      </div>
+    </div>
+    <div class="mactions">
+      <button class="mbtn" onclick="closeModal('calModal')">Abbrechen</button>
+      <button class="mbtn primary" onclick="adminGenerateICS()">⬇ .ics herunterladen</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="adminToast"></div>
 
 <script>
+// ── Globals für pdf.js ─────────────────────────────────────────────────────────
+let TOUR_DATES = [];
+let POSITIONS  = [];
+let crew       = [];
+let assignments = {};
+let assignmentStatuses = {};
+let logos = { booking: '', band: '', planer: '' };
+const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e','#2e75b6','#548235'];
+const LOGOS_KEY = 'tourplan_logos';
+let SUPABASE_ENABLED = true;
+let activePlanId = null;
+
+// Stubs für pdf.js / calendar.js
+function openModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'flex'; }
+function closeModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+function showToast(msg, color) { adminToast(msg, color); }
+function isPending(si) { return si && (si.status === 'proposed' || si.status === 'declined'); }
+function getVal(dateStr, posId) { return (assignments[dateStr]?.[posId]) || ''; }
+function hasPermission() { return true; }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Plan name stub for pdf.js header
+function _getAdminPlanName() { return _wrkPlanName || 'Plan'; }
+
+// ── Werkzeuge State ────────────────────────────────────────────────────────────
+let _wrkPbPlanId = null;
+let _wrkPlanData = null;
+let _wrkPlanName = '';
+let _wrkCrewMeta = {}; // { name: { email, id } }
+let _wrkAssignmentStatuses = {};
+
 // ── Auth Guard ─────────────────────────────────────────────────────────────────
+let _IS_SUPERADMIN_CONSOLE = false;
+
 (async function() {
   const token   = localStorage.getItem('pb_token');
   const userStr = localStorage.getItem('pb_user');
@@ -442,25 +831,41 @@ body {
     return;
   }
 
-  if (user.role !== 'superadmin') {
+  const role = user.role || 'crew';
+  if (role !== 'superadmin' && role !== 'manager') {
     window.location.href = 'index.html';
     return;
   }
 
-  const badge = document.getElementById('adminUserBadge');
-  if (badge) badge.textContent = user.email;
+  _IS_SUPERADMIN_CONSOLE = (role === 'superadmin');
 
-  loadUsers();
-  loadRoleCounts();
-  loadPlans();
+  const badge = document.getElementById('adminUserBadge');
+  if (badge) badge.textContent = user.email + ' · ' + role;
+
+  const consoleBadge = document.getElementById('consoleBadge');
+  if (consoleBadge) consoleBadge.textContent = role === 'superadmin' ? 'Admin Konsole' : 'Manager Konsole';
+
+  if (_IS_SUPERADMIN_CONSOLE) {
+    document.querySelectorAll('.superadmin-only').forEach(el => el.style.display = '');
+    loadUsers();
+    loadRoleCounts();
+    loadPlans();
+  }
+
+  _loadAdminLogos();
+  renderAdminLogos();
+  loadAdminPlans();
+  switchTab('werkzeuge');
 })();
 
 // ── Tab Switching ──────────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
-  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  const sec = document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1));
+  if (sec) sec.classList.add('active');
+  const tab = document.querySelector(`[data-tab="${name}"]`);
+  if (tab) tab.classList.add('active');
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
@@ -609,23 +1014,24 @@ async function loadRoleCounts() {
   });
 }
 
-// ── Plans ──────────────────────────────────────────────────────────────────────
+// ── Plans (Superadmin) ─────────────────────────────────────────────────────────
 async function loadPlans() {
   const tbody = document.getElementById('plansBody');
+  if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="4" class="loading">Lädt…</td></tr>';
   try {
-    const data = await pbGet('/api/collections/plans/records?perPage=200&sort=-created&expand=owner');
+    const data = await pbGet('/api/collections/plans/records?perPage=200&sort=-created');
     const items = data.items || [];
     if (!items.length) {
       tbody.innerHTML = '<tr><td colspan="4" class="loading">Keine Pläne gefunden.</td></tr>';
       return;
     }
     tbody.innerHTML = items.map(p => {
-      const owner = p.expand?.owner?.email || p.owner || '–';
+      const owner = p.owner || '–';
       const created = p.created ? new Date(p.created).toLocaleDateString('de-DE') : '–';
       return `<tr>
         <td><strong>${p.name || '–'}</strong></td>
-        <td class="plan-status">${owner}</td>
+        <td class="plan-status" style="font-size:.6rem;">${owner}</td>
         <td class="plan-status">${created}</td>
         <td>
           <button class="btn btn-danger btn-sm" onclick="deletePlanAdmin('${p.id}', '${(p.name||'').replace(/'/g,"\\'")}')">Löschen</button>
@@ -646,6 +1052,339 @@ async function deletePlanAdmin(planId, planName) {
   } catch(e) {
     adminToast('Fehler: ' + e.message, '#e84a4a');
   }
+}
+
+// ── Werkzeuge: Plan laden ──────────────────────────────────────────────────────
+async function loadAdminPlans() {
+  const sel = document.getElementById('wrkPlanSelect');
+  const err = document.getElementById('wrkPlanError');
+  err.style.display = 'none';
+
+  try {
+    const pbUser = JSON.parse(localStorage.getItem('pb_user') || '{}');
+    const userId = pbUser.id;
+    let url = '/api/collections/plans/records?perPage=200&sort=-created';
+    if (!_IS_SUPERADMIN_CONSOLE && userId) {
+      url += '&filter=' + encodeURIComponent(`owner="${userId}"`);
+    }
+    const data = await pbGet(url);
+    const items = data.items || [];
+    sel.innerHTML = '<option value="">— Plan wählen —</option>' +
+      items.map(p => `<option value="${p.id}">${p.name || p.id}</option>`).join('');
+  } catch(e) {
+    err.textContent = 'Fehler beim Laden der Pläne: ' + e.message;
+    err.style.display = 'block';
+  }
+}
+
+async function loadSelectedPlan() {
+  const pbPlanId = document.getElementById('wrkPlanSelect').value;
+  const loadedDiv = document.getElementById('wrkPlanLoaded');
+  const noDataDiv = document.getElementById('wrkNoData');
+  const loadingEl = document.getElementById('wrkPlanLoading');
+  const errEl = document.getElementById('wrkPlanError');
+
+  loadedDiv.style.display = 'none';
+  noDataDiv.style.display = 'none';
+  errEl.style.display = 'none';
+
+  if (!pbPlanId) return;
+  _wrkPbPlanId = pbPlanId;
+  loadingEl.style.display = 'block';
+
+  try {
+    const plan = await pbGet('/api/collections/plans/records/' + pbPlanId);
+    _wrkPlanName = plan.name || 'Plan';
+
+    if (!plan.plan_data) {
+      loadingEl.style.display = 'none';
+      noDataDiv.style.display = 'block';
+      return;
+    }
+
+    _wrkPlanData = JSON.parse(plan.plan_data);
+
+    // Set globals for pdf.js
+    TOUR_DATES = _wrkPlanData.tourDates || [];
+    POSITIONS  = _wrkPlanData.positions || [];
+    crew       = _wrkPlanData.crew || [];
+    assignments = _wrkPlanData.assignments || {};
+
+    // Load crew_members (emails)
+    const crewData = await pbGet('/api/collections/crew_members/records?perPage=200&filter=' + encodeURIComponent(`plan_id="${pbPlanId}"`));
+    _wrkCrewMeta = {};
+    (crewData.items || []).forEach(m => { _wrkCrewMeta[m.name] = { email: m.email || '', id: m.id }; });
+
+    // Load assignment statuses
+    const assignData = await pbGet('/api/collections/assignments/records?perPage=500&filter=' + encodeURIComponent(`plan_id="${pbPlanId}"`));
+    _wrkAssignmentStatuses = {};
+    (assignData.items || []).forEach(a => {
+      if (!_wrkAssignmentStatuses[a.date]) _wrkAssignmentStatuses[a.date] = {};
+      _wrkAssignmentStatuses[a.date][a.pos_id] = {
+        status: a.status, crewName: a.crew_name, crewEmail: a.crew_email,
+        proposedBy: a.proposed_by, id: a.id
+      };
+    });
+    assignmentStatuses = _wrkAssignmentStatuses;
+
+    // Update plan info
+    document.getElementById('wrkPlanTitle').textContent = _wrkPlanName;
+    document.getElementById('wrkInfoDates').textContent = TOUR_DATES.length;
+    document.getElementById('wrkInfoCrew').textContent = crew.length;
+    document.getElementById('wrkInfoPos').textContent = POSITIONS.length;
+
+    renderAdminCrewLink();
+    renderAdminNotify();
+
+    loadingEl.style.display = 'none';
+    loadedDiv.style.display = 'block';
+
+  } catch(e) {
+    loadingEl.style.display = 'none';
+    errEl.textContent = 'Fehler: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+// ── Werkzeuge: Crew verknüpfen ─────────────────────────────────────────────────
+function renderAdminCrewLink() {
+  const container = document.getElementById('wrkCrewLinkList');
+  if (!crew.length) {
+    container.innerHTML = '<div style="font-size:.65rem;color:#5a6070;">Keine Crew-Mitglieder in diesem Plan.</div>';
+    return;
+  }
+  container.innerHTML = crew.map((name, i) => {
+    const meta = _wrkCrewMeta[name] || {};
+    const dot = CREW_COLORS[i % CREW_COLORS.length];
+    const safeId = 'wcl_' + i;
+    return `<div class="crew-link-row">
+      <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
+      <span style="min-width:110px;font-size:.63rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${name}</span>
+      <input type="email" id="${safeId}" placeholder="E-Mail…" value="${meta.email || ''}"
+             class="tool-input" style="flex:2;font-size:.6rem;padding:4px 8px;"
+             onkeydown="if(event.key==='Enter')saveAdminCrewLink(${i})">
+      <button class="btn btn-primary btn-sm" onclick="saveAdminCrewLink(${i})">✓</button>
+    </div>`;
+  }).join('');
+}
+
+async function saveAdminCrewLink(i) {
+  const name  = crew[i];
+  const email = (document.getElementById('wcl_' + i)?.value || '').trim().toLowerCase();
+  if (!email) return;
+  try {
+    const existing = _wrkCrewMeta[name];
+    if (existing?.id) {
+      await pbPatch('/api/collections/crew_members/records/' + existing.id, { email });
+    } else {
+      const rec = await pbPost('/api/collections/crew_members/records', {
+        plan_id: _wrkPbPlanId, name, email, sort_order: i
+      });
+      if (!_wrkCrewMeta[name]) _wrkCrewMeta[name] = {};
+      _wrkCrewMeta[name].id = rec.id;
+    }
+    if (!_wrkCrewMeta[name]) _wrkCrewMeta[name] = {};
+    _wrkCrewMeta[name].email = email;
+    adminToast(`${name} verknüpft ✓`, '#4ae8a0');
+    renderAdminNotify();
+  } catch(e) {
+    adminToast('Fehler: ' + e.message, '#e84a4a');
+  }
+}
+
+// ── Werkzeuge: Crew benachrichtigen ───────────────────────────────────────────
+function renderAdminNotify() {
+  const container = document.getElementById('wrkNotifyList');
+  if (!crew.length) {
+    container.innerHTML = '<div style="font-size:.65rem;color:#5a6070;">Keine Crew-Mitglieder in diesem Plan.</div>';
+    return;
+  }
+  container.innerHTML = crew.map((name, i) => {
+    const meta = _wrkCrewMeta[name] || {};
+    const email = meta.email || '';
+    const dot = CREW_COLORS[i % CREW_COLORS.length];
+    let proposed = 0, confirmed = 0;
+    Object.values(_wrkAssignmentStatuses).forEach(day => {
+      Object.values(day).forEach(s => {
+        if (s.crewName === name) {
+          if (s.status === 'proposed') proposed++;
+          if (s.status === 'confirmed') confirmed++;
+        }
+      });
+    });
+    const emailInfo = email
+      ? `<span style="color:#5a6070;font-size:.58rem;">${email}</span>`
+      : `<span style="color:#e84a4a;font-size:.58rem;">Keine E-Mail</span>`;
+    const safeName = name.replace(/'/g, "\\'");
+    return `<div class="crew-notify-row">
+      <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.65rem;">${name}</div>
+        ${emailInfo}
+      </div>
+      <span style="font-size:.58rem;color:#5a6070;white-space:nowrap;">${proposed}⏳ ${confirmed}✓</span>
+      <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} onclick="sendAdminEmail('${safeName}','invite')">Einladung</button>
+      <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} onclick="sendAdminEmail('${safeName}','reminder')">Erinnerung</button>
+    </div>`;
+  }).join('');
+}
+
+async function sendAdminEmail(crewName, type) {
+  const meta = _wrkCrewMeta[crewName];
+  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
+  try {
+    await pbPost('/api/collections/crew_invites/records', {
+      plan_id:    _wrkPbPlanId,
+      crew_name:  crewName,
+      crew_email: meta.email,
+      type,
+      plan_name:  _wrkPlanName,
+      app_url:    'https://crewplanner.nyxlightwork.de'
+    });
+    adminToast(`${type === 'invite' ? 'Einladung' : 'Erinnerung'} gesendet an ${crewName} ✓`, '#4ae8a0');
+  } catch(e) {
+    adminToast('Fehler: ' + e.message, '#e84a4a');
+  }
+}
+
+// ── Werkzeuge: JSON Export / Import ───────────────────────────────────────────
+function exportAdminPlanJSON() {
+  if (!_wrkPlanData) { adminToast('Kein Plan geladen', '#e84a4a'); return; }
+  const blob = new Blob([JSON.stringify(_wrkPlanData, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (_wrkPlanName || 'plan').replace(/\s+/g, '_') + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  adminToast('Exportiert ✓', '#4ae8a0');
+}
+
+async function onAdminImportFile(event) {
+  if (!_wrkPbPlanId) { adminToast('Bitte zuerst einen Plan auswählen', '#e84a4a'); return; }
+  const file = event.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  let data;
+  try { data = JSON.parse(text); } catch(e) { adminToast('Ungültige JSON-Datei', '#e84a4a'); return; }
+  if (!data.tourDates && !data.crew) { adminToast('Kein gültiger Planungsexport', '#e84a4a'); return; }
+  try {
+    await pbPatch('/api/collections/plans/records/' + _wrkPbPlanId, { plan_data: text });
+    _wrkPlanData = data;
+    TOUR_DATES = data.tourDates || [];
+    POSITIONS  = data.positions || [];
+    crew       = data.crew || [];
+    assignments = data.assignments || {};
+    document.getElementById('wrkInfoDates').textContent = TOUR_DATES.length;
+    document.getElementById('wrkInfoCrew').textContent = crew.length;
+    document.getElementById('wrkInfoPos').textContent = POSITIONS.length;
+    renderAdminCrewLink();
+    renderAdminNotify();
+    adminToast('Import gespeichert ✓', '#4ae8a0');
+  } catch(e) {
+    adminToast('Fehler: ' + e.message, '#e84a4a');
+  }
+  event.target.value = '';
+}
+
+// ── Werkzeuge: PDF & ICS ───────────────────────────────────────────────────────
+function openAdminPDF() {
+  if (!_wrkPlanData) { adminToast('Bitte zuerst einen Plan laden', '#e84a4a'); return; }
+  openPDFFilter(); // from pdf.js, uses globals set above
+}
+
+function openAdminICS() {
+  if (!_wrkPlanData) { adminToast('Bitte zuerst einen Plan laden', '#e84a4a'); return; }
+  openModal('calModal');
+}
+
+function adminGenerateICS() {
+  const inclTypes = {
+    show:  document.getElementById('calShow').checked,
+    reise: document.getElementById('calReise').checked,
+    prep:  document.getElementById('calPrep').checked,
+    off:   document.getElementById('calOff').checked,
+  };
+  const rows = TOUR_DATES.filter(r => inclTypes[r.type]);
+  if (!rows.length) { adminToast('Keine Tage ausgewählt', '#e84a4a'); return; }
+
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0',
+    'PRODID:-//Tour Crew Plan//v2.0//DE',
+    'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+  ];
+
+  rows.forEach(row => {
+    const dtStart = row.date.replace(/-/g, '');
+    const [y, m, d] = row.date.split('-').map(Number);
+    const nx = new Date(y, m - 1, d + 1);
+    const dtEnd = `${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
+    const summary = `${row.typeLabel || row.type} – ${row.loc || ''}`;
+    let desc = `Art: ${row.typeLabel || row.type}\\nOrt: ${row.loc || ''}`;
+    const uid = `${row.date}-${Math.random().toString(36).slice(2)}@tourcrewplan`;
+    lines.push(
+      'BEGIN:VEVENT',
+      `DTSTART;VALUE=DATE:${dtStart}`,
+      `DTEND;VALUE=DATE:${dtEnd}`,
+      `SUMMARY:${summary}`,
+      `DESCRIPTION:${desc}`,
+      `UID:${uid}`,
+      'END:VEVENT'
+    );
+  });
+
+  lines.push('END:VCALENDAR');
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (_wrkPlanName || 'tourplan') + '.ics';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  closeModal('calModal');
+  adminToast(`${rows.length} Termine exportiert ✓`, '#4ae8a0');
+}
+
+// ── Werkzeuge: Logos ───────────────────────────────────────────────────────────
+function _loadAdminLogos() {
+  try {
+    const r = localStorage.getItem(LOGOS_KEY);
+    if (r) { const l = JSON.parse(r); logos.booking = l.booking||''; logos.band = l.band||''; logos.planer = l.planer||''; }
+  } catch(e) {}
+}
+
+function _saveAdminLogos() {
+  try { localStorage.setItem(LOGOS_KEY, JSON.stringify({ booking: logos.booking, band: logos.band, planer: logos.planer })); } catch(e) {}
+}
+
+function renderAdminLogos() {
+  ['planer', 'band', 'booking'].forEach(type => {
+    const prev = document.getElementById('admLogo_' + type);
+    const rm   = document.getElementById('admLogoRm_' + type);
+    if (prev) {
+      if (logos[type]) { prev.src = logos[type]; prev.style.display = 'block'; }
+      else { prev.style.display = 'none'; }
+    }
+    if (rm) rm.style.display = logos[type] ? '' : 'none';
+  });
+}
+
+function handleAdminLogo(type, input) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    logos[type] = e.target.result;
+    _saveAdminLogos();
+    adminToast(`${type}-Logo gesetzt ✓`, '#4ae8a0');
+    renderAdminLogos();
+  };
+  r.readAsDataURL(file);
+  input.value = '';
+}
+
+function removeAdminLogo(type) {
+  logos[type] = '';
+  _saveAdminLogos();
+  adminToast('Logo entfernt', '#e8c84a');
+  renderAdminLogos();
 }
 </script>
 </body>

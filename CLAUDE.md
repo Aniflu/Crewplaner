@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.0**
+- Aktuelle Version: **v0.9.1**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -16,7 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.0    — Multi-Rollen-System (RBAC): superadmin, manager, booker, crew (aktuell)
+v0.9.1    — Manager-Konsole + Werkzeuge-Tab + Bug-Fixes (aktuell)
+v0.9.0    — Multi-Rollen-System (RBAC): superadmin, manager, booker, crew
 v0.9.x    — Dynamischer Permission-Builder, Plan-scoped Rollen, User-Einladung aus Admin-Konsole
 v1.0      — Stable Release
 ```
@@ -34,19 +35,21 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase
-- Multi-Rollen-System: superadmin → admin.html, manager/booker/crew → index.html
-- Admin-Konsole (`admin.html`): Benutzer-Rollen verwalten, Pläne-Übersicht
-- Plan-Sync: localStorage ↔ PocketBase (plans, crew_members)
-- Crew-Mitglieder mit E-Mail verknüpfen (Sidebar → E-Mail-Icon, nur Manager+)
+- Multi-Rollen-System: superadmin/manager → admin.html Werkzeuge, superadmin zusätzlich Benutzer/Rollen/Pläne
+- Manager-Konsole (`admin.html`): Werkzeuge-Tab (Crew, E-Mails, PDF, ICS, JSON Import/Export, Logos)
+- Superadmin-Konsole (`admin.html`): + Benutzer verwalten, Rollen, Pläne
+- Plan-Sync: localStorage ↔ PocketBase (plans + plan_data, crew_members)
 - E-Mail-Einladungsflow (Hook v2.0): Bestätigen / Ablehnen per Button in E-Mail
 - Absage-Queue Banner für Sammel-Absagen
 - Crew-Selbstregistrierung über login.html
 
 ### Manuelle PocketBase-Schritte noch ausstehend ⏳
-1. **`users` Collection → Feld `role` hinzufügen:**
-   - Typ: select, Optionen: `superadmin`, `manager`, `booker`, `crew`, Default: `crew`
-2. **`madmaxmail@web.de` → role = `superadmin` setzen**
-3. **API Rule für `users`:** updateRule = `@request.auth.role = "superadmin"`
+1. **`plans` Collection → Feld `plan_data` hinzufügen:**
+   - Typ: `JSON` (oder Plain Text), nicht required
+2. **`plans` Collection → API rules:**
+   - List: `@request.auth.role = "superadmin" || @request.auth.id = owner`
+   - View: `@request.auth.id = owner || @request.auth.role = "superadmin"`
+   - Update: `@request.auth.id = owner || @request.auth.role = "superadmin"`
 
 ### Rollen-System
 | Rolle | Landing | Rechte |
@@ -116,7 +119,7 @@ Aktuelle Versionen (Stand 2026-05-17):
 | `config.js` | v29 |
 | `pb.js` | v33 |
 | `dataService.js` | v37 |
-| `authService.js` | v31 |
+| `authService.js` | v32 |
 | `rbac.js` | v1 |
 | `state.js` | v25 |
 | `render.js` | v24 |
@@ -125,7 +128,7 @@ Aktuelle Versionen (Stand 2026-05-17):
 | `crewNotify.js` | v27 |
 | `crewLink.js` | v24 |
 | `userView.js` | v24 |
-| `plans.js` | v25 |
+| `plans.js` | v26 |
 | alle anderen | v23 |
 
 ---

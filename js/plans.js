@@ -72,7 +72,7 @@ async function confirmRenamePlan(id){
   if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED){
     const pbId=localStorage.getItem('tourplan_pb_'+id);
     if(pbId){
-      try{await pbPatch('plans',pbId,{name});}
+      try{await pbPatch('/api/collections/plans/records/'+pbId,{name});}
       catch(e){showToast('Lokal gespeichert – PB-Sync fehlgeschlagen','#e8c84a');return;}
     }
   }
@@ -132,6 +132,11 @@ function _savePlanToLS(id){
     const plans=getPlansIndex();
     const p=plans.find(x=>x.id===id);
     if(p){p.modified=_today();savePlansIndex(plans);}
+    // Sync plan_data to PocketBase (silent fail ok)
+    if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED){
+      const pbId=localStorage.getItem('tourplan_pb_'+id);
+      if(pbId){pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)}).catch(()=>{});}
+    }
   }catch(e){console.warn(e);}
 }
 
