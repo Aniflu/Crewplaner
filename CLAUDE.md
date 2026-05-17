@@ -68,8 +68,9 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 | Was | Wert |
 |---|---|
 | Admin-Login (App + PB Admin UI) | `madmaxmail@web.de` |
-| E-Mail SMTP | `10.0.1.1:587` (Hetzner Postfix, kein Auth) |
-| E-Mail Absender | `noreply@crewplanner.nyxlightwork.de` |
+| Resend API-Key | `re_Suse3V78_FhvG2LoBKzVXgQJX9VhCoDdy` |
+| Resend Absender | `noreply@crewplanner.nyxlightwork.de` |
+| Resend verifizierte Domain | `crewplanner.nyxlightwork.de` |
 | GitHub | https://github.com/Aniflu/Crewplaner (main = Production) |
 | Server SSH Alias | `ssh hetzner` |
 | PocketBase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` (Coolify-managed) |
@@ -161,8 +162,8 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
 
-Aktuell deployte Hook-Version: **v2.4** (Hetzner Postfix SMTP via $app.newMailClient())
-Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.4 geladen`
+Aktuell deployte Hook-Version: **v2.5** (Resend HTTP API, $getEnv('RESEND_KEY'))
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.5 geladen`
 
 ### Docker-Logs live beobachten
 
@@ -170,12 +171,12 @@ Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.4 geladen`
 ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 50 -f"
 ```
 
-### E-Mail (Hetzner Postfix)
+### E-Mail (Resend)
 
-Hook sendet via `$app.newMailClient()` → Hetzner Postfix auf Docker-Host (kein Resend mehr).
-- SMTP: `10.0.1.1:587` STARTTLS, kein Auth
+Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner IP-Reputation-Problem).
+- API-Key: in Coolify als `RESEND_KEY` Env-Var gesetzt (`$getEnv('RESEND_KEY')` im Hook)
+- Verifizierte Domain: `crewplanner.nyxlightwork.de`
 - Absender: `noreply@crewplanner.nyxlightwork.de`
-- Config: PB Admin UI → Settings → Mail settings
 
 ### Admin-User anlegen (Pocketbase Admin UI)
 
