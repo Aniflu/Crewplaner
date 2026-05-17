@@ -298,6 +298,35 @@ body {
     <div class="search-bar">
       <input type="text" id="userFilter" placeholder="Filter nach E-Mail…" oninput="filterUsers()">
       <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↺ Neu laden</button>
+      <button class="btn btn-primary btn-sm" onclick="toggleNewUserForm(true)">+ Neuer Benutzer</button>
+    </div>
+
+    <div id="newUserForm" style="display:none;background:#12121f;border:1px solid #2a2a40;border-radius:6px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:.7rem;font-weight:600;color:#fff;margin-bottom:12px;">Neuen Benutzer anlegen</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div>
+          <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">E-Mail</label>
+          <input type="email" id="newUserEmail" placeholder="name@beispiel.de" style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:4px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#c8cdd5;outline:none;width:220px;">
+        </div>
+        <div>
+          <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Passwort</label>
+          <input type="password" id="newUserPassword" placeholder="Min. 8 Zeichen" style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:4px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#c8cdd5;outline:none;width:160px;">
+        </div>
+        <div>
+          <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Rolle</label>
+          <select id="newUserRole" class="role-select">
+            <option value="crew">Crew</option>
+            <option value="booker">Booker</option>
+            <option value="manager">Manager</option>
+            <option value="superadmin">Superadmin</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="createUser()">Erstellen</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleNewUserForm(false)">Abbrechen</button>
+        </div>
+      </div>
+      <div id="newUserError" style="font-size:.65rem;color:#e84a4a;margin-top:8px;display:none;"></div>
     </div>
 
     <table class="data-table">
@@ -450,6 +479,39 @@ function adminLogout() {
   localStorage.removeItem('pb_token');
   localStorage.removeItem('pb_user');
   window.location.href = 'login.html';
+}
+
+// ── New User Form ──────────────────────────────────────────────────────────────
+function toggleNewUserForm(show) {
+  document.getElementById('newUserForm').style.display = show ? 'block' : 'none';
+  if (show) {
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserPassword').value = '';
+    document.getElementById('newUserRole').value = 'crew';
+    document.getElementById('newUserError').style.display = 'none';
+    setTimeout(() => document.getElementById('newUserEmail').focus(), 50);
+  }
+}
+
+async function createUser() {
+  const email    = (document.getElementById('newUserEmail').value || '').trim();
+  const password = document.getElementById('newUserPassword').value || '';
+  const role     = document.getElementById('newUserRole').value || 'crew';
+  const errEl    = document.getElementById('newUserError');
+
+  errEl.style.display = 'none';
+  if (!email) { errEl.textContent = 'Bitte E-Mail eingeben.'; errEl.style.display = 'block'; return; }
+  if (password.length < 8) { errEl.textContent = 'Passwort muss mindestens 8 Zeichen lang sein.'; errEl.style.display = 'block'; return; }
+
+  try {
+    await pbPost('/api/collections/users/records', { email, password, passwordConfirm: password, role });
+    adminToast('Benutzer angelegt ✓', '#4ae8a0');
+    toggleNewUserForm(false);
+    loadUsers();
+  } catch(e) {
+    errEl.textContent = 'Fehler: ' + (e.message || 'Unbekannter Fehler');
+    errEl.style.display = 'block';
+  }
 }
 
 // ── Users ──────────────────────────────────────────────────────────────────────
