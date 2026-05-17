@@ -22,7 +22,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.8.5.6</span>
+            <span class="tour-tag">Personalplan · v0.8.5.7</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -307,6 +307,11 @@
 </div>
 
 <!-- TOAST -->
+<div id="cancellation-banner" style="display:none;position:fixed;bottom:64px;right:22px;z-index:9998;background:#e84a4a;color:#fff;border-radius:4px;padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:.68rem;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.35);">
+  <span id="cancellation-count"></span>
+  <button onclick="flushAllCancellations()" style="background:#fff;color:#e84a4a;border:none;border-radius:2px;padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-size:.63rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">ABSAGEN SENDEN</button>
+  <button onclick="clearAllCancellations()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:2px;padding:5px 8px;font-family:'IBM Plex Mono',monospace;font-size:.63rem;cursor:pointer;">✕</button>
+</div>
 <div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
 
 <!-- SCRIPTS (Ladereihenfolge ist wichtig) -->
@@ -315,7 +320,7 @@
 <script src="js/config.js?v=29"></script>
 <script src="js/dataService.js?v=37"></script>
 <script src="js/authService.js?v=29"></script>
-<script src="js/state.js?v=23"></script>
+<script src="js/state.js?v=24"></script>
 <script src="js/types.js?v=23"></script>
 <script src="js/utils.js?v=23"></script>
 <script src="js/render.js?v=23"></script>
@@ -330,7 +335,7 @@
 <script src="js/blockview.js?v=23"></script>
 <script src="js/crewview.js?v=23"></script>
 <script src="js/crewLink.js?v=23"></script>
-<script src="js/crewNotify.js?v=25"></script>
+<script src="js/crewNotify.js?v=26"></script>
 <script src="js/userView.js?v=23"></script>
 <script src="js/init.js?v=28"></script>
 

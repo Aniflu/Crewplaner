@@ -8,12 +8,40 @@ function _storePendingCancellation(crewName, email, dateStr, posLabel) {
   const exists = q[crewName].slots.some(s => s.date === dateStr && s.posLabel === posLabel);
   if (!exists) q[crewName].slots.push({ date: dateStr, posLabel });
   localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(q));
+  renderCancellationBanner();
 }
 
 function _clearPendingCancellations(crewName) {
   const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
   delete q[crewName];
   localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(q));
+  renderCancellationBanner();
+}
+
+function renderCancellationBanner() {
+  const banner = document.getElementById('cancellation-banner');
+  if (!banner) return;
+  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  const total = Object.values(q).reduce((sum, e) => sum + (e.slots?.length || 0), 0);
+  if (total === 0) { banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  const el = document.getElementById('cancellation-count');
+  if (el) el.textContent = total + ' Absage' + (total !== 1 ? 'n' : '') + ' ausstehend';
+}
+
+async function flushAllCancellations() {
+  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  const names = Object.keys(q);
+  if (!names.length) return;
+  for (const crewName of names) {
+    await sendCancellationSummary(crewName);
+  }
+  renderCancellationBanner();
+}
+
+function clearAllCancellations() {
+  localStorage.removeItem(PENDING_CANCELLATIONS_KEY);
+  renderCancellationBanner();
 }
 
 function _loadInvites() {
