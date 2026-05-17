@@ -958,7 +958,7 @@ function renderUsers(users) {
       ? '<span class="verified-badge">✓ Verifiziert</span>'
       : '<span class="unverified-badge">⏳ Ausstehend</span>';
     return `<tr>
-      <td>${u.email}</td>
+      <td>${esc(u.email)}</td>
       <td>
         <select class="role-select" onchange="updateRole('${u.id}', this.value)">
           <option value="superadmin" ${roleVal==='superadmin'?'selected':''}>Superadmin</option>
@@ -970,7 +970,7 @@ function renderUsers(users) {
       <td>${verified}</td>
       <td>${created}</td>
       <td>
-        <button class="btn btn-danger btn-sm" onclick="removeUser('${u.id}', '${u.email}')">Entfernen</button>
+        <button class="btn btn-danger btn-sm" data-uid="${u.id}" data-email="${esc(u.email)}" onclick="removeUser(this.dataset.uid,this.dataset.email)">Entfernen</button>
       </td>
     </tr>`;
   }).join('');
@@ -1033,11 +1033,11 @@ async function loadPlans() {
       const owner = p.owner || '–';
       const created = p.created ? new Date(p.created).toLocaleDateString('de-DE') : '–';
       return `<tr>
-        <td><strong>${p.name || '–'}</strong></td>
+        <td><strong>${esc(p.name) || '–'}</strong></td>
         <td class="plan-status" style="font-size:.6rem;">${owner}</td>
         <td class="plan-status">${created}</td>
         <td>
-          <button class="btn btn-danger btn-sm" onclick="deletePlanAdmin('${p.id}', '${(p.name||'').replace(/'/g,"\\'")}')">Löschen</button>
+          <button class="btn btn-danger btn-sm" data-pid="${p.id}" data-pname="${esc(p.name||'')}" onclick="deletePlanAdmin(this.dataset.pid,this.dataset.pname)">Löschen</button>
         </td>
       </tr>`;
     }).join('');
@@ -1195,8 +1195,8 @@ function renderAdminCrewLink() {
     const safeId = 'wcl_' + i;
     return `<div class="crew-link-row">
       <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
-      <span style="min-width:110px;font-size:.63rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${name}</span>
-      <input type="email" id="${safeId}" placeholder="E-Mail…" value="${meta.email || ''}"
+      <span style="min-width:110px;font-size:.63rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(name)}</span>
+      <input type="email" id="${safeId}" placeholder="E-Mail…" value="${esc(meta.email || '')}"
              class="tool-input" style="flex:2;font-size:.6rem;padding:4px 8px;"
              onkeydown="if(event.key==='Enter')saveAdminCrewLink(${i})">
       <button class="btn btn-primary btn-sm" onclick="saveAdminCrewLink(${i})">✓</button>
@@ -1249,18 +1249,17 @@ function renderAdminNotify() {
       });
     });
     const emailInfo = email
-      ? `<span style="color:#5a6070;font-size:.58rem;">${email}</span>`
+      ? `<span style="color:#5a6070;font-size:.58rem;">${esc(email)}</span>`
       : `<span style="color:#e84a4a;font-size:.58rem;">Keine E-Mail</span>`;
-    const safeName = name.replace(/'/g, "\\'");
     return `<div class="crew-notify-row">
       <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:.65rem;">${name}</div>
+        <div style="font-size:.65rem;">${esc(name)}</div>
         ${emailInfo}
       </div>
       <span style="font-size:.58rem;color:#5a6070;white-space:nowrap;">${proposed}⏳ ${confirmed}✓</span>
-      <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} onclick="sendAdminEmail('${safeName}','invite')">Einladung</button>
-      <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} onclick="sendAdminEmail('${safeName}','reminder')">Erinnerung</button>
+      <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminEmail(this.dataset.crew,'invite')">Einladung</button>
+      <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminEmail(this.dataset.crew,'reminder')">Erinnerung</button>
     </div>`;
   }).join('');
 }

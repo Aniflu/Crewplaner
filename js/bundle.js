@@ -131,10 +131,19 @@ function openCrewDD(e,dateStr,posId){
     }});
   }
   if(def)items.push({label:`↩ Standard: ${def}`,cls:'reset',action:()=>{if(!assignments[dateStr])assignments[dateStr]={};delete assignments[dateStr][posId];closeDD();renderTable();}});
-  items.push({label:'— Nicht besetzt',cls:'clear',action:()=>{setAssign(dateStr,posId,'');closeDD();}});
-  items.push({label:'⚠ Offen / Unbesetzt',cls:'offen',color:'#e07060',action:()=>{setAssign(dateStr,posId,OFFEN);closeDD();}});
-  crew.forEach((name,i)=>items.push({label:name,dot:CREW_COLORS[i%CREW_COLORS.length],selected:current===name,action:()=>{setAssign(dateStr,posId,name);closeDD();}}));
-  showDD(e.currentTarget.getBoundingClientRect(),pos.label,items);
+  items.push({label:'— Nicht besetzt',cls:'clear',action:()=>{setAssign(dateStr,posId,'');closeDD();renderTable();}});
+  items.push({label:'⚠ Offen / Unbesetzt',cls:'offen',color:'#e07060',action:()=>{setAssign(dateStr,posId,OFFEN);closeDD();renderTable();}});
+  crew.forEach((name,i)=>{
+    const meta=SUPABASE_ENABLED?(crewMeta[name]||null):null;
+    const hasEmail=!!(meta?.email);
+    const label=hasEmail?`📧 ${name}`:name;
+    items.push({label,dot:CREW_COLORS[i%CREW_COLORS.length],selected:current===name,action:()=>{
+      setAssign(dateStr,posId,name);
+      proposeCrew(dateStr,posId,name,meta?.email||null).catch(e=>console.warn(e));
+      closeDD();
+    }});
+  });
+  showDD(e.currentTarget.getBoundingClientRect(),pos.label+(SUPABASE_ENABLED?' · 📧=Benachrichtigung':''),items);
 }
 function setAssign(d,p,v){if(!assignments[d])assignments[d]={};assignments[d][p]=v;renderTable();}
 

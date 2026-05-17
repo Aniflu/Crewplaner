@@ -12,7 +12,7 @@ function startApp(){
     document.getElementById('viewTable').style.display = CURRENT_VIEW==='table'?'':'none';
     document.getElementById('viewBlocks').style.display= CURRENT_VIEW==='blocks'?'':'none';
     document.getElementById('viewCrew').style.display  = CURRENT_VIEW==='crew' ?'':'none';
-  }catch(e){}
+  }catch(e){console.warn('View-Restore fehlgeschlagen:',e);}
   const plans=getPlansIndex();
 
   // Migration: alter tourplan_v3 Key → ersten Plan erstellen
@@ -32,7 +32,7 @@ function startApp(){
         showToast('Alter Plan migriert ✓','#4f81bd');
         return;
       }
-    }catch(e){}
+    }catch(e){console.warn('Legacy-Migration fehlgeschlagen:',e);showToast('Plan-Migration fehlgeschlagen','#e84a4a');}
   }
 
   // Von admin.html: Plan direkt aktivieren

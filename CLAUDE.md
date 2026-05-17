@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.2**
+- Aktuelle Version: **v0.9.3**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -16,7 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.2    — Admin-Konsole Dropdown-Fix + Plan in Touransicht laden (aktuell)
+v0.9.3    — Security-Fixes + Code-Review (aktuell)
+v0.9.2    — Admin-Konsole Dropdown-Fix + Plan in Touransicht laden
 v0.9.1    — Manager-Konsole + Werkzeuge-Tab + Bug-Fixes
 v0.9.0    — Multi-Rollen-System (RBAC): superadmin, manager, booker, crew
 v0.9.x    — Dynamischer Permission-Builder, Plan-scoped Rollen, User-Einladung aus Admin-Konsole
@@ -161,8 +162,8 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
 
-Aktuell deployte Hook-Version: **v2.0** (weißes E-Mail-Design + confirm/decline URL-Params)
-Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.0 geladen`
+Aktuell deployte Hook-Version: **v2.3** (Resend API Key via $getEnv statt Hardcode)
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.3 geladen`
 
 ### Docker-Logs live beobachten
 

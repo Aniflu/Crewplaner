@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.9.3 — 2026-05-17
+
+### Security-Fixes & Code-Qualität
+
+- **`admin.html`** — XSS-Fixes: Crew-Namen, E-Mails und Plan-Namen werden jetzt überall mit `esc()` gerendert; onclick-Injection verhindert durch `data-*` Attribute + `dataset.*` Zugriff
+- **`.pb_hooks/main.pb.js`** (v2.2→v2.3) — Resend API Key aus Quellcode entfernt; wird jetzt über PocketBase Environment Variable `RESEND_KEY` geladen (`$getEnv('RESEND_KEY')`)
+- **`js/bundle.js`** — Mit `dropdown.js` synchronisiert: `proposeCrew()` Aufruf + E-Mail-Badge (`📧`) + `renderTable()` nach Dropdown-Aktionen ergänzt
+- **`index.html`** — Script-Ladereihenfolge korrigiert: `pb.js` lädt jetzt vor `dialog.js` (wie in CLAUDE.md dokumentiert)
+- **`tourplan.html`** — Alte 83 KB Monolith-Datei gelöscht (nicht mehr referenziert)
+- **`js/init.js`** (v29) — Silent catch-Blocks durch `console.warn` ersetzt; Legacy-Migration zeigt Toast bei Fehler
+- **`js/plans.js`** (v26) — PocketBase-Sync-Fehler werden jetzt in Console geloggt (war komplett silent)
+
+### Manuelle Schritte erforderlich
+
+1. **Resend API Key in PocketBase setzen:** PB Admin UI → Settings → Environment Variables → `RESEND_KEY` = `re_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s`
+2. **Alten Key rotieren:** Resend Dashboard → API Keys → alten Key löschen und neuen erstellen, dann in PB erneut setzen
+3. **Hook deployen:**
+   ```bash
+   ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+   ```
+
+---
+
 ## v0.9.2 — 2026-05-17
 
 ### Bug-Fixes & Verbesserungen

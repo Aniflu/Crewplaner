@@ -135,7 +135,7 @@ function _savePlanToLS(id){
     // Sync plan_data to PocketBase (silent fail ok)
     if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED){
       const pbId=localStorage.getItem('tourplan_pb_'+id);
-      if(pbId){pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)}).catch(()=>{});}
+      if(pbId){pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)}).catch(e=>console.warn('[plans] PB-Sync fehlgeschlagen:',e));}
     }
   }catch(e){console.warn(e);}
 }
