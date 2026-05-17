@@ -38,6 +38,7 @@ function switchPlan(id){
 }
 
 async function deletePlan(id){
+  if(!hasPermission('deletePlan'))return;
   const plans=getPlansIndex();
   const plan=plans.find(p=>p.id===id);
   if(!plan)return;
@@ -79,6 +80,7 @@ async function confirmRenamePlan(id){
 }
 
 function openNewPlan(){
+  if(!hasPermission('createPlan'))return;
   document.getElementById('sharedTitle').textContent='Neuer Plan';
   document.getElementById('sharedBody').innerHTML=`
     <div class="mf"><label class="ml">Plan-Name</label><input type="text" id="newPlanName" class="mi" placeholder="z.B. Tour 2027 – Deutschland"></div>

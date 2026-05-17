@@ -88,15 +88,17 @@ function renderBody(){
         else if(si.status==='declined'){display=`✗ ${sn}`;style='color:#e84a4a;border-color:rgba(232,74,74,.35);background:rgba(232,74,74,.07);';}
       }
       const myName=SUPABASE_ENABLED?(typeof getMyCrewName==='function'?getMyCrewName():null):null;
-      const isMyProposed=!IS_ADMIN&&si&&si.status==='proposed'&&si.crewName===myName;
-      const isOpenSlot=SUPABASE_ENABLED&&!IS_ADMIN&&(!val||val===''||val===OFFEN)&&!si;
+      const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName;
+      const isOpenSlot=SUPABASE_ENABLED&&IS_CREW&&(!val||val===''||val===OFFEN)&&!si;
       b+=`<td class="assign-cell">`;
       if(isMyProposed){
         b+=`<div class="my-slot-wrap"><span class="my-slot-name">${si.crewName}</span><button class="slot-confirm" onclick="confirmMySlot('${row.date}','${p.id}')">✓</button><button class="slot-decline" onclick="declineMySlot('${row.date}','${p.id}')">✗</button></div>`;
       }else if(isOpenSlot){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')">Melden</button>`;
-      }else if(IS_ADMIN||!SUPABASE_ENABLED){
+      }else if(IS_MANAGER||!SUPABASE_ENABLED){
         b+=`<button class="${cls}" style="${style}" onclick="openCrewDD(event,'${row.date}','${p.id}')">${display}</button>`;
+      }else if(IS_BOOKER){
+        b+=`<span class="${cls}" style="${style};cursor:default;">${display}</span>`;
       }else{
         b+=`<button class="${cls}" style="${style}" disabled>${display}</button>`;
       }

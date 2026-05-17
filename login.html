@@ -217,7 +217,9 @@
   function _redirectAfterAuth() {
     const pending = localStorage.getItem('pendingEmailAction');
     localStorage.removeItem('pendingEmailAction');
-    window.location.href = pending ? 'index.html' + pending : 'index.html';
+    const user = JSON.parse(localStorage.getItem('pb_user') || '{}');
+    const base = user.role === 'superadmin' ? 'admin.html' : 'index.html';
+    window.location.href = pending ? base + pending : base;
   }
 
   // Bereits eingeloggt → direkt weiterleiten

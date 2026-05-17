@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.8.5.9**
+- Aktuelle Version: **v0.9.0**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -16,9 +16,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.8.5.x  — Patch-Fixes am E-Mail-Einladungs-Feature (aktuell)
-             Jeder Fix: letzte Stelle +1  (0.8.5.1 → 0.8.5.2 → ...)
-v0.8.6    — Nächste Feature-Stufe (erst wenn E-Mail-Flow vollständig getestet)
+v0.9.0    — Multi-Rollen-System (RBAC): superadmin, manager, booker, crew (aktuell)
+v0.9.x    — Dynamischer Permission-Builder, Plan-scoped Rollen, User-Einladung aus Admin-Konsole
+v1.0      — Stable Release
 ```
 
 **Regel:** Nach JEDEM Fix die Version synchron erhöhen in:
@@ -30,29 +30,31 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
-## Aktueller Stand (Stand: 2026-05-16)
+## Aktueller Stand (Stand: 2026-05-17)
 
 ### Was funktioniert ✓
-- Login/Logout via PocketBase (`madmaxmail@web.de` = Admin)
+- Login/Logout via PocketBase
+- Multi-Rollen-System: superadmin → admin.html, manager/booker/crew → index.html
+- Admin-Konsole (`admin.html`): Benutzer-Rollen verwalten, Pläne-Übersicht
 - Plan-Sync: localStorage ↔ PocketBase (plans, crew_members)
-- Crew-Mitglieder mit E-Mail verknüpfen (Sidebar → E-Mail-Icon)
-- Einladungs-E-Mails & Erinnerungen (`crew_invites` Hook) — bestätigt funktionierend
-- Hook v2.0 in GitHub: weißes E-Mail-Design, zwei Buttons (✓ BESTÄTIGEN / ✗ ABLEHNEN) mit `?action=confirm&aid=RECORD_ID`
-- `authService.js`: `_handleEmailAction()` — verarbeitet `?action=confirm/decline&aid=...` nach Login automatisch
-- "✕ Besetzung aufheben" im Dropdown (für `confirmed`-Assignments)
-- "✕ Anfrage zurückziehen" im Dropdown (für `proposed`/`declined`-Assignments)
+- Crew-Mitglieder mit E-Mail verknüpfen (Sidebar → E-Mail-Icon, nur Manager+)
+- E-Mail-Einladungsflow (Hook v2.0): Bestätigen / Ablehnen per Button in E-Mail
+- Absage-Queue Banner für Sammel-Absagen
+- Crew-Selbstregistrierung über login.html
 
-### Was NOCH NICHT GETESTET ist ⏳
-- Vollständiger E-Mail-Flow: Crew anfragen → E-Mail kommt weiß an → "✓ BESTÄTIGEN" klicken → Zelle wird grün
-- "✗ ABLEHNEN" → Admin bekommt Abgelehnt-E-Mail → Zelle rot
-- "✕ Besetzung aufheben" auf einer grünen (confirmed) Zelle
+### Manuelle PocketBase-Schritte noch ausstehend ⏳
+1. **`users` Collection → Feld `role` hinzufügen:**
+   - Typ: select, Optionen: `superadmin`, `manager`, `booker`, `crew`, Default: `crew`
+2. **`madmaxmail@web.de` → role = `superadmin` setzen**
+3. **API Rule für `users`:** updateRule = `@request.auth.role = "superadmin"`
 
-### Nächste Schritte zum Testen
-1. Hook v2.0 deployen (einmaliger Befehl, siehe unten unter "Hook deployen")
-2. `Cmd+Shift+R` (Hard-Reload) im Browser → authService.js v29 geladen
-3. Crew-Mitglied in eine Zelle eintragen → Zelle zeigt `⏳ Name` (gelb) → E-Mail sollte ankommen
-4. E-Mail öffnen → weißes Design? → "✓ BESTÄTIGEN" klicken → App öffnet → Toast + Zelle grün `✓ Name`?
-5. Docker-Logs für Diagnose: `ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 30"`
+### Rollen-System
+| Rolle | Landing | Rechte |
+|---|---|---|
+| `superadmin` | `admin.html` | Admin-Konsole + alle Manager-Rechte |
+| `manager` | `index.html` | Volle Tour-Verwaltung |
+| `booker` | `index.html` | Read-only Touransicht |
+| `crew` | `index.html` | Nur eigene Slots |
 
 ---
 
@@ -112,14 +114,18 @@ Aktuelle Versionen (Stand 2026-05-17):
 | Datei | Version |
 |---|---|
 | `config.js` | v29 |
-| `pb.js` | v31 |
-| `dataService.js` | v33 |
-| `authService.js` | v30 |
-| `dropdown.js` | v25 |
-| `bundle.js` | v25 |
-| `crewNotify.js` | v26 |
-| `plans.js` | v24 |
-| `state.js` | v24 |
+| `pb.js` | v33 |
+| `dataService.js` | v37 |
+| `authService.js` | v31 |
+| `rbac.js` | v1 |
+| `state.js` | v25 |
+| `render.js` | v24 |
+| `dropdown.js` | v26 |
+| `bundle.js` | v26 |
+| `crewNotify.js` | v27 |
+| `crewLink.js` | v24 |
+| `userView.js` | v24 |
+| `plans.js` | v25 |
 | alle anderen | v23 |
 
 ---

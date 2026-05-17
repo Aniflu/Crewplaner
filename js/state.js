@@ -21,7 +21,14 @@ let logos = {booking:'', band:'', planer:''};
 // Supabase-Laufzeit-Caches (werden nach Login befüllt)
 let crewMeta = {};            // { "Max Mustermann": { email, userId } }
 let assignmentStatuses = {};  // { "2026-07-01": { "gl": { status, proposedBy, crewName } } }
-let IS_ADMIN = false;
+
+// ── Role-Based Access Control ──────────────────────────────────────────
+let USER_ROLE     = 'crew';   // superadmin | manager | booker | crew
+let IS_SUPERADMIN = false;
+let IS_MANAGER    = false;
+let IS_BOOKER     = false;
+let IS_CREW       = false;
+let IS_ADMIN      = false;    // backwards compat: true wenn IS_MANAGER
 let CURRENT_USER_ID = null;
 let CURRENT_USER_EMAIL = null;
 

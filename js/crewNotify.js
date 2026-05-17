@@ -75,7 +75,7 @@ function _fmtInviteDate(name) {
 }
 
 function openCrewNotifyModal() {
-  if (!IS_ADMIN) return;
+  if (!hasPermission('sendInvite')) return;
   document.getElementById('sharedTitle').textContent = 'Crew benachrichtigen';
   _renderCrewNotifyList();
   openModal('sharedModal');

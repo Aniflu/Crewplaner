@@ -30,7 +30,17 @@ async function _authCheckAndStart() {
 
     CURRENT_USER_ID    = user.id;
     CURRENT_USER_EMAIL = user.email;
-    IS_ADMIN           = user.email === ADMIN_EMAIL;
+    USER_ROLE          = user.role || 'crew';
+    IS_SUPERADMIN      = USER_ROLE === 'superadmin';
+    IS_MANAGER         = USER_ROLE === 'manager' || IS_SUPERADMIN;
+    IS_BOOKER          = USER_ROLE === 'booker';
+    IS_CREW            = USER_ROLE === 'crew';
+    IS_ADMIN           = IS_MANAGER; // backwards compat
+    // Superadmin gehört auf admin.html, nicht auf index.html
+    if (IS_SUPERADMIN && !window.location.pathname.includes('admin')) {
+      window.location.href = 'admin.html';
+      return;
+    }
     _showUserBadge(user);
     document.body.style.visibility = 'visible';
     startApp();
@@ -56,9 +66,9 @@ function _showUserBadge(user) {
   const emailEl = el.querySelector('.user-email');
   if (emailEl) emailEl.textContent = user.email;
   const btnCL = document.getElementById('btnCrewLink');
-  if (btnCL && user.email === ADMIN_EMAIL) btnCL.style.display = '';
+  if (btnCL) btnCL.style.display = IS_MANAGER ? '' : 'none';
   const btnCN = document.getElementById('btnCrewNotify');
-  if (btnCN && user.email === ADMIN_EMAIL) btnCN.style.display = '';
+  if (btnCN) btnCN.style.display = IS_MANAGER ? '' : 'none';
 }
 
 async function logout() {

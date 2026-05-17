@@ -1,6 +1,6 @@
 // ── Crew ↔ E-Mail Verknüpfung (nur Admin) ─────────────────────────────────────
 function openCrewLinkModal() {
-  if (!IS_ADMIN) return;
+  if (!hasPermission('linkCrewEmail')) return;
   document.getElementById('sharedTitle').textContent = 'Crew verknüpfen';
   _renderCrewLinkList();
   openModal('sharedModal');

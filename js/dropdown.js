@@ -57,7 +57,7 @@ function openDateDD(e,dateStr){
 
 // ── Crew Assignment Dropdown ───────────────────────────────────────────────────
 function openCrewDD(e,dateStr,posId){
-  if(!IS_ADMIN)return; // Nur Admin darf Besetzungen ändern
+  if(!hasPermission('assignCrew'))return;
   e.stopPropagation();
   const pos=POSITIONS.find(p=>p.id===posId);
   const def=defaultCrew[posId]||'';

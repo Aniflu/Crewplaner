@@ -26,7 +26,7 @@ function getMyPendingSlots() {
 
 // ── Modal automatisch öffnen wenn offene Slots vorhanden ─────────────────────
 function checkAndOpenMySchedule() {
-  if (IS_ADMIN) return;
+  if (IS_MANAGER) return;
   const pending = getMyPendingSlots();
   if (pending.length > 0) openMyScheduleModal();
 }

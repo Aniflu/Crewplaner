@@ -90,6 +90,7 @@ function openDateDD(e,dateStr){
 
 // ── Crew Assignment Dropdown ───────────────────────────────────────────────────
 function openCrewDD(e,dateStr,posId){
+  if(!hasPermission('assignCrew'))return;
   e.stopPropagation();
   const pos=POSITIONS.find(p=>p.id===posId);
   const def=defaultCrew[posId]||'';

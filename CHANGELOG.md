@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.9.0 — 2026-05-17
+
+### Neu: Multi-Rollen-System (RBAC)
+
+- **`js/rbac.js`** (neu) — `hasPermission(action)` Helper; O(1) Switch-Statement für alle Berechtigungsprüfungen
+- **`js/state.js`** — `USER_ROLE`, `IS_SUPERADMIN`, `IS_MANAGER`, `IS_BOOKER`, `IS_CREW` als neue globale Flags; `IS_ADMIN` bleibt für Backwards-Kompatibilität (`= IS_MANAGER`)
+- **`js/authService.js`** — liest `user.role` aus PocketBase; setzt alle Rollen-Flags; Superadmin wird automatisch zu `admin.html` weitergeleitet
+- **`login.html`** — `_redirectAfterAuth()` leitet Superadmin zu `admin.html`, alle anderen zu `index.html`
+- **`admin.html`** (neu) — Separate Admin-Konsole: Benutzer verwalten (Rolle per Dropdown ändern, entfernen), Rollen-Übersicht mit Permission-Matrix, Pläne-Verwaltung; nur für Superadmin zugänglich
+- **`js/render.js`** — Booker-Rolle sieht Zellen read-only als `<span>` (kein Dropdown), `IS_MANAGER` statt `IS_ADMIN`
+- **`js/dropdown.js`** + **`js/bundle.js`** — `hasPermission('assignCrew')` statt `IS_ADMIN`
+- **`js/crewNotify.js`**, **`js/crewLink.js`**, **`js/userView.js`**, **`js/plans.js`** — alle Permission-Checks auf `hasPermission()` umgestellt
+
+### Rollen
+
+| Rolle | Beschreibung |
+|---|---|
+| `superadmin` | Admin-Konsole + alle Manager-Rechte |
+| `manager` | Volle Tour-Verwaltung (bisheriger Admin) |
+| `booker` | Read-only Touransicht |
+| `crew` | Nur eigene Slots sehen/bestätigen |
+
+### Manuelle PocketBase-Schritte erforderlich
+1. `users` Collection: Feld `role` (select: superadmin/manager/booker/crew, Default: crew) hinzufügen
+2. `madmaxmail@web.de` auf `superadmin` setzen
+3. API Rule für `users`: updateRule = `@request.auth.role = "superadmin"`
+
+---
+
 ## v0.8.5.9 — 2026-05-17
 
 ### Neu: Crew-Mitglied Onboarding-Flow

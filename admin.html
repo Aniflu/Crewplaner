@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Konsole — Tour/Crew</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="js/pb.js?v=31"></script>
+<script src="js/config.js?v=29"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #1a1a2e;
+  color: #c8cdd5;
+  font-family: 'IBM Plex Mono', monospace;
+  min-height: 100vh;
+}
+
+.admin-header {
+  background: #12121f;
+  border-bottom: 1px solid #2a2a40;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-brand h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: .06em;
+  color: #fff;
+  line-height: 1;
+}
+
+.admin-brand h1 span { color: #e8c84a; }
+
+.admin-brand .badge {
+  background: rgba(232,200,74,.15);
+  border: 1px solid rgba(232,200,74,.3);
+  color: #e8c84a;
+  font-size: .55rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  cursor: pointer;
+  border: none;
+  transition: opacity .15s;
+}
+.btn:hover { opacity: .85; }
+.btn-primary { background: #e8c84a; color: #1a1a2e; }
+.btn-ghost { background: transparent; border: 1px solid #2a2a40; color: #c8cdd5; }
+.btn-danger { background: rgba(232,74,74,.15); border: 1px solid rgba(232,74,74,.3); color: #e84a4a; }
+.btn-sm { padding: 5px 10px; font-size: .65rem; }
+
+.admin-nav {
+  background: #12121f;
+  border-bottom: 1px solid #2a2a40;
+  padding: 0 24px;
+  display: flex;
+  gap: 0;
+}
+
+.nav-tab {
+  padding: 12px 20px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #5a6070;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+
+.nav-tab:hover { color: #c8cdd5; }
+.nav-tab.active { color: #e8c84a; border-bottom-color: #e8c84a; }
+
+.admin-content {
+  padding: 24px;
+  max-width: 1100px;
+}
+
+.section { display: none; }
+.section.active { display: block; }
+
+.section-title {
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.section-sub {
+  font-size: .62rem;
+  color: #5a6070;
+  margin-bottom: 20px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: .6rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #5a6070;
+  background: #12121f;
+  border-bottom: 1px solid #2a2a40;
+}
+
+.data-table td {
+  padding: 10px 12px;
+  font-size: .7rem;
+  border-bottom: 1px solid #1e2230;
+  vertical-align: middle;
+}
+
+.data-table tr:hover td { background: rgba(255,255,255,.02); }
+
+.role-select {
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .68rem;
+  color: #c8cdd5;
+  cursor: pointer;
+}
+
+.role-select:focus { outline: none; border-color: #e8c84a; }
+
+.role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: .58rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.role-superadmin { background: rgba(232,200,74,.15); color: #e8c84a; border: 1px solid rgba(232,200,74,.3); }
+.role-manager { background: rgba(74,232,160,.12); color: #4ae8a0; border: 1px solid rgba(74,232,160,.25); }
+.role-booker { background: rgba(79,129,189,.15); color: #7ab0e0; border: 1px solid rgba(79,129,189,.3); }
+.role-crew { background: rgba(90,96,112,.15); color: #7a8090; border: 1px solid rgba(90,96,112,.3); }
+
+.verified-badge {
+  font-size: .6rem;
+  color: #4ae8a0;
+}
+.unverified-badge {
+  font-size: .6rem;
+  color: #5a6070;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #12121f;
+  border: 1px solid #2a2a40;
+  border-radius: 6px;
+  padding: 12px 18px;
+  font-size: .7rem;
+  z-index: 9999;
+  display: none;
+}
+
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.role-card {
+  background: #12121f;
+  border: 1px solid #2a2a40;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.role-card-name {
+  font-size: .75rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.role-card-count {
+  font-size: .6rem;
+  color: #5a6070;
+  margin-bottom: 12px;
+}
+
+.role-perm-list {
+  list-style: none;
+  font-size: .62rem;
+  color: #7a8090;
+  line-height: 1.9;
+}
+
+.role-perm-list li::before { content: '✓ '; color: #4ae8a0; }
+.role-perm-list li.no::before { content: '✗ '; color: #e84a4a; }
+.role-perm-list li.no { color: #4a5060; }
+
+.plan-status {
+  font-size: .6rem;
+  color: #5a6070;
+}
+
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.search-bar input {
+  flex: 1;
+  max-width: 360px;
+  background: #12121f;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .72rem;
+  color: #c8cdd5;
+  outline: none;
+}
+
+.search-bar input:focus { border-color: #e8c84a; }
+
+.loading { color: #5a6070; font-size: .7rem; padding: 24px 0; }
+.error-text { color: #e84a4a; font-size: .7rem; padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<div class="admin-header">
+  <div class="admin-brand">
+    <h1>Tour<span>/</span>Crew</h1>
+    <span class="badge">Admin Konsole</span>
+  </div>
+  <div class="header-actions">
+    <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
+    <button class="btn btn-primary btn-sm" onclick="window.location.href='index.html'">Zu meinen Touren →</button>
+    <button class="btn btn-ghost btn-sm" onclick="adminLogout()">Abmelden</button>
+  </div>
+</div>
+
+<div class="admin-nav">
+  <button class="nav-tab active" data-tab="users" onclick="switchTab('users')">Benutzer</button>
+  <button class="nav-tab" data-tab="roles" onclick="switchTab('roles')">Rollen</button>
+  <button class="nav-tab" data-tab="plans" onclick="switchTab('plans')">Pläne</button>
+</div>
+
+<div class="admin-content">
+
+  <!-- BENUTZER -->
+  <div class="section active" id="tabUsers">
+    <div class="section-title">Benutzer verwalten</div>
+    <div class="section-sub">Rollen zuweisen und Accounts verwalten</div>
+
+    <div class="search-bar">
+      <input type="text" id="userFilter" placeholder="Filter nach E-Mail…" oninput="filterUsers()">
+      <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↺ Neu laden</button>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>E-Mail</th>
+          <th>Rolle</th>
+          <th>Status</th>
+          <th>Erstellt</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="usersBody">
+        <tr><td colspan="5" class="loading">Lädt…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ROLLEN -->
+  <div class="section" id="tabRoles">
+    <div class="section-title">Rollen & Berechtigungen</div>
+    <div class="section-sub">Übersicht der verfügbaren Standardrollen</div>
+
+    <div class="role-grid">
+      <div class="role-card">
+        <div class="role-card-name"><span class="role-badge role-superadmin">Superadmin</span></div>
+        <div class="role-card-count" id="countSuperadmin">— Benutzer</div>
+        <ul class="role-perm-list">
+          <li>Admin-Konsole öffnen</li>
+          <li>Benutzer &amp; Rollen verwalten</li>
+          <li>Alle Pläne einsehen</li>
+          <li>Crew zuweisen &amp; verwalten</li>
+          <li>E-Mails senden</li>
+        </ul>
+      </div>
+      <div class="role-card">
+        <div class="role-card-name"><span class="role-badge role-manager">Manager</span></div>
+        <div class="role-card-count" id="countManager">— Benutzer</div>
+        <ul class="role-perm-list">
+          <li class="no">Admin-Konsole</li>
+          <li>Pläne erstellen &amp; verwalten</li>
+          <li>Crew zuweisen</li>
+          <li>Einladungen &amp; Erinnerungen senden</li>
+          <li>PDF/Kalender Export</li>
+        </ul>
+      </div>
+      <div class="role-card">
+        <div class="role-card-name"><span class="role-badge role-booker">Booker</span></div>
+        <div class="role-card-count" id="countBooker">— Benutzer</div>
+        <ul class="role-perm-list">
+          <li class="no">Pläne ändern</li>
+          <li>Alle Assignments lesen</li>
+          <li>Status sehen (bestätigt/offen/abgelehnt)</li>
+          <li>PDF/Kalender Export</li>
+          <li class="no">Crew zuweisen</li>
+        </ul>
+      </div>
+      <div class="role-card">
+        <div class="role-card-name"><span class="role-badge role-crew">Crew</span></div>
+        <div class="role-card-count" id="countCrew">— Benutzer</div>
+        <ul class="role-perm-list">
+          <li>Eigene Einsätze sehen</li>
+          <li>Bestätigen / Ablehnen</li>
+          <li class="no">Andere Slots sehen</li>
+          <li class="no">Pläne ändern</li>
+          <li class="no">Crew verwalten</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLÄNE -->
+  <div class="section" id="tabPlans">
+    <div class="section-title">Pläne verwalten</div>
+    <div class="section-sub">Übersicht aller angelegten Pläne</div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Plan-Name</th>
+          <th>Besitzer</th>
+          <th>Erstellt</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="plansBody">
+        <tr><td colspan="4" class="loading">Lädt…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="toast" id="adminToast"></div>
+
+<script>
+// ── Auth Guard ─────────────────────────────────────────────────────────────────
+(async function() {
+  const token   = localStorage.getItem('pb_token');
+  const userStr = localStorage.getItem('pb_user');
+  if (!token || !userStr) { window.location.href = 'login.html'; return; }
+
+  let user;
+  try {
+    const data = await pbPost('/api/collections/users/auth-refresh');
+    localStorage.setItem('pb_token', data.token);
+    localStorage.setItem('pb_user', JSON.stringify(data.record));
+    user = data.record;
+  } catch(e) {
+    localStorage.removeItem('pb_token');
+    localStorage.removeItem('pb_user');
+    window.location.href = 'login.html';
+    return;
+  }
+
+  if (user.role !== 'superadmin') {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  const badge = document.getElementById('adminUserBadge');
+  if (badge) badge.textContent = user.email;
+
+  loadUsers();
+  loadRoleCounts();
+  loadPlans();
+})();
+
+// ── Tab Switching ──────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+function adminToast(msg, color) {
+  const el = document.getElementById('adminToast');
+  el.textContent = msg;
+  el.style.borderColor = color || '#2a2a40';
+  el.style.color = color || '#c8cdd5';
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.display = 'none', 3000);
+}
+
+// ── Logout ─────────────────────────────────────────────────────────────────────
+function adminLogout() {
+  localStorage.removeItem('pb_token');
+  localStorage.removeItem('pb_user');
+  window.location.href = 'login.html';
+}
+
+// ── Users ──────────────────────────────────────────────────────────────────────
+let _allUsers = [];
+
+async function loadUsers() {
+  const tbody = document.getElementById('usersBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="loading">Lädt…</td></tr>';
+  try {
+    const data = await pbGet('/api/collections/users/records?perPage=200&sort=email');
+    _allUsers = data.items || [];
+    renderUsers(_allUsers);
+    loadRoleCounts();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="error-text">Fehler: ${e.message}</td></tr>`;
+  }
+}
+
+function filterUsers() {
+  const q = (document.getElementById('userFilter').value || '').toLowerCase();
+  renderUsers(q ? _allUsers.filter(u => u.email.toLowerCase().includes(q)) : _allUsers);
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('usersBody');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">Keine Benutzer gefunden.</td></tr>';
+    return;
+  }
+  const roleLabels = { superadmin: 'role-superadmin', manager: 'role-manager', booker: 'role-booker', crew: 'role-crew' };
+  tbody.innerHTML = users.map(u => {
+    const roleCls = roleLabels[u.role] || 'role-crew';
+    const roleVal = u.role || 'crew';
+    const created = u.created ? new Date(u.created).toLocaleDateString('de-DE') : '–';
+    const verified = u.verified
+      ? '<span class="verified-badge">✓ Verifiziert</span>'
+      : '<span class="unverified-badge">⏳ Ausstehend</span>';
+    return `<tr>
+      <td>${u.email}</td>
+      <td>
+        <select class="role-select" onchange="updateRole('${u.id}', this.value)">
+          <option value="superadmin" ${roleVal==='superadmin'?'selected':''}>Superadmin</option>
+          <option value="manager" ${roleVal==='manager'?'selected':''}>Manager</option>
+          <option value="booker" ${roleVal==='booker'?'selected':''}>Booker</option>
+          <option value="crew" ${roleVal==='crew'||!u.role?'selected':''}>Crew</option>
+        </select>
+      </td>
+      <td>${verified}</td>
+      <td>${created}</td>
+      <td>
+        <button class="btn btn-danger btn-sm" onclick="removeUser('${u.id}', '${u.email}')">Entfernen</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function updateRole(userId, newRole) {
+  try {
+    await pbPatch('/api/collections/users/records/' + userId, { role: newRole });
+    const u = _allUsers.find(x => x.id === userId);
+    if (u) u.role = newRole;
+    loadRoleCounts();
+    adminToast('Rolle aktualisiert ✓', '#4ae8a0');
+  } catch(e) {
+    adminToast('Fehler: ' + e.message, '#e84a4a');
+    loadUsers();
+  }
+}
+
+async function removeUser(userId, email) {
+  if (!confirm(`Benutzer „${email}" wirklich entfernen?\nDiese Aktion kann nicht rückgängig gemacht werden.`)) return;
+  try {
+    await pbDelete('/api/collections/users/records/' + userId);
+    _allUsers = _allUsers.filter(u => u.id !== userId);
+    renderUsers(_allUsers);
+    loadRoleCounts();
+    adminToast('Benutzer entfernt ✓', '#4ae8a0');
+  } catch(e) {
+    adminToast('Fehler: ' + e.message, '#e84a4a');
+  }
+}
+
+// ── Role Counts ────────────────────────────────────────────────────────────────
+async function loadRoleCounts() {
+  if (!_allUsers.length) return;
+  const counts = { superadmin: 0, manager: 0, booker: 0, crew: 0 };
+  _allUsers.forEach(u => {
+    const r = u.role || 'crew';
+    if (counts.hasOwnProperty(r)) counts[r]++;
+  });
+  const labels = { superadmin: 'countSuperadmin', manager: 'countManager', booker: 'countBooker', crew: 'countCrew' };
+  Object.entries(labels).forEach(([role, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `${counts[role]} Benutzer`;
+  });
+}
+
+// ── Plans ──────────────────────────────────────────────────────────────────────
+async function loadPlans() {
+  const tbody = document.getElementById('plansBody');
+  tbody.innerHTML = '<tr><td colspan="4" class="loading">Lädt…</td></tr>';
+  try {
+    const data = await pbGet('/api/collections/plans/records?perPage=200&sort=-created&expand=owner');
+    const items = data.items || [];
+    if (!items.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="loading">Keine Pläne gefunden.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = items.map(p => {
+      const owner = p.expand?.owner?.email || p.owner || '–';
+      const created = p.created ? new Date(p.created).toLocaleDateString('de-DE') : '–';
+      return `<tr>
+        <td><strong>${p.name || '–'}</strong></td>
+        <td class="plan-status">${owner}</td>
+        <td class="plan-status">${created}</td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="deletePlanAdmin('${p.id}', '${(p.name||'').replace(/'/g,"\\'")}')">Löschen</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="4" class="error-text">Fehler: ${e.message}</td></tr>`;
+  }
+}
+
+async function deletePlanAdmin(planId, planName) {
+  if (!confirm(`Plan „${planName}" wirklich löschen?\nAlle Daten dieses Plans werden permanent gelöscht.`)) return;
+  try {
+    await pbDelete('/api/collections/plans/records/' + planId);
+    adminToast('Plan gelöscht ✓', '#4ae8a0');
+    loadPlans();
+  } catch(e) {
+    adminToast('Fehler: ' + e.message, '#e84a4a');
+  }
+}
+</script>
+</body>
+</html>
