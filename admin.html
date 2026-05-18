@@ -942,23 +942,18 @@ async function createUser() {
 
 async function createUserWithLove() {
   const email = (document.getElementById('newUserEmail').value || '').trim();
-  const role  = document.getElementById('newUserRole').value || 'crew';
   const errEl = document.getElementById('newUserError');
   errEl.style.display = 'none';
   if (!email) { errEl.textContent = 'Bitte E-Mail eingeben.'; errEl.style.display = 'block'; return; }
-  const tempPw = crypto.randomUUID().replace(/-/g, '') + 'Aa1!';
+  const name = prompt('Name (für die Anrede in der E-Mail):') || email;
   try {
-    const newUser = await pbPost('/api/collections/users/records', { email, password: tempPw, passwordConfirm: tempPw, role, emailVisibility: true });
-    await pbPatch('/api/collections/users/records/' + newUser.id, { verified: true });
-    const planName = 'Tour Crew Plan';
-    const appUrl   = window.location.origin + '/login.html';
     await pbPost('/api/collections/crew_invites/records', {
-      plan_id: '', crew_name: email, crew_email: email,
-      type: 'love_invite', plan_name: planName, app_url: appUrl
+      crew_name: name, crew_email: email,
+      type: 'love_invite', plan_name: 'Tour Crew Plan',
+      app_url: window.location.origin + '/login.html'
     });
     adminToast('♥ Liebeseinladung gesendet!', '#e84a4a');
     toggleNewUserForm(false);
-    loadUsers();
   } catch(e) {
     errEl.textContent = 'Fehler: ' + (e.message || 'Unbekannter Fehler');
     errEl.style.display = 'block';
