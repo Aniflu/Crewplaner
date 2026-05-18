@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 3.1
-console.log('[hook] main.pb.js v3.1 geladen');
+// Version: 3.2
+console.log('[hook] main.pb.js v3.2 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -107,8 +107,8 @@ onRecordAfterCreateSuccess(function(e) {
     ));
   } else if (type === 'password_reset') {
     try {
-      var _prRecord = $app.dao().findFirstRecordByData('users', 'email', email);
-      var _prToken  = $tokens.recordResetPasswordToken($app, _prRecord);
+      var _prRecord = $app.findFirstRecordByData('users', 'email', email);
+      var _prToken  = $tokens.recordResetPasswordToken(_prRecord);
       var _prUrl    = 'https://aniflu.github.io/Crewplaner/login.html?token=' + _prToken;
       sendMail(email, 'Passwort festlegen · Tour Crew Plan', wrap(
         '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Passwort festlegen.</h1>' +
@@ -130,7 +130,7 @@ onRecordAfterCreateSuccess(function(e) {
   if (!record.get('emailVisibility')) return;
   var email = record.get('email');
   try {
-    var _token    = $tokens.recordResetPasswordToken($app, record);
+    var _token    = $tokens.recordResetPasswordToken(record);
     var _resetUrl = 'https://aniflu.github.io/Crewplaner/login.html?token=' + _token;
     var _key      = $getEnv('RESEND_KEY');
     var _from     = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
