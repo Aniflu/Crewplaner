@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.6.1**
+- Aktuelle Version: **v0.9.6.2**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -29,8 +29,9 @@ v1.0      — Stable Release
 
 **Regel:** Nach JEDEM Fix die Version synchron erhöhen in:
 1. `index.html` — `<span class="tour-tag">Personalplan · vX.X.X</span>` (sichtbar in der App — daran testet der User!)
-2. `CLAUDE.md` — "Aktuelle Version"
-3. `README.md` — Version-Zeile
+2. `admin.html` — `<span style="...">vX.X.X</span>` im Header neben "Konsole"
+3. `CLAUDE.md` — "Aktuelle Version"
+4. `README.md` — Version-Zeile
 
 Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe vorschlagen.
 
@@ -165,7 +166,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
 
-Aktuell deployte Hook-Version: **v3.3** (Resend HTTP API, $getEnv('RESEND_KEY'))
+Aktuell deployte Hook-Version: **v3.4** (Resend HTTP API, $getEnv('RESEND_KEY'), auto-verify users)
 Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.8 geladen`
 
 ### Docker-Logs live beobachten

@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 3.3
-console.log('[hook] main.pb.js v3.3 geladen');
+// Version: 3.4
+console.log('[hook] main.pb.js v3.4 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -259,4 +259,17 @@ onRecordAfterUpdateSuccess(function(e) {
     '</table></td></tr></table></body></html>'
   );
 }, 'assignments');
+
+// ── 3. Auto-Verify bei neuen Users ────────────────────────────────────────────
+onRecordAfterCreateSuccess(function(e) {
+  var record = e.record;
+  if (record.getBool('verified')) return;
+  record.set('verified', true);
+  try {
+    $app.save(record);
+    console.log('[hook] User auto-verified: ' + record.getString('email'));
+  } catch(err) {
+    console.error('[hook] Auto-verify Fehler:', err.message);
+  }
+}, 'users');
 
