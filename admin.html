@@ -636,6 +636,7 @@ body {
         </div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-primary btn-sm" onclick="createUser()">Erstellen</button>
+          <button class="btn btn-ghost btn-sm" onclick="createUserWithLove()" style="color:#e84a4a;">♥ Liebeseinladung</button>
           <button class="btn btn-ghost btn-sm" onclick="toggleNewUserForm(false)">Abbrechen</button>
         </div>
       </div>
@@ -931,6 +932,31 @@ async function createUser() {
     await pbPatch('/api/collections/users/records/' + newUser.id, { verified: true });
     await pbPost('/api/collections/users/request-password-reset', { email });
     adminToast('Benutzer angelegt — Reset-Link gesendet ✓', '#4ae8a0');
+    toggleNewUserForm(false);
+    loadUsers();
+  } catch(e) {
+    errEl.textContent = 'Fehler: ' + (e.message || 'Unbekannter Fehler');
+    errEl.style.display = 'block';
+  }
+}
+
+async function createUserWithLove() {
+  const email = (document.getElementById('newUserEmail').value || '').trim();
+  const role  = document.getElementById('newUserRole').value || 'crew';
+  const errEl = document.getElementById('newUserError');
+  errEl.style.display = 'none';
+  if (!email) { errEl.textContent = 'Bitte E-Mail eingeben.'; errEl.style.display = 'block'; return; }
+  const tempPw = crypto.randomUUID().replace(/-/g, '') + 'Aa1!';
+  try {
+    const newUser = await pbPost('/api/collections/users/records', { email, password: tempPw, passwordConfirm: tempPw, role, emailVisibility: true });
+    await pbPatch('/api/collections/users/records/' + newUser.id, { verified: true });
+    const planName = 'Tour Crew Plan';
+    const appUrl   = window.location.origin + '/login.html';
+    await pbPost('/api/collections/crew_invites/records', {
+      plan_id: '', crew_name: email, crew_email: email,
+      type: 'love_invite', plan_name: planName, app_url: appUrl
+    });
+    adminToast('♥ Liebeseinladung gesendet!', '#e84a4a');
     toggleNewUserForm(false);
     loadUsers();
   } catch(e) {
