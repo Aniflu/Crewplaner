@@ -928,8 +928,7 @@ async function createUser() {
   const tempPw = crypto.randomUUID().replace(/-/g, '') + 'Aa1!';
   try {
     await pbPost('/api/collections/users/records', { email, password: tempPw, passwordConfirm: tempPw, role, emailVisibility: true });
-    await pbPost('/api/collections/users/request-password-reset', { email });
-    adminToast('Benutzer angelegt — Reset-Link gesendet ✓', '#4ae8a0');
+    adminToast('Benutzer angelegt — Link wird gesendet ✓', '#4ae8a0');
     toggleNewUserForm(false);
     loadUsers();
   } catch(e) {
@@ -940,7 +939,10 @@ async function createUser() {
 
 async function resetUserPassword(email) {
   try {
-    await pbPost('/api/collections/users/request-password-reset', { email });
+    await pbPost('/api/collections/crew_invites/records', {
+      crew_name: email, crew_email: email,
+      type: 'password_reset', plan_name: 'Tour Crew Plan', app_url: ''
+    });
     adminToast('Reset-Link an ' + email + ' gesendet ✓', '#4ae8a0');
   } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
 }
