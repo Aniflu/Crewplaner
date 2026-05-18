@@ -1,104 +1,99 @@
-# Personalplan: Starten & Erste Schritte
+# Tour Crew Plan — Erste Schritte
 
-Willkommen im Team bei **Personalplan**! Diese Dokumentation ist deine schnelle Hilfe, um die Plattform innerhalb von Minuten zu nutzen. Egal ob du als Crew-Manager oder Admin startest: Hier lernst du die Grundlagen.
-
-## 🌟 Überblick: Was ist Personalplan?
-
-Personalplan ist mehr als nur ein Kalender. Es ist dein digitales Werkzeug zur effizienten Crew-Organisation. Zentral verwaltest du alle Touren, Termine und Besetzungen. Das System hilft dir dabei, Verfügbarkeit zu tracken und sicherzustellen, dass alle Projekte pünktlich und gut besetzt starten. Es ist intuitiv gestaltet und erfordert kein technisches Vorwissen, damit du dich sofort wohlfühlst.
-
-## ⚡ Quick Start (3 Minuten)
-
-So kommst du schnell und sicher an den Start:
-
-1. **Login:** Klicke auf den Link in deiner offiziellen Einladung oder gehe direkt auf die Web-Adresse: https://crewplanner.nyxlightwork.de
-2. **Oberfläche:** Nach dem erfolgreichen Login landest du auf dem Dashboard. Hier siehst du auf einen Blick offene Touren, Team-Status und wichtige Statistiken.
-3. **Erste Aktion:** Klicke oben rechts auf den prominenten Button „+ Neue Tour".
-
-## 📝 Detaillierte Schritte: Neue Tour erstellen
-
-So erstellst du deine erste Tour professionell:
-
-1. **Navigieren:** Im linken Hauptmenü findest du unter dem Punkt „Touren" das Symbol mit dem Plus-Zeichen.
-
-2. **Daten erfassen:** Fülle das Formular sorgfältig und vollständig aus:
-   - **Name:** Gib einen aussagekräftigen Titel vor (z. B. „Sommerreise Berlin 2026")
-   - **Datum:** Wähle im Kalender Start- und Enddatum präzise aus
-   - **Positionen:** Definiere notwendige Rollen (Captain, First Officer, Flight Attendant, etc.)
-   - **Ort:** Trage Start- und Endort ein
-   - **Notizen:** Ergänze spezielle Anforderungen oder Besonderheiten
-
-3. **Speichern:** Überprüfe die Eingaben und klicke auf „Tour erstellen".
-
-4. **Bestätigung:** Eine grüne Bestätigungsmeldung erscheint. Deine Tour ist nun sichtbar und bearbeitbar.
-
-**Tipp:** Nutze Templates für wiederkehrende Tour-Typen, um Zeit zu sparen.
-
-## 👥 Crew zu Tour hinzufügen
-
-Sobald die Tour existiert, brauchst du die passenden Menschen:
-
-1. Öffne die spezifische Tour im Dashboard
-2. Wechsel zum Reiter „Besetzung" im oberen Menü
-3. Nutze das Suchfeld oben, um Crewmitglieder nach Name oder ID zu finden
-4. Klicke neben jedem Namen auf „Hinzufügen"
-5. Du kannst nun spezifische Rollen zuweisen (z.B. Captain für Person X)
-6. **Bulk-Aktion:** Du kannst mehrere Mitglieder auf einmal auswählen und zur Tour ziehen
-
-**Wichtig:** Stelle sicher, dass alle Positionen besetzt sind, bevor du Einladungen versendest.
-
-## 📧 Crew-Einladung versenden & verwalten
-
-Nicht alle Crewmitglieder sind sofort online:
-
-1. **Automatische Einladung:** Das System generiert automatisch eine E-Mail an alle zugewiesenen Personen
-2. **Status:** Überwachte den Status in der Tour-Übersicht:
-   - ⏳ Ausstehend = Crew hat noch nicht geantwortet
-   - ✅ Akzeptiert = Crew nimmt an
-   - ❌ Abgelehnt = Crew nimmt nicht teil
-3. **Erinnerung:** Klicke auf die drei Punkte (⋮) neben einem Eintrag, um eine Erinnerungs-E-Mail zu senden
-4. **Admin-Anpassungen:** Als Admin kannst du E-Mail-Vorlagen anpassen, um die Antwortquote zu erhöhen
-
-## ❓ Häufige Fragen (FAQ)
-
-**P: Passwort vergessen?**  
-A: Nutze die Option „Passwort zurücksetzen" am Login-Bildschirm. Folge dem Link in der E-Mail.
-
-**P: Meine Rolle / Berechtigung ändern?**  
-A: Nutze das Profilmenü für eigene Einstellungen. Für andere Änderungen benötigst du Admin-Rechte.
-
-**P: Wie archiviere ich alte Touren?**  
-A: Abgeschlossene Touren finden sich im Menüpunkt „Archiv" oder nutze Filter → Status = „Completed".
-
-**P: Kann ich Daten exportieren?**  
-A: Ja! Gehe zu „Einstellungen" → „Daten" und wähle CSV-Export für deine Reports und Backups.
-
-**P: Wie aktualisiere ich mein Profil?**  
-A: Gehe zu Profilmenü (oben rechts) → „Persönliche Daten" und bearbeite deine Angaben.
-
-**P: Was ist wenn Crew-Mitglieder krank werden?**  
-A: Markiere die Tour als „Update nötig". Das System zeigt alternative Crew basierend auf Verfügbarkeit.
-
-**P: Kann ich wiederkehrende Touren einrichten?**  
-A: Ja! Nutze die Template-Funktion. Unter „Templates" kannst du Touren-Vorlagen speichern und wiederverwenden.
-
-## 💡 Tipps & Tricks
-
-- **Tags nutzen:** Verwende Tags, um Touren schneller zu filtern (z. B. „Wichtig", „Saison", „EU")
-- **Backup:** Exportiere regelmäßig deine Daten, falls du die Plattform wechselst oder Daten verlierst
-- **Notifications:** Aktiviere Push-Benachrichtigungen, um nicht über Änderungen zu kommen (Einstellungen → Benachrichtigungen)
-- **Suche nutzen:** Die globale Suche (Suchleiste oben) findet schnell Crew, Touren und Archive
-- **Sortierung:** Klicke auf Spaltenköpfe in der Tour-Übersicht, um nach Datum, Status oder Name zu sortieren
-
-## 🛠 Support & Kontakt
-
-Stöberst du in die Mangel? Kein Problem. Unser Team hilft dir gerne weiter:
-
-- **Hilfe im Chat:** Klicke auf das Fragezeichen-Icon unten rechts für Live-Chat
-- **Support-E-Mail:** support@crewplanner.nyxlightwork.de
-- **Dokumentation:** Siehe auch `docs/faq.md` für erweiterte Fragen
-- **Feedback:** Melde Fehler direkt im Menü unter „Feedback" → „Bug Report"
-- **Feature-Anfragen:** Nutze „Feedback" → „Feature Request"
+Stand: v0.9.6.2
 
 ---
 
-Viel Erfolg bei der Planung und eine schöne Zeit im Team! 🚀
+## Für Crew-Mitglieder
+
+### 1. Einladung erhalten
+
+Du bekommst eine E-Mail mit einem Link zum Setzen deines Passworts. Klick den Link — er öffnet die Login-Seite mit einem Formular "Passwort festlegen". Gib dein gewünschtes Passwort ein (mind. 8 Zeichen) und speichere.
+
+### 2. Einloggen
+
+Gehe zu https://crewplanner.nyxlightwork.de → Login mit E-Mail + Passwort.
+
+### 3. Einsätze bestätigen oder ablehnen
+
+Wenn der Admin dich für einen Einsatz einträgt, bekommst du eine E-Mail mit zwei Buttons:
+- **BESTÄTIGEN** — du nimmst den Einsatz an
+- **ABLEHNEN** — du lehnst ab (der Admin bekommt eine Benachrichtigung)
+
+Du kannst auch direkt in der App auf deine Einsätze klicken und dort reagieren.
+
+### 4. Passwort vergessen
+
+Login-Seite → "Passwort vergessen" → E-Mail eingeben → Link kommt per E-Mail → neues Passwort setzen.
+
+---
+
+## Für Manager
+
+### Einloggen
+
+https://crewplanner.nyxlightwork.de → Login → du landest auf der Tour-Tabelle.
+
+### Tour-Plan öffnen / erstellen
+
+In der Sidebar links: Plan auswählen oder neuen Plan erstellen. Ein Plan enthält alle Tourdaten, Positionen und Crew-Zuordnungen.
+
+### Crew zuweisen
+
+1. In der Tabelle auf eine Zelle (Position + Tag) klicken → Dropdown öffnet sich
+2. Crew-Mitglied auswählen → Anfrage wird gestellt (Status: ⏳)
+3. Crew bekommt automatisch eine E-Mail
+4. Nach Bestätigung wird die Zelle grün (✓), nach Ablehnung rot (✗)
+
+### Crew einladen
+
+Admin-Konsole öffnen (Button oben rechts) → Werkzeuge-Tab → Crew-Einladung senden.
+
+---
+
+## Für Superadmin
+
+### Admin-Konsole
+
+Superadmin landet nach dem Login automatisch auf `admin.html`.
+
+### Neuen Benutzer anlegen
+
+Benutzer-Tab → "Neuer Benutzer" → E-Mail + Rolle eingeben → Erstellen.
+Der neue User bekommt automatisch eine E-Mail mit einem Link zum Passwort-Setzen.
+
+### Passwort-Reset für bestehenden User
+
+Benutzer-Tab → 🔑 Reset neben dem User → Reset-Link wird per E-Mail gesendet.
+
+### ♥ Liebeseinladung
+
+"Neuer Benutzer"-Formular → E-Mail eingeben → ♥ Liebeseinladung → sendet eine warmherzige Onboarding-E-Mail (erstellt keinen Account — nur E-Mail).
+
+### Rollen ändern
+
+Benutzer-Tab → Rollen-Dropdown neben dem User → Rolle auswählen → wird sofort gespeichert.
+
+### Benutzer löschen
+
+Benutzer-Tab → Entfernen-Button → Bestätigung → User gelöscht.
+
+---
+
+## Rollen-Übersicht
+
+| Rolle | Was er/sie sieht | Was er/sie kann |
+|---|---|---|
+| `superadmin` | Admin-Konsole + Tour-App | Alles |
+| `manager` | Tour-App + Werkzeuge-Tab in Konsole | Tour-Planung, Crew verwalten, E-Mails senden |
+| `booker` | Tour-App (read-only) | Nur ansehen |
+| `crew` | Tour-App (eigene Slots) | Eigene Einsätze bestätigen/ablehnen |
+
+---
+
+## Technische Hinweise (für Entwickler)
+
+- Kein Framework, kein Build-Step — HTML/CSS/Vanilla JS direkt bearbeiten und pushen
+- Lokale Entwicklung: `python3 -m http.server 8080`
+- Deploy: `git push origin main` → GitHub Pages aktualisiert sich ~1 Min später
+- Hook-Deploy: Siehe HANDOFF.md oder CLAUDE.md

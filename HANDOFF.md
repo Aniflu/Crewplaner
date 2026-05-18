@@ -9,247 +9,176 @@
 
 **Tour Crew Plan** ist eine Web-App zur Verwaltung von Crew-Besetzungen für Tourneen.
 
-- Ein **Admin** (Tourmanager) legt Tourdaten, Positionen und Crew-Mitglieder an
+- Ein **Admin** (Tourmanager/Superadmin) legt Tourdaten, Positionen und Crew-Mitglieder an
 - Der Admin weist Crew-Mitglieder pro Position und Tag zu — oder stellt **Anfragen** (Proposals)
 - **Crew-Mitglieder** loggen sich ein, sehen ihre zugewiesenen Tage und können **bestätigen oder ablehnen**
-- Benachrichtigungen laufen per E-Mail (via Pocketbase-Hook + eigener SMTP-Server)
+- Benachrichtigungen laufen per E-Mail (via PocketBase-Hook + Resend HTTP API)
 
 **Tech-Stack:**
 - Vanilla JavaScript (kein Framework, kein Build-Step)
 - HTML5 + CSS3
-- **Pocketbase** (Self-hosted, läuft auf eigenem Server) — Auth + Datenbank + E-Mail-Hooks
+- **PocketBase** (Self-hosted, Coolify-managed) — Auth + SQLite-Datenbank + JS-Hooks für E-Mails
 - GitHub Pages (statisches Hosting der Frontend-Dateien)
 
-**Live:** https://m4dm0nky.github.io/Personalplan/
-**Pocketbase Admin:** https://crewplanner.nyxlightwork.de/_/
-**Pocketbase API:** https://crewplanner.nyxlightwork.de
+**Live:** https://crewplanner.nyxlightwork.de
+**PocketBase Admin:** https://api.crewplanner.nyxlightwork.de/_/
+**PocketBase API:** https://api.crewplanner.nyxlightwork.de
 
 ---
 
-## 2. Aktueller Stand (Übergabe 2026-05-09)
+## 2. Aktueller Stand (Übergabe 2026-05-18) — v0.9.6.2
 
 ### Was ist fertig ✅
 
-- Komplette Migration von Supabase → Pocketbase abgeschlossen
-- `js/pb.js` — neuer Pocketbase REST-Client (ersetzt Supabase SDK)
-- `js/config.js` — POCKETBASE_URL auf `https://crewplanner.nyxlightwork.de` gesetzt
-- `js/authService.js` — Pocketbase JWT-Auth (localStorage: `pb_token`, `pb_user`)
-- `js/dataService.js` — alle CRUD-Operationen auf Pocketbase umgestellt
-- `login.html` — Login über Pocketbase Auth
-- `.pb_hooks/main.pb.js` — E-Mail-Hook für proposed/declined/invite/reminder
-- `pocketbase/pb_schema.json` — Collections-Schema (bereits in Pocketbase importiert)
-- Pocketbase-Server läuft (`pocketbase:local` Container auf dem Server)
-- Collections importiert: `plans`, `plan_members`, `crew_members`, `assignments`, `crew_invites`
+- Multi-Rollen-System: `superadmin`, `manager`, `booker`, `crew`
+- Login/Logout via PocketBase Auth
+- `admin.html` — Konsole für superadmin/manager: Benutzer verwalten, Rollen, Pläne, Werkzeuge
+- `index.html` — Tour-Planung für manager/booker/crew
+- `login.html` — Login + Registrierung + Passwort-Reset-Flow (token-basiert)
+- Plan-Sync: localStorage ↔ PocketBase (`plans`, `plan_data`, `crew_members`)
+- E-Mail-Flow: Proposal → Crew bekommt Mail → Bestätigen/Ablehnen per Button → Admin bekommt Rückmeldung
+- Einladungs-System: Admin schickt Crew-Einladung oder ♥ Liebeseinladung per E-Mail
+- Alle Custom-Mails via Resend HTTP API (Hook v3.4)
+- System-Mails (Passwort-Reset) via PB SMTP → Resend SMTP-Gateway
+- Passwortloses User-Anlegen: Admin gibt E-Mail + Rolle ein → Account angelegt → Reset-Link per Mail
+- Auto-Verify: Neuer Hook (v3.4) setzt `verified=true` serverseitig bei User-Create
 
-### Was noch offen ist ⏳
+### Rollen-System
 
-| # | Aufgabe | Beschreibung |
+| Rolle | Landing | Rechte |
 |---|---|---|
-| 1 | **Hook deployen** | `.pb_hooks/main.pb.js` auf den Server bringen + Container mit neuem Volume neu starten |
-| 2 | **SMTP konfigurieren** | Pocketbase Admin UI → Settings → Mail settings → eigenen Mailserver eintragen |
-| 3 | **GitHub Pages deployen** | `git push origin main` → App geht live |
-| 4 | **Admin-User anlegen** | In Pocketbase Admin UI einen User mit `madmaxmail@web.de` erstellen |
-| 5 | **Testen** | Login, Proposal-Workflow, E-Mail-Versand prüfen |
+| `superadmin` | `admin.html` | Admin-Konsole + alle Manager-Rechte |
+| `manager` | `index.html` | Volle Tour-Verwaltung |
+| `booker` | `index.html` | Read-only Touransicht |
+| `crew` | `index.html` | Nur eigene Slots sehen/bestätigen |
 
 ---
 
-## 3. Hook deployen (Schritt für Schritt)
+## 3. Infrastruktur
 
-Die Hook-Datei enthält die Server-seitige Logik für E-Mail-Benachrichtigungen.
-Sie muss in einen gemounteten Ordner auf dem Host-System.
-
-**Im Repo liegt eine fertige ZIP:** `pocketbase-deploy.zip` (im Root)
-
-Alternativ manuell per SSH auf den Server (`root@crewplanner.nyxlightwork.de`):
-
-### Schritt 1 — Verzeichnis anlegen (auf dem Server)
-```bash
-mkdir -p /mnt/hdd/pocketbase/pb_hooks
-```
-
-### Schritt 2 — Hook-Datei übertragen (vom lokalen Rechner)
-```bash
-scp .pb_hooks/main.pb.js root@crewplanner.nyxlightwork.de:/mnt/hdd/pocketbase/pb_hooks/main.pb.js
-```
-
-### Schritt 3 — Alten Container stoppen
-```bash
-ssh root@crewplanner.nyxlightwork.de "docker stop pocketbase && docker rm pocketbase"
-```
-
-### Schritt 4 — Container neu starten mit Hook-Volume
-```bash
-ssh root@crewplanner.nyxlightwork.de "docker run -d \
-  --name pocketbase \
-  --restart always \
-  --network pocketbase_pocketbase_net \
-  -p 127.0.0.1:8090:8090 \
-  -v /mnt/hdd/pocketbase/pb_data:/pb/pb_data \
-  -v /mnt/hdd/pocketbase/pb_hooks:/pb/pb_hooks \
-  pocketbase:local"
-```
-
-### Schritt 5 — Prüfen
-```bash
-ssh root@crewplanner.nyxlightwork.de "docker logs pocketbase --tail 20"
-```
-
----
-
-## 4. SMTP konfigurieren
-
-Pocketbase Admin UI → `https://crewplanner.nyxlightwork.de/_/` → **Settings → Mail settings**
-
-| Feld | Was eintragen |
+| Was | Wert |
 |---|---|
-| SMTP host | Euren Mailserver-Hostname |
-| SMTP port | `587` (oder `465` für SSL) |
-| Username | E-Mail-Adresse des Absenders |
-| Password | Passwort |
-| Sender name | `Tour Crew Plan` |
-| Sender address | E-Mail-Adresse des Absenders |
+| Frontend Live | https://crewplanner.nyxlightwork.de (nginx) |
+| PocketBase API | https://api.crewplanner.nyxlightwork.de |
+| PocketBase Admin UI | https://api.crewplanner.nyxlightwork.de/_/ |
+| GitHub Repo | https://github.com/Aniflu/Crewplaner (main = Production) |
+| Server SSH | `ssh hetzner` (Alias in ~/.ssh/config) |
+| PocketBase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` (Coolify-managed) |
+| pb_hooks Pfad | `/var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/` |
+| E-Mail-Provider | Resend (HTTP API für Custom-Mails, SMTP-Gateway für System-Mails) |
+| Resend Absender | `noreply@crewplanner.nyxlightwork.de` |
 
-→ **Save changes** → **Send test email** um zu prüfen ob es funktioniert.
+**Wichtig:** Container wird von **Coolify** verwaltet — niemals `docker stop/rm/run` ausführen. Nur `docker restart` für Hook-Reload.
 
 ---
 
-## 5. GitHub Pages deployen
+## 4. Hook deployen
+
+```bash
+ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
+  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+```
+
+Danach prüfen: `ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 20"`
+Erwartete Ausgabe: `[hook] main.pb.js v3.4 geladen`
+
+---
+
+## 5. Frontend deployen
 
 ```bash
 git push origin main
 ```
 
-GitHub Pages aktualisiert sich automatisch innerhalb ~1 Minute.
+GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 
 ---
 
-## 6. Admin-User anlegen
+## 6. PocketBase E-Mail-Konfiguration (bereits gesetzt)
 
-In der Pocketbase Admin UI (`https://crewplanner.nyxlightwork.de/_/`):
+**Resend API-Key** in Coolify als Env-Var `RESEND_KEY` hinterlegt.
 
-1. **Collections** → `users` → **New record**
-2. Email: `madmaxmail@web.de`
-3. Password setzen
-4. Speichern
+**PB Admin UI → Settings → Mail (SMTP):**
+- Host: `smtp.resend.com` Port: `587`
+- Benutzername: `resend`
+- Passwort: Resend API-Key
+- Absender: `noreply@crewplanner.nyxlightwork.de`
 
-> Der User mit dieser E-Mail wird automatisch als Admin erkannt (`ADMIN_EMAIL` in `js/config.js`).
-
----
-
-## 7. Test-Checkliste nach Deploy
-
-- [ ] `https://m4dm0nky.github.io/Personalplan/login.html` öffnet sich
-- [ ] Login mit `madmaxmail@web.de` funktioniert
-- [ ] Tabelle wird geladen (localStorage-Daten bleiben erhalten)
-- [ ] Als Admin: Crew-Mitglied einer Position zuweisen → Status ⏳ erscheint
-- [ ] Crew-Mitglied bekommt E-Mail (nach SMTP-Konfiguration)
-- [ ] Crew-Mitglied kann bestätigen/ablehnen
-- [ ] Admin sieht Status-Update (✓ / ✗)
+**PB Admin UI → Settings → Application URL:**
+`https://aniflu.github.io/Crewplaner/login.html`
+(steuert Reset-Link-Ziel in System-E-Mails)
 
 ---
 
-## 8. Architektur-Übersicht
+## 7. Architektur-Übersicht
 
 ```
-js/
-├── config.js        ← POCKETBASE_URL + ADMIN_EMAIL  ← hier Admin-E-Mail ändern
-├── pb.js            ← Pocketbase REST-Client (pbGet, pbPost, pbPatch, pbDelete, pbList, pbFirst, pbUpsert)
-├── dataService.js   ← Alle Pocketbase-Ops (proposeCrew, cancelProposal, loadCrewMeta, ...)
-├── authService.js   ← Login/Logout, JWT aus localStorage, IS_ADMIN setzen
-├── state.js         ← Globale Variablen (crew, POSITIONS, TOUR_DATES, assignments, assignmentStatuses)
-├── utils.js         ← Helpers: getVal(), isPending(), showToast(), fmtD()
-├── render.js        ← renderTable(), renderHead(), renderBody()
-├── bundle.js        ← ⚠️ MANUELLE KOPIE von dropdown.js (kein Build-System!)
-├── dropdown.js      ← Dropdowns: openCrewDD(), openDefaultDD(), requestForPos(), bulkCancelPos()
-├── crewNotify.js    ← Einladungs-Modal, sendInvite()
-├── crewLink.js      ← E-Mail ↔ Crew-Name Verknüpfung (Admin)
-├── userView.js      ← Crew-Ansicht (nicht-Admin): confirm/decline
-└── init.js          ← App-Start: loadLogosGlobal(), initPlans(), render()
+├── index.html            ← App für manager/booker/crew
+├── admin.html            ← Konsole für superadmin/manager
+├── login.html            ← Login + Registrierung + Passwort-Reset
+├── view.html             ← Öffentliche Read-only-Ansicht (Token-basiert)
+├── styles.css
+├── .pb_hooks/
+│   └── main.pb.js        ← E-Mail-Hooks (Goja, v3.4) — via Resend HTTP API
+└── js/
+    ├── config.js         ← POCKETBASE_URL, ADMIN_EMAIL
+    ├── pb.js             ← PocketBase REST-Client (pbGet/Post/Patch/Delete/List/First/Upsert)
+    ├── authService.js    ← Login/Logout, JWT, IS_ADMIN, _handleEmailAction()
+    ├── dataService.js    ← CRUD: proposeCrew, cancelProposal, loadCrewMeta, loadAssignmentStatuses
+    ├── state.js          ← Globale Vars: POSITIONS, TOUR_DATES, crew, assignments
+    ├── rbac.js           ← hasPermission(action) — O(1) Switch
+    ├── utils.js          ← getVal(), isPending(), showToast(), fmtD(), esc()
+    ├── render.js         ← renderTable(), renderHead(), renderBody()
+    ├── dropdown.js       ← Dropdowns, openCrewDD(), requestForPos()
+    ├── bundle.js         ← ⚠️ MANUELLE KOPIE aus dropdown.js (kein Build!)
+    └── init.js           ← App-Start: loadLogosGlobal(), initPlans(), render()
 ```
 
 ### Kritische Gotchas
 
-**bundle.js = manuelle Kopie**
-Jede Änderung an `dropdown.js` MUSS auch in `bundle.js` gespiegelt werden.
-`bundle.js` lädt VOR `dropdown.js` — `dropdown.js` überschreibt zur Laufzeit.
+**bundle.js = manuelle Kopie** — jede Änderung an `dropdown.js` MUSS auch in `bundle.js` gespiegelt werden.
 
-**Zwei State-Schichten**
-```
-assignments[date][posId]        → lokale Overrides (sofort, kein Pocketbase)
-assignmentStatuses[date][posId] → Pocketbase-Cache { status, crewName, proposedBy }
-```
-`getVal(dateStr, posId)` in `utils.js` gibt den effektiven Zellwert zurück.
+**PocketBase Goja-Isolation** — alle Werte in Hook-Callbacks als String-Literale hardcoden, keine äußeren Variablen.
 
-**Auth:** JWT liegt in `localStorage.pb_token`. Kein Token → Redirect zu `login.html`.
+**sort=-created → 400** — stattdessen `sort=-id` verwenden (CLAUDE.md dokumentiert).
 
-**Cache-Bust:** Bei JS/CSS-Änderungen `?v=23` in `index.html` + `login.html` hochzählen.
+**verified-Feld** — nicht via Collections-API setzbar, nur serverseitig im Hook.
 
-**Ladereihenfolge** in `index.html` ist kritisch (globaler Scope, kein Modulsystem).
+---
 
-### Pocketbase Collections
+## 8. PocketBase Collections
 
 ```
-plans           { id, name, owner(→users) }
+users           { id, email, role(superadmin/manager/booker/crew), verified }
+plans           { id, name, owner(→users), plan_data(JSON), view_token }
 plan_members    { plan_id(→plans), user_id(→users), role }
 crew_members    { plan_id(→plans), name, email, sort_order, user_id(→users) }
-assignments     { plan_id, date, pos_id, pos_label, crew_name, status, proposed_by, responded_at }
+assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
 crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url }
 ```
 
-### Farbpalette
-
-```
-Gold:    #e8c84a   (Aktionen, Hinweise)
-Grün:    #4ae8a0   (Erfolg, Bestätigt)
-Rot:     #e84a4a   (Fehler, Ablehnen, Danger)
-Dark BG: #1a1a2e
-```
+Assignment-Status-Werte: `proposed` → `confirmed` | `declined`
 
 ---
 
-## 9. Lokale Entwicklung
+## 9. Test-Checkliste nach Deploy
 
-```bash
-cd /pfad/zum/repo
-python3 -m http.server 8080
-# Dann http://localhost:8080 im Browser öffnen
-```
-
-Kein npm, kein Build-Step. Datei ändern → Browser neu laden → fertig.
+- [ ] https://crewplanner.nyxlightwork.de öffnet sich
+- [ ] Login mit `madmaxmail@web.de` funktioniert → landet auf admin.html
+- [ ] admin.html → "Neuer Benutzer" → E-Mail eingeben → Erstellen → Toast grün, keine Fehler
+- [ ] Docker-Logs zeigen `[hook] User auto-verified: <email>`
+- [ ] Reset-E-Mail kommt an → Link → login.html zeigt Passwort-Formular
+- [ ] Passwort setzen → einloggen → funktioniert
+- [ ] Crew-Proposal: Slot klicken → Crew wählen → E-Mail kommt an → Bestätigen → Zelle grün
 
 ---
 
-## 10. Kontakt & Zugangsdaten
+## 10. Zugangsdaten (Übersicht)
 
 | Was | Wert |
 |---|---|
-| Pocketbase Admin | https://crewplanner.nyxlightwork.de/_/ |
-| Pocketbase API | https://crewplanner.nyxlightwork.de |
-| Admin-E-Mail | madmaxmail@web.de |
-| GitHub Repo | https://github.com/M4dm0nky/Personalplan |
-| Live (GitHub Pages) | https://m4dm0nky.github.io/Personalplan/ |
-| Server SSH | root@crewplanner.nyxlightwork.de |
-| Pocketbase Container | `pocketbase` (Image: `pocketbase:local`) |
-| pb_data Pfad | `/mnt/hdd/pocketbase/pb_data` |
-| pb_hooks Pfad | `/mnt/hdd/pocketbase/pb_hooks` |
-
----
-
-## 11. Mögliche nächste Features
-
-#### Hoch
-
-1. **E-Mail bei Stornierung** — Crew bekommt Mail wenn Admin Anfrage zurückzieht (~1-2h)
-2. **Verfügbarkeitsabfrage** — Crew markiert Tage als nicht verfügbar, Admin sieht Overlay (~1 Tag)
-3. **iCal-Export pro Crew** — bestätigte Tage als .ics (Basis `calendar.js` existiert, ~2-3h)
-
-#### Mittel
-
-4. **Automatische Erinnerungen** — Pocketbase Cron-Job 7 Tage vor Show (~4h)
-5. **Mobile-Ansicht** — CSS Media Queries für kleine Screens (~1 Tag)
-6. **Statistik CSV-Export** — für Abrechnung (Basis `stats.js` existiert, ~2h)
-
-#### Niedrig
-
-7. **Sub-Admin / Rollen** — mehrere Admins (~2 Tage)
-8. **Push Notifications** — ServiceWorker (~1 Tag)
+| Admin-Login | `madmaxmail@web.de` |
+| GitHub | https://github.com/Aniflu/Crewplaner |
+| Resend API-Key | in Coolify als `RESEND_KEY` (nicht im Code!) |
+| PocketBase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` |

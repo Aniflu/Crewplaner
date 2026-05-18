@@ -1,5 +1,70 @@
 # Changelog
 
+## v0.9.6.2 — 2026-05-18
+
+### Fix: createUser() — verified-Feld via Hook setzen
+
+- **`.pb_hooks/main.pb.js`** (v3.3→v3.4) — Neuer Handler `onRecordAfterCreateSuccess` auf `users`-Collection: setzt `verified=true` serverseitig, da PocketBase das Feld per Collections-API nicht beschreibbar macht
+- **`admin.html`** — Fehlerhafte `pbPatch(... verified: true)`-Zeile entfernt; Flow funktioniert jetzt vollständig: Anlegen → Hook verifiziert → Reset-Mail via PB SMTP (Resend-Gateway)
+
+### Deploy erforderlich
+
+```bash
+ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
+  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+```
+
+---
+
+## v0.9.6.1 — 2026-05-18
+
+### Versionsnummern + Kleinfix
+
+- **`admin.html`** — Versionsnummer im Header ergänzt (`vX.X.X` neben "Konsole")
+- **`CLAUDE.md`** — Regel: Version muss in allen 4 Dateien (index.html, admin.html, CLAUDE.md, README.md) synchron gehalten werden
+
+---
+
+## v0.9.6 — 2026-05-18
+
+### Passwortloses User-Anlegen + Reset-Flow
+
+- **`admin.html`** — Passwortfeld aus "Neuer Benutzer"-Formular entfernt; `createUser()` generiert Zufalls-Passwort und sendet sofort Reset-Link
+- **`admin.html`** — ♥ Liebeseinladung-Button direkt im Benutzer-Formular (sendet love_invite über crew_invites-Hook)
+- **`admin.html`** — 🔑 Reset-Button pro User in der Benutzerliste
+- **`admin.html`** — Superadmin-Delete-Regel: Users Collection → Delete rule = `@request.auth.role = "superadmin"`
+- **`admin.html`** — `emailVisibility: true` beim Anlegen → E-Mail-Adresse in der Tabelle sichtbar
+- **`login.html`** — Reset-Formular: `?token=` in URL → zeigt "Passwort festlegen"-Form statt Login; `doConfirmReset()` via `confirm-password-reset` API
+- **`.pb_hooks/main.pb.js`** (v3.3) — love_invite + staff_invite E-Mail-Typen ergänzt; Resend HTTP API für alle Custom-Mails; PB SMTP (Resend-Gateway smtp.resend.com:587) für System-Mails (Password-Reset)
+
+### Manueller PocketBase-Schritt (einmalig, bereits gesetzt)
+
+- **Settings → Application URL:** `https://aniflu.github.io/Crewplaner/login.html` — steuert Reset-Link-Ziel in PB-E-Mails
+- **Settings → Mail (SMTP):** smtp.resend.com:587 mit Resend-API-Key als Passwort
+
+---
+
+## v0.9.5 — 2026-05-18
+
+### Partner-Einladung (♥) + Demo-Plan
+
+- **`admin.html`** — Werkzeuge-Tab: ♥ Liebeseinladung per `crew_invites` + `type=love_invite`
+- **`.pb_hooks/main.pb.js`** — love_invite-E-Mail-Template (warmes Onboarding-Design)
+- Demo-Plan-Seed für neue Manager
+
+---
+
+## v0.9.4 — 2026-05-17
+
+### Einladungssystem + Öffentlicher View-Link
+
+- **`admin.html`** — Werkzeuge-Tab: Crew-Einladung und -Erinnerung per E-Mail aus der Konsole
+- **`view.html`** — Öffentliche Read-only-Ansicht (Token-basiert, kein Login nötig)
+- **`js/plans.js`** — `view_token` generieren + in PB speichern; Link in Werkzeuge-Tab anzeigen
+
+---
+
 ## v0.9.3 — 2026-05-17
 
 ### Security-Fixes & Code-Qualität

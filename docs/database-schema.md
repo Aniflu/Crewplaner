@@ -1,129 +1,127 @@
-# Datenbank-Schema Dokumentation: Personalplan (Crewplanner)
+# Datenbank-Schema — Tour Crew Plan
 
-## 1. Überblick
-Das Datenmodell des **Personalplan (Crewplanner)** basiert auf **Pocketbase Collections**. Es handelt sich um ein skalierables, relationales Datenmodell, das speziell für die Verwaltung von Touren, Crews und Zuordnungen optimiert ist. Pocketbase fungiert hier als vollwertige Backend-API, kombiniert mit einer eingebetteten Datenbank. Die Architektur nutzt eingebettete Relationen (Foreign Keys) für einfache Abfragen und eine dedizierte `audit_log` Collection zur Transparenz und Sicherheit.
-
-## 2. Collections detailliert
-
-### `tours`
-- `id`: String (Unique, UUID)
-- `name`: Text (Unique) — Tour-Name
-- `date_start`, `date_end`: DateTime
-- `status`: Text (draft, active, completed, cancelled)
-- `description`: Text (Rich/Markdown)
-- `created_by`: Relation zu `users`
-- `created_at`: DateTime (Auto-Timestamp)
-
-### `crews`
-- `id`: String (Unique, UUID)
-- `name`: Text — Crew-Mitglied Name
-- `email`: Text — E-Mail für Benachrichtigungen
-- `phone`: Text (optional)
-- `available_roles`: Text (JSON Array: ["Captain", "First Officer", ...])
-- `created_at`: DateTime (Auto)
-
-### `crew_assignments`
-- `id`: String (Unique, UUID)
-- `tour_id`: Relation zu `tours` (Required)
-- `crew_id`: Relation zu `crews` (Required)
-- `position`: Text — Zugewiesene Position
-- `status`: Text (pending, accepted, declined)
-- `created_at`: DateTime (Auto)
-
-### `users` (Admins)
-- `id`: String (Unique, UUID)
-- `email`: Text (Auth Provider)
-- `role`: Text (admin, moderator, guest)
-- `last_login`: DateTime
-- `created_at`: DateTime (Auto)
-
-### `audit_log` (Optional)
-- `id`: String (Unique, UUID)
-- `user_id`: Relation zu `users` (Optional)
-- `action`: Text (CREATE, UPDATE, DELETE)
-- `table`: Text (Collection Name)
-- `record_id`: String (Referenced ID)
-- `timestamp`: DateTime (Auto)
-
-## 3. Beziehungen (ER-Modell)
-
-```
-┌─────────────┐
-│   tours     │ 1
-└──────┬──────┘
-       │
-       │ 1:N (1 Tour → N Assignments)
-       │
-┌──────▼──────────────────┐
-│  crew_assignments       │ M
-└──────┬──────────────────┘
-       │
-       │ N:M (N Crews ← → M Touren)
-       │
-┌──────▼──────┐
-│   crews     │ N
-└─────────────┘
-
-┌─────────────┐
-│   users     │ (Admin Management)
-└──────┬──────┘
-       │ created_by
-       │
-┌──────▼──────┐
-│   tours     │
-└─────────────┘
-```
-
-## 4. Beispiel-Queries
-
-### Alle Crews für eine Tour
-```
-GET /api/collections/crew_assignments/records?tour_id=t-123&fields=crew_id,position,status
-```
-Zeigt alle Crew-Zuordnungen für eine spezifische Tour mit ihrem Status.
-
-### Alle Touren eines Crew-Mitglieds
-```
-GET /api/collections/crew_assignments/records?crew_id=c-456
-```
-Zeigt die Historie einer Crew-Person über verschiedene Touren hinweg.
-
-### Status-Summary (Anzahl pro Status)
-```
-SELECT status, COUNT(*) as count 
-FROM crew_assignments 
-WHERE tour_id = 't-123' 
-GROUP BY status
-```
-Überblick: Wie viele Crews haben zugesagt/abgelehnt/sind noch ausstehend?
-
-## 5. Migrations & Versionierung
-
-### Backup vor Schema-Änderungen
-```bash
-# Pocketbase Admin: Collections → Export
-# Oder via CLI:
-pb_admin export --output backup_$(date +%Y%m%d).zip
-```
-
-### Best Practices
-- **Immer Backup machen** vor dem Löschen oder Ändern von Feldern
-- **Nicht löschbar:** Wenn Daten existieren, Felder beibehalten (nullable machen statt löschen)
-- **Versionierung:** Wichtige Schema-Änderungen dokumentieren im `CHANGELOG.md`
-- **Audit-Trail:** Alle Admin-Änderungen werden im `audit_log` protokolliert
-
-### Beispiel: Neues Feld hinzufügen
-```yaml
-# crews: Neues Feld "availability_notes"
-1. Gehe zu Pocketbase Admin → Collections → crews
-2. Klicke "Add Field" → Text
-3. Name: availability_notes
-4. Optional: true (macht es nicht zwingend)
-5. Save
-```
-
-**Keine Downtime nötig!** Pocketbase-Änderungen sind live nach dem Save.
+PocketBase-Collections (SQLite). Stand: v0.9.6.2
 
 ---
 
-Dieses Dokument dient als Single Source of Truth für Entwickler und Administratoren. Änderungen müssen im `docs/database-schema.md` dokumentiert werden.
+## Collections
+
+### `users` (PocketBase Auth-Collection)
+
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `id` | String (UUID) | Auto |
+| `email` | Email | Login-Adresse |
+| `role` | Select | `superadmin` / `manager` / `booker` / `crew` |
+| `verified` | Bool | Muss `true` sein für Passwort-Reset-Mails; wird via Hook auto-gesetzt |
+| `emailVisibility` | Bool | `true` = E-Mail in API-Responses sichtbar |
+
+**API Rules:**
+- Create: *(leer — public für Selbstregistrierung)*
+- Update: `@request.auth.role = "superadmin"`
+- Delete: `@request.auth.role = "superadmin"`
+
+---
+
+### `plans`
+
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `id` | String (UUID) | Auto |
+| `name` | Text | Plan-Name |
+| `owner` | Relation → `users` | Plan-Eigentümer |
+| `plan_data` | JSON / Text | Serialisierter Plan (Positionen, Tage, etc.) |
+| `view_token` | Text | Token für öffentlichen Read-only-Link (view.html) |
+
+**API Rules:**
+- List/View: `@request.auth.role = "superadmin" || @request.auth.id = owner`
+- Update: `@request.auth.id = owner || @request.auth.role = "superadmin"`
+
+---
+
+### `plan_members`
+
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `id` | String (UUID) | Auto |
+| `plan_id` | Relation → `plans` | |
+| `user_id` | Relation → `users` | |
+| `role` | Text | Rolle im Plan |
+
+---
+
+### `crew_members`
+
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `id` | String (UUID) | Auto |
+| `plan_id` | Relation → `plans` | |
+| `name` | Text | Anzeigename der Crew-Person |
+| `email` | Email | Für E-Mail-Zuordnung |
+| `sort_order` | Number | Reihenfolge in der Tabelle |
+| `user_id` | Relation → `users` | Verknüpfter Login-Account (optional) |
+
+---
+
+### `assignments`
+
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `id` | String (UUID) | Auto |
+| `plan_id` | Text | Plan-ID |
+| `date` | Text | `YYYY-MM-DD` |
+| `pos_id` | Text | Positions-ID (intern) |
+| `pos_label` | Text | Positions-Bezeichnung (für E-Mail) |
+| `crew_name` | Text | Name der zugewiesenen Crew |
+| `crew_email` | Email | E-Mail für Hook-Benachrichtigung |
+| `status` | Select | `proposed` → `confirmed` / `declined` |
+| `proposed_by` | Text | E-Mail des Admins der die Anfrage gestellt hat |
+| `responded_at` | DateTime | Zeitstempel der Antwort |
+
+**Hook-Trigger:**
+- CREATE → sendet Einladungs-Mail an `crew_email`
+- UPDATE (status=declined) → sendet Absage-Mail an `proposed_by`
+
+---
+
+### `crew_invites`
+
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `id` | String (UUID) | Auto |
+| `plan_id` | Text | Plan-Referenz (optional) |
+| `crew_name` | Text | Name der einzuladenden Person |
+| `crew_email` | Email | Ziel-E-Mail |
+| `type` | Select | `invite` / `reminder` / `cancellation` / `love_invite` / `staff_invite` |
+| `plan_name` | Text | Für E-Mail-Template |
+| `app_url` | URL | Login-URL in der E-Mail |
+
+**Hook-Trigger:** CREATE → sendet E-Mail via Resend HTTP API, löscht Record danach
+
+---
+
+## Beziehungen (vereinfacht)
+
+```
+users
+  └─ plans (owner)
+       └─ plan_members (user_id)
+       └─ crew_members (user_id → users, optional)
+            └─ assignments (crew_email ↔ crew_members.email)
+```
+
+---
+
+## Wichtige Hinweise
+
+**sort=-created → 400-Fehler**
+PocketBase erkennt `created` nach Schema-Import nicht als sortierbares Feld.
+In `pb.js` ist Default-Sort auf `-id` gesetzt. Nie zurückändern.
+
+**verified-Feld**
+Kann nicht über die Collections-API gesetzt werden (auch nicht als superadmin).
+Wird via `onRecordAfterCreateSuccess`-Hook in `main.pb.js` serverseitig gesetzt.
+
+**plan_data**
+Enthält den vollständigen serialisierten Plan-Zustand (Positionen, Tage, Tagesarten, Blöcke).
+Wird bei jeder Plan-Speicherung in PB synchronisiert.
