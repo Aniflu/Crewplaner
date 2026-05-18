@@ -927,7 +927,7 @@ async function createUser() {
 
   const tempPw = crypto.randomUUID().replace(/-/g, '') + 'Aa1!';
   try {
-    await pbPost('/api/collections/users/records', { email, password: tempPw, passwordConfirm: tempPw, role, emailVisibility: true });
+    await pbPost('/api/collections/users/records', { email, password: tempPw, passwordConfirm: tempPw, role, emailVisibility: true, verified: true });
     await pbPost('/api/collections/users/request-password-reset', { email });
     adminToast('Benutzer angelegt — Reset-Link gesendet ✓', '#4ae8a0');
     toggleNewUserForm(false);
