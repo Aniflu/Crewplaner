@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 3.2
-console.log('[hook] main.pb.js v3.2 geladen');
+// Version: 3.3
+console.log('[hook] main.pb.js v3.3 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -105,60 +105,12 @@ onRecordAfterCreateSuccess(function(e) {
       mkBtn(appUrl, 'KONTO ERSTELLEN &rarr;') +
       mkBtn(_guideUrl, 'ANLEITUNG LESEN &rarr;', '#f8f9fb', '#555570')
     ));
-  } else if (type === 'password_reset') {
-    try {
-      var _prRecord = $app.findFirstRecordByData('users', 'email', email);
-      var _prToken  = $tokens.recordResetPasswordToken(_prRecord);
-      var _prUrl    = 'https://aniflu.github.io/Crewplaner/login.html?token=' + _prToken;
-      sendMail(email, 'Passwort festlegen · Tour Crew Plan', wrap(
-        '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Passwort festlegen.</h1>' +
-        '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">TOUR CREW PLAN · ZUGANG</p>' +
-        '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Klicke auf den Button um dein Passwort zu setzen &mdash; der Link ist <strong style="color:#1a1a2e;">24 Stunden g&uuml;ltig.</strong></p>' +
-        mkBtn(_prUrl, 'PASSWORT FESTLEGEN &rarr;') +
-        '<p style="font-size:11px;color:#999999;margin:24px 0 0 0;">Falls du diese E-Mail nicht erwartet hast, kannst du sie einfach ignorieren.</p>'
-      ));
-    } catch (_prErr) { console.error('[mail] password_reset Fehler für', email, ':', _prErr.message); }
   }
 
   try { $app.dao().deleteRecord(r); } catch (_) {}
 
 }, 'crew_invites');
 
-// ── 4. Neuer Benutzer (admin-seitig) → Passwort-festlegen-Mail via Resend ────
-onRecordAfterCreateSuccess(function(e) {
-  var record = e.record;
-  if (!record.get('emailVisibility')) return;
-  var email = record.get('email');
-  try {
-    var _token    = $tokens.recordResetPasswordToken(record);
-    var _resetUrl = 'https://aniflu.github.io/Crewplaner/login.html?token=' + _token;
-    var _key      = $getEnv('RESEND_KEY');
-    var _from     = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
-    var _btn      = '<table cellpadding="0" cellspacing="0" style="margin:8px 0;"><tr><td style="background:#e8c84a;border-radius:2px;"><a href="' + _resetUrl + '" style="display:block;padding:13px 28px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#0d0d1a;text-decoration:none;letter-spacing:3px;">PASSWORT FESTLEGEN &rarr;</a></td></tr></table>';
-    var _html =
-      '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"></head>' +
-      '<body style="margin:0;padding:0;background:#f8f9fb;font-family:\'Courier New\',Courier,monospace;">' +
-      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;padding:48px 20px;"><tr><td align="center">' +
-      '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e8e8e8;border-radius:4px;">' +
-      '<tr><td style="padding:28px 36px;border-bottom:2px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
-      '<tr><td style="padding:36px 36px;">' +
-      '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Passwort festlegen.</h1>' +
-      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">TOUR CREW PLAN · ZUGANG</p>' +
-      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Dein Konto wurde angelegt. Klicke auf den Button um dein Passwort zu setzen &mdash; der Link ist <strong style="color:#1a1a2e;">24 Stunden g&uuml;ltig.</strong></p>' +
-      _btn +
-      '<p style="font-size:11px;color:#999999;margin:24px 0 0 0;">Falls du diese E-Mail nicht erwartet hast, kannst du sie einfach ignorieren.</p>' +
-      '</td></tr>' +
-      '<tr><td style="padding:20px 36px;border-top:1px solid #e8e8e8;"><p style="font-size:9px;color:#999999;letter-spacing:2px;margin:0;text-transform:uppercase;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr>' +
-      '</table></td></tr></table></body></html>';
-    var _res = $http.send({
-      url: 'https://api.resend.com/emails', method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + _key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: _from, to: [email], subject: 'Passwort festlegen · Tour Crew Plan', html: _html })
-    });
-    if (_res.statusCode >= 400) { console.error('[mail] New-User-Mail Fehler ' + _res.statusCode + ':', _res.raw); }
-    else { console.log('[mail] New-User-Mail gesendet an ' + email); }
-  } catch (err) { console.error('[mail] New-User-Mail Fehler:', err.message); }
-}, 'users');
 
 // ── 2. Anfrage an Crew-Mitglied (assignment proposed via CREATE) ───────────────
 onRecordAfterCreateSuccess(function(e) {
