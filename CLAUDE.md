@@ -82,6 +82,39 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
+## PocketBase Version & JSVM-Regeln (KRITISCH)
+
+**PocketBase Version: v0.23+** (Breaking Changes gegenüber älteren Versionen)
+
+Exakte Version prüfen: `ssh hetzner "docker exec pocketbase-ad9adhhkygjreidi79i4v5eb /app/pocketbase --version"`
+
+### Was geht / was nicht
+
+| API | Status | Ersatz |
+|---|---|---|
+| `$app.dao()` | **NICHT verfügbar** → wirft Go-Panic | `$app.save()` / `$app.delete()` |
+| `$app.save(record)` | ✓ verfügbar | — |
+| `$app.delete(record)` | ✓ verfügbar | — |
+| `$app.auxDelete(record)` | ✓ verfügbar (außerhalb Transaction) | — |
+| `$tokens.*` | **NICHT verfügbar** | — |
+| `$http.send()` | ✓ verfügbar | kein auto Content-Type mehr! |
+| `$getEnv('KEY')` | ✓ verfügbar | — |
+
+### Hook-Regel: e.next() PFLICHT
+
+**`e.next()` muss die ERSTE Zeile in JEDEM Hook-Callback sein.**
+Ohne `e.next()` stoppt PocketBase v0.23+ die Execution-Chain → 400 "Failed to create record."
+
+```js
+onRecordAfterCreateSuccess(function(e) {
+  e.next();          // ← IMMER ERSTE ZEILE
+  var r = e.record;
+  // ... eigener Code ...
+}, 'collection_name');
+```
+
+---
+
 ## Routing-Architektur
 
 | Domain | Ziel |
@@ -166,7 +199,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
 
-Aktuell deployte Hook-Version: **v3.6** (Resend HTTP API, $getEnv('RESEND_KEY'), auto-verify users, kein Record-Delete im Hook)
+Aktuell deployte Hook-Version: **v3.7** (e.next() in allen Hooks, kein Record-Delete, $app.save/delete statt dao)
 Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.8 geladen`
 
 ### Docker-Logs live beobachten

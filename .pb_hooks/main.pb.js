@@ -1,10 +1,11 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 3.6
-console.log('[hook] main.pb.js v3.6 geladen');
+// Version: 3.7
+console.log('[hook] main.pb.js v3.7 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
+  e.next();
   var r      = e.record;
   var name   = r.get('crew_name');
   var email  = r.get('crew_email');
@@ -112,6 +113,7 @@ onRecordAfterCreateSuccess(function(e) {
 
 // ── 2. Anfrage an Crew-Mitglied (assignment proposed via CREATE) ───────────────
 onRecordAfterCreateSuccess(function(e) {
+  e.next();
   var r = e.record;
   console.log('[hook] CREATE assignments fired, status:', r.get('status'), 'id:', r.id);
   if (r.get('status') !== 'proposed') return;
@@ -171,6 +173,7 @@ onRecordAfterCreateSuccess(function(e) {
 
 // ── 3. Anfrage (proposed via UPDATE) oder Absage (declined) ───────────────────
 onRecordAfterUpdateSuccess(function(e) {
+  e.next();
   var r      = e.record;
   var status = r.get('status');
   console.log('[hook] UPDATE assignments fired, status:', status, 'id:', r.id);
@@ -260,6 +263,7 @@ onRecordAfterUpdateSuccess(function(e) {
 
 // ── 3. Auto-Verify bei neuen Users ────────────────────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
+  e.next();
   var record = e.record;
   if (record.getBool('verified')) return;
   record.set('verified', true);
