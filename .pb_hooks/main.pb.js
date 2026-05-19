@@ -1,22 +1,24 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 3.7
-console.log('[hook] main.pb.js v3.7 geladen');
+// Version: 3.8
+console.log('[hook] main.pb.js v3.8 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
   e.next();
+  try {
   var r      = e.record;
   var name   = r.get('crew_name');
   var email  = r.get('crew_email');
   var type   = r.get('type');
   var plan   = r.get('plan_name') || 'Tour Plan';
   var appUrl = r.get('app_url')   || 'https://crewplanner.nyxlightwork.de';
+  console.log('[hook] crew_invites type:', type, 'email:', email);
 
   var sendMail = function(to, subject, html) {
-    var _key  = $getEnv('RESEND_KEY');
-    var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
     try {
+      var _key  = $getEnv('RESEND_KEY');
+      var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
       var res = $http.send({
         url: 'https://api.resend.com/emails', method: 'POST',
         headers: { 'Authorization': 'Bearer ' + _key, 'Content-Type': 'application/json' },
@@ -24,7 +26,7 @@ onRecordAfterCreateSuccess(function(e) {
       });
       if (res.statusCode >= 400) { console.error('[mail] Resend Fehler ' + res.statusCode + ':', res.raw); }
       else { console.log('[mail] Gesendet an ' + to + ' · ' + subject); }
-    } catch (err) { console.error('[mail] Fehler:', err.message); }
+    } catch (err) { console.error('[mail] Fehler:', err.message || String(err)); }
   };
 
   var mkBtn = function(url, label, bg, color) {
@@ -107,6 +109,7 @@ onRecordAfterCreateSuccess(function(e) {
       mkBtn(_guideUrl, 'ANLEITUNG LESEN &rarr;', '#f8f9fb', '#555570')
     ));
   }
+  } catch(outerErr) { console.error('[hook] crew_invites UNCAUGHT:', String(outerErr)); }
 
 }, 'crew_invites');
 
