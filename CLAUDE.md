@@ -72,7 +72,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 | Was | Wert |
 |---|---|
 | Admin-Login (App + PB Admin UI) | `madmaxmail@web.de` |
-| Resend API-Key | `re_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s` (aktuell in Coolify — prüfen ob in Resend aktiv) |
+| Resend API-Key | `re_Suse3V78_FhvG2LoBKzVXgQJX9VhCoDdy` |
 | Resend Absender | `noreply@crewplanner.nyxlightwork.de` |
 | Resend verifizierte Domain | `crewplanner.nyxlightwork.de` |
 | GitHub | https://github.com/Aniflu/Crewplaner (main = Production) |
