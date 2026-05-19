@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
+## ⚠️ PFLICHTREGELN — VOR JEDEM TASK LESEN
+
+1. **Nach JEDEM Fix/Feature: Version erhöhen** — User nach gewünschter Nummer fragen, Stufe vorschlagen. In 4 Dateien: `index.html`, `admin.html`, `CLAUDE.md`, `README.md`
+2. **Kein SSH** — Marco hat keinen Server-Zugang. Alles über Coolify UI oder Admin.
+3. **Versionsnummer = User-Entscheidung** — nie selbst festlegen ohne Rückfrage.
+
+---
+
 ## Version & Live-URLs
 
 - Aktuelle Version: **v0.9.6.2**
