@@ -84,9 +84,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ## PocketBase Version & JSVM-Regeln (KRITISCH)
 
-**PocketBase Version: v0.23+** (Breaking Changes gegenüber älteren Versionen)
-
-Exakte Version prüfen: `ssh hetzner "docker exec pocketbase-ad9adhhkygjreidi79i4v5eb /app/pocketbase --version"`
+**PocketBase Version: v0.38** (läuft auf v0.23+ Architektur mit inkrementellen Updates)
 
 ### Was geht / was nicht
 
