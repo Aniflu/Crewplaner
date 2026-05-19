@@ -96,7 +96,8 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 | `$app.auxDelete(record)` | ✓ verfügbar (außerhalb Transaction) | — |
 | `$tokens.*` | **NICHT verfügbar** | — |
 | `$http.send()` | ✓ verfügbar | kein auto Content-Type mehr! |
-| `$getEnv('KEY')` | ✓ verfügbar | — |
+| `$getEnv('KEY')` | **NICHT verfügbar** → `ReferenceError` | `$os.getenv('KEY')` |
+| `$os.getenv('KEY')` | ✓ verfügbar | — |
 
 ### Hook-Regel: e.next() PFLICHT
 
@@ -197,7 +198,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
 
-Aktuell deployte Hook-Version: **v3.7** (e.next() in allen Hooks, kein Record-Delete, $app.save/delete statt dao)
+Aktuell deployte Hook-Version: **v3.9** (e.next() in allen Hooks, kein Record-Delete, $app.save/delete statt dao)
 Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.8 geladen`
 
 ### Docker-Logs live beobachten

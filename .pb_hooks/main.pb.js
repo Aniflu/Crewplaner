@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 3.8
-console.log('[hook] main.pb.js v3.8 geladen');
+// Version: 3.9
+console.log('[hook] main.pb.js v3.9 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -17,7 +17,7 @@ onRecordAfterCreateSuccess(function(e) {
 
   var sendMail = function(to, subject, html) {
     try {
-      var _key  = $getEnv('RESEND_KEY');
+      var _key  = $os.getenv('RESEND_KEY');
       var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
       var res = $http.send({
         url: 'https://api.resend.com/emails', method: 'POST',
@@ -132,7 +132,7 @@ onRecordAfterCreateSuccess(function(e) {
   var fdate = isNaN(d) ? date : (('0'+d.getDate()).slice(-2) + '.' + ('0'+(d.getMonth()+1)).slice(-2) + '.' + d.getFullYear());
 
   var sendMail = function(to, subject, html) {
-    var _key  = $getEnv('RESEND_KEY');
+    var _key  = $os.getenv('RESEND_KEY');
     var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
     try {
       var res = $http.send({
@@ -182,7 +182,7 @@ onRecordAfterUpdateSuccess(function(e) {
   console.log('[hook] UPDATE assignments fired, status:', status, 'id:', r.id);
 
   var sendMail = function(to, subject, html) {
-    var _key  = $getEnv('RESEND_KEY');
+    var _key  = $os.getenv('RESEND_KEY');
     var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
     try {
       var res = $http.send({
