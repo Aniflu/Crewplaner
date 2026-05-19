@@ -441,7 +441,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.6.2</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.6.3</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -942,11 +942,14 @@ async function createUser() {
 
 async function createUserWithLove() {
   const email = (document.getElementById('newUserEmail').value || '').trim();
+  const role  = document.getElementById('newUserRole').value || 'crew';
   const errEl = document.getElementById('newUserError');
   errEl.style.display = 'none';
   if (!email) { errEl.textContent = 'Bitte E-Mail eingeben.'; errEl.style.display = 'block'; return; }
   const name = prompt('Name (für die Anrede in der E-Mail):') || email;
+  const tempPw = crypto.randomUUID().replace(/-/g, '') + 'Aa1!';
   try {
+    await pbPost('/api/collections/users/records', { email, password: tempPw, passwordConfirm: tempPw, role, emailVisibility: true });
     await pbPost('/api/collections/crew_invites/records', {
       crew_name: name, crew_email: email,
       type: 'love_invite', plan_name: 'Tour Crew Plan',
@@ -954,6 +957,7 @@ async function createUserWithLove() {
     });
     adminToast('♥ Liebeseinladung gesendet!', '#e84a4a');
     toggleNewUserForm(false);
+    loadUsers();
   } catch(e) {
     errEl.textContent = 'Fehler: ' + (e.message || 'Unbekannter Fehler');
     errEl.style.display = 'block';
