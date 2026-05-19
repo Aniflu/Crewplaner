@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 3.5
-console.log('[hook] main.pb.js v3.5 geladen');
+// Version: 3.6
+console.log('[hook] main.pb.js v3.6 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -106,8 +106,6 @@ onRecordAfterCreateSuccess(function(e) {
       mkBtn(_guideUrl, 'ANLEITUNG LESEN &rarr;', '#f8f9fb', '#555570')
     ));
   }
-
-  try { $app.delete(r); } catch (_) {}
 
 }, 'crew_invites');
 
