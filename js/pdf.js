@@ -21,7 +21,7 @@ function openPDFFilter(){
   ).join('');
   document.getElementById('pdfCrewCbs').innerHTML=crew.map((name,i)=>{
     const col=CREW_COLORS[i%CREW_COLORS.length];
-    return `<label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;padding:2px 0;"><input type="checkbox" class="pdfcrewcb" data-idx="${i}" checked style="accent-color:${col};"><span style="display:inline-block;width:8px;height:8px;background:${col};flex-shrink:0;"></span>${name}</label>`;
+    return `<label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;padding:2px 0;"><input type="checkbox" class="pdfcrewcb" data-idx="${i}" checked style="accent-color:${col};"><span style="display:inline-block;width:8px;height:8px;background:${col};flex-shrink:0;"></span>${esc(name)}</label>`;
   }).join('');
   pdfSetView(PDF_VIEW);
   openModal('pdfModal');
@@ -122,7 +122,7 @@ function pdfFooterHTML(byPers,selCrew,viewLabel){
   const names=Object.keys(byPers).filter(n=>selCrew.has(n)&&byPers[n].total>0).sort((a,b)=>byPers[b].total-byPers[a].total);
   const rows=names.map(n=>{
     const ci=crew.indexOf(n),col=ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'#888';
-    return `<div class="ft-row"><span><span style="display:inline-block;width:7px;height:7px;background:${col};margin-right:6px;vertical-align:middle;"></span>${n}</span><span style="font-variant-numeric:tabular-nums;font-weight:600;">${fmt(byPers[n].total).padStart(2,'0')}d</span></div>`;
+    return `<div class="ft-row"><span><span style="display:inline-block;width:7px;height:7px;background:${col};margin-right:6px;vertical-align:middle;"></span>${esc(n)}</span><span style="font-variant-numeric:tabular-nums;font-weight:600;">${fmt(byPers[n].total).padStart(2,'0')}d</span></div>`;
   }).join('');
   return `<div class="ft">
     <div>
@@ -265,11 +265,11 @@ function pdfRenderBlocks(fd,selCrew){
         const main=entries[0];
         const ci=crew.indexOf(main[0]),col=ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'#888';
         if(entries.length===1 && openCnt===0){
-          body=`<span><span class="dot" style="background:${col}"></span>${main[0]}</span>`;
+          body=`<span><span class="dot" style="background:${col}"></span>${esc(main[0])}</span>`;
         } else {
           const extra=entries.length>1?` +${entries.length-1}`:'';
           const openTag=openCnt>0?` <span class="offen">⚠${openCnt}</span>`:'';
-          body=`<span><span class="dot" style="background:${col}"></span>${main[0]}${extra}${openTag}</span>`;
+          body=`<span><span class="dot" style="background:${col}"></span>${esc(main[0])}${extra}${openTag}</span>`;
         }
       }
       return `<div class="blk-crew-row"><span class="blk-crew-pos">${p.short||p.label}</span><span class="blk-crew-v">${body}</span></div>`;
@@ -356,7 +356,7 @@ function pdfRenderCrew(fd,selCrew){
     const assignList=[...rec.dates.keys()].slice(0,12).map(d=>{const dObj=parseD(d);return `<span>${String(dObj.getDate()).padStart(2,'0')}.${String(dObj.getMonth()+1).padStart(2,'0')}</span>`;}).join(' · ');
     return `<div class="crew-row">
       <div class="cr-head">
-        <div><span class="cr-dot" style="background:${col}"></span><span style="display:inline-block;vertical-align:middle;"><div class="cr-name">${name}</div><div class="cr-pos">${posList||'—'}</div></span></div>
+        <div><span class="cr-dot" style="background:${col}"></span><span style="display:inline-block;vertical-align:middle;"><div class="cr-name">${esc(name)}</div><div class="cr-pos">${esc(posList||'—')}</div></span></div>
         <div class="cr-kpis">
           <span class="kshow"><strong>${String(rec.show||0).padStart(2,'0')}</strong>Shows</span>
           <span class="kreise"><strong>${String(rec.reise||0).padStart(2,'0')}</strong>Reise</span>

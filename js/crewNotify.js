@@ -92,7 +92,7 @@ function _renderCrewNotifyList() {
     if (!meta.email) {
       return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;opacity:.45;">
         <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
-        <span style="flex:1;font-size:.65rem;color:var(--ink);">${name}</span>
+        <span style="flex:1;font-size:.65rem;color:var(--ink);">${esc(name)}</span>
         <span style="font-size:.58rem;color:#5a6070;">Keine E-Mail hinterlegt</span>
       </div>`;
     }
@@ -116,7 +116,7 @@ function _renderCrewNotifyList() {
     return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
       <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:5px;"></div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:.65rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
+        <div style="font-size:.65rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}</div>
         ${badge}${cancelBtn}
       </div>
       ${btn}

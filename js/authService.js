@@ -41,11 +41,14 @@ async function _authCheckAndStart() {
     startApp();
 
     Promise.all([loadCrewMeta(), loadAssignmentStatuses()])
-      .catch(e => console.error('Lade-Fehler:', e))
       .then(() => {
         renderTable();
         if (typeof checkAndOpenMySchedule === 'function') checkAndOpenMySchedule();
         _handleEmailAction();
+      })
+      .catch(e => {
+        console.error('Lade-Fehler:', e);
+        renderTable();
       });
   } catch (e) {
     console.error('Auth-Fehler:', e);

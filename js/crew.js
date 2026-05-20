@@ -11,7 +11,7 @@ function renderCrew(){
     const d=document.createElement('div');
     d.className='crew-member';
     d.innerHTML=`<div class="crew-dot" style="background:${CREW_COLORS[i%CREW_COLORS.length]}"></div>`
-      +`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>`
+      +`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}</span>`
       +`<span class="crew-days">${String(days).padStart(2,'0')}d</span>`
       +`<button class="sm danger" onclick="removeCrew(${i})" title="Entfernen">×</button>`;
     el.appendChild(d);
@@ -20,8 +20,8 @@ function renderCrew(){
   const posEl=document.getElementById('posList');
   posEl.innerHTML=POSITIONS.map((p,i)=>
     `<div class="sb-pos" onclick="openRenamePos(${i})" title="Position umbenennen">
-      <span class="sb-pos-short">${p.short||''}</span>
-      <span class="sb-pos-label">${p.label}</span>
+      <span class="sb-pos-short">${esc(p.short||'')}</span>
+      <span class="sb-pos-label">${esc(p.label)}</span>
     </div>`).join('');
 }
 

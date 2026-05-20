@@ -7,14 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## ⚠️ PFLICHTREGELN — VOR JEDEM TASK LESEN
 
 1. **Nach JEDEM Fix/Feature: Version erhöhen** — User nach gewünschter Nummer fragen, Stufe vorschlagen. In 4 Dateien: `index.html`, `admin.html`, `CLAUDE.md`, `README.md`
-2. **Kein SSH** — Marco hat keinen Server-Zugang. Alles über Coolify UI oder Admin.
+2. **Kein SSH für Marco** — Marco hat keinen Server-Zugang. Server-Aktionen laufen über den Admin (hat SSH via `ssh hetzner`).
 3. **Versionsnummer = User-Entscheidung** — nie selbst festlegen ohne Rückfrage.
+4. **Nach Coolify-Redeploy → IMMER strip-api prüfen** — Coolify überschreibt Traefik-Labels bei jedem Redeploy. Fix ist permanent in `/data/coolify/proxy/dynamic/pocketbase-fix.yaml` (Priorität 1000), aber wenn API 404 gibt → das ist die Ursache.
 
 ---
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.6.3**
+- Aktuelle Version: **v0.9.6.4**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -47,7 +48,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
-## Aktueller Stand (Stand: 2026-05-17)
+## Aktueller Stand (Stand: 2026-05-20)
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase
@@ -203,10 +204,43 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push. Der `main` B
 Hook aus GitHub holen + Container neu starten (alles in einem):
 
 ```bash
-ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+ssh hetzner "curl -s -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
   && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
+
+### CORS anpassen (dauerhaft)
+
+CORS wird NICHT mehr über Coolify oder PocketBase-Admin gesetzt, sondern ausschließlich über:
+`/data/coolify/proxy/dynamic/pocketbase-fix.yaml` → `accessControlAllowOriginList`
+Traefik lädt die Datei automatisch neu — kein Restart nötig.
+Erlaubte Origins: `https://crewplanner.nyxlightwork.de`, `https://aniflu.github.io`
+
+### Traefik strip-api Bug (GELÖST — dauerhafter Fix aktiv seit 20. Mai 2026)
+
+Coolify schreibt bei jedem Redeploy `strip-api` Middleware in den HTTPS-Router → `/api/*` gibt 404.
+**Dauerhafter Fix:** `pocketbase-fix.yaml` mit Priorität 1000 (Coolify hat ~60) überschreibt immer.
+Datei: `/data/coolify/proxy/dynamic/pocketbase-fix.yaml` auf dem Server.
+War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
+
+### Collections nach Coolify-Redeploy weg (Symptom + Fix)
+
+**Symptom:** Collections in PB Admin nicht sichtbar, aber `/api/collections` gibt 404 — obwohl Daten (SQLite) noch da sind.
+
+**Fix:**
+1. PocketBase Admin → Settings → **Import collections**
+2. Dieses JSON einfügen (ohne Relation-IDs, alles als text):
+
+```json
+[{"name":"plans","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"name","type":"text","required":true},{"name":"owner","type":"text"}]},{"name":"plan_members","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text","required":true},{"name":"user_id","type":"text"},{"name":"role","type":"text"}]},{"name":"crew_members","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text","required":true},{"name":"name","type":"text","required":true},{"name":"email","type":"email"},{"name":"sort_order","type":"number"},{"name":"user_id","type":"text"}]},{"name":"assignments","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text","required":true},{"name":"date","type":"text","required":true},{"name":"pos_id","type":"text","required":true},{"name":"pos_label","type":"text"},{"name":"crew_name","type":"text"},{"name":"crew_email","type":"text"},{"name":"status","type":"text"},{"name":"proposed_by","type":"text"},{"name":"responded_at","type":"date"}]},{"name":"crew_invites","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text"},{"name":"crew_name","type":"text","required":true},{"name":"crew_email","type":"email","required":true},{"name":"type","type":"text","required":true},{"name":"plan_name","type":"text"},{"name":"app_url","type":"text"}]}]
+```
+
+3. **"Merge with existing collections"** anhaken
+4. **"Replace with original IDs"** klicken (erscheint automatisch wenn Collections/Daten schon da sind)
+5. **Review** → **Confirm**
+
+> Daten gehen NICHT verloren — SQLite-Tables bleiben. Nur die Collection-Definitionen fehlen.
+> `pb_schema.json` im Repo ist NICHT direkt verwendbar (enthält alte Relation-IDs `pbc_1736455494`).
 
 Aktuell deployte Hook-Version: **v3.9** (e.next() in allen Hooks, kein Record-Delete, $app.save/delete statt dao)
 Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.8 geladen`

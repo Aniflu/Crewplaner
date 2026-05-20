@@ -13,15 +13,15 @@ function renderCrew(){
     const d=document.createElement('div');
     d.className='crew-member';
     d.innerHTML=`<div class="crew-dot" style="background:${CREW_COLORS[i%CREW_COLORS.length]}"></div>`
-      +`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>`
+      +`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}</span>`
       +`<span class="crew-days">${String(days).padStart(2,'0')}d</span>`
       +`<button class="sm danger" onclick="removeCrew(${i})" title="Entfernen">×</button>`;
     el.appendChild(d);
   });
   document.getElementById('posList').innerHTML=POSITIONS.map((p,i)=>
     `<div class="sb-pos" onclick="openRenamePos(${i})" title="Position umbenennen">
-      <span class="sb-pos-short">${p.short||''}</span>
-      <span class="sb-pos-label">${p.label}</span>
+      <span class="sb-pos-short">${esc(p.short||'')}</span>
+      <span class="sb-pos-label">${esc(p.label)}</span>
     </div>`).join('');
 }
 
@@ -101,9 +101,9 @@ function openCrewDD(e,dateStr,posId){
     items.push({label:'✕ Anfrage zurückziehen',cls:'danger',action:async()=>{
       closeDD();
       try{
+        await cancelProposal(dateStr,posId);
         const _email=crewMeta?.[si.crewName]?.email;
         if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
-        await cancelProposal(dateStr,posId);
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
         if(assignments[dateStr])delete assignments[dateStr][posId];
         showToast('Anfrage zurückgezogen ✓','#4ae8a0');
@@ -118,9 +118,9 @@ function openCrewDD(e,dateStr,posId){
     items.push({label:'✕ Besetzung aufheben',cls:'danger',action:async()=>{
       closeDD();
       try{
+        await cancelProposal(dateStr,posId);
         const _email=crewMeta?.[si.crewName]?.email;
         if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
-        await cancelProposal(dateStr,posId);
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
         if(assignments[dateStr])delete assignments[dateStr][posId];
         showToast('Besetzung aufgehoben ✓','#4ae8a0');
