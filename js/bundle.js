@@ -179,6 +179,32 @@ async function bulkCancelPos(e,posId){
   renderTable();
 }
 
+async function requestAll(e){
+  e.stopPropagation();
+  if(!SUPABASE_ENABLED){showToast('Supabase nicht aktiv','#e84a4a');return;}
+  if(Object.keys(crewMeta).length===0)await loadCrewMeta();
+  const slots=[];let skippedNoEmail=0;
+  TOUR_DATES.forEach(day=>{
+    if(day.type==='off')return;
+    POSITIONS.forEach(pos=>{
+      const si=assignmentStatuses[day.date]?.[pos.id];
+      if(si?.status==='confirmed'||si?.status==='proposed')return;
+      const crewName=getVal(day.date,pos.id);
+      if(!crewName||crewName===OFFEN)return;
+      const crewEmail=crewMeta[crewName]?.email||'';
+      if(!crewEmail){skippedNoEmail++;return;}
+      slots.push({date:day.date,posId:pos.id,crewName,crewEmail});
+    });
+  });
+  if(!slots.length){showToast(skippedNoEmail?'Keine E-Mails hinterlegt':'Alle Einsätze bereits angefragt oder bestätigt ✓','#4ae8a0');return;}
+  const ok=await showConfirm(`${slots.length} Einsätze anfragen${skippedNoEmail?' ('+skippedNoEmail+' ohne E-Mail übersprungen)':''}?`,'Anfragen');
+  if(!ok)return;
+  await bulkProposeCrew(slots);
+  await loadAssignmentStatuses();
+  renderTable();
+  showToast(`${slots.length} Einsätze angefragt ✓`+(skippedNoEmail?', '+skippedNoEmail+' übersprungen':''),'#4ae8a0');
+}
+
 async function requestForPos(e,posId){
   e.stopPropagation();
   if(!SUPABASE_ENABLED){showToast('Supabase nicht aktiv','#e84a4a');return;}
