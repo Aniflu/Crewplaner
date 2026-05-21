@@ -125,6 +125,9 @@ async function loadAssignmentStatuses() {
 }
 
 // ── Crew vorschlagen (Admin → Crew-Mitglied) ───────────────────────────────────
+// WARNUNG: Erstellt PB-Record mit status='proposed' → PB-Hook sendet E-Mail an crewEmail.
+// Nur aufrufen wenn crewEmail gesetzt ist und eine E-Mail-Benachrichtigung gewünscht ist.
+// Wird aktuell von keiner UI-Aktion aufgerufen (Stand v0.9.7.1).
 async function proposeCrew(dateStr, posId, crewName, crewEmail) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
@@ -232,6 +235,8 @@ async function bulkCancelProposals(posId) {
 }
 
 // ── Crew für mehrere Slots auf einmal vorschlagen ─────────────────────────────
+// WARNUNG: Erstellt N PB-Records mit status='proposed' → N E-Mails via PB-Hook.
+// Wird aktuell von keiner UI-Aktion aufgerufen (Stand v0.9.7.1).
 async function bulkProposeCrew(slots) {
   if (!SUPABASE_ENABLED || !slots.length) return;
   const planId = await _getActivePlanId();

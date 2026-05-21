@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.9.7.1 — 2026-05-21
+
+### Security: XSS-Escaping + Doppel-E-Mail-Schutz + Admin-E-Mail aus ENV
+
+- **`.pb_hooks/main.pb.js`** (v3.9→v4.0)
+  - `esc()`-Funktion in allen 3 Hooks — `crewName`, `posLabel`, `planName` werden in HTML-Templates HTML-escaped (verhindert XSS in E-Mails)
+  - UPDATE-Hook (assignments): prüft via `r.originalCopy()` ob Status bereits `proposed` war — sendet keine E-Mail wenn sich nichts geändert hat (verhindert Doppel-E-Mails bei `pbUpsert`-Calls)
+  - Admin-E-Mail für Ablehnungs-Benachrichtigung jetzt via `$os.getenv('ADMIN_EMAIL')` mit Fallback auf hardcodierten Wert
+  - `app_url`-Feld für JSON-Slot-Transport in Absage-Mails explizit kommentiert
+
+- **`js/dataService.js`** — `proposeCrew()` und `bulkProposeCrew()` mit WARNUNG-Kommentaren versehen (beide Funktionen triggern PB-Hook → E-Mail; werden aktuell von keiner UI-Aktion aufgerufen)
+
+- **`js/userView.js`** — `meinesMelden()` ruft kein `proposeCrew()` mehr auf; rein lokal (bereits in v0.9.7.0 gefixt, hier dokumentiert)
+
+### Deploy erforderlich
+
+```bash
+ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
+  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+```
+
+### Optional: ADMIN_EMAIL in Coolify setzen
+
+Damit Ablehnungs-Mails flexibel an die richtige Adresse gehen:
+```
+ADMIN_EMAIL=deine@email.de
+```
+
+---
+
+## v0.9.7.0 — 2026-05-21
+
+### Fix: sendInvite() + meinesMelden() — keine ungewollten E-Mails mehr
+
+- **`js/crewNotify.js`** — `sendInvite()`: `bulkProposeCrew()`-Block entfernt; sendet jetzt genau 1 E-Mail via `sendCrewInvite()`
+- **`js/userView.js`** — `meinesMelden()`: `proposeCrew()`-Aufruf entfernt; rein lokal (kein PB-Record, kein E-Mail-Trigger)
+
+---
+
 ## v0.9.6.2 — 2026-05-18
 
 ### Fix: createUser() — verified-Feld via Hook setzen
