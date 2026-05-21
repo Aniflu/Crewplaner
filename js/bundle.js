@@ -183,6 +183,17 @@ async function requestAll(e){
   e.stopPropagation();
   if(!SUPABASE_ENABLED){showToast('Supabase nicht aktiv','#e84a4a');return;}
   if(Object.keys(crewMeta).length===0)await loadCrewMeta();
+  // Schritt 0: defaultCrew-Fallbacks materialisieren (kursiv → weiß)
+  TOUR_DATES.forEach(day=>{
+    POSITIONS.forEach(pos=>{
+      const def=defaultCrew[pos.id];
+      if(!def)return;
+      if(day.date in assignments&&pos.id in(assignments[day.date]||{}))return;
+      if(!assignments[day.date])assignments[day.date]={};
+      assignments[day.date][pos.id]=def;
+    });
+  });
+  _savePlanToLS(activePlanId);
   const slots=[];let skippedNoEmail=0;
   TOUR_DATES.forEach(day=>{
     if(day.type==='off')return;
