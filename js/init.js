@@ -52,41 +52,69 @@ function startApp(){
   // Erster Login für Manager/Superadmin → Demo-Plan laden
   if(plans.length===0&&(IS_MANAGER||IS_SUPERADMIN)){
     const _demoPlan={version:3,
-      crew:['Marco Bauer','Lisa Hoffmann','Tim Schulz','Jana Keller','David Neumann','Sophie Braun'],
+      crew:['Max Berger','Anna Weis','Felix Braun','Mia Schäfer','Lars König','Nina Vogel'],
       positions:[
-        {id:'gl',label:'GL',short:'GL'},{id:'sys',label:'System',short:'SYS'},
-        {id:'lt1',label:'Licht 1',short:'LT1'},{id:'lt2',label:'Licht 2',short:'LT2'},
-        {id:'foh',label:'FOH Sound',short:'FOH'},{id:'mon',label:'Monitor',short:'MON'}
+        {id:'gl', label:'Gewerkeleitung', short:'GL'},
+        {id:'lt', label:'Lichttechniker',  short:'LT'},
+        {id:'vt', label:'Videotechniker',  short:'VT'},
+        {id:'foh',label:'Tontechniker FOH',short:'FOH'},
+        {id:'mon',label:'Monitortechniker',short:'MON'},
+        {id:'bel',label:'Beleuchter',      short:'BEL'}
       ],
-      defaultCrew:{gl:'Marco Bauer',sys:'Lisa Hoffmann',foh:'Tim Schulz'},
+      defaultCrew:{gl:'Max Berger',lt:'Anna Weis',foh:'Lars König'},
       tourDates:[
-        {date:'2026-07-14',type:'reise', typeLabel:'Reise',      loc:'Berlin → Hamburg'},
-        {date:'2026-07-15',type:'prep',  typeLabel:'Aufbau',     loc:'Hamburg · Barclays Arena'},
-        {date:'2026-07-16',type:'show',  typeLabel:'Show',       loc:'Hamburg · Barclays Arena'},
-        {date:'2026-07-17',type:'reise', typeLabel:'Nightliner', loc:'Hamburg → Köln'},
-        {date:'2026-07-18',type:'prep',  typeLabel:'Aufbau',     loc:'Köln · LANXESS Arena'},
-        {date:'2026-07-19',type:'show',  typeLabel:'Show',       loc:'Köln · LANXESS Arena'},
-        {date:'2026-07-20',type:'off',   typeLabel:'OFF',        loc:'Köln'},
-        {date:'2026-07-21',type:'reise', typeLabel:'Nightliner', loc:'Köln → München'},
-        {date:'2026-07-22',type:'prep',  typeLabel:'Aufbau',     loc:'München · Olympiahalle'},
-        {date:'2026-07-23',type:'show',  typeLabel:'Show',       loc:'München · Olympiahalle'}
+        // Vorbereitung
+        {date:'2027-04-01',type:'prep', typeLabel:'Vorbereitung',loc:'Lager / Depot'},
+        {date:'2027-04-02',type:'prep', typeLabel:'Aufbau',      loc:'Hamburg · Barclays Arena'},
+        {date:'2027-04-03',type:'prep', typeLabel:'Probe',       loc:'Hamburg · Barclays Arena'},
+        {date:'2027-04-04',type:'prep', typeLabel:'Probe',       loc:'Hamburg · Barclays Arena'},
+        // Block 1
+        {date:'2027-04-05',type:'show', typeLabel:'Show',        loc:'Hamburg · Barclays Arena',   blockId:'b1',blockName:'Block 1 — Hamburg'},
+        {date:'2027-04-06',type:'reise',typeLabel:'Nightliner',  loc:'Hamburg → Köln',             blockId:'b1',blockName:'Block 1 — Hamburg'},
+        {date:'2027-04-07',type:'prep', typeLabel:'Aufbau',      loc:'Köln · LANXESS Arena',       blockId:'b2',blockName:'Block 2 — Köln'},
+        {date:'2027-04-08',type:'show', typeLabel:'Show',        loc:'Köln · LANXESS Arena',       blockId:'b2',blockName:'Block 2 — Köln'},
+        {date:'2027-04-09',type:'reise',typeLabel:'Nightliner',  loc:'Köln → Berlin',              blockId:'b2',blockName:'Block 2 — Köln'},
+        // Block 2
+        {date:'2027-04-10',type:'prep', typeLabel:'Aufbau',      loc:'Berlin · Mercedes-Benz Arena',blockId:'b3',blockName:'Block 3 — Berlin'},
+        {date:'2027-04-11',type:'show', typeLabel:'Show',        loc:'Berlin · Mercedes-Benz Arena',blockId:'b3',blockName:'Block 3 — Berlin'},
+        {date:'2027-04-12',type:'show', typeLabel:'Show',        loc:'Berlin · Mercedes-Benz Arena',blockId:'b3',blockName:'Block 3 — Berlin'},
+        {date:'2027-04-13',type:'off',  typeLabel:'Ruhetag',     loc:'Berlin 🏨',                  blockId:'b3',blockName:'Block 3 — Berlin'},
+        {date:'2027-04-14',type:'reise',typeLabel:'Nightliner',  loc:'Berlin → München',           blockId:'b3',blockName:'Block 3 — Berlin'},
+        // Block 3
+        {date:'2027-04-15',type:'prep', typeLabel:'Aufbau',      loc:'München · Olympiahalle',     blockId:'b4',blockName:'Block 4 — München'},
+        {date:'2027-04-16',type:'show', typeLabel:'Show',        loc:'München · Olympiahalle',     blockId:'b4',blockName:'Block 4 — München'},
+        {date:'2027-04-17',type:'show', typeLabel:'Show',        loc:'München · Olympiahalle',     blockId:'b4',blockName:'Block 4 — München'},
+        {date:'2027-04-18',type:'off',  typeLabel:'Abbau / Abreise',loc:'München',                 blockId:'b4',blockName:'Block 4 — München'}
       ],
       assignments:{
-        '2026-07-14':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',foh:'Tim Schulz'},
-        '2026-07-15':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
-        '2026-07-16':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
-        '2026-07-17':{gl:'Marco Bauer',sys:'Lisa Hoffmann',foh:'Tim Schulz'},
-        '2026-07-18':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
-        '2026-07-19':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
-        '2026-07-21':{gl:'Marco Bauer',sys:'Lisa Hoffmann',foh:'Tim Schulz'},
-        '2026-07-22':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'},
-        '2026-07-23':{gl:'Marco Bauer',sys:'Lisa Hoffmann',lt1:'Jana Keller',lt2:'David Neumann',foh:'Tim Schulz',mon:'Sophie Braun'}
+        // Vorbereitung — volle Besetzung
+        '2027-04-01':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-02':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-03':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-04':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        // Block 1
+        '2027-04-05':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-06':{gl:'Max Berger',foh:'Lars König'},
+        '2027-04-07':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-08':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-09':{gl:'Max Berger',foh:'Lars König'},
+        // Block 2
+        '2027-04-10':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-11':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-12':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-13':{gl:'Max Berger',foh:'Lars König'},
+        '2027-04-14':{gl:'Max Berger',foh:'Lars König'},
+        // Block 3
+        '2027-04-15':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-16':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-17':{gl:'Max Berger',lt:'Anna Weis',vt:'Mia Schäfer',foh:'Lars König',mon:'Nina Vogel',bel:'Felix Braun'},
+        '2027-04-18':{gl:'Max Berger',foh:'Lars König'}
       }
     };
     const demoId=genPlanId();
     activePlanId=demoId;
     localStorage.setItem(PLAN_PREFIX+demoId,JSON.stringify(_demoPlan));
-    savePlansIndex([{id:demoId,name:'🎸 Demo Tour — Europa 2026',created:_today(),modified:_today()}]);
+    savePlansIndex([{id:demoId,name:'🎸 Demo Tour — Europa 2027',created:_today(),modified:_today()}]);
     applyData(_demoPlan);
     renderPlanList();
     showToast('Willkommen! Demo-Plan geladen ✓','#e8c84a');
