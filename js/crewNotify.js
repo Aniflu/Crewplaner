@@ -150,22 +150,6 @@ async function sendCancellationSummary(crewName) {
 async function sendInvite(crewName, type) {
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
-
-  // Beim ersten Einladen: Crew-Mitglied für alle Default-Positionen vorschlagen
-  if (type === 'invite') {
-    const defaultPositions = Object.keys(defaultCrew || {}).filter(posId => defaultCrew[posId] === crewName);
-    if (defaultPositions.length > 0) {
-      const slots = [];
-      (TOUR_DATES || []).forEach(day => {
-        if (day.type === 'off') return;
-        defaultPositions.forEach(posId => {
-          slots.push({ date: day.date, posId, crewName });
-        });
-      });
-      if (slots.length) await bulkProposeCrew(slots);
-    }
-  }
-
   await sendCrewInvite(crewName, meta.email, type);
   _saveInvite(crewName);
   const label = type === 'reminder' ? 'Erinnerung gesendet ✓' : 'Einladung gesendet ✓';
