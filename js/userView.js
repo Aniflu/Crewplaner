@@ -133,14 +133,13 @@ async function declineMySlot(dateStr, posId) {
   renderTable();
 }
 
-async function meinesMelden(dateStr, posId) {
-  if (!SUPABASE_ENABLED) return;
+function meinesMelden(dateStr, posId) {
   const myName = getMyCrewName();
   if (!myName) {
     showToast('Dein Konto ist noch nicht verknüpft. Bitte Admin kontaktieren.', '#e84a4a');
     return;
   }
   setAssign(dateStr, posId, myName);
-  await proposeCrew(dateStr, posId, myName, null);
-  showToast('Gemeldet ✓ — Admin wird informiert', '#4ae8a0');
+  showToast('Eingetragen ✓', '#4ae8a0');
+  renderTable();
 }
