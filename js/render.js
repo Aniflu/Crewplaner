@@ -33,7 +33,7 @@ function updateViewMeta(){
 
 function renderHead(){
   let h='<tr>';
-  h+=`<th rowspan="2" style="left:0;text-align:left;vertical-align:middle;z-index:12;">Datum${SUPABASE_ENABLED?`<br><button onclick="requestAll(event)" style="margin-top:4px;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 6px;font-family:'IBM Plex Mono',monospace;font-size:.55rem;border-radius:3px;cursor:pointer;white-space:nowrap;">↗ Alle</button>`:''}  </th>`;
+  h+=`<th rowspan="2" style="left:0;text-align:left;vertical-align:middle;z-index:12;">Datum<br><button onclick="requestAll(event)" style="margin-top:4px;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 6px;font-family:'IBM Plex Mono',monospace;font-size:.55rem;border-radius:3px;cursor:pointer;white-space:nowrap;">↓ Alle</button></th>`;
   h+='<th rowspan="2" style="left:88px;text-align:left;vertical-align:middle;z-index:12;">Art</th>';
   h+='<th rowspan="2" style="left:213px;text-align:left;vertical-align:middle;z-index:12;">Ort / Venue</th>';
   POSITIONS.forEach((p,i)=>{
@@ -46,17 +46,12 @@ function renderHead(){
     const ci=crew.indexOf(def);
     const dot=def&&ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'transparent';
     const hasOpen=Object.values(assignmentStatuses).some(day=>isPending(day[p.id]));
-    const hasAny=SUPABASE_ENABLED&&TOUR_DATES.some(day=>{
-      if(day.type==='off')return false;
-      const si=assignmentStatuses[day.date]?.[p.id];
-      if(si?.status==='confirmed'||si?.status==='proposed')return false;
-      return !!getVal(day.date,p.id);
-    });
+    const hasAny=!!def&&TOUR_DATES.some(day=>!(day.date in assignments&&p.id in(assignments[day.date]||{})));
     h+=`<th style="background:#12141a;border:1px solid var(--border);border-top:none;padding:3px;">
       <button onclick="openDefaultDD(event,'${p.id}')" style="width:100%;background:${def?'rgba(79,129,189,.14)':'transparent'};border:1px dashed ${def?'#4f81bd':'#2e3a45'};color:${def?'#a0c0e0':'#2e3a50'};padding:3px 5px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;border-radius:3px;cursor:pointer;display:flex;align-items:center;gap:4px;justify-content:center;">
         ${def?`<div style="width:5px;height:5px;border-radius:50%;background:${dot};flex-shrink:0;"></div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:85px;">${def}</span>`:'<span style="opacity:.4;font-size:.58rem;">● Standard…</span>'}
       </button>
-      ${hasAny?`<button onclick="requestForPos(event,'${p.id}')" style="margin-top:3px;width:100%;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:.58rem;border-radius:3px;cursor:pointer;">↗ Anfragen</button>`:''}
+      ${hasAny?`<button onclick="requestForPos(event,'${p.id}')" style="margin-top:3px;width:100%;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:.58rem;border-radius:3px;cursor:pointer;">↓ Übernehmen</button>`:''}
       ${hasOpen?`<button onclick="bulkCancelPos(event,'${p.id}')" style="margin-top:3px;width:100%;background:rgba(232,74,74,.1);border:1px solid rgba(232,74,74,.3);color:#e84a4a;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:.58rem;border-radius:3px;cursor:pointer;">↩ Zurückziehen</button>`:''}
       </th>`;
   });
