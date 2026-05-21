@@ -106,7 +106,6 @@ function openCrewDD(e,dateStr,posId){
     const label=hasEmail?`📧 ${name}`:name;
     items.push({label,dot:CREW_COLORS[i%CREW_COLORS.length],selected:current===name,action:()=>{
       setAssign(dateStr,posId,name);
-      proposeCrew(dateStr,posId,name,meta?.email||null).catch(e=>console.warn(e));
       closeDD();
     }});
   });
@@ -149,17 +148,24 @@ async function bulkCancelPos(e,posId){
 
 async function requestForPos(e,posId){
   e.stopPropagation();
-  const crewName=defaultCrew[posId];
-  if(!crewName)return;
   if(!SUPABASE_ENABLED){showToast('Supabase nicht aktiv','#e84a4a');return;}
   if(Object.keys(crewMeta).length===0)await loadCrewMeta();
-  if(!(crewMeta[crewName]||{}).email){showToast(`${crewName}: Keine E-Mail hinterlegt`,'#e84a4a');return;}
-  const crewEmail=crewMeta[crewName]?.email||'';
-  const slots=TOUR_DATES
-    .filter(day=>day.type!=='off'&&!assignments[day.date]?.[posId]&&assignmentStatuses[day.date]?.[posId]?.status!=='confirmed')
-    .map(day=>({date:day.date,posId,crewName,crewEmail}));
-  if(!slots.length){showToast('Alle Tage bereits bestätigt ✓','#4ae8a0');return;}
+  const pos=POSITIONS.find(p=>p.id===posId);
+  const slots=[];let skippedNoEmail=0;
+  TOUR_DATES.forEach(day=>{
+    if(day.type==='off')return;
+    const si=assignmentStatuses[day.date]?.[posId];
+    if(si?.status==='confirmed'||si?.status==='proposed')return;
+    const crewName=getVal(day.date,posId);
+    if(!crewName||crewName===OFFEN)return;
+    const crewEmail=crewMeta[crewName]?.email||'';
+    if(!crewEmail){skippedNoEmail++;return;}
+    slots.push({date:day.date,posId,crewName,crewEmail});
+  });
+  if(!slots.length){showToast(skippedNoEmail?`${pos?.label}: Keine E-Mails hinterlegt`:'Alle Tage bereits angefragt oder bestätigt ✓','#4ae8a0');return;}
   await bulkProposeCrew(slots);
+  await loadAssignmentStatuses();
   renderTable();
-  showToast(`${crewName}: ${slots.length} Tage angefragt ✓`,'#4ae8a0');
+  const msg=skippedNoEmail?`${slots.length} angefragt, ${skippedNoEmail} ohne E-Mail übersprungen`:`${slots.length} Tage angefragt ✓`;
+  showToast(`${pos?.label}: ${msg}`,'#4ae8a0');
 }
