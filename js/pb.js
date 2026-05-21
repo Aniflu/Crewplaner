@@ -33,6 +33,20 @@ function pbList(collection, filter, sort, perPage) {
   return pbGet('/api/collections/' + collection + '/records?' + params);
 }
 
+// ── Alle Seiten einer gefilterten Liste laden ──────────────────────────────────
+async function pbListAll(collection, filter, sort) {
+  const perPage = 200;
+  let page = 1, allItems = [];
+  while (true) {
+    const params = new URLSearchParams({filter: filter||'', sort: sort||'-id', perPage, page});
+    const data = await pbGet('/api/collections/'+collection+'/records?'+params);
+    allItems = allItems.concat(data?.items || []);
+    if (page >= (data?.totalPages || 1)) break;
+    page++;
+  }
+  return {items: allItems};
+}
+
 // ── Ersten Treffer einer Filter-Abfrage holen ──────────────────────────────────
 async function pbFirst(collection, filter) {
   const data = await pbList(collection, filter, '-id', 1);

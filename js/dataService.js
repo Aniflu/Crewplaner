@@ -108,7 +108,7 @@ async function loadAssignmentStatuses() {
   if (!planId) return;
 
   try {
-    const data = await pbList('assignments',
+    const data = await pbListAll('assignments',
       `plan_id = "${planId}" && status != "assigned"`);
     Object.keys(assignmentStatuses).forEach(k => delete assignmentStatuses[k]);
     (data?.items || []).forEach(row => {
