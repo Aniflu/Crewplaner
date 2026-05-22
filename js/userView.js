@@ -204,6 +204,28 @@ function _queueCrewUpdate(dateStr, changeDesc) {
   renderTable();
 }
 
+function _queueGlobalCrewUpdate(changeDesc) {
+  const q = _getCrewUpdateQueue();
+  let affected = 0;
+  Object.entries(assignmentStatuses || {}).forEach(([dateStr, positions]) => {
+    Object.entries(positions).forEach(([posId, si]) => {
+      if (si.status !== 'confirmed') return;
+      const meta = crewMeta[si.crewName] || {};
+      if (!meta.email) return;
+      if (!q[si.crewName]) q[si.crewName] = { email: meta.email, informational: true, slots: [] };
+      const pos = POSITIONS.find(p => p.id === posId);
+      const posLabel = pos?.label || posId;
+      let slot = q[si.crewName].slots.find(s => s.date === dateStr && s.posLabel === posLabel);
+      if (!slot) { slot = { date: dateStr, posLabel, changes: [] }; q[si.crewName].slots.push(slot); }
+      if (!slot.changes.includes(changeDesc)) slot.changes.push(changeDesc);
+      affected++;
+    });
+  });
+  if (affected === 0) return;
+  _saveCrewUpdateQueue(q);
+  _updateCrewUpdateBar();
+}
+
 function _updateCrewUpdateBar() {
   const bar = document.getElementById('crewUpdateBar');
   if (!bar) return;
@@ -226,16 +248,18 @@ async function _sendPendingUpdates() {
   try {
     for (const name of names) {
       const entry = q[name];
-      for (const slot of entry.slots) {
-        const day = assignmentStatuses[slot.date];
-        const posId = day ? Object.keys(day).find(p => {
-          const pos = POSITIONS.find(pp => pp.id === p);
-          return (pos?.label || p) === slot.posLabel && day[p].crewName === name;
-        }) : null;
-        if (posId) {
-          const existing = await _findAssignment(slot.date, posId);
-          if (existing) await pbPatch('/api/collections/assignments/records/'+existing.id,
-            { status: 'proposed', proposed_by: 'update' });
+      if (!entry.informational) {
+        for (const slot of entry.slots) {
+          const day = assignmentStatuses[slot.date];
+          const posId = day ? Object.keys(day).find(p => {
+            const pos = POSITIONS.find(pp => pp.id === p);
+            return (pos?.label || p) === slot.posLabel && day[p].crewName === name;
+          }) : null;
+          if (posId) {
+            const existing = await _findAssignment(slot.date, posId);
+            if (existing) await pbPatch('/api/collections/assignments/records/'+existing.id,
+              { status: 'proposed', proposed_by: 'update' });
+          }
         }
       }
       await sendUpdateNotice(name, entry.email, entry.slots);

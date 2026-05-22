@@ -322,7 +322,8 @@ async function confirmAddDate(){
       cur.setDate(cur.getDate()+1);
     }
   }
-  closeModal('sharedModal');renderTable();
+  if(typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt');
+  closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();
 }
 
 

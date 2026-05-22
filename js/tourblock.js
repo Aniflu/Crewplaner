@@ -43,7 +43,7 @@ function tbChangeLoc(i,val){tbDays[i].loc=val.trim()||'–';}
 
 function tbSetAll(t,tl){tbDays.forEach(d=>{d.type=t;d.typeLabel=tl;});tbRenderDays();}
 
-function tbConfirm(){let n=0;tbDays.forEach(day=>{if(TOUR_DATES.find(r=>r.date===day.date))return;sortInsert({date:day.date,type:day.type,typeLabel:day.typeLabel,loc:day.loc,blockName:day.blockName,blockId:day.blockId});n++;});closeModal('tbModal');renderTable();showToast(`${n} Tage eingefügt ✓`,'#2d6a3f');}
+function tbConfirm(){let n=0;tbDays.forEach(day=>{if(TOUR_DATES.find(r=>r.date===day.date))return;sortInsert({date:day.date,type:day.type,typeLabel:day.typeLabel,loc:day.loc,blockName:day.blockName,blockId:day.blockId});n++;});if(n>0&&typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt');closeModal('tbModal');renderTable();showToast(`${n} Tage eingefügt ✓`,'#2d6a3f');}
 
 // ── Datumsbereich → vorhandene Tage einem Block zuweisen ───────────────────────
 function openBlockRange(){
