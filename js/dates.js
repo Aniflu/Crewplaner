@@ -1,5 +1,5 @@
 // ── Add Date Wizard ────────────────────────────────────────────────────────────
-function openAddDate(){
+function openAddDate(){if(!IS_MANAGER)return;
   const typeOpts=TYPE_OPTS.map(o=>`<option value="${o.label}">${o.label}</option>`).join('');
   document.getElementById('sharedTitle').textContent='Datum hinzufügen';
   document.getElementById('sharedBody').innerHTML=`
@@ -34,7 +34,7 @@ function adSetMode(mode){
   document.getElementById('adModeRange').className='mbtn'+(mode==='range'?' primary':'');
 }
 
-async function confirmAddDate(){
+async function confirmAddDate(){if(!IS_MANAGER)return;
   const isSingle=document.getElementById('adSingleFields').style.display!=='none';
   const typeLabel=document.getElementById('adTypeSelect')?.value||'';
   const lv=(document.getElementById('adLoc')?.value||'').trim();

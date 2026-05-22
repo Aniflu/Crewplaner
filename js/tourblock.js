@@ -1,7 +1,7 @@
 // ── Tourblock Wizard ───────────────────────────────────────────────────────────
 let tbDays=[];
 
-function openTourBlock(){document.getElementById('tbStep1').style.display='';document.getElementById('tbStep2').style.display='none';['tbName','tbLoc','tbStart','tbEnd'].forEach(id=>document.getElementById(id).value='');openModal('tbModal');}
+function openTourBlock(){if(!IS_MANAGER)return;document.getElementById('tbStep1').style.display='';document.getElementById('tbStep2').style.display='none';['tbName','tbLoc','tbStart','tbEnd'].forEach(id=>document.getElementById(id).value='');openModal('tbModal');}
 
 function tbBack(){document.getElementById('tbStep1').style.display='';document.getElementById('tbStep2').style.display='none';}
 
@@ -47,6 +47,7 @@ function tbConfirm(){let n=0;tbDays.forEach(day=>{if(TOUR_DATES.find(r=>r.date==
 
 // ── Datumsbereich → vorhandene Tage einem Block zuweisen ───────────────────────
 function openBlockRange(){
+  if(!IS_MANAGER)return;
   const sorted=[...TOUR_DATES].sort((a,b)=>a.date.localeCompare(b.date));
   const fmt=d=>{const dt=parseD(d.date),wd=DE_DAYS[dt.getDay()];return `<option value="${d.date}">${wd} ${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')} – ${d.typeLabel||''} ${d.loc?'('+d.loc+')':''}</option>`;};
   const dateOpts=sorted.map(fmt).join('');

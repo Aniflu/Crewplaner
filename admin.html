@@ -441,7 +441,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.8</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.8.1</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -614,7 +614,7 @@ body {
     <div class="section-sub">Rollen zuweisen und Accounts verwalten</div>
 
     <div class="search-bar">
-      <input type="text" id="userFilter" placeholder="Filter nach E-Mail…" oninput="filterUsers()">
+      <input type="text" id="userFilter" placeholder="Filter nach Name oder E-Mail…" oninput="filterUsers()">
       <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↺ Neu laden</button>
       <button class="btn btn-primary btn-sm" onclick="toggleNewUserForm(true)">+ Neuer Benutzer</button>
     </div>
@@ -647,7 +647,7 @@ body {
     <table class="data-table">
       <thead>
         <tr>
-          <th>E-Mail</th>
+          <th>Benutzer</th>
           <th>Rolle</th>
           <th>Status</th>
           <th>Erstellt</th>
@@ -989,7 +989,7 @@ async function loadUsers() {
 
 function filterUsers() {
   const q = (document.getElementById('userFilter').value || '').toLowerCase();
-  renderUsers(q ? _allUsers.filter(u => u.email.toLowerCase().includes(q)) : _allUsers);
+  renderUsers(q ? _allUsers.filter(u => (u.email||'').toLowerCase().includes(q)||(u.name||'').toLowerCase().includes(q)) : _allUsers);
 }
 
 function renderUsers(users) {
@@ -1007,7 +1007,10 @@ function renderUsers(users) {
       ? '<span class="verified-badge">✓ Verifiziert</span>'
       : '<span class="unverified-badge">⏳ Ausstehend</span>';
     return `<tr>
-      <td>${esc(u.email)}</td>
+      <td>
+        ${u.name ? `<div style="font-size:.65rem;color:var(--ink);font-weight:500;">${esc(u.name)}</div>` : ''}
+        <div style="font-size:.58rem;color:#5a6070;">${u.email ? esc(u.email) : '<span style="color:#e84a4a;font-size:.58rem;">Keine E-Mail</span>'}</div>
+      </td>
       <td>
         <select class="role-select" onchange="updateRole('${u.id}', this.value)">
           <option value="superadmin" ${roleVal==='superadmin'?'selected':''}>Superadmin</option>

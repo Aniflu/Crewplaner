@@ -21,6 +21,7 @@ function _clearPendingCancellations(crewName) {
 function renderCancellationBanner() {
   const banner = document.getElementById('cancellation-banner');
   if (!banner) return;
+  if (!IS_MANAGER) { banner.style.display = 'none'; return; }
   const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
   const total = Object.values(q).reduce((sum, e) => sum + (e.slots?.length || 0), 0);
   if (total === 0) { banner.style.display = 'none'; return; }

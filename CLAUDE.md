@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.8**
+- Aktuelle Version: **v0.9.8.1**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -161,24 +161,25 @@ Datei in `js/` oder `styles.css` bearbeiten → Browser-Tab neu laden → fertig
 
 **Cache-Bust:** Nach JS/CSS-Änderungen `?v=N` in `index.html` + `login.html` hochzählen.
 
-Aktuelle Versionen (Stand 2026-05-17):
+Aktuelle Versionen (Stand 2026-05-22):
 
 | Datei | Version |
 |---|---|
 | `config.js` | v29 |
 | `pb.js` | v33 |
-| `dataService.js` | v37 |
-| `authService.js` | v32 |
+| `dataService.js` | v38 |
+| `authService.js` | v33 |
 | `rbac.js` | v1 |
 | `state.js` | v25 |
-| `render.js` | v24 |
-| `dropdown.js` | v26 |
-| `bundle.js` | v26 |
-| `crewNotify.js` | v27 |
+| `render.js` | v25 |
+| `dropdown.js` | v28 |
+| `bundle.js` | v29 |
+| `crewNotify.js` | v28 |
 | `crewLink.js` | v24 |
-| `userView.js` | v24 |
+| `userView.js` | v26 |
 | `plans.js` | v26 |
 | `init.js` | v29 |
+| `tourblock.js` | v25 |
 | alle anderen | v23 |
 
 ---

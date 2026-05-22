@@ -1,5 +1,6 @@
 // ── Position Management ────────────────────────────────────────────────────────
 function openPosMenu(e,idx){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   const pos=POSITIONS[idx];
   const items=[{label:'✏ Umbenennen',action:()=>{closeDD();openRenamePos(idx);}}];
@@ -8,9 +9,11 @@ function openPosMenu(e,idx){
 }
 
 function openRenamePos(idx){
+  if(!IS_MANAGER)return;
   openSharedModal('Position umbenennen',POSITIONS[idx].label,v=>{POSITIONS[idx].label=v;POSITIONS[idx].short=v;_savePlanToLS(activePlanId);renderCrew();renderTable();});
 }
 
 function openAddPos(){
+  if(!IS_MANAGER)return;
   openSharedModal('Neue Position','',v=>{POSITIONS.push({id:'pos_'+Date.now(),label:v,short:v});_savePlanToLS(activePlanId);renderCrew();renderTable();});
 }

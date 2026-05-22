@@ -20,6 +20,7 @@ function closeDD(){document.getElementById('ddOv').classList.remove('open');docu
 
 // ── Type Dropdown ──────────────────────────────────────────────────────────────
 function openTypeDD(e,dateStr){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   const row=TOUR_DATES.find(r=>r.date===dateStr);
   const rect=e.currentTarget.getBoundingClientRect();
@@ -50,6 +51,7 @@ function openTypeDD(e,dateStr){
 
 // ── Date Dropdown (löschen) ───────────────────────────────────────────────────
 function openDateDD(e,dateStr){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   const items=[
     {label:'🗑 Zeile löschen',cls:'danger',action:async()=>{
@@ -157,6 +159,7 @@ async function bulkCancelPos(e,posId){
 }
 
 function requestAll(e){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   if(!confirm('Alle leeren Slots mit Standard-Crew füllen?\nDas überschreibt deinen Plan und kann nicht rückgängig gemacht werden.'))return;
   TOUR_DATES.forEach(day=>{
@@ -174,6 +177,7 @@ function requestAll(e){
 }
 
 function requestForPos(e,posId){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   const def=defaultCrew[posId];
   if(!def)return;

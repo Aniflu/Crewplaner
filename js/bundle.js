@@ -15,19 +15,19 @@ function renderCrew(){
     d.innerHTML=`<div class="crew-dot" style="background:${CREW_COLORS[i%CREW_COLORS.length]}"></div>`
       +`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}</span>`
       +`<span class="crew-days">${String(days).padStart(2,'0')}d</span>`
-      +`<button class="sm danger" onclick="removeCrew(${i})" title="Entfernen">×</button>`;
+      +(IS_MANAGER?`<button class="sm danger" onclick="removeCrew(${i})" title="Entfernen">×</button>`:'');
     el.appendChild(d);
   });
-  document.getElementById('posList').innerHTML=POSITIONS.map((p,i)=>
-    `<div class="sb-pos" onclick="openRenamePos(${i})" title="Position umbenennen">
-      <span class="sb-pos-short">${esc(p.short||'')}</span>
-      <span class="sb-pos-label">${esc(p.label)}</span>
-    </div>`).join('');
+  const posEl=document.getElementById('posList');
+  posEl.innerHTML=POSITIONS.map((p,i)=>IS_MANAGER
+    ?`<div class="sb-pos" onclick="openRenamePos(${i})" title="Position umbenennen"><span class="sb-pos-short">${esc(p.short||'')}</span><span class="sb-pos-label">${esc(p.label)}</span></div>`
+    :`<div class="sb-pos"><span class="sb-pos-short">${esc(p.short||'')}</span><span class="sb-pos-label">${esc(p.label)}</span></div>`
+  ).join('');
 }
 
-function addCrew(){const inp=document.getElementById('newCrewName');const n=inp.value.trim();if(!n)return;crew.push(n);inp.value='';_savePlanToLS(activePlanId);renderCrew();}
+function addCrew(){if(!IS_MANAGER)return;const inp=document.getElementById('newCrewName');const n=inp.value.trim();if(!n)return;crew.push(n);inp.value='';_savePlanToLS(activePlanId);renderCrew();}
 
-function removeCrew(i){const name=crew[i];crew.splice(i,1);Object.keys(assignments).forEach(d=>{Object.keys(assignments[d]||{}).forEach(p=>{if(assignments[d][p]===name)delete assignments[d][p];});});_savePlanToLS(activePlanId);renderCrew();renderTable();}
+function removeCrew(i){if(!IS_MANAGER)return;const name=crew[i];crew.splice(i,1);Object.keys(assignments).forEach(d=>{Object.keys(assignments[d]||{}).forEach(p=>{if(assignments[d][p]===name)delete assignments[d][p];});});_savePlanToLS(activePlanId);renderCrew();renderTable();}
 
 
 // === dropdown.js ===
@@ -53,6 +53,7 @@ function closeDD(){document.getElementById('ddOv').classList.remove('open');docu
 
 // ── Type Dropdown ──────────────────────────────────────────────────────────────
 function openTypeDD(e,dateStr){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   const row=TOUR_DATES.find(r=>r.date===dateStr);
   const rect=e.currentTarget.getBoundingClientRect();
@@ -83,6 +84,7 @@ function openTypeDD(e,dateStr){
 
 // ── Date Dropdown (löschen) ───────────────────────────────────────────────────
 function openDateDD(e,dateStr){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   const items=[
     {label:'🗑 Zeile löschen',cls:'danger',action:async()=>{
@@ -190,6 +192,7 @@ async function bulkCancelPos(e,posId){
 }
 
 function requestAll(e){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   if(!confirm('Alle leeren Slots mit Standard-Crew füllen?\nDas überschreibt deinen Plan und kann nicht rückgängig gemacht werden.'))return;
   TOUR_DATES.forEach(day=>{
@@ -207,6 +210,7 @@ function requestAll(e){
 }
 
 function requestForPos(e,posId){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   const def=defaultCrew[posId];
   if(!def)return;
@@ -225,6 +229,7 @@ function requestForPos(e,posId){
 // === positions.js ===
 // ── Position Management ────────────────────────────────────────────────────────
 function openPosMenu(e,idx){
+  if(!IS_MANAGER)return;
   e.stopPropagation();
   const pos=POSITIONS[idx];
   const items=[{label:'✏ Umbenennen',action:()=>{closeDD();openRenamePos(idx);}}];
@@ -233,10 +238,12 @@ function openPosMenu(e,idx){
 }
 
 function openRenamePos(idx){
+  if(!IS_MANAGER)return;
   openSharedModal('Position umbenennen',POSITIONS[idx].label,v=>{POSITIONS[idx].label=v;POSITIONS[idx].short=v;_savePlanToLS(activePlanId);renderCrew();renderTable();});
 }
 
 function openAddPos(){
+  if(!IS_MANAGER)return;
   openSharedModal('Neue Position','',v=>{POSITIONS.push({id:'pos_'+Date.now(),label:v,short:v});_savePlanToLS(activePlanId);renderCrew();renderTable();});
 }
 
@@ -263,7 +270,7 @@ function openSharedModal(title,currentVal,onConfirm){
 
 // === dates.js ===
 // ── Add Date Wizard ────────────────────────────────────────────────────────────
-function openAddDate(){
+function openAddDate(){if(!IS_MANAGER)return;
   const typeOpts=TYPE_OPTS.map(o=>`<option value="${o.label}">${o.label}</option>`).join('');
   document.getElementById('sharedTitle').textContent='Datum hinzufügen';
   document.getElementById('sharedBody').innerHTML=`
@@ -298,7 +305,7 @@ function adSetMode(mode){
   document.getElementById('adModeRange').className='mbtn'+(mode==='range'?' primary':'');
 }
 
-async function confirmAddDate(){
+async function confirmAddDate(){if(!IS_MANAGER)return;
   const isSingle=document.getElementById('adSingleFields').style.display!=='none';
   const typeLabel=document.getElementById('adTypeSelect')?.value||'';
   const lv=(document.getElementById('adLoc')?.value||'').trim();

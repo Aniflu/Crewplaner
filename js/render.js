@@ -35,13 +35,15 @@ function updateViewMeta(){
 
 function renderHead(){
   let h='<tr>';
-  h+=`<th rowspan="2" style="left:0;text-align:left;vertical-align:middle;z-index:12;">Datum<br><button onclick="requestAll(event)" style="margin-top:4px;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 6px;font-family:'IBM Plex Mono',monospace;font-size:.55rem;border-radius:3px;cursor:pointer;white-space:nowrap;">↓ Alle</button></th>`;
+  h+=`<th rowspan="2" style="left:0;text-align:left;vertical-align:middle;z-index:12;">Datum${IS_MANAGER?`<br><button onclick="requestAll(event)" style="margin-top:4px;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 6px;font-family:'IBM Plex Mono',monospace;font-size:.55rem;border-radius:3px;cursor:pointer;white-space:nowrap;">↓ Alle</button>`:''}</th>`;
   h+='<th rowspan="2" style="left:88px;text-align:left;vertical-align:middle;z-index:12;">Art</th>';
   h+='<th rowspan="2" style="left:213px;text-align:left;vertical-align:middle;z-index:12;">Ort / Venue</th>';
   POSITIONS.forEach((p,i)=>{
-    h+=`<th class="pos-h" style="cursor:pointer;" onclick="openPosMenu(event,${i})">${p.short} <span style="font-size:.5rem;opacity:.4;">▼</span></th>`;
+    h+=IS_MANAGER
+      ?`<th class="pos-h" style="cursor:pointer;" onclick="openPosMenu(event,${i})">${p.short} <span style="font-size:.5rem;opacity:.4;">▼</span></th>`
+      :`<th class="pos-h">${p.short}</th>`;
   });
-  h+=`<th class="pos-h" style="cursor:pointer;color:var(--muted);min-width:44px;" onclick="openAddPos()" rowspan="2" title="Position hinzufügen">+</th>`;
+  h+=IS_MANAGER?`<th class="pos-h" style="cursor:pointer;color:var(--muted);min-width:44px;" onclick="openAddPos()" rowspan="2" title="Position hinzufügen">+</th>`:'<th rowspan="2"></th>';
   h+='</tr><tr>';
   POSITIONS.forEach(p=>{
     const def=defaultCrew[p.id]||'';
@@ -49,13 +51,17 @@ function renderHead(){
     const dot=def&&ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'transparent';
     const hasOpen=Object.values(assignmentStatuses).some(day=>isPending(day[p.id]));
     const hasAny=!!def&&TOUR_DATES.some(day=>!(day.date in assignments&&p.id in(assignments[day.date]||{})));
-    h+=`<th style="background:#12141a;border:1px solid var(--border);border-top:none;padding:3px;">
-      <button onclick="openDefaultDD(event,'${p.id}')" style="width:100%;background:${def?'rgba(79,129,189,.14)':'transparent'};border:1px dashed ${def?'#4f81bd':'#2e3a45'};color:${def?'#a0c0e0':'#2e3a50'};padding:3px 5px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;border-radius:3px;cursor:pointer;display:flex;align-items:center;gap:4px;justify-content:center;">
-        ${def?`<div style="width:5px;height:5px;border-radius:50%;background:${dot};flex-shrink:0;"></div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:85px;">${def}</span>`:'<span style="opacity:.4;font-size:.58rem;">● Standard…</span>'}
-      </button>
-      ${hasAny?`<button onclick="requestForPos(event,'${p.id}')" style="margin-top:3px;width:100%;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:.58rem;border-radius:3px;cursor:pointer;">↓ Übernehmen</button>`:''}
-      ${hasOpen?`<button onclick="bulkCancelPos(event,'${p.id}')" style="margin-top:3px;width:100%;background:rgba(232,74,74,.1);border:1px solid rgba(232,74,74,.3);color:#e84a4a;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:.58rem;border-radius:3px;cursor:pointer;">↩ Zurückziehen</button>`:''}
-      </th>`;
+    if(IS_MANAGER){
+      h+=`<th style="background:#12141a;border:1px solid var(--border);border-top:none;padding:3px;">
+        <button onclick="openDefaultDD(event,'${p.id}')" style="width:100%;background:${def?'rgba(79,129,189,.14)':'transparent'};border:1px dashed ${def?'#4f81bd':'#2e3a45'};color:${def?'#a0c0e0':'#2e3a50'};padding:3px 5px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;border-radius:3px;cursor:pointer;display:flex;align-items:center;gap:4px;justify-content:center;">
+          ${def?`<div style="width:5px;height:5px;border-radius:50%;background:${dot};flex-shrink:0;"></div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:85px;">${def}</span>`:'<span style="opacity:.4;font-size:.58rem;">● Standard…</span>'}
+        </button>
+        ${hasAny?`<button onclick="requestForPos(event,'${p.id}')" style="margin-top:3px;width:100%;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:.58rem;border-radius:3px;cursor:pointer;">↓ Übernehmen</button>`:''}
+        ${hasOpen?`<button onclick="bulkCancelPos(event,'${p.id}')" style="margin-top:3px;width:100%;background:rgba(232,74,74,.1);border:1px solid rgba(232,74,74,.3);color:#e84a4a;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:.58rem;border-radius:3px;cursor:pointer;">↩ Zurückziehen</button>`:''}
+        </th>`;
+    } else {
+      h+=`<th style="background:#12141a;border:1px solid var(--border);border-top:none;padding:3px;"></th>`;
+    }
   });
   h+='</tr>';
   document.getElementById('tHead').innerHTML=h;
@@ -71,9 +77,11 @@ function renderBody(){
     const rowBg=tColor?colorToDarkBg(tColor):'';
     b+=`<tr class="row-${row.type}" style="${rowBg?'--row-bg:'+rowBg+';':''}" data-date="${row.date}">`;
     {const _dp=parseD(row.date);const _wd=DE_DAYS[_dp.getDay()];const _dt=`${String(_dp.getDate()).padStart(2,'0')}.${String(_dp.getMonth()+1).padStart(2,'0')}`;
-    b+=`<td class="date-cell" onclick="openDateDD(event,'${row.date}')" style="cursor:pointer;" title="Klick für Optionen"><span class="wd">${_wd}</span><span class="dt">${_dt}</span></td>`;}
-    b+=`<td class="type-cell"><button class="type-btn" style="${tColor?'color:'+tColor+';':''}" onclick="openTypeDD(event,'${row.date}')">${row.typeLabel}</button></td>`;
-    b+=`<td class="loc-cell"><button class="loc-btn" onclick="startLocEdit(event,'${row.date}')" title="${row.loc}">${row.loc}</button></td>`;
+    b+=IS_MANAGER
+      ?`<td class="date-cell" onclick="openDateDD(event,'${row.date}')" style="cursor:pointer;" title="Klick für Optionen"><span class="wd">${_wd}</span><span class="dt">${_dt}</span></td>`
+      :`<td class="date-cell"><span class="wd">${_wd}</span><span class="dt">${_dt}</span></td>`;}
+    b+=`<td class="type-cell">${IS_MANAGER?`<button class="type-btn" style="${tColor?'color:'+tColor+';':''}" onclick="openTypeDD(event,'${row.date}')">${row.typeLabel}</button>`:`<span class="type-btn" style="${tColor?'color:'+tColor+';':''}cursor:default;">${row.typeLabel}</span>`}</td>`;
+    b+=`<td class="loc-cell">${IS_MANAGER?`<button class="loc-btn" onclick="startLocEdit(event,'${row.date}')" title="${row.loc}">${row.loc}</button>`:`<span class="loc-btn" style="cursor:default;">${row.loc}</span>`}</td>`;
     POSITIONS.forEach(p=>{
       const isOv=row.date in assignments&&p.id in(assignments[row.date]||{});
       const val=getVal(row.date,p.id);
