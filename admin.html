@@ -1184,7 +1184,7 @@ async function generateViewLink() {
     .map(b => b.toString(16).padStart(2, '0')).join('');
   try {
     await pbPatch('/api/collections/plans/records/' + _wrkPbPlanId, { view_token: token });
-    const url = window.location.origin + '/view.html?token=' + token;
+    const url = window.location.href.replace(/\/[^/]*$/, '/') + 'view.html?token=' + token;
     const box = document.getElementById('viewLinkBox');
     document.getElementById('viewLinkUrl').value = url;
     box.style.display = 'flex';
