@@ -59,10 +59,15 @@ function _renderMySchedule(myName) {
     const tourDay = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []).find(d => d.date === date);
     const [y, m, d] = date.split('-');
     const dateStr = `${d}.${m}.${y}`;
-    const location = tourDay?.location || '';
+    const location = tourDay?.loc || '';
     const posLabel = pos?.label || posId;
     const typeLabel = tourDay?.typeLabel || tourDay?.type || '';
 
+    const si = (assignmentStatuses||{})[date]?.[posId];
+    const wasChanged = si?.proposedBy === 'update';
+    const changedBadge = wasChanged
+      ? `<div style="font-size:.58rem;color:#e84a4a;font-weight:bold;margin-top:2px;">⚠ GEÄNDERT — bitte erneut bestätigen</div>`
+      : '';
     return `<label style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer;">
       <input type="checkbox" id="slot_${i}" data-date="${date}" data-pos="${posId}" checked
         style="width:16px;height:16px;accent-color:#4ae8a0;flex-shrink:0;cursor:pointer;">
@@ -71,6 +76,7 @@ function _renderMySchedule(myName) {
           <span style="color:#5a6070;font-weight:400;margin-left:6px;">${typeLabel}</span>
         </div>
         <div style="font-size:.6rem;color:var(--muted);margin-top:2px;">${posLabel}${location ? ' · ' + location : ''}</div>
+        ${changedBadge}
       </div>
       <span class="slot-avail-label" style="font-size:.58rem;color:#4ae8a0;">Verfügbar</span>
     </label>`;
@@ -164,6 +170,84 @@ function meinesMelden(dateStr, posId) {
     _meldungDraft[dateStr].add(posId);
   }
   renderTable();
+}
+
+// ── Plan-Änderungs-Queue (Admin → Crew re-bestätigen) ─────────────────────────
+function _getCrewUpdateQueue() {
+  try { return JSON.parse(localStorage.getItem('crewplan_updates_'+(activePlanId||'')) || '{}'); } catch(_) { return {}; }
+}
+function _saveCrewUpdateQueue(q) {
+  localStorage.setItem('crewplan_updates_'+(activePlanId||''), JSON.stringify(q));
+}
+
+function _queueCrewUpdate(dateStr, changeDesc) {
+  const day = assignmentStatuses[dateStr];
+  if (!day) return;
+  let affected = 0;
+  const q = _getCrewUpdateQueue();
+  Object.entries(day).forEach(([posId, si]) => {
+    if (si.status !== 'confirmed') return;
+    const meta = crewMeta[si.crewName] || {};
+    if (!meta.email) return;
+    if (!q[si.crewName]) q[si.crewName] = { email: meta.email, slots: [] };
+    const pos = POSITIONS.find(p => p.id === posId);
+    const posLabel = pos?.label || posId;
+    let slot = q[si.crewName].slots.find(s => s.date === dateStr && s.posLabel === posLabel);
+    if (!slot) { slot = { date: dateStr, posLabel, changes: [] }; q[si.crewName].slots.push(slot); }
+    if (!slot.changes.includes(changeDesc)) slot.changes.push(changeDesc);
+    assignmentStatuses[dateStr][posId] = { ...si, status: 'proposed' };
+    affected++;
+  });
+  if (affected === 0) return;
+  _saveCrewUpdateQueue(q);
+  _updateCrewUpdateBar();
+  renderTable();
+}
+
+function _updateCrewUpdateBar() {
+  const bar = document.getElementById('crewUpdateBar');
+  if (!bar) return;
+  const n = Object.keys(_getCrewUpdateQueue()).length;
+  bar.style.display = IS_MANAGER && n > 0 ? 'flex' : 'none';
+  const cnt = document.getElementById('crewUpdateCount');
+  if (cnt) cnt.textContent = n;
+}
+
+function _dismissCrewUpdates() {
+  const bar = document.getElementById('crewUpdateBar');
+  if (bar) bar.style.display = 'none';
+}
+
+async function _sendPendingUpdates() {
+  const q = _getCrewUpdateQueue();
+  const names = Object.keys(q);
+  if (!names.length) return;
+  showToast('Update-Mails werden gesendet…', '#e8c84a');
+  try {
+    for (const name of names) {
+      const entry = q[name];
+      for (const slot of entry.slots) {
+        const day = assignmentStatuses[slot.date];
+        const posId = day ? Object.keys(day).find(p => {
+          const pos = POSITIONS.find(pp => pp.id === p);
+          return (pos?.label || p) === slot.posLabel && day[p].crewName === name;
+        }) : null;
+        if (posId) {
+          const existing = await _findAssignment(slot.date, posId);
+          if (existing) await pbPatch('/api/collections/assignments/records/'+existing.id,
+            { status: 'proposed', proposed_by: 'update' });
+        }
+      }
+      await sendUpdateNotice(name, entry.email, entry.slots);
+    }
+    _saveCrewUpdateQueue({});
+    _updateCrewUpdateBar();
+    showToast('Update-Mails gesendet ✓', '#4ae8a0');
+    await loadAssignmentStatuses();
+    renderTable();
+  } catch(e) {
+    showToast('Fehler: '+e.message, '#e84a4a');
+  }
 }
 
 async function _submitMeldung() {

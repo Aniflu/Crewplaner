@@ -117,6 +117,32 @@ onRecordAfterCreateSuccess(function(e) {
       mkBtn('https://crewplanner.nyxlightwork.de', 'PLAN ÖFFNEN →', '#f8f9fb', '#555570')
     ));
     console.log('[hook] availability email sent to admin for '+name+' ('+avSlots.length+' slots)');
+  } else if (type === 'update') {
+    var upSlots = [];
+    try { upSlots = JSON.parse(appUrl || '[]'); } catch (_) {}
+    var upRows = '';
+    for (var i = 0; i < upSlots.length; i++) {
+      var s = upSlots[i];
+      var dv = new Date(s.date);
+      var fdv = isNaN(dv.getTime()) ? esc(s.date) : (('0'+dv.getDate()).slice(-2)+'.'+('0'+(dv.getMonth()+1)).slice(-2)+'.'+dv.getFullYear());
+      var chg = Array.isArray(s.changes) ? s.changes.map(function(c){return esc(c);}).join(', ') : '';
+      upRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+fdv+'</td>'+
+        '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">'+esc(s.posLabel)+'</td>'+
+        '<td style="padding:10px 16px;font-size:12px;color:#e84a4a;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+chg+'</td></tr>';
+    }
+    sendMail(email, 'ÄNDERUNG · ' + plan, wrap(
+      '<h1 style="font-size:36px;font-weight:bold;color:#e84a4a;margin:0 0 6px 0;">Achtung.</h1>'+
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">PLAN GEÄNDERT · '+ePlan+'</p>'+
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey '+eName+',<br><br>folgende Einss&auml;tze haben sich ge&auml;ndert. Bitte logge dich ein und best&auml;tige erneut:</p>'+
+      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">'+
+      '<tr style="background:#f8f9fb;">'+
+      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td>'+
+      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td>'+
+      '<td style="padding:10px 16px;font-size:9px;color:#e84a4a;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">&Auml;NDERUNG</td></tr>'+
+      upRows+'</table>'+
+      mkBtn('https://crewplanner.nyxlightwork.de','JETZT &Uuml;BERPR&Uuml;FEN &rarr;')
+    ));
+    console.log('[hook] update email sent to '+email+' ('+upSlots.length+' slots)');
   } else if (type === 'love_invite') {
     var _lGuide = 'https://aniflu.github.io/Crewplaner/docs/guide-admin.html';
     sendMail(email, '♥ Du wirst gebraucht · ' + plan, wrap(
@@ -256,6 +282,12 @@ onRecordAfterUpdateSuccess(function(e) {
         return;
       }
     } catch(_) {}
+
+    // Kein Anfrage-Mail wenn re-proposed durch Plan-Änderung — Update-Mail wird separat gesendet
+    if (r.get('proposed_by') === 'update') {
+      console.log('[hook] UPDATE re-proposed via plan-change, kein Anfrage-Mail', aid);
+      return;
+    }
 
     var eCrewName2 = esc(crewName);
     var confirmUrl2 = 'https://crewplanner.nyxlightwork.de?action=confirm&aid=' + aid;

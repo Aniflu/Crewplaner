@@ -58,7 +58,13 @@ function openTypeDD(e,dateStr){
   const rect=e.currentTarget.getBoundingClientRect();
   const items=TYPE_OPTS.map(o=>({
     label:o.label,selected:o.label===row.typeLabel,
-    action:()=>{row.type=o.type;row.typeLabel=o.label;saveCustomType(o.label,o.type);closeDD();_savePlanToLS(activePlanId);renderTable();}
+    action:()=>{
+      const oldLabel=row.typeLabel;
+      row.type=o.type;row.typeLabel=o.label;saveCustomType(o.label,o.type);closeDD();
+      _savePlanToLS(activePlanId);
+      if(oldLabel!==o.label&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(row.date,`Tagesart: ${oldLabel} → ${o.label}`);
+      else renderTable();
+    }
   }));
   items.push({label:'✏ Eigene Eingabe…',cls:'reset',action:async()=>{
     closeDD();
@@ -66,8 +72,11 @@ function openTypeDD(e,dateStr){
     if(!val||!val.trim())return;
     const label=val.trim(),type=typeFromLabel(label);
     saveCustomType(label,type);
+    const oldLabel=row.typeLabel;
     row.type=type;row.typeLabel=label;
-    _savePlanToLS(activePlanId);renderTable();
+    _savePlanToLS(activePlanId);
+    if(oldLabel!==label&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(row.date,`Tagesart: ${oldLabel} → ${label}`);
+    else renderTable();
   }});
   showDD(rect,'Tagesart',items);
 }
@@ -79,6 +88,7 @@ function openDateDD(e,dateStr){
     {label:'🗑 Zeile löschen',cls:'danger',action:async()=>{
       const ok=await showConfirm('Zeile '+fmtD(dateStr)+' wirklich löschen?','Löschen');
       if(!ok)return;
+      if(typeof _queueCrewUpdate==='function')_queueCrewUpdate(dateStr,'Datum entfernt');
       const idx=TOUR_DATES.findIndex(r=>r.date===dateStr);
       if(idx>-1)TOUR_DATES.splice(idx,1);
       delete assignments[dateStr];

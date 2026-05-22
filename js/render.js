@@ -22,6 +22,7 @@ function renderTable(){
   updateStats();
   updateViewMeta();
   if(typeof _updateMeldungBar==='function')_updateMeldungBar();
+  if(typeof _updateCrewUpdateBar==='function')_updateCrewUpdateBar();
 }
 
 function updateViewMeta(){
@@ -123,8 +124,16 @@ function startLocEdit(e,dateStr){
   e.stopPropagation();
   const td=e.currentTarget.parentElement;
   const row=TOUR_DATES.find(r=>r.date===dateStr);
+  const oldLoc=row.loc;
   const inp=document.createElement('input');inp.className='loc-input';inp.value=row.loc;
-  const save=()=>{if(inp.value.trim())row.loc=inp.value.trim();_savePlanToLS(activePlanId);renderTable();};
+  const save=()=>{
+    const newLoc=inp.value.trim();
+    if(!newLoc){renderTable();return;}
+    row.loc=newLoc;
+    _savePlanToLS(activePlanId);
+    if(newLoc!==oldLoc&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(dateStr,`Ort: ${oldLoc} → ${newLoc}`);
+    else renderTable();
+  };
   inp.onblur=save;inp.onkeydown=ev=>{if(ev.key==='Enter')inp.blur();if(ev.key==='Escape')renderTable();ev.stopPropagation();};
   td.innerHTML='';td.appendChild(inp);inp.focus();inp.select();
 }

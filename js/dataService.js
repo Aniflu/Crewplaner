@@ -298,6 +298,19 @@ async function sendAvailabilityNotice(crewName, crewEmail, slots) {
   });
 }
 
+async function sendUpdateNotice(crewName, crewEmail, slots) {
+  if (!SUPABASE_ENABLED || !crewEmail) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
+  const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
+  await pbPost('/api/collections/crew_invites/records', {
+    plan_id: planId, crew_name: crewName, crew_email: crewEmail,
+    type: 'update', plan_name: planName,
+    app_url: JSON.stringify(slots)
+  });
+}
+
 // ── Crew einladen / Erinnerung schicken (E-Mail via Pocketbase-Hook) ──────────
 async function sendCrewInvite(crewName, crewEmail, type) {
   if (!SUPABASE_ENABLED || !crewEmail) return;

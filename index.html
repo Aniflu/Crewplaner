@@ -22,7 +22,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.9.7.1</span>
+            <span class="tour-tag">Personalplan · v0.9.8</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -125,6 +125,11 @@
 <div class="dd-menu" id="ddMenu"></div>
 <div id="meldungSubmitBar" style="position:fixed;bottom:24px;right:24px;z-index:200;display:none;">
   <button onclick="_submitMeldung()" style="background:#e8c84a;color:#0d0d1a;font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:2px;padding:13px 22px;border:none;border-radius:3px;cursor:pointer;font-weight:bold;box-shadow:0 4px 16px rgba(0,0,0,.4);">BEREITSCHAFT MELDEN (<span id="meldungCount">0</span>) →</button>
+</div>
+<div id="crewUpdateBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:301;background:#e8c84a;color:#0d0d1a;font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:2px;padding:10px 20px;flex-direction:row;align-items:center;gap:16px;">
+  ⚠ &nbsp;<span id="crewUpdateCount">0</span>&nbsp;Crew-Mitglied(er) müssen erneut bestätigen
+  <button onclick="_sendPendingUpdates()" style="background:#0d0d1a;color:#e8c84a;border:none;padding:7px 16px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:2px;cursor:pointer;border-radius:2px;font-weight:bold;">UPDATE-MAILS SENDEN →</button>
+  <span style="margin-left:auto;cursor:pointer;font-size:1rem;" onclick="_dismissCrewUpdates()">✕</span>
 </div>
 
 <!-- TAGESARTEN-MANAGER MODAL -->
@@ -316,15 +321,15 @@
 <script src="js/pb.js?v=33"></script>
 <script src="js/dialog.js?v=23"></script>
 <script src="js/config.js?v=29"></script>
-<script src="js/dataService.js?v=37"></script>
+<script src="js/dataService.js?v=38"></script>
 <script src="js/authService.js?v=32"></script>
 <script src="js/state.js?v=25"></script>
 <script src="js/rbac.js?v=1"></script>
 <script src="js/types.js?v=23"></script>
 <script src="js/utils.js?v=23"></script>
 <script src="js/render.js?v=24"></script>
-<script src="js/bundle.js?v=26"></script>
-<script src="js/dropdown.js?v=26"></script>
+<script src="js/bundle.js?v=27"></script>
+<script src="js/dropdown.js?v=27"></script>
 <script src="js/tourblock.js?v=23"></script>
 <script src="js/stats.js?v=23"></script>
 <script src="js/sidebar.js?v=23"></script>
@@ -335,7 +340,7 @@
 <script src="js/crewview.js?v=23"></script>
 <script src="js/crewLink.js?v=24"></script>
 <script src="js/crewNotify.js?v=27"></script>
-<script src="js/userView.js?v=24"></script>
+<script src="js/userView.js?v=25"></script>
 <script src="js/init.js?v=29"></script>
 
 </body>
