@@ -1365,6 +1365,7 @@ function renderAdminNotify() {
       <span style="font-size:.58rem;color:#5a6070;white-space:nowrap;">${proposed}⏳ ${confirmed}✓</span>
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminEmail(this.dataset.crew,'invite')">Einladung</button>
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminEmail(this.dataset.crew,'reminder')">Erinnerung</button>
+      <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminUpdate(this.dataset.crew)">Update</button>
     </div>`;
   }).join('');
 }
@@ -1382,6 +1383,29 @@ async function sendAdminEmail(crewName, type) {
       app_url:    'https://crewplanner.nyxlightwork.de'
     });
     adminToast(`${type === 'invite' ? 'Einladung' : 'Erinnerung'} gesendet an ${crewName} ✓`, '#4ae8a0');
+  } catch(e) {
+    adminToast('Fehler: ' + e.message, '#e84a4a');
+  }
+}
+
+async function sendAdminUpdate(crewName) {
+  const meta = _wrkCrewMeta[crewName];
+  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
+  const slots = [];
+  Object.entries(_wrkAssignmentStatuses).forEach(([date, positions]) => {
+    Object.entries(positions).forEach(([posId, si]) => {
+      if (si.crewName !== crewName || si.status !== 'confirmed') return;
+      const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
+      slots.push({ date, posLabel: pos?.label || posId, changes: ['Plan wurde aktualisiert'] });
+    });
+  });
+  if (!slots.length) { adminToast(`${crewName}: Keine bestätigten Einsätze`, '#e8c84a'); return; }
+  try {
+    await pbPost('/api/collections/crew_invites/records', {
+      plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: meta.email,
+      type: 'update', plan_name: _wrkPlanName, app_url: JSON.stringify(slots)
+    });
+    adminToast(`Update gesendet an ${crewName} ✓`, '#4ae8a0');
   } catch(e) {
     adminToast('Fehler: ' + e.message, '#e84a4a');
   }
