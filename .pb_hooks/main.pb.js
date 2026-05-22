@@ -94,6 +94,29 @@ onRecordAfterCreateSuccess(function(e) {
       rowsHtml + '</table>'
     ));
     console.log('[hook] cancellation email sent to ' + email + ' (' + slots.length + ' slots)');
+  } else if (type === 'availability') {
+    var avSlots = [];
+    try { avSlots = JSON.parse(appUrl || '[]'); } catch (_) {}
+    var avRows = '';
+    for (var i = 0; i < avSlots.length; i++) {
+      var s = avSlots[i];
+      var dv = new Date(s.date);
+      var fdv = isNaN(dv.getTime()) ? esc(s.date) : (('0'+dv.getDate()).slice(-2)+'.'+('0'+(dv.getMonth()+1)).slice(-2)+'.'+dv.getFullYear());
+      avRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+esc(s.posLabel)+'</td>'+
+        '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">'+fdv+'</td></tr>';
+    }
+    var avAdmin = $os.getenv('ADMIN_EMAIL') || 'madmaxmail@web.de';
+    sendMail(avAdmin, 'BEREITSCHAFT · ' + name + ' · ' + plan, wrap(
+      '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Bereit.</h1>'+
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">BEREITSCHAFTSMELDUNG · '+ePlan+'</p>'+
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">'+eName+' ist verfügbar für:</p>'+
+      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">'+
+      '<tr style="background:#f8f9fb;"><td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td>'+
+      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td></tr>'+
+      avRows+'</table>'+
+      mkBtn('https://crewplanner.nyxlightwork.de', 'PLAN ÖFFNEN →', '#f8f9fb', '#555570')
+    ));
+    console.log('[hook] availability email sent to admin for '+name+' ('+avSlots.length+' slots)');
   } else if (type === 'love_invite') {
     var _lGuide = 'https://aniflu.github.io/Crewplaner/docs/guide-admin.html';
     sendMail(email, '♥ Du wirst gebraucht · ' + plan, wrap(

@@ -133,13 +133,62 @@ async function declineMySlot(dateStr, posId) {
   renderTable();
 }
 
+// ── Bereitschaftsmeldung Draft ────────────────────────────────────────────────
+const _meldungDraft = {}; // { 'YYYY-MM-DD': Set<posId> } — in-memory only
+
+const _getMeldungSent = () => {
+  try { return JSON.parse(localStorage.getItem('crewplan_meldungen_'+(activePlanId||'')) || '{}'); } catch(_) { return {}; }
+};
+const _saveMeldungSent = d => localStorage.setItem('crewplan_meldungen_'+(activePlanId||''), JSON.stringify(d));
+
+function _meldungCount() {
+  return Object.values(_meldungDraft).reduce((s, set) => s + set.size, 0);
+}
+
+function _updateMeldungBar() {
+  const bar = document.getElementById('meldungSubmitBar');
+  if (!bar) return;
+  const n = _meldungCount();
+  bar.style.display = (!IS_MANAGER && n > 0) ? 'block' : 'none';
+  const cnt = document.getElementById('meldungCount');
+  if (cnt) cnt.textContent = n;
+}
+
 function meinesMelden(dateStr, posId) {
-  const myName = getMyCrewName();
-  if (!myName) {
-    showToast('Dein Konto ist noch nicht verknüpft. Bitte Admin kontaktieren.', '#e84a4a');
-    return;
+  if (!getMyCrewName()) { showToast('Dein Konto ist noch nicht verknüpft. Bitte Admin kontaktieren.', '#e84a4a'); return; }
+  if (!_meldungDraft[dateStr]) _meldungDraft[dateStr] = new Set();
+  if (_meldungDraft[dateStr].has(posId)) {
+    _meldungDraft[dateStr].delete(posId);
+    if (!_meldungDraft[dateStr].size) delete _meldungDraft[dateStr];
+  } else {
+    _meldungDraft[dateStr].add(posId);
   }
-  setAssign(dateStr, posId, myName);
-  showToast('Eingetragen ✓', '#4ae8a0');
+  renderTable();
+}
+
+async function _submitMeldung() {
+  const myName = getMyCrewName();
+  if (!myName) return;
+  const meta = crewMeta[myName] || {};
+  const sent = _getMeldungSent();
+  const slots = [];
+  Object.entries(_meldungDraft).sort().forEach(([date, posSet]) => {
+    posSet.forEach(posId => {
+      const pos = POSITIONS.find(p => p.id === posId);
+      slots.push({ date, posLabel: pos?.label || posId });
+      if (!sent[date]) sent[date] = [];
+      if (!sent[date].includes(posId)) sent[date].push(posId);
+    });
+  });
+  if (!slots.length) return;
+  showToast('Wird gesendet…', '#e8c84a');
+  try {
+    await sendAvailabilityNotice(myName, meta.email, slots);
+    _saveMeldungSent(sent);
+    Object.keys(_meldungDraft).forEach(k => delete _meldungDraft[k]);
+    showToast('Bereitschaft gemeldet ✓', '#4ae8a0');
+  } catch(e) {
+    showToast('Fehler: ' + e.message, '#e84a4a');
+  }
   renderTable();
 }

@@ -68,7 +68,7 @@ function openBlockRange(){
     if(start>end){await showAlert('Startdatum muss vor Enddatum liegen.');return;}
     const blockId=exId!=='__new__'?exId:Date.now().toString(36)+Math.random().toString(36).slice(2);
     let n=0;TOUR_DATES.forEach(d=>{if(d.date>=start&&d.date<=end){d.blockName=name;d.blockId=blockId;n++;}});
-    closeModal('sharedModal');renderTable();showToast(`${n} Tage → ${name} ✓`,'#2d6a3f');
+    closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();showToast(`${n} Tage → ${name} ✓`,'#2d6a3f');
   };
   openModal('sharedModal');setTimeout(()=>document.getElementById('brName')?.focus(),50);
 }

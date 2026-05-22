@@ -25,7 +25,7 @@ function openTypeDD(e,dateStr){
   const rect=e.currentTarget.getBoundingClientRect();
   const items=TYPE_OPTS.map(o=>({
     label:o.label,selected:o.label===row.typeLabel,
-    action:()=>{row.type=o.type;row.typeLabel=o.label;saveCustomType(o.label,o.type);closeDD();renderTable();}
+    action:()=>{row.type=o.type;row.typeLabel=o.label;saveCustomType(o.label,o.type);closeDD();_savePlanToLS(activePlanId);renderTable();}
   }));
   items.push({label:'✏ Eigene Eingabe…',cls:'reset',action:async()=>{
     closeDD();
@@ -34,7 +34,7 @@ function openTypeDD(e,dateStr){
     const label=val.trim(),type=typeFromLabel(label);
     saveCustomType(label,type);
     row.type=type;row.typeLabel=label;
-    renderTable();
+    _savePlanToLS(activePlanId);renderTable();
   }});
   showDD(rect,'Tagesart',items);
 }
@@ -49,7 +49,7 @@ function openDateDD(e,dateStr){
       const idx=TOUR_DATES.findIndex(r=>r.date===dateStr);
       if(idx>-1)TOUR_DATES.splice(idx,1);
       delete assignments[dateStr];
-      closeDD();renderTable();
+      closeDD();_savePlanToLS(activePlanId);renderTable();
     }}
   ];
   showDD(e.currentTarget.getBoundingClientRect(),fmtD(dateStr),items);
@@ -111,15 +111,15 @@ function openCrewDD(e,dateStr,posId){
   });
   showDD(e.currentTarget.getBoundingClientRect(),pos.label+(SUPABASE_ENABLED?' · 📧=Benachrichtigung':''),items);
 }
-function setAssign(d,p,v){if(!assignments[d])assignments[d]={};assignments[d][p]=v;renderTable();}
+function setAssign(d,p,v){if(!assignments[d])assignments[d]={};assignments[d][p]=v;_savePlanToLS(activePlanId);renderTable();}
 
 // ── Default Crew Dropdown ──────────────────────────────────────────────────────
 function openDefaultDD(e,posId){
   e.stopPropagation();
   const pos=POSITIONS.find(p=>p.id===posId);
   const cur=defaultCrew[posId]||'';
-  const items=[{label:'— Kein Standard',cls:'clear',action:()=>{defaultCrew[posId]='';closeDD();renderTable();}},
-    ...crew.map((name,i)=>({label:name,dot:CREW_COLORS[i%CREW_COLORS.length],selected:name===cur,action:()=>{defaultCrew[posId]=name;closeDD();renderTable();}}))];
+  const items=[{label:'— Kein Standard',cls:'clear',action:()=>{defaultCrew[posId]='';closeDD();_savePlanToLS(activePlanId);renderTable();}},
+    ...crew.map((name,i)=>({label:name,dot:CREW_COLORS[i%CREW_COLORS.length],selected:name===cur,action:()=>{defaultCrew[posId]=name;closeDD();_savePlanToLS(activePlanId);renderTable();}}))];
   showDD(e.currentTarget.getBoundingClientRect(),`Standard: ${pos.label}`,items);
 }
 
@@ -148,6 +148,7 @@ async function bulkCancelPos(e,posId){
 
 function requestAll(e){
   e.stopPropagation();
+  if(!confirm('Alle leeren Slots mit Standard-Crew füllen?\nDas überschreibt deinen Plan und kann nicht rückgängig gemacht werden.'))return;
   TOUR_DATES.forEach(day=>{
     POSITIONS.forEach(pos=>{
       const def=defaultCrew[pos.id];

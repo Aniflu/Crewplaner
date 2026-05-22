@@ -25,6 +25,6 @@ function renderCrew(){
     </div>`).join('');
 }
 
-function addCrew(){const inp=document.getElementById('newCrewName');const n=inp.value.trim();if(!n)return;crew.push(n);inp.value='';renderCrew();}
+function addCrew(){const inp=document.getElementById('newCrewName');const n=inp.value.trim();if(!n)return;crew.push(n);inp.value='';_savePlanToLS(activePlanId);renderCrew();}
 
-function removeCrew(i){const name=crew[i];crew.splice(i,1);Object.keys(assignments).forEach(d=>{Object.keys(assignments[d]||{}).forEach(p=>{if(assignments[d][p]===name)delete assignments[d][p];});});renderCrew();renderTable();}
+function removeCrew(i){const name=crew[i];crew.splice(i,1);Object.keys(assignments).forEach(d=>{Object.keys(assignments[d]||{}).forEach(p=>{if(assignments[d][p]===name)delete assignments[d][p];});});_savePlanToLS(activePlanId);renderCrew();renderTable();}

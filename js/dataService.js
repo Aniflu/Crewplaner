@@ -284,6 +284,20 @@ async function sendCancellationNotice(crewName, crewEmail, slots) {
   }
 }
 
+// ── Bereitschaftsmeldung an Admin (via Pocketbase-Hook) ───────────────────────
+async function sendAvailabilityNotice(crewName, crewEmail, slots) {
+  if (!SUPABASE_ENABLED) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
+  const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
+  await pbPost('/api/collections/crew_invites/records', {
+    plan_id: planId, crew_name: crewName, crew_email: crewEmail,
+    type: 'availability', plan_name: planName,
+    app_url: JSON.stringify(slots)
+  });
+}
+
 // ── Crew einladen / Erinnerung schicken (E-Mail via Pocketbase-Hook) ──────────
 async function sendCrewInvite(crewName, crewEmail, type) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
@@ -293,10 +307,14 @@ async function sendCrewInvite(crewName, crewEmail, type) {
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
   const appUrl = window.location.origin + window.location.pathname;
+  const _fmt = d => { const o=new Date(d); return isNaN(o.getTime())?d:('0'+o.getDate()).slice(-2)+'.'+ ('0'+(o.getMonth()+1)).slice(-2)+'.'+String(o.getFullYear()).slice(-2); };
+  const _dates = (TOUR_DATES||[]).map(r=>r.date).sort();
+  const _range = _dates.length>=2 ? ' · '+_fmt(_dates[0])+'–'+_fmt(_dates[_dates.length-1]) : '';
+  const planNameDisplay = planName + _range;
   try {
     await pbPost('/api/collections/crew_invites/records', {
       plan_id: planId, crew_name: crewName, crew_email: crewEmail,
-      type, plan_name: planName, app_url: appUrl
+      type, plan_name: planNameDisplay, app_url: appUrl
     });
   } catch (e) {
     console.warn('sendCrewInvite Fehler:', e.message);

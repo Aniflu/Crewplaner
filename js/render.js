@@ -21,6 +21,7 @@ function renderTable(){
   else if(CURRENT_VIEW==='crew'){if(typeof renderCrewView==='function')renderCrewView();}
   updateStats();
   updateViewMeta();
+  if(typeof _updateMeldungBar==='function')_updateMeldungBar();
 }
 
 function updateViewMeta(){
@@ -61,6 +62,7 @@ function renderHead(){
 
 function renderBody(){
   let b='',lastBlockId=null;
+  const _meldungSentData=(typeof _getMeldungSent==='function')?_getMeldungSent():{};
   TOUR_DATES.forEach(row=>{
     if(row.blockId&&row.blockId!==lastBlockId){lastBlockId=row.blockId;b+=`<tr class="month-sep"><td colspan="${3+POSITIONS.length+1}">${row.blockName||''}</td></tr>`;}
     const tOpt=TYPE_OPTS.find(t=>t.label===row.typeLabel);
@@ -91,9 +93,15 @@ function renderBody(){
       const myName=SUPABASE_ENABLED?(typeof getMyCrewName==='function'?getMyCrewName():null):null;
       const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName;
       const isOpenSlot=SUPABASE_ENABLED&&IS_CREW&&(!val||val===''||val===OFFEN)&&!si;
+      const isDrafted=isOpenSlot&&typeof _meldungDraft!=='undefined'&&!!_meldungDraft[row.date]?.has(p.id);
+      const isSent=isOpenSlot&&!!_meldungSentData[row.date]?.includes(p.id);
       b+=`<td class="assign-cell">`;
       if(isMyProposed){
         b+=`<div class="my-slot-wrap"><span class="my-slot-name">${si.crewName}</span><button class="slot-confirm" onclick="confirmMySlot('${row.date}','${p.id}')">✓</button><button class="slot-decline" onclick="declineMySlot('${row.date}','${p.id}')">✗</button></div>`;
+      }else if(isDrafted){
+        b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#e8c84a;border-color:rgba(232,200,74,.4);background:rgba(232,200,74,.09);">✓ Gemerkt</button>`;
+      }else if(isSent){
+        b+=`<button class="assign-btn" disabled style="color:#e8c84a;opacity:.55;border-color:rgba(232,200,74,.25);background:rgba(232,200,74,.05);">📋 Gemeldet</button>`;
       }else if(isOpenSlot){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')">Melden</button>`;
       }else if(IS_MANAGER||!SUPABASE_ENABLED){
@@ -116,7 +124,7 @@ function startLocEdit(e,dateStr){
   const td=e.currentTarget.parentElement;
   const row=TOUR_DATES.find(r=>r.date===dateStr);
   const inp=document.createElement('input');inp.className='loc-input';inp.value=row.loc;
-  const save=()=>{if(inp.value.trim())row.loc=inp.value.trim();renderTable();};
+  const save=()=>{if(inp.value.trim())row.loc=inp.value.trim();_savePlanToLS(activePlanId);renderTable();};
   inp.onblur=save;inp.onkeydown=ev=>{if(ev.key==='Enter')inp.blur();if(ev.key==='Escape')renderTable();ev.stopPropagation();};
   td.innerHTML='';td.appendChild(inp);inp.focus();inp.select();
 }
