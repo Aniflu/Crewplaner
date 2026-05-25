@@ -108,7 +108,7 @@ function startLocEdit() {}
     // Globals für render.js befüllen
     crew               = pd.crew        || [];
     POSITIONS          = pd.positions   || [];
-    TOUR_DATES         = pd.tourDates   || [];
+    TOUR_DATES.splice(0, TOUR_DATES.length, ...(pd.tourDates || []));
     assignments        = pd.assignments || {};
     defaultCrew        = pd.defaultCrew || {};
     assignmentStatuses = {};
