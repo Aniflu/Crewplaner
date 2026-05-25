@@ -113,8 +113,8 @@ function startLocEdit() {}
     defaultCrew        = pd.defaultCrew || {};
     assignmentStatuses = {};
     try {
-      const aData = await pbList('assignments',
-        `plan_id="${plan.id}" && status!="assigned"`, '-id', 200);
+      const aData = await pbListAll('assignments',
+        `plan_id="${plan.id}" && status!="assigned"`, '-id');
       (aData?.items || []).forEach(row => {
         if (!assignmentStatuses[row.date]) assignmentStatuses[row.date] = {};
         assignmentStatuses[row.date][row.pos_id] = { status: row.status, crewName: row.crew_name };
