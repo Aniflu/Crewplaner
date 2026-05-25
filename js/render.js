@@ -92,19 +92,22 @@ function renderBody(){
       else if(isOv&&val){const ch=val!==(defaultCrew[p.id]||'');if(ch&&defaultCrew[p.id])style='font-weight:600;border-color:rgba(212,184,74,.4);background:rgba(212,184,74,.09);color:#d4c87a;';else cls+=' filled';display=val;}
       else if(isOv&&!val){style='color:#5a3a3a;border-color:rgba(200,100,100,.18);font-style:italic;';display='–';}
       if(IS_BOOKER){style='';cls='assign-btn';}
-      // Status-Overlay aus Supabase
+      // Status-Overlay aus Supabase (hat Vorrang vor OFFDAY/REISE_TAG)
       const si=SUPABASE_ENABLED?(assignmentStatuses[row.date]?.[p.id]||null):null;
       if(si&&si.status!=='assigned'){
         const sn=si.crewName||val||'';
         if(si.status==='proposed'){display=`⏳ ${sn}`;style='color:#e8c84a;border-color:rgba(232,200,74,.35);background:rgba(232,200,74,.07);';}
         else if(si.status==='confirmed'){display=`✓ ${sn}`;style='color:#4ae8a0;border-color:rgba(74,232,160,.35);background:rgba(74,232,160,.07);';}
         else if(si.status==='declined'){display=`✗ ${sn}`;style='color:#e84a4a;border-color:rgba(232,74,74,.35);background:rgba(232,74,74,.07);';}
-      }
+      } else if(val===OFFDAY){style='color:#70ad47;border-color:rgba(112,173,71,.4);background:rgba(112,173,71,.07);font-weight:600;';display='🏖 Offday';}
+      else if(val===REISE_TAG){style='color:#4f81bd;border-color:rgba(79,129,189,.4);background:rgba(79,129,189,.07);font-weight:600;';display='✈ Reise';}
+      else if(val===AUSSCHREIBEN){style='color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);font-weight:600;';display='📋 Ausschr.';}
       const myName=SUPABASE_ENABLED?(typeof getMyCrewName==='function'?getMyCrewName():null):null;
       const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName;
       const isOpenSlot=SUPABASE_ENABLED&&IS_CREW&&(!val||val===''||val===OFFEN)&&!si;
-      const isDrafted=isOpenSlot&&typeof _meldungDraft!=='undefined'&&!!_meldungDraft[row.date]?.has(p.id);
-      const isSent=isOpenSlot&&!!_meldungSentData[row.date]?.includes(p.id);
+      const isAusschreibenSlot=SUPABASE_ENABLED&&IS_CREW&&val===AUSSCHREIBEN&&!si;
+      const isDrafted=(isOpenSlot||isAusschreibenSlot)&&typeof _meldungDraft!=='undefined'&&!!_meldungDraft[row.date]?.has(p.id);
+      const isSent=(isOpenSlot||isAusschreibenSlot)&&!!_meldungSentData[row.date]?.includes(p.id);
       b+=`<td class="assign-cell">`;
       if(isMyProposed){
         b+=`<div class="my-slot-wrap"><span class="my-slot-name">${si.crewName}</span><button class="slot-confirm" onclick="confirmMySlot('${row.date}','${p.id}')">✓</button><button class="slot-decline" onclick="declineMySlot('${row.date}','${p.id}')">✗</button></div>`;
@@ -112,6 +115,8 @@ function renderBody(){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#e8c84a;border-color:rgba(232,200,74,.4);background:rgba(232,200,74,.09);">✓ Gemerkt</button>`;
       }else if(isSent){
         b+=`<button class="assign-btn" disabled style="color:#e8c84a;opacity:.55;border-color:rgba(232,200,74,.25);background:rgba(232,200,74,.05);">📋 Gemeldet</button>`;
+      }else if(isAusschreibenSlot){
+        b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);">📋 Bewerben</button>`;
       }else if(isOpenSlot){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')">Melden</button>`;
       }else if(IS_MANAGER||!SUPABASE_ENABLED){

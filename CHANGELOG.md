@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.9.8.6 — 2026-05-25
+
+### Feature: Ausschreiben-Slot
+
+- **`js/state.js`** — Konstante `AUSSCHREIBEN = '__ausschreiben__'` hinzugefügt
+- **`js/dropdown.js`** — Neuer Eintrag "📋 Ausschreiben" (orange) im Crew-Dropdown
+- **`js/render.js`** — Manager/Booker sehen "📋 Ausschr." (orange); eingeloggte Crew sieht "📋 Bewerben"-Button (ruft `meinesMelden()` auf); Supabase-Status hat weiterhin Vorrang
+- **`js/bundle.js`** — dropdown.js gespiegelt
+
+---
+
+## v0.9.8.5 — 2026-05-25
+
+### Feature: Offday & Reisetag als neue Slot-Zustände
+
+- **`js/state.js`** — Konstanten `OFFDAY = '__offday__'` und `REISE_TAG = '__reise_tag__'` hinzugefügt
+- **`js/dropdown.js`** — Zwei neue Einträge im Crew-Dropdown: 🏖 Offday (grün) und ✈ Reisetag (blau)
+- **`js/render.js`** — Visuelle Anzeige für beide Zustände; Supabase-Status hat Vorrang (OFFDAY/REISE_TAG werden nur angezeigt wenn kein aktiver proposed/confirmed/declined-Status vorhanden)
+- **`js/bundle.js`** — dropdown.js gespiegelt
+- Tageszähler im Crew-Sidebar zählt Offday/Reise-Tage nicht als Arbeitstage (automatisch durch Name-Matching)
+
 ## v0.9.7.1 — 2026-05-21
 
 ### Security: XSS-Escaping + Doppel-E-Mail-Schutz + Admin-E-Mail aus ENV

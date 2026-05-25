@@ -1,5 +1,8 @@
 // ── Constants & State ──────────────────────────────────────────────────────────
-const OFFEN = '__offen__';
+const OFFEN     = '__offen__';
+const OFFDAY       = '__offday__';
+const REISE_TAG    = '__reise_tag__';
+const AUSSCHREIBEN = '__ausschreiben__';
 const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e','#2e75b6','#548235'];
 const DE_DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
 const DE_MON  = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];

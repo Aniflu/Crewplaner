@@ -145,6 +145,9 @@ function openCrewDD(e,dateStr,posId){
   if(def)items.push({label:`↩ Standard: ${def}`,cls:'reset',action:()=>{if(!assignments[dateStr])assignments[dateStr]={};delete assignments[dateStr][posId];closeDD();renderTable();}});
   items.push({label:'— Nicht besetzt',cls:'clear',action:()=>{setAssign(dateStr,posId,'');closeDD();renderTable();}});
   items.push({label:'⚠ Offen / Unbesetzt',cls:'offen',color:'#e07060',action:()=>{setAssign(dateStr,posId,OFFEN);closeDD();renderTable();}});
+  items.push({label:'🏖 Offday',color:'#70ad47',action:()=>{setAssign(dateStr,posId,OFFDAY);closeDD();renderTable();}});
+  items.push({label:'✈ Reisetag',color:'#4f81bd',action:()=>{setAssign(dateStr,posId,REISE_TAG);closeDD();renderTable();}});
+  items.push({label:'📋 Ausschreiben',color:'#c07830',action:()=>{setAssign(dateStr,posId,AUSSCHREIBEN);closeDD();renderTable();}});
   crew.forEach((name,i)=>{
     const meta=SUPABASE_ENABLED?(crewMeta[name]||null):null;
     const hasEmail=!!(meta?.email);
