@@ -119,23 +119,9 @@ function openCrewDD(e,dateStr,posId){
     const meta=SUPABASE_ENABLED?(crewMeta[name]||null):null;
     const hasEmail=!!(meta?.email);
     const label=hasEmail?`📧 ${name}`:name;
-    items.push({label,dot:CREW_COLORS[i%CREW_COLORS.length],selected:current===name,action:async()=>{
-      const prevSi=assignmentStatuses[dateStr]?.[posId];
+    items.push({label,dot:CREW_COLORS[i%CREW_COLORS.length],selected:current===name,action:()=>{
       setAssign(dateStr,posId,name);
       closeDD();
-      if(SUPABASE_ENABLED&&hasEmail&&meta?.email){
-        if(prevSi&&prevSi.crewName!==name){
-          try{
-            const _pe=crewMeta?.[prevSi.crewName]?.email;
-            if(_pe&&prevSi.crewName){const _lbl=POSITIONS.find(p=>p.id===posId)?.label||posId;_storePendingCancellation(prevSi.crewName,_pe,dateStr,_lbl);}
-            await cancelProposal(dateStr,posId);
-          }catch(e){console.warn('cancelProposal:',e.message);}
-        }
-        if(!prevSi||prevSi.crewName!==name){
-          try{await proposeCrew(dateStr,posId,name,meta.email);}
-          catch(e){showToast('Anfrage-Fehler: '+e.message,'#e84a4a');}
-        }
-      }
     }});
   });
   showDD(e.currentTarget.getBoundingClientRect(),pos.label+(SUPABASE_ENABLED?' · 📧=Benachrichtigung':''),items);

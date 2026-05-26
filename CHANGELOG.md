@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.9.8.8 — 2026-05-26
+
+### Revert: v0.9.8.7 automatisches proposeCrew zurückgenommen
+
+- **`js/dropdown.js`** / **`js/bundle.js`** — Crew-Zuweisung im Dropdown ruft wieder nur `setAssign` auf, kein `proposeCrew`
+- E-Mails werden ausschließlich manuell vom Admin im Adminfenster ausgelöst — nie automatisch
+
+---
+
 ## v0.9.8.7 — 2026-05-26
 
 ### Fix: Crew-Zuweisung löst jetzt automatisch Anfrage aus
