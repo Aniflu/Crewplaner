@@ -421,6 +421,7 @@ tbody td.date-cell{padding:8px 12px 8px 18px;color:var(--ink);white-space:nowrap
 .dd-item.offen{color:var(--warn);font-weight:600;}
 .dd-item.danger{color:var(--warn);}
 .dd-item.reset{color:var(--muted);font-style:italic;font-size:10px;}
+.dd-item.disabled{color:#3a4050;cursor:default;pointer-events:none;font-style:italic;}
 
 /* ========== Modal ========== */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(3px);z-index:200;align-items:center;justify-content:center;}

@@ -150,6 +150,8 @@ function openCrewDD(e,dateStr,posId){
         try{await proposeCrew(dateStr,posId,current,_reqMeta.email);showToast(`${current} angefragt ✓`,'#4ae8a0');renderTable();}
         catch(e){showToast('Anfrage-Fehler: '+e.message,'#e84a4a');}
       }});
+    } else if(SUPABASE_ENABLED){
+      items.push({label:`📧 ${current} — kein E-Mail`,cls:'disabled',color:'#5a6070',action:()=>{}});
     }
   }
   if(def)items.push({label:`↩ Standard: ${def}`,cls:'reset',action:()=>{if(!assignments[dateStr])assignments[dateStr]={};delete assignments[dateStr][posId];closeDD();renderTable();}});
