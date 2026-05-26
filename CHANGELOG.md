@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.9.8.9 — 2026-05-26
+
+### Fix: Explizite Anfrage-Option im Slot-Dropdown
+
+- **`js/dropdown.js`** / **`js/bundle.js`** — Neues Item "📧 [Name] anfragen" erscheint im Slot-Dropdown wenn ein Name zugewiesen ist, der Crewmember eine E-Mail hat, und noch keine Anfrage (PB-Record) existiert
+- Ein Klick = ein Aufruf von `proposeCrew` = eine E-Mail — vollständig admin-kontrolliert
+- Gilt für alle Tagestypen (Show, Off, Reise, Prep etc.)
+- Keine automatische E-Mail — nur auf expliziten Klick des Admins
+
+---
+
 ## v0.9.8.8 — 2026-05-26
 
 ### Revert: v0.9.8.7 automatisches proposeCrew zurückgenommen

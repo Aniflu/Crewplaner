@@ -109,6 +109,16 @@ function openCrewDD(e,dateStr,posId){
       renderTable();
     }});
   }
+  if(!si&&current&&current!==OFFEN&&current!==OFFDAY&&current!==REISE_TAG&&current!==AUSSCHREIBEN){
+    const _reqMeta=SUPABASE_ENABLED?(crewMeta[current]||null):null;
+    if(_reqMeta?.email){
+      items.push({label:`📧 ${current} anfragen`,color:'#e8c84a',action:async()=>{
+        closeDD();
+        try{await proposeCrew(dateStr,posId,current,_reqMeta.email);showToast(`${current} angefragt ✓`,'#4ae8a0');renderTable();}
+        catch(e){showToast('Anfrage-Fehler: '+e.message,'#e84a4a');}
+      }});
+    }
+  }
   if(def)items.push({label:`↩ Standard: ${def}`,cls:'reset',action:()=>{if(!assignments[dateStr])assignments[dateStr]={};delete assignments[dateStr][posId];closeDD();renderTable();}});
   items.push({label:'— Nicht besetzt',cls:'clear',action:()=>{setAssign(dateStr,posId,'');closeDD();renderTable();}});
   items.push({label:'⚠ Offen / Unbesetzt',cls:'offen',color:'#e07060',action:()=>{setAssign(dateStr,posId,OFFEN);closeDD();renderTable();}});
