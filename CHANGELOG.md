@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.9.8.7 — 2026-05-26
+
+### Fix: Crew-Zuweisung löst jetzt automatisch Anfrage aus
+
+- **`js/dropdown.js`** / **`js/bundle.js`** — Wenn Admin in `openCrewDD` einen Namen mit 📧 auswählt, wird nach `setAssign` automatisch `proposeCrew` aufgerufen → PB-Record mit `status='proposed'` angelegt → E-Mail an Crewmitglied
+- Guard gegen Duplikate: `proposeCrew` wird nur aufgerufen wenn kein bestehender Antrag für dieselbe Person vorhanden ist
+- Bei Wechsel von Person A → Person B: Ausstehender Antrag für A wird automatisch zurückgezogen (Absage-E-Mail in Queue), neuer Antrag für B erstellt
+- Gilt für ALLE Tagestypen (Show, Off, Reise, Prep etc.) — kein Typ-Filter
+
+---
+
 ## v0.9.8.6 — 2026-05-25
 
 ### Feature: Ausschreiben-Slot
