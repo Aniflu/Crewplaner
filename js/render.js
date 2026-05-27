@@ -89,7 +89,7 @@ function renderBody(){
       let style='',cls='assign-btn',display='—';
       if(val===OFFEN){style='color:#e07060;border-color:rgba(220,80,60,.4);background:rgba(220,80,60,.07);font-weight:600;';display='⚠ Offen';}
       else if(isDef){style='color:#6a8aaa;font-style:italic;border-color:rgba(79,129,189,.12);background:rgba(79,129,189,.04);';display=val;}
-      else if(isOv&&val){const ch=val!==(defaultCrew[p.id]||'');if(ch&&defaultCrew[p.id])style='font-weight:600;border-color:rgba(212,184,74,.4);background:rgba(212,184,74,.09);color:#d4c87a;';else cls+=' filled';display=val;}
+      else if(isOv&&val){const ch=val!==(defaultCrew[p.id]||'');if(ch&&defaultCrew[p.id])style='font-weight:600;border-color:rgba(212,184,74,.4);background:rgba(212,184,74,.09);color:#d4c87a;';else{cls+=' filled';style='border:1px solid rgba(150,185,210,.3);';}display=val;}
       else if(isOv&&!val){style='color:#5a3a3a;border-color:rgba(200,100,100,.18);font-style:italic;';display='–';}
       if(IS_BOOKER){style='';cls='assign-btn';}
       // Status-Overlay aus Supabase (hat Vorrang vor OFFDAY/REISE_TAG)
