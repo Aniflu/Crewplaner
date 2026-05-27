@@ -45,6 +45,40 @@ function tbSetAll(t,tl){tbDays.forEach(d=>{d.type=t;d.typeLabel=tl;});tbRenderDa
 
 function tbConfirm(){let n=0;tbDays.forEach(day=>{if(TOUR_DATES.find(r=>r.date===day.date))return;sortInsert({date:day.date,type:day.type,typeLabel:day.typeLabel,loc:day.loc,blockName:day.blockName,blockId:day.blockId});n++;});if(n>0&&typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt');closeModal('tbModal');renderTable();showToast(`${n} Tage eingefügt ✓`,'#2d6a3f');}
 
+// ── Einzelnes Datum einem Block zuweisen ──────────────────────────────────────
+function openBlockAssign(dateStr){
+  if(!IS_MANAGER)return;
+  const row=TOUR_DATES.find(r=>r.date===dateStr);
+  if(!row)return;
+  const blockMap=new Map();
+  TOUR_DATES.forEach(d=>{if(d.blockId)blockMap.set(d.blockId,d.blockName);});
+  const blockOpts=[...blockMap.entries()].map(([id,name])=>
+    `<option value="${id}"${row.blockId===id?' selected':''}>${name}</option>`).join('');
+  document.getElementById('sharedTitle').textContent='Block zuweisen — '+fmtD(dateStr);
+  document.getElementById('sharedBody').innerHTML=`
+    <div class="mf">
+      <label class="ml">Tourblock</label>
+      <select id="baBlock" class="mi">
+        <option value="">— Kein Block —</option>
+        ${blockOpts}
+      </select>
+    </div>
+    <div class="mactions">
+      <button class="mbtn" onclick="closeModal('sharedModal')">Abbrechen</button>
+      <button class="mbtn primary" onclick="window._confirmBA('${dateStr}')">Zuweisen</button>
+    </div>`;
+  window._confirmBA=ds=>{
+    const sel=document.getElementById('baBlock');
+    const blockId=sel.value;
+    const blockName=blockId?blockMap.get(blockId)||'':'';
+    const r=TOUR_DATES.find(d=>d.date===ds);
+    if(r){r.blockId=blockId;r.blockName=blockName;}
+    closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();
+    showToast(blockName?`${fmtD(ds)} → ${blockName} ✓`:`${fmtD(ds)} aus Block entfernt`,'#4ae8a0');
+  };
+  openModal('sharedModal');setTimeout(()=>document.getElementById('baBlock')?.focus(),50);
+}
+
 // ── Datumsbereich → vorhandene Tage einem Block zuweisen ───────────────────────
 function openBlockRange(){
   if(!IS_MANAGER)return;

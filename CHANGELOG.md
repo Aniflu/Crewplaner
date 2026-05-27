@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.9.9.0 — 2026-05-27
+
+### Feature: Datum einem Tourblock zuweisen
+
+- **`js/tourblock.js`** — Neue Funktion `openBlockAssign(dateStr)`: öffnet Modal mit Dropdown aller vorhandenen Blöcke; weist einzelnes Datum dem gewählten Block zu
+- **`js/dropdown.js`** / **`js/bundle.js`** — `openDateDD` hat zwei neue Items:
+  - "→ Block zuweisen…" → öffnet Block-Picker
+  - "✕ Aus Block entfernen" → erscheint nur wenn Datum bereits in einem Block ist
+
+---
+
 ## v0.9.8.9 — 2026-05-26
 
 ### Fix: Explizite Anfrage-Option im Slot-Dropdown

@@ -86,7 +86,9 @@ function openTypeDD(e,dateStr){
 function openDateDD(e,dateStr){
   if(!IS_MANAGER)return;
   e.stopPropagation();
+  const row=TOUR_DATES.find(r=>r.date===dateStr);
   const items=[
+    {label:'→ Block zuweisen…',action:()=>{closeDD();openBlockAssign(dateStr);}},
     {label:'🗑 Zeile löschen',cls:'danger',action:async()=>{
       const ok=await showConfirm('Zeile '+fmtD(dateStr)+' wirklich löschen?','Löschen');
       if(!ok)return;
@@ -97,6 +99,7 @@ function openDateDD(e,dateStr){
       closeDD();_savePlanToLS(activePlanId);renderTable();
     }}
   ];
+  if(row?.blockId)items.unshift({label:'✕ Aus Block entfernen',cls:'clear',action:()=>{row.blockId='';row.blockName='';closeDD();_savePlanToLS(activePlanId);renderTable();}});
   showDD(e.currentTarget.getBoundingClientRect(),fmtD(dateStr),items);
 }
 
