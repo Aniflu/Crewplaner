@@ -45,6 +45,7 @@ async function _authCheckAndStart() {
         renderTable();
         if (typeof checkAndOpenMySchedule === 'function') checkAndOpenMySchedule();
         _handleEmailAction();
+        _checkPendingAction();
       })
       .catch(e => {
         console.error('Lade-Fehler:', e);

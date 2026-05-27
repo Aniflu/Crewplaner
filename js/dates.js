@@ -41,10 +41,11 @@ async function confirmAddDate(){if(!IS_MANAGER)return;
   if(!typeLabel){await showAlert('Bitte Art/Kategorie wählen.');return;}
   if(!lv){await showAlert('Bitte Ort eingeben.');return;}
   const type=typeFromLabel(typeLabel);
+  const addedDates=[];
   if(isSingle){
     const dv=document.getElementById('adDate')?.value;
     if(!dv){await showAlert('Bitte Datum wählen.');return;}
-    sortInsert({date:dv,type,typeLabel,loc:lv});
+    if(!TOUR_DATES.find(r=>r.date===dv)){sortInsert({date:dv,type,typeLabel,loc:lv});addedDates.push(dv);}
   } else {
     const from=document.getElementById('adDateFrom')?.value;
     const to=document.getElementById('adDateTo')?.value;
@@ -54,10 +55,44 @@ async function confirmAddDate(){if(!IS_MANAGER)return;
     const end=new Date(...to.split('-').map((v,i)=>i===1?+v-1:+v));
     while(cur<=end){
       const ds=cur.toISOString().slice(0,10);
-      if(!TOUR_DATES.find(r=>r.date===ds))sortInsert({date:ds,type,typeLabel,loc:lv});
+      if(!TOUR_DATES.find(r=>r.date===ds)){sortInsert({date:ds,type,typeLabel,loc:lv});addedDates.push(ds);}
       cur.setDate(cur.getDate()+1);
     }
   }
   if(typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt');
-  closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();
+  closeModal('sharedModal');
+  if(addedDates.length>0)_askBlockAssign(addedDates);
+  else{_savePlanToLS(activePlanId);renderTable();}
+}
+
+function _askBlockAssign(addedDates){
+  const blockMap=new Map();
+  TOUR_DATES.forEach(d=>{if(d.blockId)blockMap.set(d.blockId,d.blockName);});
+  const blockOpts=`<option value="">— Kein Block —</option><option value="__new__">+ Neuer Block …</option>`+
+    [...blockMap.entries()].map(([id,name])=>`<option value="${id}">${esc(name)}</option>`).join('');
+  document.getElementById('sharedTitle').textContent='Tourblock zuweisen?';
+  document.getElementById('sharedBody').innerHTML=`
+    <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px;">${addedDates.length} Tag(e) hinzugefügt. Tourblock zuweisen?</div>
+    <div class="mf">
+      <label class="ml">Tourblock</label>
+      <select id="adBlockSel" class="mi" onchange="document.getElementById('adNewBlockRow').style.display=this.value==='__new__'?'':'none'">${blockOpts}</select>
+    </div>
+    <div id="adNewBlockRow" style="display:none;">
+      <div class="mf"><label class="ml">Blockname</label><input type="text" id="adBlockName" class="mi" placeholder="z.B. Block 1 — Berlin"></div>
+    </div>
+    <div class="mactions">
+      <button class="mbtn" onclick="window._skipBA()">Kein Block</button>
+      <button class="mbtn primary" onclick="window._confirmBA2()">Zuweisen</button>
+    </div>`;
+  window._skipBA=()=>{closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();};
+  window._confirmBA2=()=>{
+    const sel=document.getElementById('adBlockSel').value;
+    if(!sel){window._skipBA();return;}
+    const name=sel==='__new__'?(document.getElementById('adBlockName').value.trim()||'Tourblock'):blockMap.get(sel)||'';
+    const blockId=sel!=='__new__'?sel:(Date.now().toString(36)+Math.random().toString(36).slice(2));
+    TOUR_DATES.forEach(d=>{if(addedDates.includes(d.date)){d.blockId=blockId;d.blockName=name;}});
+    closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();
+    showToast(`${addedDates.length} Tag(e) → ${name} ✓`,'#4ae8a0');
+  };
+  openModal('sharedModal');
 }

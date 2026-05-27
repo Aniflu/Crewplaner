@@ -441,7 +441,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.9.2</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.9.3</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -489,8 +489,12 @@ body {
           <div class="plan-info-cell"><div class="plan-info-val" id="wrkInfoCrew">0</div><div class="plan-info-lbl">Crew</div></div>
           <div class="plan-info-cell"><div class="plan-info-val" id="wrkInfoPos">0</div><div class="plan-info-lbl">Positionen</div></div>
         </div>
-        <div style="margin-top:10px;">
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-primary btn-sm" onclick="loadPlanIntoTourview()">→ In Touransicht laden</button>
+          <button class="btn btn-ghost btn-sm" onclick="_adminPlanAction('openTourBlock')">▶ Tourblock einfügen</button>
+          <button class="btn btn-ghost btn-sm" onclick="_adminPlanAction('openBlockRange')">▶ Bereich → Block</button>
+          <button class="btn btn-ghost btn-sm" onclick="_adminPlanAction('openAddDate')">+ Datum hinzufügen</button>
+          <button class="btn btn-ghost btn-sm" onclick="_adminPlanAction('openCrewModal')">👥 Crew &amp; Positionen</button>
         </div>
       </div>
 
@@ -1111,6 +1115,11 @@ async function deletePlanAdmin(planId, planName) {
 }
 
 // ── Werkzeuge: Plan in Touransicht laden ──────────────────────────────────────
+function _adminPlanAction(action) {
+  localStorage.setItem('tourplan_pending_action', action);
+  window.location.href = 'index.html';
+}
+
 function loadPlanIntoTourview() {
   if (!_wrkPlanData) { adminToast('Kein Plan geladen', '#e84a4a'); return; }
 

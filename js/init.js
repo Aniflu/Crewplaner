@@ -131,4 +131,16 @@ function startApp(){
   renderPlanList();
 }
 
-if (!window.__authGuarded) startApp();
+function _checkPendingAction(){
+  const pa=localStorage.getItem('tourplan_pending_action');
+  if(!pa)return;
+  localStorage.removeItem('tourplan_pending_action');
+  setTimeout(()=>{
+    if(pa==='openTourBlock'&&typeof openTourBlock==='function')openTourBlock();
+    else if(pa==='openBlockRange'&&typeof openBlockRange==='function')openBlockRange();
+    else if(pa==='openAddDate'&&typeof openAddDate==='function')openAddDate();
+    else if(pa==='openCrewModal'&&typeof openCrewModal==='function')openCrewModal();
+  },400);
+}
+
+if (!window.__authGuarded){startApp();setTimeout(_checkPendingAction,500);}
