@@ -1,3 +1,9 @@
+// ── Crew & Positionen Modal ─────────────────────────────────────────────────────
+function openCrewModal(){
+  renderCrew();
+  openModal('crewModal');
+}
+
 // ── Sidebar Toggle ─────────────────────────────────────────────────────────────
 function toggleSidebar(){
   const sb=document.getElementById('sidebar'),layout=document.getElementById('mainLayout'),btn=document.getElementById('btnSidebar');

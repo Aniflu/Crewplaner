@@ -22,7 +22,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.9.9.1</span>
+            <span class="tour-tag">Personalplan · v0.9.9.2</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -53,6 +53,7 @@
         <button class="green manager-only" onclick="openTourBlock()"><span class="sb-gl">▶</span>Tourblock einfügen</button>
         <button class="green manager-only" onclick="openBlockRange()"><span class="sb-gl">▶</span>Bereich → Block</button>
         <button class="manager-only" onclick="openAddDate()"><span class="sb-gl">+</span>Datum hinzufügen</button>
+        <button class="manager-only" onclick="openCrewModal()"><span class="sb-gl">👥</span>Crew &amp; Positionen</button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
         <button id="btnKonsole" onclick="window.location.href='admin.html'" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
       </div>
@@ -63,18 +64,6 @@
       <div class="sb-actions" style="margin-top:4px;">
         <button class="manager-only" onclick="openNewPlan()"><span class="sb-gl">+</span>Neuer Plan</button>
       </div>
-    </div>
-    <div class="sidebar-section">
-      <h3 id="crewHeading">Crew</h3>
-      <div id="crewList"></div>
-      <div class="add-row manager-only">
-        <input type="text" id="newCrewName" placeholder="Name…" onkeydown="if(event.key==='Enter')addCrew()">
-        <button class="primary sm" onclick="addCrew()">+</button>
-      </div>
-    </div>
-    <div class="sidebar-section">
-      <h3>Positionen</h3>
-      <div id="posList"></div>
     </div>
     <div id="userBadge" style="display:none;flex-direction:column;gap:4px;padding:10px 12px;margin-top:auto;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;">
       <span class="user-email" style="font-size:.6rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
@@ -309,6 +298,33 @@
   </div>
 </div>
 
+<!-- CREW & POSITIONEN MODAL -->
+<div class="modal-bg" id="crewModal">
+  <div class="modal-box" style="max-width:480px;max-height:88vh;overflow-y:auto;">
+    <div class="modal-title">👥 Crew &amp; Positionen</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">
+      <div>
+        <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;" id="crewHeading">Crew</div>
+        <div id="crewList" style="margin-bottom:8px;"></div>
+        <div class="add-row manager-only">
+          <input type="text" id="newCrewName" placeholder="Name…" onkeydown="if(event.key==='Enter')addCrew()">
+          <button class="primary sm" onclick="addCrew()">+</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;">Positionen</div>
+        <div id="posList"></div>
+        <div class="sb-actions manager-only" style="margin-top:8px;">
+          <button class="sm manager-only" onclick="openAddPos()"><span class="sb-gl">+</span>Position hinzufügen</button>
+        </div>
+      </div>
+    </div>
+    <div class="mactions" style="margin-top:16px;">
+      <button class="mbtn primary" onclick="closeModal('crewModal')">Schließen</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="cancellation-banner" style="display:none;position:fixed;bottom:64px;right:22px;z-index:9998;background:#e84a4a;color:#fff;border-radius:4px;padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:.68rem;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.35);">
   <span id="cancellation-count"></span>
@@ -332,7 +348,7 @@
 <script src="js/dropdown.js?v=28"></script>
 <script src="js/tourblock.js?v=25"></script>
 <script src="js/stats.js?v=23"></script>
-<script src="js/sidebar.js?v=23"></script>
+<script src="js/sidebar.js?v=24"></script>
 <script src="js/plans.js?v=26"></script>
 <script src="js/pdf.js?v=23"></script>
 <script src="js/persistence.js?v=23"></script>
