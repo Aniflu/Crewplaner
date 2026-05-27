@@ -44,9 +44,12 @@ function showDD(rect,header,items){
     d.onclick=it.action;menu.appendChild(d);
   });
   let left=rect.left,top=rect.bottom+4;
-  if(left+210>innerWidth)left=innerWidth-220;
-  if(top+items.length*36+40>innerHeight)top=rect.top-items.length*36-44;
-  menu.style.left=left+'px';menu.style.top=top+'px';menu.style.display='block';
+  if(left+210>innerWidth)left=Math.max(4,innerWidth-220);
+  const menuH=Math.min(items.length*36+44, innerHeight-16);
+  if(top+menuH>innerHeight){top=rect.top-menuH-4;if(top<8)top=8;}
+  menu.style.left=left+'px';menu.style.top=top+'px';
+  menu.style.maxHeight=menuH+'px';menu.style.overflowY='auto';
+  menu.style.display='block';
   document.getElementById('ddOv').classList.add('open');
 }
 function closeDD(){document.getElementById('ddOv').classList.remove('open');document.getElementById('ddMenu').style.display='none';}
