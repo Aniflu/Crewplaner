@@ -824,7 +824,18 @@ function openModal(id) { const el = document.getElementById(id); if (el) el.styl
 function closeModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
 function showToast(msg, color) { adminToast(msg, color); }
 function isPending(si) { return si && (si.status === 'proposed' || si.status === 'declined'); }
-function getVal(dateStr, posId) { const ov=dateStr in assignments&&posId in(assignments[dateStr]||{});if(!ov){const si=assignmentStatuses[dateStr]?.[posId];if(si?.crewName)return si.crewName;return defaultCrew[posId]||'';}const v=assignments[dateStr][posId];return(v===''||v===null||v===undefined)?'':v; }
+function getVal(dateStr, posId) {
+  const ov=dateStr in assignments&&posId in(assignments[dateStr]||{});
+  const v=ov?assignments[dateStr][posId]:undefined;
+  // Non-empty local value wins
+  if(v!==undefined&&v!==''&&v!==null)return v;
+  // PB-Record als Fallback (auch wenn leerer lokaler Override existiert)
+  const si=assignmentStatuses[dateStr]?.[posId];
+  if(si?.crewName)return si.crewName;
+  // defaultCrew
+  if(!ov)return defaultCrew[posId]||'';
+  return '';
+}
 function hasPermission() { return true; }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
