@@ -818,7 +818,7 @@ const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e'
 const LOGOS_KEY = 'tourplan_logos';
 let activePlanId = null;
 
-// Stubs für pdf.js / calendar.js
+// Stubs und Konstanten für pdf.js / calendar.js
 function openModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'flex'; }
 function closeModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
 function showToast(msg, color) { adminToast(msg, color); }
@@ -826,6 +826,20 @@ function isPending(si) { return si && (si.status === 'proposed' || si.status ===
 function getVal(dateStr, posId) { return (assignments[dateStr]?.[posId]) || ''; }
 function hasPermission() { return true; }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Konstanten für pdf.js
+const OFFEN      = '__offen__';
+const OFFDAY     = '__offday__';
+const REISE_TAG  = '__reise_tag__';
+const AUSSCHREIBEN = '__ausschreiben__';
+const DE_DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+const DE_MON  = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+// Hilfsfunktionen für pdf.js
+function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function fmt(n){return n%1===0?n:n.toFixed(1);}
+function dw(row){return(row.type==='reise'||row.type==='off')?0.5:1;}
+function getPlansIndex(){return activePlanId?[{id:activePlanId,name:_wrkPlanName||'Plan'}]:[];}
 
 // Plan name stub for pdf.js header
 function _getAdminPlanName() { return _wrkPlanName || 'Plan'; }
