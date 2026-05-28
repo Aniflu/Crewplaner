@@ -812,6 +812,7 @@ let TOUR_DATES = [];
 let POSITIONS  = [];
 let crew       = [];
 let assignments = {};
+let defaultCrew = {};
 let assignmentStatuses = {};
 let logos = { booking: '', band: '', planer: '' };
 const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e','#2e75b6','#548235'];
@@ -823,7 +824,7 @@ function openModal(id) { const el = document.getElementById(id); if (el) el.styl
 function closeModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
 function showToast(msg, color) { adminToast(msg, color); }
 function isPending(si) { return si && (si.status === 'proposed' || si.status === 'declined'); }
-function getVal(dateStr, posId) { return (assignments[dateStr]?.[posId]) || ''; }
+function getVal(dateStr, posId) { const ov=dateStr in assignments&&posId in(assignments[dateStr]||{});if(!ov)return defaultCrew[posId]||'';const v=assignments[dateStr][posId];return(v===''||v===null||v===undefined)?'':v; }
 function hasPermission() { return true; }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -1272,10 +1273,11 @@ async function loadSelectedPlan() {
     _wrkPlanData = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
 
     // Set globals for pdf.js
-    TOUR_DATES = _wrkPlanData.tourDates || [];
-    POSITIONS  = _wrkPlanData.positions || [];
-    crew       = _wrkPlanData.crew || [];
+    TOUR_DATES  = _wrkPlanData.tourDates || [];
+    POSITIONS   = _wrkPlanData.positions || [];
+    crew        = _wrkPlanData.crew || [];
     assignments = _wrkPlanData.assignments || {};
+    defaultCrew = _wrkPlanData.defaultCrew || {};
 
     // Load crew_members (emails)
     const crewData = await pbGet('/api/collections/crew_members/records?perPage=200&filter=' + encodeURIComponent(`plan_id="${pbPlanId}"`));
@@ -1460,10 +1462,11 @@ async function onAdminImportFile(event) {
   try {
     await pbPatch('/api/collections/plans/records/' + _wrkPbPlanId, { plan_data: text });
     _wrkPlanData = data;
-    TOUR_DATES = data.tourDates || [];
-    POSITIONS  = data.positions || [];
-    crew       = data.crew || [];
+    TOUR_DATES  = data.tourDates || [];
+    POSITIONS   = data.positions || [];
+    crew        = data.crew || [];
     assignments = data.assignments || {};
+    defaultCrew = data.defaultCrew || {};
     document.getElementById('wrkInfoDates').textContent = TOUR_DATES.length;
     document.getElementById('wrkInfoCrew').textContent = crew.length;
     document.getElementById('wrkInfoPos').textContent = POSITIONS.length;
