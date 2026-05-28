@@ -378,6 +378,10 @@ function pdfRenderCrew(fd,selCrew){
 
 // ── MAIN GENERATE ──────────────────────────────────────────────────────────────
 async function generatePDF(){
+  // Fenster sofort öffnen (synchron, im User-Gesture-Kontext) → Popup-Blocker umgehen
+  const win=window.open('','_blank');
+  if(!win){showToast('Popup blockiert — Popups für diese Seite erlauben','#e84a4a');return;}
+
   const selPosRaw=[...document.querySelectorAll('.pdfcb')].filter(c=>c.checked).map(c=>POSITIONS[+c.dataset.idx]);
   const selCrewRaw=[...document.querySelectorAll('.pdfcrewcb')].filter(c=>c.checked).map(c=>crew[+c.dataset.idx]);
   const selPos=selPosRaw.length>0?selPosRaw:POSITIONS;
@@ -391,7 +395,7 @@ async function generatePDF(){
   closeModal('pdfModal');
 
   const fd=TOUR_DATES.filter(r=>typeSet.has(r.type));
-  if(!fd.length){await showAlert('Keine Daten für die gewählten Filter.');return;}
+  if(!fd.length){win.close();showToast('Keine Daten für die gewählten Filter','#e84a4a');return;}
 
   // byPers for footer
   const byPers={};
@@ -430,8 +434,6 @@ async function generatePDF(){
 </div>
 <script>window.onload=()=>setTimeout(()=>window.print(),500);<\/script>
 </body></html>`;
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  const blobUrl=URL.createObjectURL(blob);
-  window.open(blobUrl,'_blank');
-  setTimeout(()=>URL.revokeObjectURL(blobUrl),120000);
+  win.document.write(html);
+  win.document.close();
 }
