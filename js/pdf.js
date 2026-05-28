@@ -122,7 +122,7 @@ function pdfFooterHTML(byPers,selCrew,viewLabel){
   const names=Object.keys(byPers).filter(n=>selCrew.has(n)&&byPers[n].total>0).sort((a,b)=>byPers[b].total-byPers[a].total);
   const rows=names.map(n=>{
     const ci=crew.indexOf(n),col=ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'#888';
-    return `<div class="ft-row"><span><span style="display:inline-block;width:7px;height:7px;background:${col};margin-right:6px;vertical-align:middle;"></span>${esc(n)}</span><span style="font-variant-numeric:tabular-nums;font-weight:600;">${fmt(byPers[n].total).padStart(2,'0')}d</span></div>`;
+    return `<div class="ft-row"><span><span style="display:inline-block;width:7px;height:7px;background:${col};margin-right:6px;vertical-align:middle;"></span>${esc(n)}</span><span style="font-variant-numeric:tabular-nums;font-weight:600;">${String(fmt(byPers[n].total)).padStart(2,'0')}d</span></div>`;
   }).join('');
   return `<div class="ft">
     <div>
@@ -397,32 +397,33 @@ async function generatePDF(){
   const fd=TOUR_DATES.filter(r=>typeSet.has(r.type));
   if(!fd.length){win.close();showToast('Keine Daten für die gewählten Filter','#e84a4a');return;}
 
-  // byPers for footer
-  const byPers={};
-  fd.forEach(r=>{
-    const w=dw(r);
-    selPos.forEach(p=>{
-      const v=getVal(r.date,p.id);
-      if(!v||v===OFFEN||!selCrew.has(v))return;
-      if(!byPers[v])byPers[v]={total:0,show:0,other:0};
-      if(r.type==='show'){byPers[v].total+=w;byPers[v].show+=w;}else{byPers[v].total+=w;byPers[v].other+=w;}
+  try{
+    // byPers for footer
+    const byPers={};
+    fd.forEach(r=>{
+      const w=dw(r);
+      selPos.forEach(p=>{
+        const v=getVal(r.date,p.id);
+        if(!v||v===OFFEN||!selCrew.has(v))return;
+        if(!byPers[v])byPers[v]={total:0,show:0,other:0};
+        if(r.type==='show'){byPers[v].total+=w;byPers[v].show+=w;}else{byPers[v].total+=w;byPers[v].other+=w;}
+      });
     });
-  });
-  // totalOpen
-  let totalOpen=0;
-  selPos.forEach(p=>{fd.forEach(r=>{const v=getVal(r.date,p.id),w=dw(r);if(v===OFFEN)totalOpen+=w;});});
+    // totalOpen
+    let totalOpen=0;
+    selPos.forEach(p=>{fd.forEach(r=>{const v=getVal(r.date,p.id),w=dw(r);if(v===OFFEN)totalOpen+=w;});});
 
-  const dates=fd.map(r=>r.date).sort();
-  const s=parseD(dates[0]),e=parseD(dates[dates.length-1]);
-  const rangeStr=`${String(s.getDate()).padStart(2,'0')}.${String(s.getMonth()+1).padStart(2,'0')} – ${String(e.getDate()).padStart(2,'0')}.${String(e.getMonth()+1).padStart(2,'0')}.${e.getFullYear()}`;
+    const dates=fd.map(r=>r.date).sort();
+    const s=parseD(dates[0]),e=parseD(dates[dates.length-1]);
+    const rangeStr=`${String(s.getDate()).padStart(2,'0')}.${String(s.getMonth()+1).padStart(2,'0')} – ${String(e.getDate()).padStart(2,'0')}.${String(e.getMonth()+1).padStart(2,'0')}.${e.getFullYear()}`;
 
-  let viewResult, viewLabel;
-  if(PDF_VIEW==='blocks'){ viewResult=pdfRenderBlocks(fd,selCrew); viewLabel='Blöcke'; }
-  else if(PDF_VIEW==='crew'){ viewResult=pdfRenderCrew(fd,selCrew); viewLabel='Crew-Timeline'; }
-  else { viewResult=pdfRenderTable(fd,selPos,selCrew); viewLabel='Tabelle'; }
+    let viewResult, viewLabel;
+    if(PDF_VIEW==='blocks'){ viewResult=pdfRenderBlocks(fd,selCrew); viewLabel='Blöcke'; }
+    else if(PDF_VIEW==='crew'){ viewResult=pdfRenderCrew(fd,selCrew); viewLabel='Crew-Timeline'; }
+    else { viewResult=pdfRenderTable(fd,selPos,selCrew); viewLabel='Tabelle'; }
 
-  const planName=(()=>{try{const p=(typeof getPlansIndex==='function')?getPlansIndex():[];const a=p.find(x=>x.id===activePlanId);return a?a.name:'';}catch(e){return '';}})();
-  const html=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Tour/Crew Plan</title>
+    const planName=(()=>{try{const p=(typeof getPlansIndex==='function')?getPlansIndex():[];const a=p.find(x=>x.id===activePlanId);return a?a.name:'';}catch(e){return '';}})();
+    const html=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Tour/Crew Plan</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>${pdfSharedCSS()}${viewResult.css}</style></head><body>
 <div class="page">
@@ -434,6 +435,11 @@ async function generatePDF(){
 </div>
 <script>window.onload=()=>setTimeout(()=>window.print(),500);<\/script>
 </body></html>`;
-  win.document.write(html);
-  win.document.close();
+    win.document.write(html);
+    win.document.close();
+  }catch(err){
+    win.document.write(`<pre style="font-family:monospace;padding:20px;color:red;">PDF-Fehler: ${err.message}\n\n${err.stack||''}</pre>`);
+    win.document.close();
+    console.error('generatePDF error:',err);
+  }
 }
