@@ -178,7 +178,7 @@ function pdfRenderTable(fd,selPos,selCrew){
       if(v===OFFEN)return `<td class="ctd"><span class="offen">⚠ OFFEN</span></td>`;
       if(v&&selCrew.has(v)){
         const ci=crew.indexOf(v),col=ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'#888';
-        return `<td class="ctd"><span class="dot" style="background:${col}"></span>${pdfAbbr(v)}</td>`;
+        return `<td class="ctd"><span class="dot" style="background:${col}"></span>${esc(v)}</td>`;
       }
       if(v)return `<td class="ctd" style="color:${PDF_COLORS.mutedDim};">–</td>`;
       return `<td class="ctd"></td>`;
