@@ -53,7 +53,7 @@ async function _authCheckAndStart() {
         sessionStorage.removeItem('crewplan_transfer_pbid');
         const _tid = 'p' + Date.now().toString(36);
         localStorage.setItem('tourplan_plan_' + _tid, _transferData);
-        if (_tp) localStorage.setItem('tourplan_pb_' + _tid, _tp);
+        if (_tp) { localStorage.setItem('tourplan_pb_' + _tid, _tp); localStorage.setItem('tourplan_active_pb_id', _tp); }
         const _today = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'2-digit'});
         localStorage.setItem('tourplan_plans', JSON.stringify([{id:_tid, name:_tn, created:_today, modified:_today}]));
         localStorage.setItem('tourplan_active_plan', _tid);

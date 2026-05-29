@@ -118,6 +118,7 @@ async function loadPlanForCrew() {
     TOUR_DATES.length = 0; data.tourDates.forEach(d => TOUR_DATES.push(d));
     Object.keys(assignments).forEach(k => delete assignments[k]);
     Object.assign(assignments, data.assignments || {});
+    localStorage.setItem('tourplan_active_pb_id', planId);
     console.log('[crew] Plan-Daten geladen aus PocketBase (' + TOUR_DATES.length + ' Tage)');
   } catch(e) {
     console.warn('loadPlanForCrew Fehler:', e.message);
@@ -148,6 +149,7 @@ async function loadPlanForManager() {
     Object.assign(assignments, data.assignments || {});
     // PB-Plan-ID im localStorage cachen für _savePlanToLS
     if (activePlanId) localStorage.setItem('tourplan_pb_' + activePlanId, plan.id);
+    localStorage.setItem('tourplan_active_pb_id', plan.id);
     // Plans-Index aktualisieren
     if (activePlanId && typeof savePlansIndex === 'function') {
       const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];

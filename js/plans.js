@@ -132,10 +132,11 @@ function _savePlanToLS(id){
     const plans=getPlansIndex();
     const p=plans.find(x=>x.id===id);
     if(p){p.modified=_today();savePlansIndex(plans);}
-    // Sync plan_data to PocketBase (silent fail ok)
+    // Sync plan_data to PocketBase
     if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED){
-      const pbId=localStorage.getItem('tourplan_pb_'+id);
+      const pbId=localStorage.getItem('tourplan_pb_'+id)||localStorage.getItem('tourplan_active_pb_id');
       if(pbId){pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)}).catch(e=>console.warn('[plans] PB-Sync fehlgeschlagen:',e));}
+      else{console.warn('[plans] PB-Sync: kein pbId gefunden für',id);}
     }
   }catch(e){console.warn(e);}
 }
