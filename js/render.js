@@ -122,6 +122,8 @@ function renderBody(){
         else{b+=`<span style="font-size:.6rem;color:#e8c84a;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
       }else if(IS_CREW&&si&&si.crewName===myName){
         b+=`<span class="${cls}" style="${style};cursor:default;">${display}</span>`;
+      }else if(IS_CREW&&!si&&val&&val!==OFFEN&&val!==OFFDAY&&val!==REISE_TAG&&val!==AUSSCHREIBEN){
+        b+=`<span style="font-size:.6rem;color:#5a6070;display:block;text-align:center;">${esc(val)}</span>`;
       }else if(IS_MANAGER||!SUPABASE_ENABLED){
         b+=`<button class="${cls}" style="${style}" onclick="openCrewDD(event,'${row.date}','${p.id}')">${display}</button>`;
       }else if(IS_BOOKER){
