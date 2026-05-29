@@ -148,9 +148,7 @@ function openCrewDD(e,dateStr,posId){
       renderTable();
     }});
   }
-  if(!si&&current&&current!==OFFEN&&current!==OFFDAY&&current!==REISE_TAG&&current!==AUSSCHREIBEN){
-    if(false){// Anfragen nur über Crew-Notify-Modal (Einladen-Button)
-  }
+  // Anfragen ausschließlich über Crew-Notify-Modal (Einladen-Button)
   const _applyState=async(val)=>{
     closeDD();
     if(si){
