@@ -40,11 +40,11 @@ async function _authCheckAndStart() {
     document.body.style.visibility = 'visible';
     startApp();
 
-    // Für Manager: Plan aus PB nur laden wenn startApp() keinen Plan aus localStorage geladen hat
-    const managerNeedsPBLoad = IS_MANAGER && (typeof TOUR_DATES === 'undefined' || TOUR_DATES.length === 0);
+    // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
+    const pbPlanCached = activePlanId && !!localStorage.getItem('tourplan_pb_' + activePlanId);
     const loadAll = IS_CREW
       ? loadPlanForCrew().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]))
-      : (managerNeedsPBLoad ? loadPlanForManager() : Promise.resolve())
+      : (pbPlanCached ? Promise.resolve() : loadPlanForManager())
           .then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]));
 
     loadAll
