@@ -308,9 +308,10 @@ async function _sendPendingUpdates() {
   try {
     for (const name of names) {
       const entry = q[name];
-      // Neue Slots (kein PB-Record) zuerst als proposed anlegen
+      // Neue Slots (kein PB-Record) ermitteln und als proposed anlegen
+      let newSlots = [];
       if (typeof _getNewSlotsForCrew === 'function' && typeof bulkProposeCrew === 'function') {
-        const newSlots = _getNewSlotsForCrew(name, entry.email);
+        newSlots = _getNewSlotsForCrew(name, entry.email);
         if (newSlots.length) await bulkProposeCrew(newSlots);
       }
       if (!entry.informational) {
@@ -326,8 +327,14 @@ async function _sendPendingUpdates() {
               { status: 'proposed', proposed_by: 'update' });
           }
         }
+        await sendUpdateNotice(name, entry.email, entry.slots);
+      } else {
+        // Informational: E-Mail nur mit tatsächlich neuen Terminen
+        if (newSlots.length) {
+          const mailSlots = newSlots.map(s => ({ date: s.dateLabel, posLabel: s.posLabel, changes: ['Neuer Termin'] }));
+          await sendUpdateNotice(name, entry.email, mailSlots);
+        }
       }
-      await sendUpdateNotice(name, entry.email, entry.slots);
     }
     _saveCrewUpdateQueue({});
     _updateCrewUpdateBar();
