@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.9.20 — Syntax-Fix bundle/dropdown, sessionStorage Plan-Transfer, defaultCrew-Slots nachgetragen (aktuell)
+v0.9.9.20 — Kurzlink (is.gd) via Hook v4.4, Crew-Anleitung aktualisiert, emailVisibility fix, defaultCrew-Slots (aktuell)
 v0.9.9.19 — debug logs + cache-bust für Plan-Transfer debugging
 v0.9.9.18 — Plan-Transfer via sessionStorage (admin→index), loadPlanForManager direkt per owner
 v0.9.9.17 — Manager lädt Plan aus PocketBase, "Aktuellen Plan bearbeiten"-Button
@@ -54,7 +54,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
-## Aktueller Stand (Stand: 2026-05-31)
+## Aktueller Stand (Stand: 2026-06-01)
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase
@@ -62,21 +62,37 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 - Manager-Konsole (`admin.html`): Werkzeuge, E-Mail-Log Tab, Benutzer, Rollen, Pläne
 - **Manager + Crew laden Plan direkt aus PocketBase** — localStorage optional
 - Plan-Transfer admin→index via sessionStorage ("Aktuellen Plan bearbeiten"-Button)
-- E-Mail-Log: Hook v4.3 schreibt nach jedem Mailversand in `email_log` Collection
+- E-Mail-Log: Hook v4.4 schreibt nach jedem Mailversand in `email_log` Collection
 - E-Mail-Flow: Einladung (1 Mail/Person), Erinnerung, Update (neue Termine), Absage
 - Einladen = setzt alle Slots auf `proposed` + sendet 1 Invite-Mail (kein per-Slot-Hook mehr)
 - Update-Button erscheint wenn neue Slots ohne PB-Record vorhanden (inkl. defaultCrew-Slots)
 - Crew-Ansicht: eigene Slots "Bitte bestätigen", fremde Slots mit Name + Statusfarbe
 - Crew Sidebar: "Termine bestätigen", "Termine absagen", "Anleitung" + Farbelegende
 - Hotel/Nachbereitung-Tage (OFF-Typ) zeigen ⏳ wie SHOW/REISE wenn proposed
+- Öffentlicher Booker-Link mit Kurzlink (is.gd) — serverseitig via Hook generiert + in PB gespeichert
+- Crew-Anleitung aktualisiert (docs/guide-crew.html) — neuer Flow "Bitte bestätigen"
+- Benutzer-Verwaltung zeigt E-Mail-Adressen (emailVisibility: true für alle gesetzt)
 - Absage-Queue Banner für Sammel-Absagen
 
 ### Bekannte Einschränkung
 - Slots die NUR über `defaultCrew` (nicht explizit in `assignments`) befüllt sind,
   bekommen KEINEN PB-Record beim Einladen-Klick — Workaround: Records manuell via API erstellen
-  oder Admin trägt Crew explizit via Dropdown ein (überschreibt defaultCrew mit explizitem Assignment)
+  oder Admin trägt Crew explizit via Dropdown ein
 
-### E-Mail-Typen (Hook v4.3)
+### PocketBase — Benutzer (Stand 2026-06-01)
+| E-Mail | Rolle | Hat Account |
+|---|---|---|
+| madmaxmail@web.de | superadmin | ✓ |
+| marco@hoch-online.com | manager | ✓ |
+| thomas.haine@gmx.de | crew | ✓ |
+| thomasoliver@gmx.de | crew | ✓ |
+| peter-weist@gmx.de | crew | ✓ |
+| w.greffenius@gmx.de | crew | ✓ |
+| fliegendekiwi@live.de | crew | — noch nicht registriert |
+| pascalsmirat@web.de | crew | — noch nicht registriert |
+| kerrin.gall@outlook.de | crew | — noch nicht registriert |
+
+### E-Mail-Typen (Hook v4.4)
 | Typ | Wann | Empfänger |
 |---|---|---|
 | `invite` | Admin klickt "Einladen" | Crew — "Du bist dabei." |
@@ -265,11 +281,12 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Daten gehen NICHT verloren — SQLite-Tables bleiben. Nur die Collection-Definitionen fehlen.
 > `pb_schema.json` im Repo ist NICHT direkt verwendbar (enthält alte Relation-IDs `pbc_1736455494`).
 
-Aktuell deployte Hook-Version: **v4.3**
+Aktuell deployte Hook-Version: **v4.4**
 - v4.1: email_log-Write nach jedem Mailversand
 - v4.2: assignments CREATE-Hook entfernt (keine per-Slot-Emails mehr)
 - v4.3: Absage-Email umformuliert ("Plan geändert")
-Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.3 geladen`
+- v4.4: Short-URL via is.gd bei plans view_token Update (serverseitig, kein CORS-Problem)
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.4 geladen`
 
 ### Docker-Logs live beobachten
 
