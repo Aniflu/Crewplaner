@@ -315,14 +315,17 @@ async function _sendPendingUpdates() {
         if (newSlots.length) await bulkProposeCrew(newSlots);
       }
       if (!entry.informational) {
+        const planId = localStorage.getItem('tourplan_active_pb_id');
         for (const slot of entry.slots) {
           const day = assignmentStatuses[slot.date];
           const posId = day ? Object.keys(day).find(p => {
             const pos = POSITIONS.find(pp => pp.id === p);
             return (pos?.label || p) === slot.posLabel && day[p].crewName === name;
           }) : null;
-          if (posId) {
-            const existing = await _findAssignment(slot.date, posId);
+          if (posId && planId) {
+            // Fix: _findAssignment war undefiniert — direkt pbFirst verwenden
+            const existing = await pbFirst('assignments',
+              `plan_id = "${planId}" && date = "${slot.date}" && pos_id = "${posId}"`);
             if (existing) await pbPatch('/api/collections/assignments/records/'+existing.id,
               { status: 'proposed', proposed_by: 'update' });
           }
@@ -331,9 +334,10 @@ async function _sendPendingUpdates() {
       } else {
         // Informational: E-Mail nur mit tatsächlich neuen Terminen
         if (newSlots.length) {
-          const mailSlots = newSlots.map(s => ({ date: s.dateLabel, posLabel: s.posLabel, changes: ['Neuer Termin'] }));
+          // ISO-Datum übergeben (Hook erwartet YYYY-MM-DD für korrekte Formatierung)
+          const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, changes: ['Neuer Termin'] }));
           await sendUpdateNotice(name, entry.email, mailSlots);
-        }
+        // Keine neuen Termine → keine E-Mail senden (kein Inhalt)
       }
     }
     _saveCrewUpdateQueue({});
