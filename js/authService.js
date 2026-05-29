@@ -41,22 +41,24 @@ async function _authCheckAndStart() {
 
     // Plan-Transfer von admin.html via sessionStorage anwenden (vor startApp)
     const _transferData = sessionStorage.getItem('crewplan_transfer_data');
+    console.log('[auth] IS_MANAGER:', IS_MANAGER, '| sessionStorage transfer:', !!_transferData);
     if (_transferData && IS_MANAGER) {
       try {
         const _td = JSON.parse(_transferData);
         const _tn = sessionStorage.getItem('crewplan_transfer_name') || 'Plan';
         const _tp = sessionStorage.getItem('crewplan_transfer_pbid') || '';
+        console.log('[auth] Plan-Transfer: name=' + _tn + ' pbid=' + _tp + ' tourDates=' + (_td.tourDates?.length || 0));
         sessionStorage.removeItem('crewplan_transfer_data');
         sessionStorage.removeItem('crewplan_transfer_name');
         sessionStorage.removeItem('crewplan_transfer_pbid');
-        // In localStorage speichern damit startApp() + _savePlanToLS() funktionieren
         const _tid = 'p' + Date.now().toString(36);
         localStorage.setItem('tourplan_plan_' + _tid, _transferData);
         if (_tp) localStorage.setItem('tourplan_pb_' + _tid, _tp);
         const _today = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'2-digit'});
         localStorage.setItem('tourplan_plans', JSON.stringify([{id:_tid, name:_tn, created:_today, modified:_today}]));
         localStorage.setItem('tourplan_active_plan', _tid);
-      } catch(e) { console.warn('Plan-Transfer Fehler:', e); }
+        console.log('[auth] Plan in localStorage gesetzt: tourplan_plan_' + _tid);
+      } catch(e) { console.warn('[auth] Plan-Transfer Fehler:', e); }
     }
 
     startApp();
