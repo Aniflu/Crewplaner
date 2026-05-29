@@ -104,7 +104,6 @@ function renderBody(){
       else if(val===AUSSCHREIBEN){style='color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);font-weight:600;';display='📋 Ausschr.';}
       const myName=SUPABASE_ENABLED?(typeof getMyCrewName==='function'?getMyCrewName():null):null;
       const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName;
-      const isOpenSlot=SUPABASE_ENABLED&&(!val||val===''||val===OFFEN)&&!si;
       const isAusschreibenSlot=SUPABASE_ENABLED&&IS_CREW&&val===AUSSCHREIBEN&&!si;
       const isDrafted=isAusschreibenSlot&&typeof _meldungDraft!=='undefined'&&!!_meldungDraft[row.date]?.has(p.id);
       const isSent=isAusschreibenSlot&&!!_meldungSentData[row.date]?.includes(p.id);
@@ -119,8 +118,6 @@ function renderBody(){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);">📋 Bewerben</button>`;
       }else if(IS_CREW&&si&&si.crewName!==myName){
         b+=`<span style="font-size:.6rem;color:#5a6070;display:block;text-align:center;">angefragt</span>`;
-      }else if(isOpenSlot&&(IS_MANAGER||!SUPABASE_ENABLED)){
-        b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')">Melden</button>`;
       }else if(IS_MANAGER||!SUPABASE_ENABLED){
         b+=`<button class="${cls}" style="${style}" onclick="openCrewDD(event,'${row.date}','${p.id}')">${display}</button>`;
       }else if(IS_BOOKER){
