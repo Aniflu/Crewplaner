@@ -27,7 +27,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.9.20 — Manager lädt Plan aus PocketBase, "Aktuellen Plan bearbeiten"-Button (aktuell)
+v0.9.9.20 — Syntax-Fix bundle/dropdown, sessionStorage Plan-Transfer, defaultCrew-Slots nachgetragen (aktuell)
+v0.9.9.19 — debug logs + cache-bust für Plan-Transfer debugging
+v0.9.9.18 — Plan-Transfer via sessionStorage (admin→index), loadPlanForManager direkt per owner
+v0.9.9.17 — Manager lädt Plan aus PocketBase, "Aktuellen Plan bearbeiten"-Button
 v0.9.9.13 — Hook v4.3 (Absage-Email umformuliert), vollständiger Workflow-Audit
 v0.9.9.12 — Namen mit Statusfarben in Crew-Ansicht + grau für plan-only Einträge
 v0.9.9.11 — Hook v4.2 (per-Slot-Emails entfernt), Einladen=Anfrage, Update-Button
@@ -51,21 +54,27 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
-## Aktueller Stand (Stand: 2026-05-30)
+## Aktueller Stand (Stand: 2026-05-31)
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase
 - Multi-Rollen-System: superadmin/manager → admin.html, crew/booker → index.html
 - Manager-Konsole (`admin.html`): Werkzeuge, E-Mail-Log Tab, Benutzer, Rollen, Pläne
-- **Manager + Crew laden Plan direkt aus PocketBase** — localStorage optional (seit v0.9.9.20)
+- **Manager + Crew laden Plan direkt aus PocketBase** — localStorage optional
+- Plan-Transfer admin→index via sessionStorage ("Aktuellen Plan bearbeiten"-Button)
 - E-Mail-Log: Hook v4.3 schreibt nach jedem Mailversand in `email_log` Collection
 - E-Mail-Flow: Einladung (1 Mail/Person), Erinnerung, Update (neue Termine), Absage
 - Einladen = setzt alle Slots auf `proposed` + sendet 1 Invite-Mail (kein per-Slot-Hook mehr)
-- Update-Button erscheint wenn neue Slots ohne PB-Record vorhanden
-- Crew-Ansicht: eigene Slots "Bitte bestätigen", fremde Slots mit Name + Statusfarbe (grün/orange/rot)
+- Update-Button erscheint wenn neue Slots ohne PB-Record vorhanden (inkl. defaultCrew-Slots)
+- Crew-Ansicht: eigene Slots "Bitte bestätigen", fremde Slots mit Name + Statusfarbe
 - Crew Sidebar: "Termine bestätigen", "Termine absagen", "Anleitung" + Farbelegende
-- "Aktuellen Plan bearbeiten"-Button in admin.html → überträgt Plan korrekt in Tourview
+- Hotel/Nachbereitung-Tage (OFF-Typ) zeigen ⏳ wie SHOW/REISE wenn proposed
 - Absage-Queue Banner für Sammel-Absagen
+
+### Bekannte Einschränkung
+- Slots die NUR über `defaultCrew` (nicht explizit in `assignments`) befüllt sind,
+  bekommen KEINEN PB-Record beim Einladen-Klick — Workaround: Records manuell via API erstellen
+  oder Admin trägt Crew explizit via Dropdown ein (überschreibt defaultCrew mit explizitem Assignment)
 
 ### E-Mail-Typen (Hook v4.3)
 | Typ | Wann | Empfänger |
