@@ -254,7 +254,7 @@ function _queueGlobalCrewUpdate(changeDesc) {
   let affected = 0;
   Object.entries(assignmentStatuses || {}).forEach(([dateStr, positions]) => {
     Object.entries(positions).forEach(([posId, si]) => {
-      if (si.status !== 'confirmed') return;
+      if (si.status !== 'confirmed' && si.status !== 'proposed') return;
       const meta = crewMeta[si.crewName] || {};
       if (!meta.email) return;
       if (!q[si.crewName]) q[si.crewName] = { email: meta.email, informational: true, slots: [] };
