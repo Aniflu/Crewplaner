@@ -104,26 +104,28 @@ function renderBody(){
       else if(val===AUSSCHREIBEN){style='color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);font-weight:600;';display='📋 Ausschr.';}
       const myName=SUPABASE_ENABLED?(typeof getMyCrewName==='function'?getMyCrewName():null):null;
       const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName;
-      const isOpenSlot=SUPABASE_ENABLED&&IS_CREW&&(!val||val===''||val===OFFEN)&&!si;
+      const isOpenSlot=SUPABASE_ENABLED&&(!val||val===''||val===OFFEN)&&!si;
       const isAusschreibenSlot=SUPABASE_ENABLED&&IS_CREW&&val===AUSSCHREIBEN&&!si;
-      const isDrafted=(isOpenSlot||isAusschreibenSlot)&&typeof _meldungDraft!=='undefined'&&!!_meldungDraft[row.date]?.has(p.id);
-      const isSent=(isOpenSlot||isAusschreibenSlot)&&!!_meldungSentData[row.date]?.includes(p.id);
+      const isDrafted=isAusschreibenSlot&&typeof _meldungDraft!=='undefined'&&!!_meldungDraft[row.date]?.has(p.id);
+      const isSent=isAusschreibenSlot&&!!_meldungSentData[row.date]?.includes(p.id);
       b+=`<td class="assign-cell">`;
       if(isMyProposed){
-        b+=`<div class="my-slot-wrap"><span class="my-slot-name">${si.crewName}</span><button class="slot-confirm" onclick="confirmMySlot('${row.date}','${p.id}')">✓</button><button class="slot-decline" onclick="declineMySlot('${row.date}','${p.id}')">✗</button></div>`;
+        b+=`<button class="assign-btn" onclick="openSlotConfirmModal('${row.date}','${p.id}')" style="color:#e8c84a;border-color:rgba(232,200,74,.4);background:rgba(232,200,74,.07);">Bitte bestätigen</button>`;
       }else if(isDrafted){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#e8c84a;border-color:rgba(232,200,74,.4);background:rgba(232,200,74,.09);">✓ Gemerkt</button>`;
       }else if(isSent){
         b+=`<button class="assign-btn" disabled style="color:#e8c84a;opacity:.55;border-color:rgba(232,200,74,.25);background:rgba(232,200,74,.05);">📋 Gemeldet</button>`;
       }else if(isAusschreibenSlot){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);">📋 Bewerben</button>`;
-      }else if(isOpenSlot){
+      }else if(IS_CREW&&si&&si.crewName!==myName){
+        b+=`<span style="font-size:.6rem;color:#5a6070;display:block;text-align:center;">angefragt</span>`;
+      }else if(isOpenSlot&&(IS_MANAGER||!SUPABASE_ENABLED)){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')">Melden</button>`;
       }else if(IS_MANAGER||!SUPABASE_ENABLED){
         b+=`<button class="${cls}" style="${style}" onclick="openCrewDD(event,'${row.date}','${p.id}')">${display}</button>`;
       }else if(IS_BOOKER){
         b+=`<span class="${cls}" style="${style};cursor:default;">${display}</span>`;
-      }else{
+      }else if(!IS_CREW){
         b+=`<button class="${cls}" style="${style}" disabled>${display}</button>`;
       }
       b+=`</td>`;

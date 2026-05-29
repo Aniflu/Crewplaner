@@ -67,6 +67,7 @@ function _showUserBadge(user) {
   const btnKonsole = document.getElementById('btnKonsole');
   if (btnKonsole) btnKonsole.style.display = IS_MANAGER ? '' : 'none';
   document.querySelectorAll('.manager-only').forEach(el => el.style.display = IS_MANAGER ? '' : 'none');
+  document.querySelectorAll('.crew-only').forEach(el => el.style.display = IS_CREW ? '' : 'none');
 }
 
 async function logout() {

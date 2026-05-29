@@ -126,6 +126,48 @@ async function _bulkConfirmMySlots() {
   renderTable();
 }
 
+// ── Slot-Bestätigungs-Modal (Einzelklick aus Tabelle) ────────────────────────
+function openSlotConfirmModal(dateStr, posId) {
+  const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
+  const tourDay = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []).find(d => d.date === dateStr);
+  const [y, m, d] = dateStr.split('-');
+  const dateLabel = `${d}.${m}.${y}`;
+  const posLabel = pos?.label || posId;
+  const loc = tourDay?.loc || '';
+  document.getElementById('sharedTitle').textContent = 'Einsatz bestätigen';
+  document.getElementById('sharedBody').innerHTML = `
+    <div style="font-size:.68rem;color:var(--ink);margin-bottom:16px;line-height:1.7;">
+      <strong>${dateLabel}</strong> · ${posLabel}${loc ? ' · ' + loc : ''}
+    </div>
+    <div class="mactions">
+      <button class="mbtn" onclick="declineMySlot('${dateStr}','${posId}');closeModal('sharedModal')">✗ Ablehnen</button>
+      <button class="mbtn primary" onclick="confirmMySlot('${dateStr}','${posId}');closeModal('sharedModal')" style="background:#4ae8a0;color:#1a1a2e;">✓ Bestätigen</button>
+    </div>`;
+  openModal('sharedModal');
+}
+
+// ── Alle angefragten Termine auf einmal bestätigen ────────────────────────────
+async function bulkConfirmAllMySlots() {
+  const slots = getMyPendingSlots();
+  if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
+  showToast('Wird bestätigt…', '#e8c84a');
+  await Promise.all(slots.map(s => confirmAssignment(s.date, s.posId)));
+  slots.forEach(s => { if (assignmentStatuses[s.date]?.[s.posId]) assignmentStatuses[s.date][s.posId].status = 'confirmed'; });
+  showToast('Alle Termine bestätigt ✓', '#4ae8a0');
+  renderTable();
+}
+
+// ── Alle angefragten Termine auf einmal absagen ───────────────────────────────
+async function bulkDeclineAllMySlots() {
+  const slots = getMyPendingSlots();
+  if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
+  showToast('Wird abgelehnt…', '#e8c84a');
+  await Promise.all(slots.map(s => declineAssignment(s.date, s.posId)));
+  slots.forEach(s => { if (assignmentStatuses[s.date]?.[s.posId]) assignmentStatuses[s.date][s.posId].status = 'declined'; });
+  showToast('Alle Termine abgelehnt', '#e84a4a');
+  renderTable();
+}
+
 // ── Einzelne Slot-Aktionen (aus Tabelle heraus) ───────────────────────────────
 async function confirmMySlot(dateStr, posId) {
   await confirmAssignment(dateStr, posId);

@@ -53,6 +53,9 @@
         <button class="manager-only" onclick="openCrewModal()"><span class="sb-gl">👥</span>Crew &amp; Positionen</button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
         <button id="btnKonsole" onclick="window.location.href='admin.html'" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
+        <button class="crew-only primary" onclick="bulkConfirmAllMySlots()" style="display:none;"><span class="sb-gl">✓</span>Termine bestätigen</button>
+        <button class="crew-only" onclick="bulkDeclineAllMySlots()" style="display:none;"><span class="sb-gl">✗</span>Termine absagen</button>
+        <button class="crew-only" onclick="window.open('https://aniflu.github.io/Crewplaner/docs/guide-crew.html','_blank')" style="display:none;"><span class="sb-gl">?</span>Anleitung</button>
       </div>
     </div>
     <div class="sidebar-section">
