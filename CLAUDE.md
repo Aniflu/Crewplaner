@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.9.18**
+- Aktuelle Version: **v0.9.9.19**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.9.18 — Manager lädt Plan aus PocketBase, "Aktuellen Plan bearbeiten"-Button (aktuell)
+v0.9.9.19 — Manager lädt Plan aus PocketBase, "Aktuellen Plan bearbeiten"-Button (aktuell)
 v0.9.9.13 — Hook v4.3 (Absage-Email umformuliert), vollständiger Workflow-Audit
 v0.9.9.12 — Namen mit Statusfarben in Crew-Ansicht + grau für plan-only Einträge
 v0.9.9.11 — Hook v4.2 (per-Slot-Emails entfernt), Einladen=Anfrage, Update-Button
@@ -57,7 +57,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 - Login/Logout via PocketBase
 - Multi-Rollen-System: superadmin/manager → admin.html, crew/booker → index.html
 - Manager-Konsole (`admin.html`): Werkzeuge, E-Mail-Log Tab, Benutzer, Rollen, Pläne
-- **Manager + Crew laden Plan direkt aus PocketBase** — localStorage optional (seit v0.9.9.18)
+- **Manager + Crew laden Plan direkt aus PocketBase** — localStorage optional (seit v0.9.9.19)
 - E-Mail-Log: Hook v4.3 schreibt nach jedem Mailversand in `email_log` Collection
 - E-Mail-Flow: Einladung (1 Mail/Person), Erinnerung, Update (neue Termine), Absage
 - Einladen = setzt alle Slots auf `proposed` + sendet 1 Invite-Mail (kein per-Slot-Hook mehr)
