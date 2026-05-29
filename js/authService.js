@@ -42,7 +42,7 @@ async function _authCheckAndStart() {
 
     const loadAll = IS_CREW
       ? loadPlanForCrew().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]))
-      : Promise.all([loadCrewMeta(), loadAssignmentStatuses()]);
+      : loadPlanForManager().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]));
 
     loadAll
       .then(() => {
