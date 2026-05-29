@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.9.13**
+- Aktuelle Version: **v0.9.9.14**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.9.13 — Crew-Ansicht überarbeitet, PB-Plan-Bereinigung, email case-insensitiv (aktuell)
+v0.9.9.14 — Crew-Ansicht überarbeitet, PB-Plan-Bereinigung, email case-insensitiv (aktuell)
 v0.9.9.9  — Crew sieht angefragt/bestätigt/abgelehnt pro Spalte, Sidebar-Buttons
 v0.9.9.8  — E-Mail-Log Tab in Admin-Konsole (Hook v4.1 + email_log Collection)
 v0.9.9.7  — PDF-Fix getVal, diverse Bug-Fixes
@@ -58,7 +58,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 - Manager-Konsole (`admin.html`): Werkzeuge, E-Mail-Log Tab, Benutzer, Rollen, Pläne
 - E-Mail-Log: Hook v4.1 schreibt nach jedem Mailversand in `email_log` Collection
 - Plan-Sync: localStorage ↔ PocketBase (`plan_data` in plans Collection)
-- **Crew lädt Plan direkt aus PocketBase** — kein localStorage nötig (seit v0.9.9.13)
+- **Crew lädt Plan direkt aus PocketBase** — kein localStorage nötig (seit v0.9.9.14)
 - Crew-Ansicht: eigene Slots "Bitte bestätigen", fremde Slots "angefragt"/"bestätigt"/"abgelehnt"
 - Crew Sidebar-Buttons: "Termine bestätigen", "Termine absagen", "Anleitung"
 - E-Mail-Flow (Hook v4.1): Einladung, Erinnerung, Absage, Update mit E-Mail-Log
