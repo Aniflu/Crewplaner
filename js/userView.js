@@ -308,6 +308,11 @@ async function _sendPendingUpdates() {
   try {
     for (const name of names) {
       const entry = q[name];
+      // Neue Slots (kein PB-Record) zuerst als proposed anlegen
+      if (typeof _getNewSlotsForCrew === 'function' && typeof bulkProposeCrew === 'function') {
+        const newSlots = _getNewSlotsForCrew(name, entry.email);
+        if (newSlots.length) await bulkProposeCrew(newSlots);
+      }
       if (!entry.informational) {
         for (const slot of entry.slots) {
           const day = assignmentStatuses[slot.date];
