@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.0
-console.log('[hook] main.pb.js v4.0 geladen');
+// Version: 4.1
+console.log('[hook] main.pb.js v4.1 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -28,8 +28,21 @@ onRecordAfterCreateSuccess(function(e) {
         headers: { 'Authorization': 'Bearer ' + _key, 'Content-Type': 'application/json' },
         body: JSON.stringify({ from: _from, to: [to], subject: subject, html: html })
       });
-      if (res.statusCode >= 400) { console.error('[mail] Resend Fehler ' + res.statusCode + ':', res.raw); }
+      var _success = res.statusCode < 400;
+      if (!_success) { console.error('[mail] Resend Fehler ' + res.statusCode + ':', res.raw); }
       else { console.log('[mail] Gesendet an ' + to + ' · ' + subject); }
+      try {
+        var _logCol = $app.findCollectionByNameOrId('email_log');
+        var _logRec = new Record(_logCol);
+        _logRec.set('plan_id',    r.get('plan_id') || '');
+        _logRec.set('crew_name',  name);
+        _logRec.set('crew_email', email);
+        _logRec.set('email_type', type);
+        _logRec.set('sent_at',    new Date().toISOString());
+        _logRec.set('success',    _success ? 'true' : 'false');
+        $app.save(_logRec);
+        console.log('[mail] email_log gespeichert · ' + type);
+      } catch (logErr) { console.error('[mail] email_log Fehler:', logErr.message || String(logErr)); }
     } catch (err) { console.error('[mail] Fehler:', err.message || String(err)); }
   };
 
