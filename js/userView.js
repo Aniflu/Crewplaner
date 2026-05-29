@@ -148,6 +148,7 @@ function openSlotConfirmModal(dateStr, posId) {
 
 // ── Alle angefragten Termine auf einmal bestätigen ────────────────────────────
 async function bulkConfirmAllMySlots() {
+  if (!getMyCrewName()) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return; }
   const slots = getMyPendingSlots();
   if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
   showToast('Wird bestätigt…', '#e8c84a');
@@ -159,6 +160,7 @@ async function bulkConfirmAllMySlots() {
 
 // ── Alle angefragten Termine auf einmal absagen ───────────────────────────────
 async function bulkDeclineAllMySlots() {
+  if (!getMyCrewName()) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return; }
   const slots = getMyPendingSlots();
   if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
   showToast('Wird abgelehnt…', '#e8c84a');
