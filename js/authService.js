@@ -40,7 +40,11 @@ async function _authCheckAndStart() {
     document.body.style.visibility = 'visible';
     startApp();
 
-    Promise.all([loadCrewMeta(), loadAssignmentStatuses()])
+    const loadAll = IS_CREW
+      ? loadPlanForCrew().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]))
+      : Promise.all([loadCrewMeta(), loadAssignmentStatuses()]);
+
+    loadAll
       .then(() => {
         renderTable();
         if (typeof checkAndOpenMySchedule === 'function') checkAndOpenMySchedule();

@@ -97,6 +97,29 @@ async function _createOrFetchPlanId(key) {
   return null;
 }
 
+// ── Plan-Daten für Crew-Mitglieder aus PocketBase laden ───────────────────────
+async function loadPlanForCrew() {
+  if (!SUPABASE_ENABLED || !IS_CREW) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  try {
+    const plan = await pbGet('/api/collections/plans/records/' + planId);
+    if (!plan?.plan_data) return;
+    const data = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
+    if (!data?.tourDates) return;
+    crew.length = 0; data.crew.forEach(c => crew.push(c));
+    if (data.positions) { POSITIONS.length = 0; data.positions.forEach(p => POSITIONS.push(p)); }
+    Object.keys(defaultCrew).forEach(k => delete defaultCrew[k]);
+    if (data.defaultCrew) Object.assign(defaultCrew, data.defaultCrew);
+    TOUR_DATES.length = 0; data.tourDates.forEach(d => TOUR_DATES.push(d));
+    Object.keys(assignments).forEach(k => delete assignments[k]);
+    Object.assign(assignments, data.assignments || {});
+    console.log('[crew] Plan-Daten geladen aus PocketBase (' + TOUR_DATES.length + ' Tage)');
+  } catch(e) {
+    console.warn('loadPlanForCrew Fehler:', e.message);
+  }
+}
+
 // ── Crew-Meta laden (E-Mail + user_id pro Crew-Name) ──────────────────────────
 async function loadCrewMeta() {
   if (!SUPABASE_ENABLED) return;
