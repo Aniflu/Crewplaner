@@ -20,8 +20,23 @@ async function _getActivePlanId() {
   const stored = localStorage.getItem(key);
   if (stored) return stored;
 
+  // Crew-Mitglieder sind keine Plan-Besitzer — Plan via crew_members-Email suchen
+  if (IS_CREW) {
+    try {
+      const email = (CURRENT_USER_EMAIL || '').toLowerCase();
+      const found = await pbFirst('crew_members', `email = "${email}"`);
+      if (found?.plan_id) {
+        localStorage.setItem(key, found.plan_id);
+        return found.plan_id;
+      }
+    } catch(e) {
+      console.warn('Crew plan-lookup fehlgeschlagen:', e.message);
+    }
+    return null;
+  }
+
+  // Manager/Admin: Plan per Owner finden oder anlegen
   // Singleton-Promise verhindert Race Condition bei parallelen Aufrufen.
-  // Key-Vergleich stellt sicher, dass nach switchPlan() ein neuer Request gemacht wird.
   if (!_planIdPromise || _planIdPromiseKey !== key) {
     _planIdPromiseKey = key;
     _planIdPromise = _createOrFetchPlanId(key).finally(() => {
