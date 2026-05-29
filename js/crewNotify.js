@@ -98,16 +98,24 @@ function _renderCrewNotifyList() {
       </div>`;
     }
 
+    const newSlots = _getNewSlotsForCrew(name, meta.email);
+    const hasNew = newSlots.length > 0;
+    const safeName = name.replace(/'/g,"\\'");
+
     let badge, btn;
     if (status === 'confirmed') {
       badge = `<span style="font-size:.58rem;color:#4ae8a0;">✅ Bestätigt</span>`;
-      btn = '';
+      btn = hasNew
+        ? `<button class="mbtn sm" onclick="sendUpdate('${safeName}')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
+        : '';
     } else if (status === 'invited_pending') {
       badge = `<span style="font-size:.58rem;color:#e8c84a;">🟡 Eingeladen ${_fmtInviteDate(name)}</span>`;
-      btn = `<button class="mbtn sm" onclick="sendInvite('${name.replace(/'/g,"\\'")}','reminder')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">🔔 Erinnerung</button>`;
+      btn = hasNew
+        ? `<button class="mbtn sm" onclick="sendUpdate('${safeName}')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
+        : `<button class="mbtn sm" onclick="sendInvite('${safeName}','reminder')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">🔔 Erinnerung</button>`;
     } else {
       badge = `<span style="font-size:.58rem;color:#5a6070;">⚪ Nicht eingeladen</span>`;
-      btn = `<button class="mbtn primary sm" onclick="sendInvite('${name.replace(/'/g,"\\'")}','invite')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">📧 Einladen</button>`;
+      btn = `<button class="mbtn primary sm" onclick="sendInvite('${safeName}','invite')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">📧 Einladen</button>`;
     }
 
     const cancelBtn = pendingCount > 0
@@ -148,12 +156,64 @@ async function sendCancellationSummary(crewName) {
   }
 }
 
+// ── Alle Slots eines Crew-Mitglieds ohne bestätigten PB-Record holen ─────────
+function _getNewSlotsForCrew(crewName, crewEmail) {
+  const slots = [];
+  Object.entries(assignments || {}).forEach(([date, positions]) => {
+    Object.entries(positions || {}).forEach(([posId, val]) => {
+      if (val === crewName) {
+        const existing = assignmentStatuses[date]?.[posId];
+        if (!existing || existing.status === 'declined') {
+          const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
+          const day = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []).find(d => d.date === date);
+          const [y,m,d2] = date.split('-');
+          slots.push({ date, posId, crewName, crewEmail,
+            dateLabel: `${d2}.${m}.${y}`, posLabel: pos?.label || posId, loc: day?.loc || '' });
+        }
+      }
+    });
+  });
+  slots.sort((a,b) => a.date.localeCompare(b.date));
+  return slots;
+}
+
 async function sendInvite(crewName, type) {
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
+
+  // Alle nicht-bestätigten Slots auf proposed setzen
+  const slots = [];
+  Object.entries(assignments || {}).forEach(([date, positions]) => {
+    Object.entries(positions || {}).forEach(([posId, val]) => {
+      if (val === crewName) {
+        const existing = assignmentStatuses[date]?.[posId];
+        if (!existing || existing.status !== 'confirmed') {
+          slots.push({ date, posId, crewName, crewEmail: meta.email });
+        }
+      }
+    });
+  });
+  if (slots.length) await bulkProposeCrew(slots);
+
   await sendCrewInvite(crewName, meta.email, type);
   _saveInvite(crewName);
   const label = type === 'reminder' ? 'Erinnerung gesendet ✓' : 'Einladung gesendet ✓';
   showToast(`${crewName}: ${label}`, '#4ae8a0');
+  _renderCrewNotifyList();
+}
+
+async function sendUpdate(crewName) {
+  const meta = crewMeta[crewName] || {};
+  if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
+  const newSlots = _getNewSlotsForCrew(crewName, meta.email);
+  if (!newSlots.length) { showToast('Keine neuen Termine', '#5a6070'); return; }
+  await bulkProposeCrew(newSlots);
+  const updateSlots = newSlots.map(s => ({
+    date: s.dateLabel, posLabel: s.posLabel,
+    changes: [s.loc ? s.loc : 'Neuer Termin']
+  }));
+  await sendUpdateNotice(crewName, meta.email, updateSlots);
+  _saveInvite(crewName);
+  showToast(`${crewName}: Update gesendet ✓`, '#4ae8a0');
   _renderCrewNotifyList();
 }
