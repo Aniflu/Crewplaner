@@ -104,7 +104,11 @@ async function loadPlanForCrew() {
   if (!planId) return;
   try {
     const plan = await pbGet('/api/collections/plans/records/' + planId);
-    if (!plan?.plan_data) return;
+    if (!plan?.plan_data) {
+      console.warn('loadPlanForCrew: plan_data ist leer');
+      if (typeof showToast === 'function') showToast('Plan noch nicht gespeichert — Admin kontaktieren', '#e84a4a');
+      return;
+    }
     const data = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
     if (!data?.tourDates) return;
     crew.length = 0; data.crew.forEach(c => crew.push(c));
