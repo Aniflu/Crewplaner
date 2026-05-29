@@ -27,14 +27,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.6    — Passwortloses Anlegen: kein Passwortfeld, Auto-Reset-Mail, 🔑-Button (aktuell)
+v0.9.9.10 — Crew-Ansicht überarbeitet, PB-Plan-Bereinigung, email case-insensitiv (aktuell)
+v0.9.9.9  — Crew sieht angefragt/bestätigt/abgelehnt pro Spalte, Sidebar-Buttons
+v0.9.9.8  — E-Mail-Log Tab in Admin-Konsole (Hook v4.1 + email_log Collection)
+v0.9.9.7  — PDF-Fix getVal, diverse Bug-Fixes
+v0.9.7    — E-Mail-Log Feature (email_log PB Collection, Hook v4.1)
+v0.9.6    — Passwortloses Anlegen: kein Passwortfeld, Auto-Reset-Mail, 🔑-Button
 v0.9.5    — Partner-Einladungsmail (♥) + Demo-Plan für neue Manager
 v0.9.4    — Einladungssystem + Öffentlicher Booker-View-Link
 v0.9.3    — Security-Fixes + Code-Review
-v0.9.2    — Admin-Konsole Dropdown-Fix + Plan in Touransicht laden
-v0.9.1    — Manager-Konsole + Werkzeuge-Tab + Bug-Fixes
 v0.9.0    — Multi-Rollen-System (RBAC): superadmin, manager, booker, crew
-v0.9.x    — Dynamischer Permission-Builder, Plan-scoped Rollen, User-Einladung aus Admin-Konsole
 v1.0      — Stable Release
 ```
 
@@ -48,25 +50,24 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
-## Aktueller Stand (Stand: 2026-05-20)
+## Aktueller Stand (Stand: 2026-05-29)
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase
-- Multi-Rollen-System: superadmin/manager → admin.html Werkzeuge, superadmin zusätzlich Benutzer/Rollen/Pläne
-- Manager-Konsole (`admin.html`): Werkzeuge-Tab (Crew, E-Mails, PDF, ICS, JSON Import/Export, Logos)
-- Superadmin-Konsole (`admin.html`): + Benutzer verwalten, Rollen, Pläne
-- Plan-Sync: localStorage ↔ PocketBase (plans + plan_data, crew_members)
-- E-Mail-Einladungsflow (Hook v2.0): Bestätigen / Ablehnen per Button in E-Mail
+- Multi-Rollen-System: superadmin/manager → admin.html, crew/booker → index.html
+- Manager-Konsole (`admin.html`): Werkzeuge, E-Mail-Log Tab, Benutzer, Rollen, Pläne
+- E-Mail-Log: Hook v4.1 schreibt nach jedem Mailversand in `email_log` Collection
+- Plan-Sync: localStorage ↔ PocketBase (`plan_data` in plans Collection)
+- **Crew lädt Plan direkt aus PocketBase** — kein localStorage nötig (seit v0.9.9.10)
+- Crew-Ansicht: eigene Slots "Bitte bestätigen", fremde Slots "angefragt"/"bestätigt"/"abgelehnt"
+- Crew Sidebar-Buttons: "Termine bestätigen", "Termine absagen", "Anleitung"
+- E-Mail-Flow (Hook v4.1): Einladung, Erinnerung, Absage, Update mit E-Mail-Log
 - Absage-Queue Banner für Sammel-Absagen
 - Crew-Selbstregistrierung über login.html
 
-### Manuelle PocketBase-Schritte noch ausstehend ⏳
-1. **`plans` Collection → Feld `plan_data` hinzufügen:**
-   - Typ: `JSON` (oder Plain Text), nicht required
-2. **`plans` Collection → API rules:**
-   - List: `@request.auth.role = "superadmin" || @request.auth.id = owner`
-   - View: `@request.auth.id = owner || @request.auth.role = "superadmin"`
-   - Update: `@request.auth.id = owner || @request.auth.role = "superadmin"`
+### PocketBase — aktuell aktive Pläne
+- **Einziger Plan:** `03fs6r1o8cqeyt2` → "AMK Tour 2026_V3" (12 crew_members, 200+ assignments)
+- Alle anderen Pläne wurden bereinigt (2026-05-29)
 
 ### Rollen-System
 | Rolle | Landing | Rechte |
@@ -74,7 +75,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 | `superadmin` | `admin.html` | Admin-Konsole + alle Manager-Rechte |
 | `manager` | `index.html` | Volle Tour-Verwaltung |
 | `booker` | `index.html` | Read-only Touransicht |
-| `crew` | `index.html` | Nur eigene Slots |
+| `crew` | `index.html` | Eigene Slots bestätigen, andere Slots sehen |
 
 ---
 
@@ -161,26 +162,27 @@ Datei in `js/` oder `styles.css` bearbeiten → Browser-Tab neu laden → fertig
 
 **Cache-Bust:** Nach JS/CSS-Änderungen `?v=N` in `index.html` + `login.html` hochzählen.
 
-Aktuelle Versionen (Stand 2026-05-22):
+Aktuelle Versionen (Stand 2026-05-29):
 
-| Datei | Version |
-|---|---|
-| `config.js` | v29 |
-| `pb.js` | v33 |
-| `dataService.js` | v38 |
-| `authService.js` | v34 |
-| `rbac.js` | v1 |
-| `state.js` | v25 |
-| `render.js` | v27 |
-| `dropdown.js` | v28 |
-| `bundle.js` | v30 |
-| `crewNotify.js` | v28 |
-| `crewLink.js` | v24 |
-| `userView.js` | v26 |
-| `plans.js` | v26 |
-| `init.js` | v30 |
-| `tourblock.js` | v25 |
-| alle anderen | v23 |
+| Datei | Version | Anmerkung |
+|---|---|---|
+| `config.js` | v29 | |
+| `pb.js` | v33 | |
+| `dataService.js` | v38 | loadPlanForCrew(), _getActivePlanId() Crew-Fallback |
+| `authService.js` | v34 | IS_CREW-Branch: loadPlanForCrew zuerst |
+| `rbac.js` | v1 | |
+| `state.js` | v25 | |
+| `render.js` | v27 | Crew-Ansicht: angefragt/bestätigt/abgelehnt |
+| `dropdown.js` | v28 | |
+| `bundle.js` | v30 | |
+| `crewNotify.js` | v28 | |
+| `crewLink.js` | v24 | |
+| `userView.js` | v26 | openSlotConfirmModal, bulkConfirmAllMySlots, bulkDeclineAllMySlots |
+| `emailLog.js` | v1 | NEU — renderEmailLog() für admin.html |
+| `plans.js` | v26 | |
+| `init.js` | v30 | |
+| `tourblock.js` | v25 | |
+| alle anderen | v23 | |
 
 ---
 
@@ -233,7 +235,7 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 2. Dieses JSON einfügen (ohne Relation-IDs, alles als text):
 
 ```json
-[{"name":"plans","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"name","type":"text","required":true},{"name":"owner","type":"text"}]},{"name":"plan_members","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text","required":true},{"name":"user_id","type":"text"},{"name":"role","type":"text"}]},{"name":"crew_members","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text","required":true},{"name":"name","type":"text","required":true},{"name":"email","type":"email"},{"name":"sort_order","type":"number"},{"name":"user_id","type":"text"}]},{"name":"assignments","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text","required":true},{"name":"date","type":"text","required":true},{"name":"pos_id","type":"text","required":true},{"name":"pos_label","type":"text"},{"name":"crew_name","type":"text"},{"name":"crew_email","type":"text"},{"name":"status","type":"text"},{"name":"proposed_by","type":"text"},{"name":"responded_at","type":"date"}]},{"name":"crew_invites","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text"},{"name":"crew_name","type":"text","required":true},{"name":"crew_email","type":"email","required":true},{"name":"type","type":"text","required":true},{"name":"plan_name","type":"text"},{"name":"app_url","type":"text"}]}]
+[{"name":"plans","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"name","type":"text","required":true},{"name":"owner","type":"text"},{"name":"plan_data","type":"json"}]},{"name":"plan_members","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text","required":true},{"name":"user_id","type":"text"},{"name":"role","type":"text"}]},{"name":"crew_members","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text","required":true},{"name":"name","type":"text","required":true},{"name":"email","type":"email"},{"name":"sort_order","type":"number"},{"name":"user_id","type":"text"}]},{"name":"assignments","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text","required":true},{"name":"date","type":"text","required":true},{"name":"pos_id","type":"text","required":true},{"name":"pos_label","type":"text"},{"name":"crew_name","type":"text"},{"name":"crew_email","type":"text"},{"name":"status","type":"text"},{"name":"proposed_by","type":"text"},{"name":"responded_at","type":"date"}]},{"name":"crew_invites","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text"},{"name":"crew_name","type":"text","required":true},{"name":"crew_email","type":"email","required":true},{"name":"type","type":"text","required":true},{"name":"plan_name","type":"text"},{"name":"app_url","type":"text"}]},{"name":"email_log","type":"base","listRule":"@request.auth.id != \"\"","viewRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\"","updateRule":"","deleteRule":"@request.auth.id != \"\"","fields":[{"name":"plan_id","type":"text"},{"name":"crew_name","type":"text"},{"name":"crew_email","type":"text"},{"name":"email_type","type":"text"},{"name":"sent_at","type":"text"},{"name":"success","type":"text"}]}]
 ```
 
 3. **"Merge with existing collections"** anhaken
@@ -243,8 +245,8 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Daten gehen NICHT verloren — SQLite-Tables bleiben. Nur die Collection-Definitionen fehlen.
 > `pb_schema.json` im Repo ist NICHT direkt verwendbar (enthält alte Relation-IDs `pbc_1736455494`).
 
-Aktuell deployte Hook-Version: **v3.9** (e.next() in allen Hooks, kein Record-Delete, $app.save/delete statt dao)
-Danach in Docker-Logs prüfen: `[hook] main.pb.js v2.8 geladen`
+Aktuell deployte Hook-Version: **v4.1** (email_log-Write nach jedem Mailversand)
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.1 geladen`
 
 ### Docker-Logs live beobachten
 
@@ -269,23 +271,26 @@ Hook sendet via Resend HTTP API (kein SMTP, umgeht Hetzner IP-Reputation-Problem
 
 ```
 ├── index.html            ← HTML-Gerüst + <script> Ladereihenfolge (kritisch!)
+├── admin.html            ← Manager/Superadmin-Konsole (Werkzeuge, E-Mail-Log, Benutzer, Pläne)
 ├── login.html            ← Login-Seite (Pocketbase Auth)
 ├── view.html             ← Öffentliche Read-only-Ansicht (kein Login, Token-basiert)
 ├── styles.css
 ├── .pb_hooks/
-│   └── main.pb.js        ← Server-seitige E-Mail-Hooks (Pocketbase Goja-Engine) — v2.0
+│   └── main.pb.js        ← Server-seitige E-Mail-Hooks (Pocketbase Goja-Engine) — v4.1
 ├── pocketbase/
 │   └── pb_schema.json    ← Collections-Schema für Pocketbase-Import
 └── js/
     ├── config.js         ← POCKETBASE_URL, ADMIN_EMAIL, SUPABASE_ENABLED
     ├── pb.js             ← Pocketbase REST-Client (pbGet, pbPost, pbPatch, pbDelete, pbList, pbFirst, pbUpsert)
-    ├── dataService.js    ← Pocketbase CRUD: proposeCrew, cancelProposal, bulkProposeCrew, loadCrewMeta, loadAssignmentStatuses
-    ├── authService.js    ← Login/Logout, JWT aus localStorage, IS_ADMIN, _handleEmailAction()
+    ├── dataService.js    ← Pocketbase CRUD: proposeCrew, loadCrewMeta, loadAssignmentStatuses, loadPlanForCrew
+    ├── authService.js    ← Login/Logout, JWT, IS_CREW-Branch für Plan-Laden, _handleEmailAction()
     ├── state.js          ← Globale Variablen: POSITIONS, TOUR_DATES, crew, assignments, assignmentStatuses
     ├── utils.js          ← getVal(), isPending(), showToast(), fmtD(), genId(), esc()
-    ├── render.js         ← renderTable(), renderHead(), renderBody()
+    ├── render.js         ← renderTable(), renderHead(), renderBody() — Crew-Ansicht mit Status-Labels
     ├── bundle.js         ← ⚠️ MANUELLE KOPIE aus dropdown.js (kein Build-Tool!) — siehe unten
     ├── dropdown.js       ← showDD(), openCrewDD(), openDefaultDD(), requestForPos(), bulkCancelPos()
+    ├── userView.js       ← Crew: openSlotConfirmModal(), bulkConfirmAllMySlots(), bulkDeclineAllMySlots()
+    ├── emailLog.js       ← Admin: renderEmailLog() — lädt email_log Collection aus PB
     ├── init.js           ← App-Start: loadLogosGlobal(), initPlans(), render()
     └── ...               ← blockview, crewview, plans, pdf, persistence, sidebar, stats, tourblock, types
 ```
@@ -365,14 +370,17 @@ nicht ankommen. Nichts kaputt — User muss Spam-Ordner prüfen.
 ## Pocketbase Collections
 
 ```
-plans           { id, name, owner(→users) }
+plans           { id, name, owner(→users), plan_data(JSON) }
 plan_members    { plan_id(→plans), user_id(→users), role }
 crew_members    { plan_id(→plans), name, email, sort_order, user_id(→users) }
 assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
 crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url }
+email_log       { plan_id, crew_name, crew_email, email_type, sent_at, success }
 ```
 
 Assignment-Status-Werte: `proposed` → `confirmed` | `declined`
+
+email_type-Werte: `invite` | `reminder` | `cancellation` | `update` | `love_invite` | `staff_invite`
 
 ---
 

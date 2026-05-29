@@ -3,7 +3,7 @@
 **Live-App:** https://crewplanner.nyxlightwork.de
 **Login:** https://crewplanner.nyxlightwork.de/login.html
 
-Crew-Scheduling-App für Tourneen. Der Admin weist Crew-Mitglieder pro Position und Tag zu, Crew bestätigt oder lehnt ab — Benachrichtigungen per E-Mail via Pocketbase-Hook.
+Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und Tag zu, Crew bestätigt oder lehnt per App oder E-Mail-Button ab — Benachrichtigungen via Pocketbase-Hook (Resend).
 
 ## Version
 
@@ -13,19 +13,28 @@ Crew-Scheduling-App für Tourneen. Der Admin weist Crew-Mitglieder pro Position 
 
 - Vanilla JavaScript (kein Framework, kein Build-Step)
 - HTML5 + CSS3
-- localStorage (Plan-Daten, client-seitig)
-- [Pocketbase](https://pocketbase.io) — Auth, SQLite-Datenbank, E-Mail-Hooks
-- GitHub Pages — statisches Hosting
+- [PocketBase](https://pocketbase.io) — Auth, SQLite-Datenbank, JS-Hooks für E-Mails
+- [Resend](https://resend.com) — E-Mail-Versand via HTTP API
+- GitHub Pages — statisches Frontend-Hosting
 
 ## Infrastruktur
 
 | Was | Wert |
 |---|---|
-| Live | https://crewplanner.nyxlightwork.de |
-| Pocketbase API | https://crewplanner.nyxlightwork.de |
-| Pocketbase Admin UI | https://crewplanner.nyxlightwork.de/_/ |
+| Frontend (Live) | https://crewplanner.nyxlightwork.de |
+| PocketBase API | https://api.crewplanner.nyxlightwork.de |
+| PocketBase Admin UI | https://api.crewplanner.nyxlightwork.de/_/ |
 | GitHub Repo | https://github.com/Aniflu/Crewplaner |
-| Server SSH | `root@crewplanner.nyxlightwork.de` |
+| Server SSH | `ssh hetzner` (Admin only) |
+
+## Rollen
+
+| Rolle | Zugang | Rechte |
+|---|---|---|
+| `superadmin` | admin.html | Alles |
+| `manager` | index.html | Tour verwalten, Crew einladen |
+| `booker` | index.html | Read-only |
+| `crew` | index.html | Eigene Slots bestätigen/ablehnen |
 
 ## Lokale Entwicklung
 
@@ -44,41 +53,10 @@ git push origin main
 
 GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 
-## Rollback
+## PocketBase Hook deployen
 
 ```bash
-git checkout v2.1-stable
-git push origin main --force
+ssh hetzner "curl -s -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
+  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
 ```
-
-## Dokumentation
-
-- **[Benutzer-Anleitung](docs/user/getting-started.md)** - Erste Schritte und grundlegende Nutzung
-- **[Sicherheitsrichtlinien](docs/security.md)** - Datenschutz, Zugriffsrechte und Best Practices
-- **[Datenbank-Struktur](docs/database-schema.md)** - Schema-Definitionen und ER-Modelle
-- **[FAQ](docs/faq.md)** - Häufige Fragen und Troubleshooting
-
-## Features & Roadmap
-
-### Aktuelle Features
-- **Ressourcenplanung**: Intuitive Zuordnung von Touren und Mitarbeitern
-- **Echtzeit-Synchronisation**: Änderungen spiegeln sich sofort wider
-- **Automatisierung**: Regelmäßige Aufgaben und intelligente Erinnerungen
-- **Reporting & Analytics**: Detaillierte Exporte (CSV, PDF, Excel)
-- **API-Integration**: RESTful API für externe Systeme
-- **Berechtigungen**: Granulare Rollen und Zugriffslevel
-- **Dashboard**: Live-Überblick über Kapazitäten und Auslastung
-
-### Roadmap
-- [x] MVP Release & Initialer Launch
-- [x] Beta-Tester-Feedback Integration
-- [ ] **Mobile App Q3 2026** (iOS & Android)
-- [ ] KI-gestützte Planungsvorschläge
-- [ ] Multi-Sprachunterstützung (DE, EN, FR)
-- [ ] Dark Mode & themenbasiertes Design
-
-## Support & Kontakt
-
-- **Support E-Mail:** support@personalplan.example.com
-- **GitHub Issues:** [Fehler melden & Feature-Requests](https://github.com/Personalplan/issues)
-- **Live Chat:** [Chat starten](https://chat.personalplan.example.com)
