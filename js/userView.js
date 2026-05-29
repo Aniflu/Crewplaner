@@ -231,7 +231,7 @@ function _queueCrewUpdate(dateStr, changeDesc) {
   let affected = 0;
   const q = _getCrewUpdateQueue();
   Object.entries(day).forEach(([posId, si]) => {
-    if (si.status !== 'confirmed') return;
+    if (si.status !== 'confirmed' && si.status !== 'proposed') return;
     const meta = crewMeta[si.crewName] || {};
     if (!meta.email) return;
     if (!q[si.crewName]) q[si.crewName] = { email: meta.email, slots: [] };
@@ -274,7 +274,22 @@ function _queueGlobalCrewUpdate(changeDesc) {
 function _updateCrewUpdateBar() {
   const bar = document.getElementById('crewUpdateBar');
   if (!bar) return;
-  const n = Object.keys(_getCrewUpdateQueue()).length;
+  const q = _getCrewUpdateQueue();
+  // Queue mit fehlenden proposed-Mitgliedern ergänzen (Migration alter Queues)
+  if (Object.keys(q).length > 0) {
+    let changed = false;
+    Object.entries(assignmentStatuses || {}).forEach(([dateStr, positions]) => {
+      Object.entries(positions).forEach(([posId, si]) => {
+        if (si.status !== 'proposed' || q[si.crewName]) return;
+        const meta = crewMeta[si.crewName] || {};
+        if (!meta.email) return;
+        q[si.crewName] = { email: meta.email, informational: true, slots: [] };
+        changed = true;
+      });
+    });
+    if (changed) _saveCrewUpdateQueue(q);
+  }
+  const n = Object.keys(q).length;
   bar.style.display = IS_MANAGER && n > 0 ? 'flex' : 'none';
   const cnt = document.getElementById('crewUpdateCount');
   if (cnt) cnt.textContent = n;
