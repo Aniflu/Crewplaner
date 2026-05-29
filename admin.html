@@ -1160,32 +1160,10 @@ function _adminPlanAction(action) {
 function loadPlanIntoTourview() {
   if (!_wrkPlanData) { adminToast('Kein Plan geladen', '#e84a4a'); return; }
 
-  // Prüfen ob dieser PB-Plan schon eine lokale ID hat
-  let localId = null;
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key?.startsWith('tourplan_pb_') && localStorage.getItem(key) === _wrkPbPlanId) {
-      localId = key.replace('tourplan_pb_', '');
-      break;
-    }
-  }
-  if (!localId) localId = 'p' + Date.now().toString(36);
-
-  // Plan-Daten in localStorage speichern
-  localStorage.setItem('tourplan_plan_' + localId, JSON.stringify(_wrkPlanData));
-  localStorage.setItem('tourplan_pb_' + localId, _wrkPbPlanId);
-
-  // Pläne-Index aktualisieren
-  let plans = [];
-  try { plans = JSON.parse(localStorage.getItem('tourplan_plans') || '[]'); } catch {}
-  if (!plans.find(p => p.id === localId)) {
-    const today = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'2-digit'});
-    plans.push({ id: localId, name: _wrkPlanName, created: today, modified: today });
-    localStorage.setItem('tourplan_plans', JSON.stringify(plans));
-  }
-
-  // Aktiven Plan merken → init.js konsumiert diesen beim Start
-  localStorage.setItem('tourplan_active_plan', localId);
+  // Plan direkt via sessionStorage übergeben — zuverlässiger als localStorage-Kette
+  sessionStorage.setItem('crewplan_transfer_data', JSON.stringify(_wrkPlanData));
+  sessionStorage.setItem('crewplan_transfer_name', _wrkPlanName || 'Plan');
+  sessionStorage.setItem('crewplan_transfer_pbid', _wrkPbPlanId || '');
   window.location.href = 'index.html';
 }
 

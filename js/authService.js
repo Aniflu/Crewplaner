@@ -38,6 +38,27 @@ async function _authCheckAndStart() {
     IS_ADMIN           = IS_MANAGER; // backwards compat
     _showUserBadge(user);
     document.body.style.visibility = 'visible';
+
+    // Plan-Transfer von admin.html via sessionStorage anwenden (vor startApp)
+    const _transferData = sessionStorage.getItem('crewplan_transfer_data');
+    if (_transferData && IS_MANAGER) {
+      try {
+        const _td = JSON.parse(_transferData);
+        const _tn = sessionStorage.getItem('crewplan_transfer_name') || 'Plan';
+        const _tp = sessionStorage.getItem('crewplan_transfer_pbid') || '';
+        sessionStorage.removeItem('crewplan_transfer_data');
+        sessionStorage.removeItem('crewplan_transfer_name');
+        sessionStorage.removeItem('crewplan_transfer_pbid');
+        // In localStorage speichern damit startApp() + _savePlanToLS() funktionieren
+        const _tid = 'p' + Date.now().toString(36);
+        localStorage.setItem('tourplan_plan_' + _tid, _transferData);
+        if (_tp) localStorage.setItem('tourplan_pb_' + _tid, _tp);
+        const _today = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'2-digit'});
+        localStorage.setItem('tourplan_plans', JSON.stringify([{id:_tid, name:_tn, created:_today, modified:_today}]));
+        localStorage.setItem('tourplan_active_plan', _tid);
+      } catch(e) { console.warn('Plan-Transfer Fehler:', e); }
+    }
+
     startApp();
 
     // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
