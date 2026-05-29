@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.9.20**
+- Aktuelle Version: **v0.9.9.21**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.9.20 — Kurzlink (is.gd) via Hook v4.4, Crew-Anleitung aktualisiert, emailVisibility fix, defaultCrew-Slots (aktuell)
+v0.9.9.21 — Kurzlink (is.gd) via Hook v4.4, Crew-Anleitung aktualisiert, emailVisibility fix, defaultCrew-Slots (aktuell)
 v0.9.9.19 — debug logs + cache-bust für Plan-Transfer debugging
 v0.9.9.18 — Plan-Transfer via sessionStorage (admin→index), loadPlanForManager direkt per owner
 v0.9.9.17 — Manager lädt Plan aus PocketBase, "Aktuellen Plan bearbeiten"-Button

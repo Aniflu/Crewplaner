@@ -7,7 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
-**v0.9.9.20** — Kurzlink (is.gd), Hook v4.4, Crew-Anleitung, emailVisibility
+**v0.9.9.21** — Kurzlink (is.gd), Hook v4.4, Crew-Anleitung, emailVisibility
 
 ## Tech-Stack
 
