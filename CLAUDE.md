@@ -27,15 +27,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.9.14 — Crew-Ansicht überarbeitet, PB-Plan-Bereinigung, email case-insensitiv (aktuell)
-v0.9.9.9  — Crew sieht angefragt/bestätigt/abgelehnt pro Spalte, Sidebar-Buttons
+v0.9.9.14 — Manager lädt Plan aus PocketBase, "Aktuellen Plan bearbeiten"-Button (aktuell)
+v0.9.9.13 — Hook v4.3 (Absage-Email umformuliert), vollständiger Workflow-Audit
+v0.9.9.12 — Namen mit Statusfarben in Crew-Ansicht + grau für plan-only Einträge
+v0.9.9.11 — Hook v4.2 (per-Slot-Emails entfernt), Einladen=Anfrage, Update-Button
+v0.9.9.10 — getMyCrewName() case-insensitiv, PB-Plan direkt für Crew, PB-Bereinigung
+v0.9.9.9  — Crew-Ansicht: angefragt/bestätigt/abgelehnt, Sidebar-Buttons, Legende
 v0.9.9.8  — E-Mail-Log Tab in Admin-Konsole (Hook v4.1 + email_log Collection)
-v0.9.9.7  — PDF-Fix getVal, diverse Bug-Fixes
-v0.9.7    — E-Mail-Log Feature (email_log PB Collection, Hook v4.1)
 v0.9.6    — Passwortloses Anlegen: kein Passwortfeld, Auto-Reset-Mail, 🔑-Button
 v0.9.5    — Partner-Einladungsmail (♥) + Demo-Plan für neue Manager
 v0.9.4    — Einladungssystem + Öffentlicher Booker-View-Link
-v0.9.3    — Security-Fixes + Code-Review
 v0.9.0    — Multi-Rollen-System (RBAC): superadmin, manager, booker, crew
 v1.0      — Stable Release
 ```
@@ -50,23 +51,33 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
-## Aktueller Stand (Stand: 2026-05-29)
+## Aktueller Stand (Stand: 2026-05-30)
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase
 - Multi-Rollen-System: superadmin/manager → admin.html, crew/booker → index.html
 - Manager-Konsole (`admin.html`): Werkzeuge, E-Mail-Log Tab, Benutzer, Rollen, Pläne
-- E-Mail-Log: Hook v4.1 schreibt nach jedem Mailversand in `email_log` Collection
-- Plan-Sync: localStorage ↔ PocketBase (`plan_data` in plans Collection)
-- **Crew lädt Plan direkt aus PocketBase** — kein localStorage nötig (seit v0.9.9.14)
-- Crew-Ansicht: eigene Slots "Bitte bestätigen", fremde Slots "angefragt"/"bestätigt"/"abgelehnt"
-- Crew Sidebar-Buttons: "Termine bestätigen", "Termine absagen", "Anleitung"
-- E-Mail-Flow (Hook v4.1): Einladung, Erinnerung, Absage, Update mit E-Mail-Log
+- **Manager + Crew laden Plan direkt aus PocketBase** — localStorage optional (seit v0.9.9.14)
+- E-Mail-Log: Hook v4.3 schreibt nach jedem Mailversand in `email_log` Collection
+- E-Mail-Flow: Einladung (1 Mail/Person), Erinnerung, Update (neue Termine), Absage
+- Einladen = setzt alle Slots auf `proposed` + sendet 1 Invite-Mail (kein per-Slot-Hook mehr)
+- Update-Button erscheint wenn neue Slots ohne PB-Record vorhanden
+- Crew-Ansicht: eigene Slots "Bitte bestätigen", fremde Slots mit Name + Statusfarbe (grün/orange/rot)
+- Crew Sidebar: "Termine bestätigen", "Termine absagen", "Anleitung" + Farbelegende
+- "Aktuellen Plan bearbeiten"-Button in admin.html → überträgt Plan korrekt in Tourview
 - Absage-Queue Banner für Sammel-Absagen
-- Crew-Selbstregistrierung über login.html
+
+### E-Mail-Typen (Hook v4.3)
+| Typ | Wann | Empfänger |
+|---|---|---|
+| `invite` | Admin klickt "Einladen" | Crew — "Du bist dabei." |
+| `reminder` | Admin klickt "Erinnerung" | Crew — "Noch ausstehend." |
+| `update` | Admin klickt "↻ Update" | Crew — "Achtung. Neue Termine." |
+| `cancellation` | Admin klickt "Absagen senden" | Crew — "Plan geändert. Einsätze entfernt." |
+| UPDATE-Hook | Crew lehnt Slot ab | Admin — "Abgelehnt." |
 
 ### PocketBase — aktuell aktive Pläne
-- **Einziger Plan:** `03fs6r1o8cqeyt2` → "AMK Tour 2026_V3" (12 crew_members, 200+ assignments)
+- **Einziger Plan:** `03fs6r1o8cqeyt2` → "AMK Tour 2026_V3" (12 crew_members, 300+ assignments)
 - Alle anderen Pläne wurden bereinigt (2026-05-29)
 
 ### Rollen-System
@@ -162,23 +173,23 @@ Datei in `js/` oder `styles.css` bearbeiten → Browser-Tab neu laden → fertig
 
 **Cache-Bust:** Nach JS/CSS-Änderungen `?v=N` in `index.html` + `login.html` hochzählen.
 
-Aktuelle Versionen (Stand 2026-05-29):
+Aktuelle Versionen (Stand 2026-05-30):
 
 | Datei | Version | Anmerkung |
 |---|---|---|
 | `config.js` | v29 | |
 | `pb.js` | v33 | |
-| `dataService.js` | v38 | loadPlanForCrew(), _getActivePlanId() Crew-Fallback |
-| `authService.js` | v34 | IS_CREW-Branch: loadPlanForCrew zuerst |
+| `dataService.js` | v38 | loadPlanForCrew(), loadPlanForManager(), _getActivePlanId() mit Crew/Manager-Fallback |
+| `authService.js` | v34 | loadPlanForManager() für IS_MANAGER, loadPlanForCrew() für IS_CREW |
 | `rbac.js` | v1 | |
 | `state.js` | v25 | |
-| `render.js` | v27 | Crew-Ansicht: angefragt/bestätigt/abgelehnt |
-| `dropdown.js` | v28 | |
-| `bundle.js` | v30 | |
-| `crewNotify.js` | v28 | |
+| `render.js` | v27 | Crew: Namen mit Statusfarbe, nur eigene Slots editierbar |
+| `dropdown.js` | v28 | "📧 anfragen"-Button entfernt |
+| `bundle.js` | v30 | "📧 anfragen"-Button entfernt (gespiegelt) |
+| `crewNotify.js` | v29 | sendInvite=bulkPropose+Mail, sendUpdate, _getNewSlotsForCrew |
 | `crewLink.js` | v24 | |
-| `userView.js` | v26 | openSlotConfirmModal, bulkConfirmAllMySlots, bulkDeclineAllMySlots |
-| `emailLog.js` | v1 | NEU — renderEmailLog() für admin.html |
+| `userView.js` | v27 | openSlotConfirmModal, bulkConfirmAllMySlots, bulkDeclineAllMySlots |
+| `emailLog.js` | v1 | renderEmailLog() für admin.html |
 | `plans.js` | v26 | |
 | `init.js` | v30 | |
 | `tourblock.js` | v25 | |
@@ -245,8 +256,11 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Daten gehen NICHT verloren — SQLite-Tables bleiben. Nur die Collection-Definitionen fehlen.
 > `pb_schema.json` im Repo ist NICHT direkt verwendbar (enthält alte Relation-IDs `pbc_1736455494`).
 
-Aktuell deployte Hook-Version: **v4.1** (email_log-Write nach jedem Mailversand)
-Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.1 geladen`
+Aktuell deployte Hook-Version: **v4.3**
+- v4.1: email_log-Write nach jedem Mailversand
+- v4.2: assignments CREATE-Hook entfernt (keine per-Slot-Emails mehr)
+- v4.3: Absage-Email umformuliert ("Plan geändert")
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.3 geladen`
 
 ### Docker-Logs live beobachten
 
