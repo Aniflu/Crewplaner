@@ -17,7 +17,8 @@ async function renderEmailLog() {
   }
   container.innerHTML = '<p style="font-size:.65rem;color:#5a6070;">Lädt…</p>';
   try {
-    const records = await pbList('email_log', 'plan_id="' + _wrkPbPlanId + '"', '-sent_at', 200);
+    const res = await pbList('email_log', 'plan_id="' + _wrkPbPlanId + '"', '-sent_at', 200);
+    const records = res?.items || [];
     if (!records.length) {
       container.innerHTML = '<p style="font-size:.65rem;color:#5a6070;">Noch keine E-Mails für diesen Plan.</p>';
       return;
