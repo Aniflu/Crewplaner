@@ -27,8 +27,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.9.26 — Kurzlink (is.gd) via Hook v4.4, Crew-Anleitung aktualisiert, emailVisibility fix, defaultCrew-Slots (aktuell)
-v0.9.9.19 — debug logs + cache-bust für Plan-Transfer debugging
+v0.9.9.26 — Code-Review: _findAssignment-Bug, ISO-Datum mailSlot, update-email zeigt nur neue Termine (aktuell)
+v0.9.9.25 — PB-Records für neue Termine bei Update-Mail-Versand erstellt
+v0.9.9.24 — Update-Mail-Queue erstellt proposed-Records vor Mailversand
+v0.9.9.23 — Update-Queue zählt proposed-Crew (nicht nur confirmed), auto-migration
+v0.9.9.22 — Update-Mail zeigt nur neue Termine statt alle Slots
+v0.9.9.21 — Nachbereitung als Tagestyp (prep, orange, 1 TS)
+v0.9.9.20 — tourplan_active_pb_id stabiler PB-Sync-Key, Datum-Hinzufügen fix
+v0.9.9.19 — Kurzlink (is.gd) via Hook v4.4, Crew-Anleitung, emailVisibility, defaultCrew-Slots
 v0.9.9.18 — Plan-Transfer via sessionStorage (admin→index), loadPlanForManager direkt per owner
 v0.9.9.17 — Manager lädt Plan aus PocketBase, "Aktuellen Plan bearbeiten"-Button
 v0.9.9.13 — Hook v4.3 (Absage-Email umformuliert), vollständiger Workflow-Audit
@@ -54,7 +60,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
-## Aktueller Stand (Stand: 2026-06-01)
+## Aktueller Stand (Stand: 2026-06-02)
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase
@@ -73,6 +79,10 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 - Crew-Anleitung aktualisiert (docs/guide-crew.html) — neuer Flow "Bitte bestätigen"
 - Benutzer-Verwaltung zeigt E-Mail-Adressen (emailVisibility: true für alle gesetzt)
 - Absage-Queue Banner für Sammel-Absagen
+- Update-Mail-Flow: nur neue Termine in Mail, proposed+confirmed in Queue, PB-Records werden beim Senden erstellt
+- Nachbereitung als Tagestyp (prep, orange, 1 TS) in TYPE_OPTS
+- tourplan_active_pb_id als stabiler Fallback-Key für PB-Sync (Datum-Hinzufügen zuverlässig)
+- Code-Review: _findAssignment-Bug gefixt (→ pbFirst), ISO-Datum in mailSlots
 
 ### Bekannte Einschränkung
 - Slots die NUR über `defaultCrew` (nicht explizit in `assignments`) befüllt sind,
@@ -91,6 +101,13 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 | fliegendekiwi@live.de | crew | — noch nicht registriert |
 | pascalsmirat@web.de | crew | — noch nicht registriert |
 | kerrin.gall@outlook.de | crew | — noch nicht registriert |
+
+### Update-Mail-Flow (v0.9.9.22+)
+- Banner "UPDATE-MAILS SENDEN →" erscheint wenn Datum hinzugefügt wird
+- Queue enthält confirmed + proposed Crew-Mitglieder
+- Beim Senden: neue PB-Records (proposed) werden erstellt, dann Mail nur mit NEUEN Terminen
+- Informational-Pfad: `_getNewSlotsForCrew` liefert Slots ohne PB-Record → `bulkProposeCrew` → Mail
+- Nicht-Informational-Pfad (Slot-Änderung): `pbFirst` sucht Record → auf proposed setzen → Mail
 
 ### E-Mail-Typen (Hook v4.4)
 | Typ | Wann | Empfänger |
