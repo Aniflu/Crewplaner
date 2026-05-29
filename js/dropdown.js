@@ -116,16 +116,7 @@ function openCrewDD(e,dateStr,posId){
     }});
   }
   if(!si&&current&&current!==OFFEN&&current!==OFFDAY&&current!==REISE_TAG&&current!==AUSSCHREIBEN){
-    const _reqMeta=SUPABASE_ENABLED?(crewMeta[current]||null):null;
-    if(_reqMeta?.email){
-      items.push({label:`📧 ${current} anfragen`,color:'#e8c84a',action:async()=>{
-        closeDD();
-        try{await proposeCrew(dateStr,posId,current,_reqMeta.email);showToast(`${current} angefragt ✓`,'#4ae8a0');renderTable();}
-        catch(e){showToast('Anfrage-Fehler: '+e.message,'#e84a4a');}
-      }});
-    } else if(SUPABASE_ENABLED){
-      items.push({label:`📧 ${current} — kein E-Mail`,cls:'disabled',color:'#5a6070',action:()=>{}});
-    }
+    if(false){// Anfragen nur über Crew-Notify-Modal (Einladen-Button)
   }
   const _applyState=async(val)=>{
     closeDD();
