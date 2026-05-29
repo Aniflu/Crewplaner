@@ -2,9 +2,10 @@
 
 function getMyCrewName() {
   if (!SUPABASE_ENABLED || !CURRENT_USER_ID) return null;
+  const myEmail = (CURRENT_USER_EMAIL || '').toLowerCase();
   return Object.keys(crewMeta).find(n =>
     crewMeta[n]?.userId === CURRENT_USER_ID ||
-    crewMeta[n]?.email === CURRENT_USER_EMAIL
+    (crewMeta[n]?.email || '').toLowerCase() === myEmail
   ) || null;
 }
 
