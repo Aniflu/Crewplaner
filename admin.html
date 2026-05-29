@@ -8,6 +8,7 @@
 <script src="js/pb.js?v=33"></script>
 <script src="js/config.js?v=29"></script>
 <script src="js/pdf.js?v=27"></script>
+<script src="js/emailLog.js?v=1"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -455,6 +456,7 @@ body {
   <button class="nav-tab superadmin-only" data-tab="users" onclick="switchTab('users')" style="display:none;">Benutzer</button>
   <button class="nav-tab superadmin-only" data-tab="roles" onclick="switchTab('roles')" style="display:none;">Rollen</button>
   <button class="nav-tab superadmin-only" data-tab="plans" onclick="switchTab('plans')" style="display:none;">Pläne</button>
+  <button class="nav-tab" data-tab="emaillog" onclick="switchTab('emaillog'); renderEmailLog()">E-Mail-Log</button>
 </div>
 
 <div class="admin-content">
@@ -735,6 +737,15 @@ body {
         <tr><td colspan="4" class="loading">Lädt…</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <!-- E-MAIL-LOG -->
+  <div class="section" id="tabEmaillog">
+    <div class="section-title">E-Mail-Log</div>
+    <div class="section-sub">Alle für diesen Plan versendeten E-Mails</div>
+    <div id="emailLogBody" style="margin-top:16px;">
+      <p style="font-size:.65rem;color:#5a6070;">Tab anklicken um zu laden.</p>
+    </div>
   </div>
 
 </div><!-- admin-content -->
