@@ -156,25 +156,29 @@ async function sendCancellationSummary(crewName) {
   }
 }
 
-// ── Alle Slots eines Crew-Mitglieds ohne bestätigten PB-Record holen ─────────
-function _getNewSlotsForCrew(crewName, crewEmail) {
+// ── Alle Slots eines Crew-Mitglieds via getVal() (inkl. defaultCrew) ─────────
+function _getAllSlotsForCrew(crewName, crewEmail) {
   const slots = [];
-  Object.entries(assignments || {}).forEach(([date, positions]) => {
-    Object.entries(positions || {}).forEach(([posId, val]) => {
+  const _dates = typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : [];
+  const _pos   = typeof POSITIONS  !== 'undefined' ? POSITIONS  : [];
+  _dates.forEach(day => {
+    _pos.forEach(pos => {
+      const val = typeof getVal === 'function' ? getVal(day.date, pos.id) : '';
       if (val === crewName) {
-        const existing = assignmentStatuses[date]?.[posId];
-        if (!existing || existing.status === 'declined') {
-          const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
-          const day = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []).find(d => d.date === date);
-          const [y,m,d2] = date.split('-');
-          slots.push({ date, posId, crewName, crewEmail,
-            dateLabel: `${d2}.${m}.${y}`, posLabel: pos?.label || posId, loc: day?.loc || '' });
-        }
+        const [y,m,d2] = day.date.split('-');
+        slots.push({ date: day.date, posId: pos.id, crewName, crewEmail,
+          dateLabel: `${d2}.${m}.${y}`, posLabel: pos.label || pos.id, loc: day.loc || '' });
       }
     });
   });
-  slots.sort((a,b) => a.date.localeCompare(b.date));
   return slots;
+}
+
+function _getNewSlotsForCrew(crewName, crewEmail) {
+  return _getAllSlotsForCrew(crewName, crewEmail).filter(s => {
+    const existing = assignmentStatuses[s.date]?.[s.posId];
+    return !existing || existing.status === 'declined';
+  });
 }
 
 async function sendInvite(crewName, type) {
@@ -182,18 +186,11 @@ async function sendInvite(crewName, type) {
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
 
   // Alle nicht-bestätigten Slots auf proposed setzen
-  const slots = [];
-  Object.entries(assignments || {}).forEach(([date, positions]) => {
-    Object.entries(positions || {}).forEach(([posId, val]) => {
-      if (val === crewName) {
-        const existing = assignmentStatuses[date]?.[posId];
-        if (!existing || existing.status !== 'confirmed') {
-          slots.push({ date, posId, crewName, crewEmail: meta.email });
-        }
-      }
-    });
+  const allSlots = _getAllSlotsForCrew(crewName, meta.email).filter(s => {
+    const existing = assignmentStatuses[s.date]?.[s.posId];
+    return !existing || existing.status !== 'confirmed';
   });
-  if (slots.length) await bulkProposeCrew(slots);
+  if (allSlots.length) await bulkProposeCrew(allSlots);
 
   await sendCrewInvite(crewName, meta.email, type);
   _saveInvite(crewName);
