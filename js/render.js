@@ -118,6 +118,8 @@ function renderBody(){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);">📋 Bewerben</button>`;
       }else if(IS_CREW&&si&&si.crewName!==myName){
         b+=`<span style="font-size:.6rem;color:#5a6070;display:block;text-align:center;">angefragt</span>`;
+      }else if(IS_CREW&&si&&si.crewName===myName){
+        b+=`<span class="${cls}" style="${style};cursor:default;">${display}</span>`;
       }else if(IS_MANAGER||!SUPABASE_ENABLED){
         b+=`<button class="${cls}" style="${style}" onclick="openCrewDD(event,'${row.date}','${p.id}')">${display}</button>`;
       }else if(IS_BOOKER){
