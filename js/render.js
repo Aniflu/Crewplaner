@@ -117,9 +117,9 @@ function renderBody(){
       }else if(isAusschreibenSlot){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);">📋 Bewerben</button>`;
       }else if(IS_CREW&&si&&si.crewName!==myName){
-        if(si.status==='confirmed'){b+=`<span style="font-size:.6rem;color:#4ae8a0;display:block;text-align:center;">bestätigt</span>`;}
-        else if(si.status==='declined'){b+=`<span style="font-size:.6rem;color:#e84a4a;display:block;text-align:center;">abgelehnt</span>`;}
-        else{b+=`<span style="font-size:.6rem;color:#e8c84a;display:block;text-align:center;">angefragt</span>`;}
+        if(si.status==='confirmed'){b+=`<span style="font-size:.6rem;color:#4ae8a0;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
+        else if(si.status==='declined'){b+=`<span style="font-size:.6rem;color:#e84a4a;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
+        else{b+=`<span style="font-size:.6rem;color:#e8c84a;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
       }else if(IS_CREW&&si&&si.crewName===myName){
         b+=`<span class="${cls}" style="${style};cursor:default;">${display}</span>`;
       }else if(IS_MANAGER||!SUPABASE_ENABLED){
