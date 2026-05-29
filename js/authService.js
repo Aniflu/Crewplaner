@@ -40,9 +40,12 @@ async function _authCheckAndStart() {
     document.body.style.visibility = 'visible';
     startApp();
 
+    // Für Manager: Plan aus PB nur laden wenn startApp() keinen Plan aus localStorage geladen hat
+    const managerNeedsPBLoad = IS_MANAGER && (typeof TOUR_DATES === 'undefined' || TOUR_DATES.length === 0);
     const loadAll = IS_CREW
       ? loadPlanForCrew().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]))
-      : loadPlanForManager().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]));
+      : (managerNeedsPBLoad ? loadPlanForManager() : Promise.resolve())
+          .then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]));
 
     loadAll
       .then(() => {
