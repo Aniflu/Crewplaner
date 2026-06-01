@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.9.27**
+- Aktuelle Version: **v0.9.9.28**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.9.27 — Code-Review: _findAssignment-Bug, ISO-Datum mailSlot, update-email zeigt nur neue Termine (aktuell)
+v0.9.9.28 — Code-Review: _findAssignment-Bug, ISO-Datum mailSlot, update-email zeigt nur neue Termine (aktuell)
 v0.9.9.25 — PB-Records für neue Termine bei Update-Mail-Versand erstellt
 v0.9.9.24 — Update-Mail-Queue erstellt proposed-Records vor Mailversand
 v0.9.9.23 — Update-Queue zählt proposed-Crew (nicht nur confirmed), auto-migration
