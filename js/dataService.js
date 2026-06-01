@@ -16,17 +16,15 @@ let _planIdPromiseKey = null;
 
 async function _getActivePlanId() {
   if (!SUPABASE_ENABLED || !CURRENT_USER_ID) return null;
-  const key = 'tourplan_pb_' + (activePlanId || 'default');
-  const stored = localStorage.getItem(key);
-  if (stored) return stored;
 
-  // Crew-Mitglieder sind keine Plan-Besitzer — Plan via crew_members-Email suchen
+  // Crew: immer frisch aus PB via crew_members-Email laden — kein localStorage-Cache
+  // (localStorage überlebt Hard-Refresh und kann auf falschen Plan zeigen)
   if (IS_CREW) {
     try {
       const email = (CURRENT_USER_EMAIL || '').toLowerCase();
       const found = await pbFirst('crew_members', `email = "${email}"`);
       if (found?.plan_id) {
-        localStorage.setItem(key, found.plan_id);
+        localStorage.setItem('tourplan_active_pb_id', found.plan_id);
         return found.plan_id;
       }
     } catch(e) {
@@ -34,6 +32,10 @@ async function _getActivePlanId() {
     }
     return null;
   }
+
+  const key = 'tourplan_pb_' + (activePlanId || 'default');
+  const stored = localStorage.getItem(key);
+  if (stored) return stored;
 
   // Manager/Admin: Plan per Owner finden oder anlegen
   // Singleton-Promise verhindert Race Condition bei parallelen Aufrufen.
