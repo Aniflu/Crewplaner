@@ -54,8 +54,7 @@
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
         <button id="btnKonsole" onclick="window.location.href='admin.html'" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
         <button class="crew-only primary" onclick="bulkConfirmAllMySlots()" style="display:none;"><span class="sb-gl">✓</span>Termine bestätigen</button>
-        <button class="crew-only" onclick="bulkDeclineAllMySlots()" style="display:none;"><span class="sb-gl">✗</span>Termine absagen</button>
-        <button class="crew-only" onclick="window.open('https://aniflu.github.io/Crewplaner/docs/guide-crew.html','_blank')" style="display:none;"><span class="sb-gl">?</span>Anleitung</button>
+        <button class="crew-only" id="btnSendCancellations" onclick="sendCancellations()" style="display:none;background:rgba(232,74,74,.15);border-color:rgba(232,74,74,.4);color:#e84a4a;"><span class="sb-gl">⚠</span>Änderungen mitteilen</button>
       </div>
     </div>
     <div class="sidebar-section crew-only" style="display:none;">
@@ -351,7 +350,7 @@
 <script src="js/rbac.js?v=1"></script>
 <script src="js/types.js?v=24"></script>
 <script src="js/utils.js?v=23"></script>
-<script src="js/render.js?v=27"></script>
+<script src="js/render.js?v=28"></script>
 <script src="js/bundle.js?v=32"></script>
 <script src="js/dropdown.js?v=30"></script>
 <script src="js/tourblock.js?v=25"></script>
@@ -364,7 +363,7 @@
 <script src="js/crewview.js?v=23"></script>
 <script src="js/crewLink.js?v=24"></script>
 <script src="js/crewNotify.js?v=29"></script>
-<script src="js/userView.js?v=33"></script>
+<script src="js/userView.js?v=34"></script>
 <script src="js/init.js?v=30"></script>
 
 </body>

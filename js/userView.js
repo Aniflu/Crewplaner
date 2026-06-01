@@ -1,5 +1,42 @@
 // ── User View — Meine Einsätze / Confirm / Decline ────────────────────────────
 
+// ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
+const _pendingCancellations = new Set();
+
+function toggleCancellation(dateStr, posId) {
+  const key = dateStr + '|' + posId;
+  if (_pendingCancellations.has(key)) _pendingCancellations.delete(key);
+  else _pendingCancellations.add(key);
+  _updateCancellationBar();
+  renderTable();
+}
+
+function _updateCancellationBar() {
+  const btn = document.getElementById('btnSendCancellations');
+  if (!btn) return;
+  const n = _pendingCancellations.size;
+  btn.style.display = IS_CREW && n > 0 ? '' : 'none';
+  btn.querySelector('.sb-gl').textContent = n > 0 ? `⚠ ${n}` : '⚠';
+}
+
+async function sendCancellations() {
+  if (!_pendingCancellations.size) return;
+  showToast('Wird übermittelt…', '#e8c84a');
+  try {
+    for (const key of Array.from(_pendingCancellations)) {
+      const [dateStr, posId] = key.split('|');
+      await declineAssignment(dateStr, posId);
+      if (assignmentStatuses[dateStr]?.[posId]) assignmentStatuses[dateStr][posId].status = 'declined';
+    }
+    _pendingCancellations.clear();
+    _updateCancellationBar();
+    showToast('Änderungen mitgeteilt — Manager wird benachrichtigt ✓', '#4ae8a0');
+    renderTable();
+  } catch(e) {
+    showToast('Fehler: ' + e.message, '#e84a4a');
+  }
+}
+
 function getMyCrewName() {
   if (!SUPABASE_ENABLED || !CURRENT_USER_ID) return null;
   const myEmail = (CURRENT_USER_EMAIL || '').toLowerCase();
