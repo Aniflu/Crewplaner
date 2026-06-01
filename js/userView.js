@@ -337,6 +337,7 @@ async function _sendPendingUpdates() {
           // ISO-Datum übergeben (Hook erwartet YYYY-MM-DD für korrekte Formatierung)
           const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, changes: ['Neuer Termin'] }));
           await sendUpdateNotice(name, entry.email, mailSlots);
+        }
         // Keine neuen Termine → keine E-Mail senden (kein Inhalt)
       }
     }
