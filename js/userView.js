@@ -347,9 +347,13 @@ function _openUpdateQueueModal() {
     html += `<div style="margin-bottom:12px;">
       <div style="color:#e8c84a;font-size:.7rem;letter-spacing:1px;margin-bottom:4px;">${esc(name)} <span style="color:#888;font-size:.65rem;">(${esc(entry.email||'')})</span></div>`;
     (entry.slots||[]).forEach((slot, i) => {
-      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #333;font-size:.65rem;color:#ccc;">
-        <span>${esc(slot.date)} · ${esc(slot.posLabel||'')}</span>
-        <span style="cursor:pointer;color:#e84a4a;margin-left:12px;" onclick="_deleteSlotFromQueue(${JSON.stringify(name)},${i})">✕</span>
+      const cbId = `uq_${i}_${Math.random().toString(36).slice(2, 9)}`;
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #333;font-size:.65rem;color:#ccc;">
+        <input type="checkbox" id="${cbId}" data-crew="${esc(name)}" data-idx="${i}" checked
+          onchange="_updateSendButton()"
+          style="width:14px;height:14px;accent-color:#4ae8a0;flex-shrink:0;cursor:pointer;">
+        <span style="flex:1;">${esc(slot.date)} · ${esc(slot.posLabel||'')}</span>
+        <span style="cursor:pointer;color:#e84a4a;margin-left:8px;font-size:.7rem;" onclick="_deleteSlotFromQueue(${JSON.stringify(name)},${i})">✕</span>
       </div>`;
     });
     html += '</div>';
@@ -358,6 +362,7 @@ function _openUpdateQueueModal() {
   body.innerHTML = html;
   const modal = document.getElementById('crewUpdateModal');
   if (modal) modal.style.display = 'flex';
+  _updateSendButton();
 }
 
 function _closeUpdateQueueModal() {
@@ -375,15 +380,44 @@ function _deleteSlotFromQueue(crewName, slotIndex) {
   _openUpdateQueueModal();
 }
 
-async function _sendPendingUpdates() {
-  const q = _getCrewUpdateQueue();
+function _updateSendButton() {
+  const checked = document.querySelectorAll('#crewUpdateModalBody input[type=checkbox]:checked').length;
+  const btn = document.getElementById('btnSendUpdates');
+  if (btn) btn.textContent = `AUSWAHL SENDEN (${checked}) →`;
+}
+
+async function _sendSelectedUpdates() {
+  const checks = {};
+  document.querySelectorAll('#crewUpdateModalBody input[type=checkbox]').forEach(cb => {
+    const name = cb.dataset.crew;
+    const idx = parseInt(cb.dataset.idx);
+    if (!checks[name]) checks[name] = new Set();
+    if (cb.checked) checks[name].add(idx);
+  });
+  const full = _getCrewUpdateQueue();
+  const filtered = {};
+  for (const [name, entry] of Object.entries(full)) {
+    const selected = checks[name];
+    if (!selected || selected.size === 0) continue;
+    filtered[name] = { ...entry, slots: entry.slots.filter((_, i) => selected.has(i)) };
+  }
+  const remaining = {};
+  for (const [name, entry] of Object.entries(full)) {
+    const selected = checks[name];
+    const kept = entry.slots.filter((_, i) => !selected || !selected.has(i));
+    if (kept.length) remaining[name] = { ...entry, slots: kept };
+  }
+  _saveCrewUpdateQueue(remaining);
+  await _sendQueueEntries(filtered);
+}
+
+async function _sendQueueEntries(q) {
   const names = Object.keys(q);
-  if (!names.length) return;
+  if (!names.length) { showToast('Nichts ausgewählt', '#5a6070'); return; }
   showToast('Update-Mails werden gesendet…', '#e8c84a');
   try {
     for (const name of names) {
       const entry = q[name];
-      // Neue Slots (kein PB-Record) ermitteln und als proposed anlegen
       let newSlots = [];
       if (typeof _getNewSlotsForCrew === 'function' && typeof bulkProposeCrew === 'function') {
         newSlots = _getNewSlotsForCrew(name, entry.email);
@@ -398,7 +432,6 @@ async function _sendPendingUpdates() {
             return (pos?.label || p) === slot.posLabel && day[p].crewName === name;
           }) : null;
           if (posId && planId) {
-            // Fix: _findAssignment war undefiniert — direkt pbFirst verwenden
             const existing = await pbFirst('assignments',
               `plan_id = "${planId}" && date = "${slot.date}" && pos_id = "${posId}"`);
             if (existing) await pbPatch('/api/collections/assignments/records/'+existing.id,
@@ -407,16 +440,12 @@ async function _sendPendingUpdates() {
         }
         await sendUpdateNotice(name, entry.email, entry.slots);
       } else {
-        // Informational: E-Mail nur mit tatsächlich neuen Terminen
         if (newSlots.length) {
-          // ISO-Datum übergeben (Hook erwartet YYYY-MM-DD für korrekte Formatierung)
           const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, changes: ['Neuer Termin'] }));
           await sendUpdateNotice(name, entry.email, mailSlots);
         }
-        // Keine neuen Termine → keine E-Mail senden (kein Inhalt)
       }
     }
-    _saveCrewUpdateQueue({});
     _updateCrewUpdateBar();
     _closeUpdateQueueModal();
     showToast('Update-Mails gesendet ✓', '#4ae8a0');
@@ -425,6 +454,11 @@ async function _sendPendingUpdates() {
   } catch(e) {
     showToast('Fehler: '+e.message, '#e84a4a');
   }
+}
+
+async function _sendPendingUpdates() {
+  const q = _getCrewUpdateQueue();
+  await _sendQueueEntries(q);
 }
 
 async function _submitMeldung() {
