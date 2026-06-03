@@ -6,6 +6,21 @@
 <title>Tour Crew Plan 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=23">
+<style>
+#crewUpdateModalBody::-webkit-scrollbar {
+  width: 8px;
+}
+#crewUpdateModalBody::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.05);
+}
+#crewUpdateModalBody::-webkit-scrollbar-thumb {
+  background: #e8c84a;
+  border-radius: 4px;
+}
+#crewUpdateModalBody::-webkit-scrollbar-thumb:hover {
+  background: #f0d860;
+}
+</style>
 </head>
 <body>
 
@@ -374,7 +389,7 @@
       <span style="color:#e8c84a;letter-spacing:2px;font-size:.75rem;">AUSSTEHENDE UPDATES</span>
       <span style="cursor:pointer;color:#aaa;" onclick="_closeUpdateQueueModal()">✕</span>
     </div>
-    <div id="crewUpdateModalBody" style="max-height:60vh;overflow-y:auto;margin-bottom:12px;"></div>
+    <div id="crewUpdateModalBody" style="max-height:60vh;overflow-y:scroll;margin-bottom:12px;"></div>
     <div style="margin-top:16px;text-align:right;">
       <button id="btnSendUpdates" onclick="_sendSelectedUpdates()" style="background:#e8c84a;color:#0d0d1a;border:none;padding:8px 16px;cursor:pointer;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;font-size:.7rem;">AUSWAHL SENDEN (0) →</button>
     </div>
