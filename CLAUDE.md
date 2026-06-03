@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.10.0**
+- Aktuelle Version: **v0.9.11.0**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.10.0 — feat: Update-Queue Modal mit Sidebar-Badge statt Banner, einzelne Slots löschbar (aktuell)
+v0.9.11.0 — feat: Checkboxen im Update-Queue Modal, gezielter Versand mit An-/Abwählen (aktuell)
+v0.9.10.0 — feat: Update-Queue Modal mit Sidebar-Badge statt Banner, einzelne Slots löschbar
 v0.9.9.31 — fix: declined/proposed Slot korrekt ersetzt beim Crew-Wechsel im Dropdown
 v0.9.9.30 — Umfassender Code-Review: XSS-Fixes, IDOR-Schutz, Null-Checks, try/catch, Dead Code entfernt, UX-Fixes
 v0.9.9.29 — Code-Review: _findAssignment-Bug, ISO-Datum mailSlot, update-email zeigt nur neue Termine
