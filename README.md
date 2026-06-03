@@ -7,7 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
-**v0.9.9.30** — Umfassender Code-Review: XSS-Fixes, IDOR-Schutz, Null-Checks, try/catch, Dead Code entfernt, UX-Fixes
+**v0.9.9.31** — fix: declined/proposed Slot korrekt ersetzt beim Crew-Wechsel im Dropdown
 
 ## Tech-Stack
 
