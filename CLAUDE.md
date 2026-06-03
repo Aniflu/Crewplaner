@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.11.4**
+- Aktuelle Version: **v0.9.11.5**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.11.4 — fix: Leere Queue-Einträge nicht rendern (aktuell)
+v0.9.11.5 — fix: Code Review Fixes — Queue-Stabilität & Checkbox-State Persistence (aktuell)
+v0.9.11.4 — fix: Leere Queue-Einträge nicht rendern
 v0.9.11.3 — fix: Modal-Scroll trap — Trackpad-Scrolling sperrt Hintergrund
 v0.9.11.2 — fix: Scrollbar sichtbar machen mit Custom-Styling (gold auf dunkel)
 v0.9.11.1 — fix: Scrollbar im Update-Queue Modal für lange Listen

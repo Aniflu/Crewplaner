@@ -7,7 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
-**v0.9.11.4** — fix: Leere Queue-Einträge nicht rendern
+**v0.9.11.5** — fix: Code Review Fixes — Queue-Stabilität & Checkbox-State Persistence
 
 ## Tech-Stack
 
