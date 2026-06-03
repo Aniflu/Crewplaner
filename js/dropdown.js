@@ -140,10 +140,7 @@ function openCrewDD(e,dateStr,posId){
     const meta=SUPABASE_ENABLED?(crewMeta[name]||null):null;
     const hasEmail=!!(meta?.email);
     const label=hasEmail?`📧 ${name}`:name;
-    items.push({label,dot:CREW_COLORS[i%CREW_COLORS.length],selected:current===name,action:()=>{
-      setAssign(dateStr,posId,name);
-      closeDD();
-    }});
+    items.push({label,dot:CREW_COLORS[i%CREW_COLORS.length],selected:current===name,action:()=>_applyState(name)});
   });
   showDD(e.currentTarget.getBoundingClientRect(),pos.label+(SUPABASE_ENABLED?' · 📧=Benachrichtigung':''),items);
 }
