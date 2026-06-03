@@ -148,9 +148,16 @@ async function _bulkConfirmMySlots() {
   }));
 
   showToast('Wird gespeichert…', '#e8c84a');
-  await Promise.all(decisions.map(d =>
-    d.confirmed ? confirmAssignment(d.date, d.posId) : declineAssignment(d.date, d.posId)
-  ));
+  try {
+    await Promise.all(decisions.map(d =>
+      d.confirmed ? confirmAssignment(d.date, d.posId) : declineAssignment(d.date, d.posId)
+    ));
+  } catch(e) {
+    showToast('Teilweise fehlgeschlagen: ' + e.message, '#e84a4a');
+    await loadAssignmentStatuses();
+    renderTable();
+    return;
+  }
 
   // Lokale assignmentStatuses aktualisieren
   decisions.forEach(d => {

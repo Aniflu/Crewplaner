@@ -41,7 +41,6 @@ async function _authCheckAndStart() {
 
     // Plan-Transfer von admin.html via sessionStorage anwenden (vor startApp)
     const _transferData = sessionStorage.getItem('crewplan_transfer_data');
-    console.log('[auth] IS_MANAGER:', IS_MANAGER, '| sessionStorage transfer:', !!_transferData);
     if (_transferData && IS_MANAGER) {
       try {
         const _td = JSON.parse(_transferData);
@@ -113,6 +112,11 @@ async function _handleEmailAction() {
   if (!action || !aid || !SUPABASE_ENABLED) return;
   history.replaceState({}, '', window.location.pathname);
   try {
+    const record = await pbGet('/api/collections/assignments/records/' + aid);
+    if (!record || (record.crew_email || '').toLowerCase() !== (CURRENT_USER_EMAIL || '').toLowerCase()) {
+      showToast('Zugriff verweigert', '#e84a4a');
+      return;
+    }
     const payload = { responded_at: new Date().toISOString() };
     if (action === 'confirm') {
       payload.status = 'confirmed';

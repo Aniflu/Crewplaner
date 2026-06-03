@@ -22,7 +22,7 @@ async function _getActivePlanId() {
   if (IS_CREW) {
     try {
       const email = (CURRENT_USER_EMAIL || '').toLowerCase();
-      const found = await pbFirst('crew_members', `email = "${email}"`);
+      const found = await pbFirst('crew_members', `email = "${email.replace(/"/g, '\\"')}"`);
       if (found?.plan_id) {
         localStorage.setItem('tourplan_active_pb_id', found.plan_id);
         return found.plan_id;
@@ -113,7 +113,7 @@ async function loadPlanForCrew() {
     }
     const data = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
     if (!data?.tourDates) return;
-    crew.length = 0; data.crew.forEach(c => crew.push(c));
+    crew.length = 0; (data.crew || []).forEach(c => crew.push(c));
     if (data.positions) { POSITIONS.length = 0; data.positions.forEach(p => POSITIONS.push(p)); }
     Object.keys(defaultCrew).forEach(k => delete defaultCrew[k]);
     if (data.defaultCrew) Object.assign(defaultCrew, data.defaultCrew);
@@ -121,7 +121,6 @@ async function loadPlanForCrew() {
     Object.keys(assignments).forEach(k => delete assignments[k]);
     Object.assign(assignments, data.assignments || {});
     localStorage.setItem('tourplan_active_pb_id', planId);
-    console.log('[crew] Plan-Daten geladen aus PocketBase (' + TOUR_DATES.length + ' Tage)');
   } catch(e) {
     console.warn('loadPlanForCrew Fehler:', e.message);
   }
@@ -142,7 +141,7 @@ async function loadPlanForManager() {
     }
     const data = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
     if (!data?.tourDates) return;
-    crew.length = 0; data.crew.forEach(c => crew.push(c));
+    crew.length = 0; (data.crew || []).forEach(c => crew.push(c));
     if (data.positions) { POSITIONS.length = 0; data.positions.forEach(p => POSITIONS.push(p)); }
     Object.keys(defaultCrew).forEach(k => delete defaultCrew[k]);
     if (data.defaultCrew) Object.assign(defaultCrew, data.defaultCrew);
@@ -158,7 +157,6 @@ async function loadPlanForManager() {
       const found = plans.find(p => p.id === activePlanId);
       if (found) { found.name = plan.name; savePlansIndex(plans); }
     }
-    console.log('[manager] Plan geladen aus PocketBase: ' + plan.name + ' (' + TOUR_DATES.length + ' Tage)');
   } catch(e) {
     console.warn('loadPlanForManager Fehler:', e.message);
   }
@@ -204,45 +202,6 @@ async function loadAssignmentStatuses() {
   } catch (e) {
     console.warn('loadAssignmentStatuses Fehler:', e.message);
   }
-}
-
-// ── Crew vorschlagen (Admin → Crew-Mitglied) ───────────────────────────────────
-// WARNUNG: Erstellt PB-Record mit status='proposed' → PB-Hook sendet E-Mail an crewEmail.
-// Nur aufrufen wenn crewEmail gesetzt ist und eine E-Mail-Benachrichtigung gewünscht ist.
-// Wird aktuell von keiner UI-Aktion aufgerufen (Stand v0.9.7.1).
-async function proposeCrew(dateStr, posId, crewName, crewEmail) {
-  if (!SUPABASE_ENABLED) return;
-  const planId = await _getActivePlanId();
-  console.log('[propose] planId:', planId, 'crew:', crewName, 'date:', dateStr);
-  if (!planId) {
-    if (typeof showToast === 'function') showToast('⚠ Kein Plan gefunden – bitte neu einloggen', 6000);
-    return;
-  }
-
-  const pos = typeof POSITIONS !== 'undefined' ? POSITIONS.find(p => p.id === posId) : null;
-  const posLabel = pos?.label || posId;
-
-  try {
-    await pbUpsert(
-      'assignments',
-      `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`,
-      {
-        plan_id: planId, date: dateStr, pos_id: posId, pos_label: posLabel,
-        crew_name: crewName, crew_email: crewEmail || '',
-        status: 'proposed'
-      },
-      { crew_name: crewName, pos_label: posLabel, crew_email: crewEmail || '',
-        status: 'proposed' }
-    );
-  } catch (e) {
-    console.error('proposeCrew Fehler:', e.message);
-    if (typeof showToast === 'function') showToast('⚠ PB-Fehler: ' + e.message, '#e84a4a');
-    return;
-  }
-
-  if (!assignmentStatuses[dateStr]) assignmentStatuses[dateStr] = {};
-  assignmentStatuses[dateStr][posId] = { status: 'proposed', proposedBy: CURRENT_USER_ID, crewName };
-  // E-Mail wird via Pocketbase-Hook automatisch gesendet (siehe .pb_hooks/main.pb.js)
 }
 
 // ── Slot bestätigen (Crew-Mitglied) ───────────────────────────────────────────
@@ -296,10 +255,15 @@ async function cancelProposal(dateStr, posId) {
   const planId = await _getActivePlanId();
   if (!planId) return;
 
-  const existing = await pbFirst('assignments',
-    `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`);
-  if (existing) {
-    await pbDelete('/api/collections/assignments/records/' + existing.id);
+  try {
+    const existing = await pbFirst('assignments',
+      `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`);
+    if (existing) {
+      await pbDelete('/api/collections/assignments/records/' + existing.id);
+    }
+  } catch(e) {
+    console.warn('cancelProposal Fehler:', e.message);
+    throw e;
   }
 }
 
@@ -309,16 +273,19 @@ async function bulkCancelProposals(posId) {
   const planId = await _getActivePlanId();
   if (!planId) return;
 
-  const data = await pbList('assignments',
-    `plan_id = "${planId}" && pos_id = "${posId}" && (status = "proposed" || status = "declined")`);
-  await Promise.all((data?.items || []).map(row =>
-    pbDelete('/api/collections/assignments/records/' + row.id)
-  ));
+  try {
+    const data = await pbList('assignments',
+      `plan_id = "${planId}" && pos_id = "${posId}" && (status = "proposed" || status = "declined")`);
+    await Promise.all((data?.items || []).map(row =>
+      pbDelete('/api/collections/assignments/records/' + row.id)
+    ));
+  } catch(e) {
+    console.warn('bulkCancelProposals Fehler:', e.message);
+    throw e;
+  }
 }
 
 // ── Crew für mehrere Slots auf einmal vorschlagen ─────────────────────────────
-// WARNUNG: Erstellt N PB-Records mit status='proposed' → N E-Mails via PB-Hook.
-// Wird aktuell von keiner UI-Aktion aufgerufen (Stand v0.9.7.1).
 async function bulkProposeCrew(slots) {
   if (!SUPABASE_ENABLED || !slots.length) return;
   const planId = await _getActivePlanId();
@@ -373,11 +340,17 @@ async function sendAvailabilityNotice(crewName, crewEmail, slots) {
   if (!planId) return;
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
-  await pbPost('/api/collections/crew_invites/records', {
-    plan_id: planId, crew_name: crewName, crew_email: crewEmail,
-    type: 'availability', plan_name: planName,
-    app_url: JSON.stringify(slots)
-  });
+  try {
+    await pbPost('/api/collections/crew_invites/records', {
+      plan_id: planId, crew_name: crewName, crew_email: crewEmail,
+      type: 'availability', plan_name: planName,
+      app_url: JSON.stringify(slots)
+    });
+  } catch(e) {
+    console.warn('sendAvailabilityNotice Fehler:', e.message);
+    _showMailError(e.message);
+    throw e;
+  }
 }
 
 async function sendUpdateNotice(crewName, crewEmail, slots) {
@@ -386,11 +359,17 @@ async function sendUpdateNotice(crewName, crewEmail, slots) {
   if (!planId) return;
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
-  await pbPost('/api/collections/crew_invites/records', {
-    plan_id: planId, crew_name: crewName, crew_email: crewEmail,
-    type: 'update', plan_name: planName,
-    app_url: JSON.stringify(slots)
-  });
+  try {
+    await pbPost('/api/collections/crew_invites/records', {
+      plan_id: planId, crew_name: crewName, crew_email: crewEmail,
+      type: 'update', plan_name: planName,
+      app_url: JSON.stringify(slots)
+    });
+  } catch(e) {
+    console.warn('sendUpdateNotice Fehler:', e.message);
+    _showMailError(e.message);
+    throw e;
+  }
 }
 
 // ── Crew einladen / Erinnerung schicken (E-Mail via Pocketbase-Hook) ──────────

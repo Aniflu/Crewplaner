@@ -99,7 +99,7 @@ function renderCrewView(){
         <div class="crew-row-name">
           <div class="crew-row-dot" style="background:${col}"></div>
           <div class="crew-row-text">
-            <strong>${name.replace(/</g,'&lt;')}</strong>
+            <strong>${esc(name)}</strong>
             <span class="crew-pos-list">${posList}</span>
           </div>
         </div>

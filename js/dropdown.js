@@ -182,10 +182,11 @@ async function bulkCancelPos(e,posId){
   renderTable();
 }
 
-function requestAll(e){
+async function requestAll(e){
   if(!IS_MANAGER)return;
   e.stopPropagation();
-  if(!confirm('Alle leeren Slots mit Standard-Crew füllen?\nDas überschreibt deinen Plan und kann nicht rückgängig gemacht werden.'))return;
+  const _ok=await showConfirm('Alle leeren Slots mit Standard-Crew füllen?\nDas überschreibt deinen Plan und kann nicht rückgängig gemacht werden.','Übernehmen');
+  if(!_ok)return;
   TOUR_DATES.forEach(day=>{
     POSITIONS.forEach(pos=>{
       const def=defaultCrew[pos.id];

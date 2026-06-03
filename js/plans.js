@@ -8,7 +8,7 @@ function getPlansIndex(){
   try{const r=localStorage.getItem(PLANS_INDEX_KEY);return r?JSON.parse(r):[];}catch(e){return[];}
 }
 function savePlansIndex(list){
-  try{localStorage.setItem(PLANS_INDEX_KEY,JSON.stringify(list));}catch(e){}
+  try{localStorage.setItem(PLANS_INDEX_KEY,JSON.stringify(list));}catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');}
 }
 function genPlanId(){return 'p'+Date.now().toString(36);}
 
@@ -138,7 +138,7 @@ function _savePlanToLS(id){
       if(pbId){pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)}).catch(e=>console.warn('[plans] PB-Sync fehlgeschlagen:',e));}
       else{console.warn('[plans] PB-Sync: kein pbId gefunden für',id);}
     }
-  }catch(e){console.warn(e);}
+  }catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');}
 }
 
 function _loadPlanFromLS(id){

@@ -2,8 +2,12 @@
 const CREW_INVITES_KEY = 'tourplan_crew_invites';
 const PENDING_CANCELLATIONS_KEY = 'tourplan_pending_cancellations';
 
+function _loadCancellations() {
+  try { return JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}'); } catch { return {}; }
+}
+
 function _storePendingCancellation(crewName, email, dateStr, posLabel) {
-  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  const q = _loadCancellations();
   if (!q[crewName]) q[crewName] = { email, slots: [] };
   const exists = q[crewName].slots.some(s => s.date === dateStr && s.posLabel === posLabel);
   if (!exists) q[crewName].slots.push({ date: dateStr, posLabel });
@@ -12,7 +16,7 @@ function _storePendingCancellation(crewName, email, dateStr, posLabel) {
 }
 
 function _clearPendingCancellations(crewName) {
-  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  const q = _loadCancellations();
   delete q[crewName];
   localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(q));
   renderCancellationBanner();
@@ -22,7 +26,7 @@ function renderCancellationBanner() {
   const banner = document.getElementById('cancellation-banner');
   if (!banner) return;
   if (!IS_MANAGER) { banner.style.display = 'none'; return; }
-  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  const q = _loadCancellations();
   const total = Object.values(q).reduce((sum, e) => sum + (e.slots?.length || 0), 0);
   if (total === 0) { banner.style.display = 'none'; return; }
   banner.style.display = 'flex';
@@ -31,7 +35,7 @@ function renderCancellationBanner() {
 }
 
 async function flushAllCancellations() {
-  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  const q = _loadCancellations();
   const names = Object.keys(q);
   if (!names.length) return;
   for (const crewName of names) {
@@ -55,8 +59,8 @@ function _saveInvite(name) {
   localStorage.setItem(CREW_INVITES_KEY, JSON.stringify(inv));
 }
 
-function _getCrewInviteStatus(name) {
-  const invites = _loadInvites();
+function _getCrewInviteStatus(name, invites) {
+  const inv = invites || _loadInvites();
   const hasConfirmed = Object.values(assignmentStatuses || {}).some(day =>
     Object.values(day).some(s => s.crewName === name && s.status === 'confirmed')
   );
@@ -64,12 +68,12 @@ function _getCrewInviteStatus(name) {
   const hasActive = Object.values(assignmentStatuses || {}).some(day =>
     Object.values(day).some(s => s.crewName === name && isPending(s))
   );
-  if (invites[name] && hasActive) return 'invited_pending';
+  if (inv[name] && hasActive) return 'invited_pending';
   return 'not_invited';
 }
 
-function _fmtInviteDate(name) {
-  const inv = _loadInvites();
+function _fmtInviteDate(name, invites) {
+  const inv = invites || _loadInvites();
   if (!inv[name]) return '';
   const d = new Date(inv[name]);
   return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()}`;
@@ -83,11 +87,12 @@ function openCrewNotifyModal() {
 }
 
 function _renderCrewNotifyList() {
-  const pending = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  const pending = _loadCancellations();
+  const invites = _loadInvites();
   const rows = crew.map((name, i) => {
     const meta = crewMeta[name] || {};
     const dot = CREW_COLORS[i % CREW_COLORS.length];
-    const status = _getCrewInviteStatus(name);
+    const status = _getCrewInviteStatus(name, invites);
     const pendingCount = pending[name]?.slots?.length || 0;
 
     if (!meta.email) {
@@ -100,26 +105,26 @@ function _renderCrewNotifyList() {
 
     const newSlots = _getNewSlotsForCrew(name, meta.email);
     const hasNew = newSlots.length > 0;
-    const safeName = name.replace(/'/g,"\\'");
+    const nameAttr = esc(name);
 
     let badge, btn;
     if (status === 'confirmed') {
       badge = `<span style="font-size:.58rem;color:#4ae8a0;">✅ Bestätigt</span>`;
       btn = hasNew
-        ? `<button class="mbtn sm" onclick="sendUpdate('${safeName}')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
+        ? `<button class="mbtn sm" data-crew="${nameAttr}" onclick="sendUpdate(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
         : '';
     } else if (status === 'invited_pending') {
-      badge = `<span style="font-size:.58rem;color:#e8c84a;">🟡 Eingeladen ${_fmtInviteDate(name)}</span>`;
+      badge = `<span style="font-size:.58rem;color:#e8c84a;">🟡 Eingeladen ${_fmtInviteDate(name, invites)}</span>`;
       btn = hasNew
-        ? `<button class="mbtn sm" onclick="sendUpdate('${safeName}')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
-        : `<button class="mbtn sm" onclick="sendInvite('${safeName}','reminder')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">🔔 Erinnerung</button>`;
+        ? `<button class="mbtn sm" data-crew="${nameAttr}" onclick="sendUpdate(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
+        : `<button class="mbtn sm" data-crew="${nameAttr}" data-type="reminder" onclick="sendInvite(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">🔔 Erinnerung</button>`;
     } else {
       badge = `<span style="font-size:.58rem;color:#5a6070;">⚪ Nicht eingeladen</span>`;
-      btn = `<button class="mbtn primary sm" onclick="sendInvite('${safeName}','invite')" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">📧 Einladen</button>`;
+      btn = `<button class="mbtn primary sm" data-crew="${nameAttr}" data-type="invite" onclick="sendInvite(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">📧 Einladen</button>`;
     }
 
     const cancelBtn = pendingCount > 0
-      ? `<div style="margin-top:5px;"><button class="mbtn sm" onclick="sendCancellationSummary('${name.replace(/'/g,"\\'")}');" style="font-size:.58rem;padding:3px 7px;background:#e84a4a;color:#fff;border:none;">✕ ${pendingCount} Absage${pendingCount > 1 ? 'n' : ''} senden</button></div>`
+      ? `<div style="margin-top:5px;"><button class="mbtn sm" data-crew="${nameAttr}" onclick="sendCancellationSummary(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;background:#e84a4a;color:#fff;border:none;">✕ ${pendingCount} Absage${pendingCount > 1 ? 'n' : ''} senden</button></div>`
       : '';
 
     return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
@@ -143,7 +148,7 @@ function _renderCrewNotifyList() {
 }
 
 async function sendCancellationSummary(crewName) {
-  const q = JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}');
+  const q = _loadCancellations();
   const entry = q[crewName];
   if (!entry || !entry.slots.length) return;
   try {

@@ -70,8 +70,9 @@ function renderHead(){
 function renderBody(){
   let b='',lastBlockId=null;
   const _meldungSentData=(typeof _getMeldungSent==='function')?_getMeldungSent():{};
+  const myName=SUPABASE_ENABLED&&typeof getMyCrewName==='function'?getMyCrewName():null;
   TOUR_DATES.forEach(row=>{
-    if(row.blockId&&row.blockId!==lastBlockId){lastBlockId=row.blockId;b+=`<tr class="month-sep"><td colspan="${3+POSITIONS.length+1}">${row.blockName||''}</td></tr>`;}
+    if(row.blockId&&row.blockId!==lastBlockId){lastBlockId=row.blockId;b+=`<tr class="month-sep"><td colspan="${3+POSITIONS.length+1}">${esc(row.blockName||'')}</td></tr>`;}
     const tOpt=TYPE_OPTS.find(t=>t.label===row.typeLabel);
     const tColor=tOpt?.color||'';
     const rowBg=tColor?colorToDarkBg(tColor):'';
@@ -80,8 +81,8 @@ function renderBody(){
     b+=IS_MANAGER
       ?`<td class="date-cell" onclick="openDateDD(event,'${row.date}')" style="cursor:pointer;" title="Klick für Optionen"><span class="wd">${_wd}</span><span class="dt">${_dt}</span></td>`
       :`<td class="date-cell"><span class="wd">${_wd}</span><span class="dt">${_dt}</span></td>`;}
-    b+=`<td class="type-cell">${IS_MANAGER?`<button class="type-btn" style="${tColor?'color:'+tColor+';':''}" onclick="openTypeDD(event,'${row.date}')">${row.typeLabel}</button>`:`<span class="type-btn" style="${tColor?'color:'+tColor+';':''}cursor:default;">${row.typeLabel}</span>`}</td>`;
-    b+=`<td class="loc-cell">${IS_MANAGER?`<button class="loc-btn" onclick="startLocEdit(event,'${row.date}')" title="${row.loc}">${row.loc}</button>`:`<span class="loc-btn" style="cursor:default;">${row.loc}</span>`}</td>`;
+    b+=`<td class="type-cell">${IS_MANAGER?`<button class="type-btn" style="${tColor?'color:'+tColor+';':''}" onclick="openTypeDD(event,'${row.date}')">${esc(row.typeLabel)}</button>`:`<span class="type-btn" style="${tColor?'color:'+tColor+';':''}cursor:default;">${esc(row.typeLabel)}</span>`}</td>`;
+    b+=`<td class="loc-cell">${IS_MANAGER?`<button class="loc-btn" onclick="startLocEdit(event,'${row.date}')" title="${esc(row.loc)}">${esc(row.loc)}</button>`:`<span class="loc-btn" style="cursor:default;">${esc(row.loc)}</span>`}</td>`;
     POSITIONS.forEach(p=>{
       const isOv=row.date in assignments&&p.id in(assignments[row.date]||{});
       const val=getVal(row.date,p.id);
@@ -102,7 +103,6 @@ function renderBody(){
       } else if(val===OFFDAY){style='color:#70ad47;border-color:rgba(112,173,71,.4);background:rgba(112,173,71,.07);font-weight:600;';display='🏖 Offday';}
       else if(val===REISE_TAG){style='color:#4f81bd;border-color:rgba(79,129,189,.4);background:rgba(79,129,189,.07);font-weight:600;';display='✈ Reise';}
       else if(val===AUSSCHREIBEN){style='color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);font-weight:600;';display='📋 Ausschr.';}
-      const myName=SUPABASE_ENABLED?(typeof getMyCrewName==='function'?getMyCrewName():null):null;
       const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName;
       const isAusschreibenSlot=SUPABASE_ENABLED&&IS_CREW&&val===AUSSCHREIBEN&&!si;
       const isDrafted=isAusschreibenSlot&&typeof _meldungDraft!=='undefined'&&!!_meldungDraft[row.date]?.has(p.id);

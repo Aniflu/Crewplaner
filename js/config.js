@@ -7,5 +7,3 @@ const POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
 // Feature-Flag: auf false setzen um Pocketbase zu deaktivieren (localStorage-Modus)
 const SUPABASE_ENABLED = true;
 
-// Admin-E-Mail — hat vollen Zugriff (Vorschlagen, Direkt besetzen, Crew verknüpfen)
-const ADMIN_EMAIL = 'madmaxmail@web.de';
