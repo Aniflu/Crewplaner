@@ -347,14 +347,15 @@ function _openUpdateQueueModal() {
     if (!entry.slots || entry.slots.length === 0) continue;
     html += `<div style="margin-bottom:12px;">
       <div style="color:#e8c84a;font-size:.7rem;letter-spacing:1px;margin-bottom:4px;">${esc(name)} <span style="color:#888;font-size:.65rem;">(${esc(entry.email||'')})</span></div>`;
-    (entry.slots||[]).forEach((slot, i) => {
-      const cbId = `uq_${i}_${Math.random().toString(36).slice(2, 9)}`;
+    (entry.slots||[]).forEach((slot) => {
+      const slotKey = `${slot.date}|${slot.posLabel}`;
+      const isChecked = slot.selected !== false;
       html += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #333;font-size:.65rem;color:#ccc;">
-        <input type="checkbox" id="${cbId}" data-crew="${esc(name)}" data-idx="${i}" checked
-          onchange="_updateSendButton()"
+        <input type="checkbox" data-crew="${esc(name)}" data-key="${esc(slotKey)}" ${isChecked ? 'checked' : ''}
+          onchange="_toggleSlotSelection(this)"
           style="width:14px;height:14px;accent-color:#4ae8a0;flex-shrink:0;cursor:pointer;">
         <span style="flex:1;">${esc(slot.date)} · ${esc(slot.posLabel||'')}</span>
-        <span style="cursor:pointer;color:#e84a4a;margin-left:8px;font-size:.7rem;" onclick="_deleteSlotFromQueue(${JSON.stringify(name)},${i})">✕</span>
+        <span style="cursor:pointer;color:#e84a4a;margin-left:8px;font-size:.7rem;" onclick="_deleteSlotFromQueue(${JSON.stringify(name)},${JSON.stringify(slotKey)})">✕</span>
       </div>`;
     });
     html += '</div>';
@@ -373,42 +374,48 @@ function _closeUpdateQueueModal() {
   document.body.style.overflow = '';
 }
 
-function _deleteSlotFromQueue(crewName, slotIndex) {
+function _deleteSlotFromQueue(crewName, slotKey) {
   const q = _getCrewUpdateQueue();
   if (!q[crewName]) return;
-  q[crewName].slots.splice(slotIndex, 1);
+  q[crewName].slots = q[crewName].slots.filter(s => `${s.date}|${s.posLabel}` !== slotKey);
   if (q[crewName].slots.length === 0) delete q[crewName];
   _saveCrewUpdateQueue(q);
   _updateCrewUpdateBar();
   _openUpdateQueueModal();
 }
 
+function _toggleSlotSelection(cb) {
+  const crewName = cb.dataset.crew;
+  const slotKey = cb.dataset.key;
+  const q = _getCrewUpdateQueue();
+  if (!q[crewName]) return;
+  const slot = q[crewName].slots.find(s => `${s.date}|${s.posLabel}` === slotKey);
+  if (slot) slot.selected = cb.checked;
+  _saveCrewUpdateQueue(q);
+  _updateSendButton();
+}
+
 function _updateSendButton() {
-  const checked = document.querySelectorAll('#crewUpdateModalBody input[type=checkbox]:checked').length;
+  const q = _getCrewUpdateQueue();
+  let count = 0;
+  for (const entry of Object.values(q)) {
+    for (const slot of (entry.slots || [])) {
+      if (slot.selected !== false) count++;
+    }
+  }
   const btn = document.getElementById('btnSendUpdates');
-  if (btn) btn.textContent = `AUSWAHL SENDEN (${checked}) →`;
+  if (btn) btn.textContent = `AUSWAHL SENDEN (${count}) →`;
 }
 
 async function _sendSelectedUpdates() {
-  const checks = {};
-  document.querySelectorAll('#crewUpdateModalBody input[type=checkbox]').forEach(cb => {
-    const name = cb.dataset.crew;
-    const idx = parseInt(cb.dataset.idx);
-    if (!checks[name]) checks[name] = new Set();
-    if (cb.checked) checks[name].add(idx);
-  });
   const full = _getCrewUpdateQueue();
   const filtered = {};
-  for (const [name, entry] of Object.entries(full)) {
-    const selected = checks[name];
-    if (!selected || selected.size === 0) continue;
-    filtered[name] = { ...entry, slots: entry.slots.filter((_, i) => selected.has(i)) };
-  }
   const remaining = {};
   for (const [name, entry] of Object.entries(full)) {
-    const selected = checks[name];
-    const kept = entry.slots.filter((_, i) => !selected || !selected.has(i));
-    if (kept.length) remaining[name] = { ...entry, slots: kept };
+    const selectedSlots = (entry.slots||[]).filter(s => s.selected !== false);
+    const skippedSlots  = (entry.slots||[]).filter(s => s.selected === false);
+    if (selectedSlots.length) filtered[name] = { ...entry, slots: selectedSlots };
+    if (skippedSlots.length)  remaining[name] = { ...entry, slots: skippedSlots };
   }
   _saveCrewUpdateQueue(remaining);
   await _sendQueueEntries(filtered);
