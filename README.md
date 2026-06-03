@@ -7,7 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
-**v0.9.11.1** — fix: Scrollbar im Update-Queue Modal für lange Listen
+**v0.9.11.2** — fix: Scrollbar sichtbar machen mit Custom-Styling (gold auf dunkel)
 
 ## Tech-Stack
 
