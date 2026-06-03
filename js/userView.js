@@ -344,6 +344,7 @@ function _openUpdateQueueModal() {
   if (!body) return;
   let html = '';
   for (const [name, entry] of Object.entries(q)) {
+    if (!entry.slots || entry.slots.length === 0) continue;
     html += `<div style="margin-bottom:12px;">
       <div style="color:#e8c84a;font-size:.7rem;letter-spacing:1px;margin-bottom:4px;">${esc(name)} <span style="color:#888;font-size:.65rem;">(${esc(entry.email||'')})</span></div>`;
     (entry.slots||[]).forEach((slot, i) => {
