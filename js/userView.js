@@ -360,6 +360,7 @@ function _openUpdateQueueModal() {
   }
   if (!html) html = '<div style="color:#888;font-size:.7rem;">Queue ist leer.</div>';
   body.innerHTML = html;
+  document.body.style.overflow = 'hidden';
   const modal = document.getElementById('crewUpdateModal');
   if (modal) modal.style.display = 'flex';
   _updateSendButton();
@@ -368,6 +369,7 @@ function _openUpdateQueueModal() {
 function _closeUpdateQueueModal() {
   const modal = document.getElementById('crewUpdateModal');
   if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
 }
 
 function _deleteSlotFromQueue(crewName, slotIndex) {

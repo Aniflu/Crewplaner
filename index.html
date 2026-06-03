@@ -384,12 +384,12 @@
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
-  <div style="background:#1a1a2e;border:1px solid #e8c84a;padding:24px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;font-family:'IBM Plex Mono',monospace;">
+  <div style="background:#1a1a2e;border:1px solid #e8c84a;padding:24px;max-width:520px;width:90%;max-height:80vh;overflow:hidden;font-family:'IBM Plex Mono',monospace;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <span style="color:#e8c84a;letter-spacing:2px;font-size:.75rem;">AUSSTEHENDE UPDATES</span>
       <span style="cursor:pointer;color:#aaa;" onclick="_closeUpdateQueueModal()">✕</span>
     </div>
-    <div id="crewUpdateModalBody" style="max-height:60vh;overflow-y:scroll;margin-bottom:12px;padding-right:4px;"></div>
+    <div id="crewUpdateModalBody" style="max-height:60vh;overflow-y:scroll;overscroll-behavior:contain;margin-bottom:12px;padding-right:4px;"></div>
     <div style="margin-top:16px;text-align:right;">
       <button id="btnSendUpdates" onclick="_sendSelectedUpdates()" style="background:#e8c84a;color:#0d0d1a;border:none;padding:8px 16px;cursor:pointer;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;font-size:.7rem;">AUSWAHL SENDEN (0) →</button>
     </div>
