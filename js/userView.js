@@ -417,13 +417,13 @@ async function _sendSelectedUpdates() {
     if (selectedSlots.length) filtered[name] = { ...entry, slots: selectedSlots };
     if (skippedSlots.length)  remaining[name] = { ...entry, slots: skippedSlots };
   }
-  _saveCrewUpdateQueue(remaining);
-  await _sendQueueEntries(filtered);
+  const success = await _sendQueueEntries(filtered);
+  if (success) _saveCrewUpdateQueue(remaining);
 }
 
 async function _sendQueueEntries(q) {
   const names = Object.keys(q);
-  if (!names.length) { showToast('Nichts ausgewählt', '#5a6070'); return; }
+  if (!names.length) { showToast('Nichts ausgewählt', '#5a6070'); return false; }
   showToast('Update-Mails werden gesendet…', '#e8c84a');
   try {
     for (const name of names) {
@@ -461,8 +461,10 @@ async function _sendQueueEntries(q) {
     showToast('Update-Mails gesendet ✓', '#4ae8a0');
     await loadAssignmentStatuses();
     renderTable();
+    return true;
   } catch(e) {
     showToast('Fehler: '+e.message, '#e84a4a');
+    return false;
   }
 }
 
