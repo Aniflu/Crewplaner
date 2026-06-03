@@ -316,8 +316,6 @@ function _queueGlobalCrewUpdate(changeDesc) {
 }
 
 function _updateCrewUpdateBar() {
-  const bar = document.getElementById('crewUpdateBar');
-  if (!bar) return;
   const q = _getCrewUpdateQueue();
   // Queue mit fehlenden proposed-Mitgliedern ergänzen (Migration alter Queues)
   if (Object.keys(q).length > 0) {
@@ -334,14 +332,47 @@ function _updateCrewUpdateBar() {
     if (changed) _saveCrewUpdateQueue(q);
   }
   const n = Object.keys(q).length;
-  bar.style.display = IS_MANAGER && n > 0 ? 'flex' : 'none';
-  const cnt = document.getElementById('crewUpdateCount');
-  if (cnt) cnt.textContent = n;
+  const btn = document.getElementById('btnUpdateQueue');
+  const badge = document.getElementById('updateQueueBadge');
+  if (btn) btn.style.display = (IS_MANAGER && n > 0) ? '' : 'none';
+  if (badge) badge.textContent = n;
 }
 
-function _dismissCrewUpdates() {
-  const bar = document.getElementById('crewUpdateBar');
-  if (bar) bar.style.display = 'none';
+function _openUpdateQueueModal() {
+  const q = _getCrewUpdateQueue();
+  const body = document.getElementById('crewUpdateModalBody');
+  if (!body) return;
+  let html = '';
+  for (const [name, entry] of Object.entries(q)) {
+    html += `<div style="margin-bottom:12px;">
+      <div style="color:#e8c84a;font-size:.7rem;letter-spacing:1px;margin-bottom:4px;">${esc(name)} <span style="color:#888;font-size:.65rem;">(${esc(entry.email||'')})</span></div>`;
+    (entry.slots||[]).forEach((slot, i) => {
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #333;font-size:.65rem;color:#ccc;">
+        <span>${esc(slot.date)} · ${esc(slot.posLabel||'')}</span>
+        <span style="cursor:pointer;color:#e84a4a;margin-left:12px;" onclick="_deleteSlotFromQueue(${JSON.stringify(name)},${i})">✕</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  if (!html) html = '<div style="color:#888;font-size:.7rem;">Queue ist leer.</div>';
+  body.innerHTML = html;
+  const modal = document.getElementById('crewUpdateModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function _closeUpdateQueueModal() {
+  const modal = document.getElementById('crewUpdateModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function _deleteSlotFromQueue(crewName, slotIndex) {
+  const q = _getCrewUpdateQueue();
+  if (!q[crewName]) return;
+  q[crewName].slots.splice(slotIndex, 1);
+  if (q[crewName].slots.length === 0) delete q[crewName];
+  _saveCrewUpdateQueue(q);
+  _updateCrewUpdateBar();
+  _openUpdateQueueModal();
 }
 
 async function _sendPendingUpdates() {
@@ -387,6 +418,7 @@ async function _sendPendingUpdates() {
     }
     _saveCrewUpdateQueue({});
     _updateCrewUpdateBar();
+    _closeUpdateQueueModal();
     showToast('Update-Mails gesendet ✓', '#4ae8a0');
     await loadAssignmentStatuses();
     renderTable();

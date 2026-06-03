@@ -7,7 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
-**v0.9.9.31** — fix: declined/proposed Slot korrekt ersetzt beim Crew-Wechsel im Dropdown
+**v0.9.10.0** — feat: Update-Queue Modal mit Sidebar-Badge statt Banner, einzelne Slots löschbar
 
 ## Tech-Stack
 

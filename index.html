@@ -22,7 +22,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.9.9.31</span>
+            <span class="tour-tag">Personalplan · v0.9.10.0</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -51,6 +51,7 @@
         <button class="primary manager-only" onclick="saveJSON()"><span class="sb-gl">▶</span>Speichern</button>
         <button class="manager-only" onclick="loadJSON()"><span class="sb-gl">▶</span>Laden</button>
         <button class="manager-only" onclick="openCrewModal()"><span class="sb-gl">👥</span>Crew &amp; Positionen</button>
+        <button id="btnUpdateQueue" class="manager-only" onclick="_openUpdateQueueModal()" style="display:none;"><span class="sb-gl">↻</span>Updates <span id="updateQueueBadge" style="background:#e84a4a;color:#fff;border-radius:50%;padding:1px 6px;font-size:.7rem;margin-left:4px;">0</span></button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
         <button id="btnKonsole" onclick="window.location.href='admin.html'" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
         <button class="crew-only primary" onclick="bulkConfirmAllMySlots()" style="display:none;"><span class="sb-gl">✓</span>Termine bestätigen</button>
@@ -365,6 +366,20 @@
 <script src="js/crewNotify.js?v=29"></script>
 <script src="js/userView.js?v=34"></script>
 <script src="js/init.js?v=30"></script>
+
+<!-- UPDATE QUEUE MODAL -->
+<div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
+  <div style="background:#1a1a2e;border:1px solid #e8c84a;padding:24px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;font-family:'IBM Plex Mono',monospace;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="color:#e8c84a;letter-spacing:2px;font-size:.75rem;">AUSSTEHENDE UPDATES</span>
+      <span style="cursor:pointer;color:#aaa;" onclick="_closeUpdateQueueModal()">✕</span>
+    </div>
+    <div id="crewUpdateModalBody"></div>
+    <div style="margin-top:16px;text-align:right;">
+      <button onclick="_sendPendingUpdates()" style="background:#e8c84a;color:#0d0d1a;border:none;padding:8px 16px;cursor:pointer;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;font-size:.7rem;">ALLE UPDATES SENDEN →</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
