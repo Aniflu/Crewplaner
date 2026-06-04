@@ -22,7 +22,7 @@ async function _getActivePlanId() {
   if (IS_CREW) {
     try {
       const email = (CURRENT_USER_EMAIL || '').toLowerCase();
-      const found = await pbFirst('crew_members', `email = "${email.replace(/"/g, '\\"')}"`);
+      const found = await pbFirst('crew_members', `email = "${pbEscapeFilter(email)}"`);
       if (found?.plan_id) {
         localStorage.setItem('tourplan_active_pb_id', found.plan_id);
         return found.plan_id;
@@ -55,7 +55,7 @@ async function _createOrFetchPlanId(key) {
 
   try {
     const existing = await pbFirst('plans',
-      `name = "${planName.replace(/"/g, '\\"')}" && owner = "${CURRENT_USER_ID}"`);
+      `name = "${pbEscapeFilter(planName)}" && owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
     if (existing) {
       localStorage.setItem(key, existing.id);
       return existing.id;
@@ -66,7 +66,7 @@ async function _createOrFetchPlanId(key) {
 
   // Fallback: Plan per owner suchen (falls name-Feld leer/verloren) und Namen reparieren
   try {
-    const fallback = await pbFirst('plans', `owner = "${CURRENT_USER_ID}"`);
+    const fallback = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
     if (fallback) {
       if (!fallback.name) {
         await pbPatch('/api/collections/plans/records/' + fallback.id, { name: planName });
@@ -131,7 +131,7 @@ async function loadPlanForManager() {
   if (!SUPABASE_ENABLED || !IS_MANAGER) return;
   try {
     // Direkt nach owner suchen — unabhängig von activePlanId / localStorage
-    const plan = await pbFirst('plans', `owner = "${CURRENT_USER_ID}"`);
+    const plan = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
     if (!plan) { console.warn('loadPlanForManager: kein Plan für owner gefunden'); return; }
     if (!plan.plan_data) {
       console.warn('loadPlanForManager: plan_data ist leer');
@@ -169,7 +169,7 @@ async function loadCrewMeta() {
   if (!planId) return;
 
   try {
-    const data = await pbList('crew_members', `plan_id = "${planId}"`);
+    const data = await pbList('crew_members', `plan_id = "${pbEscapeFilter(planId)}"`);
     Object.keys(crewMeta).forEach(k => delete crewMeta[k]);
     (data?.items || []).forEach(row => {
       if (row.email || row.user_id) {
@@ -189,7 +189,7 @@ async function loadAssignmentStatuses() {
 
   try {
     const data = await pbListAll('assignments',
-      `plan_id = "${planId}" && status != "assigned"`);
+      `plan_id = "${pbEscapeFilter(planId)}" && status != "assigned"`);
     Object.keys(assignmentStatuses).forEach(k => delete assignmentStatuses[k]);
     (data?.items || []).forEach(row => {
       if (!assignmentStatuses[row.date]) assignmentStatuses[row.date] = {};
@@ -212,7 +212,7 @@ async function confirmAssignment(dateStr, posId) {
 
   try {
     const existing = await pbFirst('assignments',
-      `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`);
+      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
     if (existing) {
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'confirmed', responded_at: new Date().toISOString()
@@ -236,7 +236,7 @@ async function declineAssignment(dateStr, posId) {
 
   try {
     const existing = await pbFirst('assignments',
-      `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`);
+      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
     if (existing) {
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'declined', responded_at: new Date().toISOString()
@@ -257,7 +257,7 @@ async function cancelProposal(dateStr, posId) {
 
   try {
     const existing = await pbFirst('assignments',
-      `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`);
+      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
     if (existing) {
       await pbDelete('/api/collections/assignments/records/' + existing.id);
     }
@@ -275,7 +275,7 @@ async function bulkCancelProposals(posId) {
 
   try {
     const data = await pbList('assignments',
-      `plan_id = "${planId}" && pos_id = "${posId}" && (status = "proposed" || status = "declined")`);
+      `plan_id = "${pbEscapeFilter(planId)}" && pos_id = "${pbEscapeFilter(posId)}" && (status = "proposed" || status = "declined")`);
     await Promise.all((data?.items || []).map(row =>
       pbDelete('/api/collections/assignments/records/' + row.id)
     ));
@@ -295,7 +295,7 @@ async function bulkProposeCrew(slots) {
     const pos = typeof POSITIONS !== 'undefined' ? POSITIONS.find(p => p.id === s.posId) : null;
     return pbUpsert(
       'assignments',
-      `plan_id = "${planId}" && date = "${s.date}" && pos_id = "${s.posId}"`,
+      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(s.date)}" && pos_id = "${pbEscapeFilter(s.posId)}"`,
       {
         plan_id: planId, date: s.date, pos_id: s.posId, pos_label: pos?.label || s.posId,
         crew_name: s.crewName, crew_email: s.crewEmail || '',
@@ -405,7 +405,7 @@ async function saveCrewLink(crewName, email) {
   try {
     await pbUpsert(
       'crew_members',
-      `plan_id = "${planId}" && name = "${crewName.replace(/"/g, '\\"')}"`,
+      `plan_id = "${pbEscapeFilter(planId)}" && name = "${pbEscapeFilter(crewName)}"`,
       { plan_id: planId, name: crewName, email, sort_order: crew.indexOf(crewName) },
       { email }
     );

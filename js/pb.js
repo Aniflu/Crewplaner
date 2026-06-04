@@ -23,6 +23,14 @@ function pbPost(path, body)   { return _pbFetch('POST',   path, body); }
 function pbPatch(path, body)  { return _pbFetch('PATCH',  path, body); }
 function pbDelete(path)       { return _pbFetch('DELETE', path);       }
 
+// ── Escapes a value for safe use inside PocketBase filter strings ────────────
+function pbEscapeFilter(val) {
+  return String(val == null ? '' : val)
+    .replace(/\\\\/g, '\\\\\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/'/g, "\\'");
+}
+
 // ── Liste mit Filter ───────────────────────────────────────────────────────────
 function pbList(collection, filter, sort, perPage) {
   const params = new URLSearchParams({
