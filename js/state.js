@@ -95,8 +95,66 @@ export let TOUR_DATES = [
   {date:'2026-09-29',type:'reise',typeLabel:'Reise',               loc:'Nightliner'},
 ];
 
-// ── Temporary auth state setters (for Phase 2 only) ────────────────────────────
-export function _setAuthState(userId, email, role) {
+// ── Setters ────────────────────────────────────────────────────────────────────
+export function setAssignment(date, posId, value) {
+  if (!assignments[date]) assignments[date] = {};
+  assignments[date][posId] = value;
+}
+
+export function clearAssignmentSlot(date, posId) {
+  if (assignments[date]) delete assignments[date][posId];
+}
+
+export function loadAssignmentsData(data) {
+  assignments = data || {};
+}
+
+export function setStatus(date, posId, statusObj) {
+  if (!assignmentStatuses[date]) assignmentStatuses[date] = {};
+  assignmentStatuses[date][posId] = statusObj;
+}
+
+export function clearStatus(date, posId) {
+  if (assignmentStatuses[date]) delete assignmentStatuses[date][posId];
+}
+
+export function loadStatusesData(data) {
+  assignmentStatuses = data || {};
+}
+
+export function setTourDates(dates) {
+  TOUR_DATES = [...dates];
+}
+
+export function pushTourDate(row) {
+  TOUR_DATES.push(row);
+}
+
+export function spliceTourDate(index, count) {
+  TOUR_DATES.splice(index, count);
+}
+
+export function setPositions(positions) {
+  POSITIONS = [...positions];
+}
+
+export function setCrew(crewArray) {
+  crew = [...crewArray];
+}
+
+export function setDefaultCrew(dc) {
+  defaultCrew = { ...dc };
+}
+
+export function setCrewMeta(meta) {
+  crewMeta = { ...meta };
+}
+
+export function setLogos(l) {
+  logos = { ...l };
+}
+
+export function setAuthState(userId, email, role) {
   CURRENT_USER_ID    = userId;
   CURRENT_USER_EMAIL = email;
   USER_ROLE          = role;
@@ -106,7 +164,8 @@ export function _setAuthState(userId, email, role) {
   IS_CREW            = role === 'crew';
   IS_ADMIN           = IS_MANAGER;
 }
-export function _clearAuthState() {
+
+export function clearAuthState() {
   CURRENT_USER_ID = null;
   CURRENT_USER_EMAIL = null;
   USER_ROLE = 'crew';

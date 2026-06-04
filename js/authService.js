@@ -1,5 +1,5 @@
 import { SUPABASE_ENABLED } from './config.js';
-import { _setAuthState, _clearAuthState } from './state.js';
+import { setAuthState } from './state.js';
 import { pbPost, pbGet, pbPatch } from './pb.js';
 import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses } from './dataService.js';
 
@@ -33,7 +33,7 @@ export async function _authCheckAndStart() {
       return;
     }
 
-    _setAuthState(user.id, user.email, user.role || 'crew');
+    setAuthState(user.id, user.email, user.role || 'crew');
     _showUserBadge(user);
     document.body.style.visibility = 'visible';
 
