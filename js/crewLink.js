@@ -1,12 +1,17 @@
 // ── Crew ↔ E-Mail Verknüpfung (nur Admin) ─────────────────────────────────────
-function openCrewLinkModal() {
+import { IS_MANAGER, crew, crewMeta, CREW_COLORS } from './state.js';
+import { SUPABASE_ENABLED } from './config.js';
+import { pbGet, pbPatch } from './pb.js';
+import { showToast } from './utils.js';
+
+export function openCrewLinkModal() {
   if (!hasPermission('linkCrewEmail')) return;
   document.getElementById('sharedTitle').textContent = 'Crew verknüpfen';
   _renderCrewLinkList();
   openModal('sharedModal');
 }
 
-function _renderCrewLinkList() {
+export function _renderCrewLinkList() {
   const rows = crew.map((name, i) => {
     const meta = crewMeta[name] || {};
     const dot = CREW_COLORS[i % CREW_COLORS.length];
@@ -31,7 +36,7 @@ function _renderCrewLinkList() {
     </div>`;
 }
 
-async function saveCrewLinkRow(i) {
+export async function saveCrewLinkRow(i) {
   const name = crew[i];
   const email = (document.getElementById('cl_' + i)?.value || '').trim().toLowerCase();
   if (!email) return;

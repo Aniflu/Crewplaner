@@ -2,10 +2,14 @@
 // Ops-Console Print-Look: Gold-Rail, Archivo Display, Mini-KPI, weiss auf dunkel invertiert.
 // Drei Ansichten: Tabelle (volle Kreuztabelle), Blöcke (Tourblock-Zusammenfassung),
 // Crew (Timeline pro Person).
+import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew,
+         assignmentStatuses, logos, IS_MANAGER, CREW_COLORS } from './state.js';
+import { getVal, isPending, esc, parseD, fmtD, dw } from './utils.js';
+import { TYPE_OPTS } from './types.js';
 
 let PDF_VIEW='table'; // 'table' | 'blocks' | 'crew'
 
-function pdfSetView(v){
+export function pdfSetView(v){
   PDF_VIEW=v;
   document.querySelectorAll('#pdfViewChoice .pvc').forEach(b=>{
     b.classList.toggle('active', b.dataset.view===v);
@@ -15,7 +19,7 @@ function pdfSetView(v){
   if(posWrap)posWrap.style.display = v==='table' ? '' : 'none';
 }
 
-function openPDFFilter(){
+export function openPDFFilter(){
   document.getElementById('pdfPosCbs').innerHTML=POSITIONS.map((p,i)=>
     `<label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;padding:2px 0;"><input type="checkbox" class="pdfcb" data-idx="${i}" checked style="accent-color:#d4a53a;"> <span style="color:#d4a53a;font-weight:600;letter-spacing:.1em;font-size:10px;text-transform:uppercase;min-width:44px;">${p.short||''}</span><span>${p.label}</span></label>`
   ).join('');
@@ -27,7 +31,7 @@ function openPDFFilter(){
   openModal('pdfModal');
 }
 
-function pdfToggleAll(containerId, state){
+export function pdfToggleAll(containerId, state){
   document.querySelectorAll('#'+containerId+' input[type="checkbox"]').forEach(cb=>cb.checked=state);
 }
 

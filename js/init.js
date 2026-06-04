@@ -1,6 +1,16 @@
 // ── Init ───────────────────────────────────────────────────────────────────────
 // Wird von authService.js nach Session-Check aufgerufen (oder direkt wenn Auth deaktiviert)
-function startApp(){
+import { TOUR_DATES, POSITIONS, crew, assignments, IS_MANAGER, IS_CREW,
+         IS_SUPERADMIN, IS_BOOKER, SUPABASE_ENABLED, activePlanId } from './state.js';
+import { showToast, esc } from './utils.js';
+import { loadCustomTypes, renderTypeList, TYPE_OPTS } from './types.js';
+import { renderTable } from './render.js';
+import { renderBlockView } from './blockview.js';
+import { updateStats } from './stats.js';
+import { loadLogosGlobal } from './logos.js';
+import { getPlansIndex, renderPlanList, applyData, genPlanId, savePlansIndex } from './plans.js';
+
+export function startApp(){
   loadCustomTypes();
   renderTypeList();
   loadLogosGlobal();

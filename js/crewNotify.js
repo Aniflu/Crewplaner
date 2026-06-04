@@ -1,12 +1,20 @@
 // ── Crew-Benachrichtigung Modal (nur Admin) ────────────────────────────────────
+import { crew, assignments, assignmentStatuses, TOUR_DATES, POSITIONS,
+         CURRENT_USER_EMAIL, IS_MANAGER, crewMeta, CREW_COLORS } from './state.js';
+import { SUPABASE_ENABLED } from './config.js';
+import { showToast } from './utils.js';
+import { pbPost, pbList, pbFirst } from './pb.js';
+import { bulkProposeCrew, sendCrewInvite, sendCancellationNotice,
+         sendUpdateNotice, loadAssignmentStatuses } from './dataService.js';
+
 const CREW_INVITES_KEY = 'tourplan_crew_invites';
 const PENDING_CANCELLATIONS_KEY = 'tourplan_pending_cancellations';
 
-function _loadCancellations() {
+export function _loadCancellations() {
   try { return JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}'); } catch { return {}; }
 }
 
-function _storePendingCancellation(crewName, email, dateStr, posLabel) {
+export function _storePendingCancellation(crewName, email, dateStr, posLabel) {
   const q = _loadCancellations();
   if (!q[crewName]) q[crewName] = { email, slots: [] };
   const exists = q[crewName].slots.some(s => s.date === dateStr && s.posLabel === posLabel);
@@ -15,14 +23,14 @@ function _storePendingCancellation(crewName, email, dateStr, posLabel) {
   renderCancellationBanner();
 }
 
-function _clearPendingCancellations(crewName) {
+export function _clearPendingCancellations(crewName) {
   const q = _loadCancellations();
   delete q[crewName];
   localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(q));
   renderCancellationBanner();
 }
 
-function renderCancellationBanner() {
+export function renderCancellationBanner() {
   const banner = document.getElementById('cancellation-banner');
   if (!banner) return;
   if (!IS_MANAGER) { banner.style.display = 'none'; return; }
@@ -34,7 +42,7 @@ function renderCancellationBanner() {
   if (el) el.textContent = total + ' Absage' + (total !== 1 ? 'n' : '') + ' ausstehend';
 }
 
-async function flushAllCancellations() {
+export async function flushAllCancellations() {
   const q = _loadCancellations();
   const names = Object.keys(q);
   if (!names.length) return;
@@ -44,22 +52,22 @@ async function flushAllCancellations() {
   renderCancellationBanner();
 }
 
-function clearAllCancellations() {
+export function clearAllCancellations() {
   localStorage.removeItem(PENDING_CANCELLATIONS_KEY);
   renderCancellationBanner();
 }
 
-function _loadInvites() {
+export function _loadInvites() {
   try { return JSON.parse(localStorage.getItem(CREW_INVITES_KEY) || '{}'); } catch { return {}; }
 }
 
-function _saveInvite(name) {
+export function _saveInvite(name) {
   const inv = _loadInvites();
   inv[name] = new Date().toISOString();
   localStorage.setItem(CREW_INVITES_KEY, JSON.stringify(inv));
 }
 
-function _getCrewInviteStatus(name, invites) {
+export function _getCrewInviteStatus(name, invites) {
   const inv = invites || _loadInvites();
   const hasConfirmed = Object.values(assignmentStatuses || {}).some(day =>
     Object.values(day).some(s => s.crewName === name && s.status === 'confirmed')
@@ -72,21 +80,21 @@ function _getCrewInviteStatus(name, invites) {
   return 'not_invited';
 }
 
-function _fmtInviteDate(name, invites) {
+export function _fmtInviteDate(name, invites) {
   const inv = invites || _loadInvites();
   if (!inv[name]) return '';
   const d = new Date(inv[name]);
   return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()}`;
 }
 
-function openCrewNotifyModal() {
+export function openCrewNotifyModal() {
   if (!hasPermission('sendInvite')) return;
   document.getElementById('sharedTitle').textContent = 'Crew benachrichtigen';
   _renderCrewNotifyList();
   openModal('sharedModal');
 }
 
-function _renderCrewNotifyList() {
+export function _renderCrewNotifyList() {
   const pending = _loadCancellations();
   const invites = _loadInvites();
   const rows = crew.map((name, i) => {
@@ -147,7 +155,7 @@ function _renderCrewNotifyList() {
     </div>`;
 }
 
-async function sendCancellationSummary(crewName) {
+export async function sendCancellationSummary(crewName) {
   const q = _loadCancellations();
   const entry = q[crewName];
   if (!entry || !entry.slots.length) return;
@@ -162,7 +170,7 @@ async function sendCancellationSummary(crewName) {
 }
 
 // ── Alle Slots eines Crew-Mitglieds via getVal() (inkl. defaultCrew) ─────────
-function _getAllSlotsForCrew(crewName, crewEmail) {
+export function _getAllSlotsForCrew(crewName, crewEmail) {
   const slots = [];
   const _dates = typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : [];
   const _pos   = typeof POSITIONS  !== 'undefined' ? POSITIONS  : [];
@@ -179,14 +187,14 @@ function _getAllSlotsForCrew(crewName, crewEmail) {
   return slots;
 }
 
-function _getNewSlotsForCrew(crewName, crewEmail) {
+export function _getNewSlotsForCrew(crewName, crewEmail) {
   return _getAllSlotsForCrew(crewName, crewEmail).filter(s => {
     const existing = assignmentStatuses[s.date]?.[s.posId];
     return !existing || existing.status === 'declined';
   });
 }
 
-async function sendInvite(crewName, type) {
+export async function sendInvite(crewName, type) {
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
 
@@ -204,7 +212,7 @@ async function sendInvite(crewName, type) {
   _renderCrewNotifyList();
 }
 
-async function sendUpdate(crewName) {
+export async function sendUpdate(crewName) {
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
   const newSlots = _getNewSlotsForCrew(crewName, meta.email);

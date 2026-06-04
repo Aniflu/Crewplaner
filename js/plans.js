@@ -1,18 +1,24 @@
 // ── Multi-Plan System ──────────────────────────────────────────────────────────
+import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos,
+         IS_MANAGER } from './state.js';
+import { SUPABASE_ENABLED } from './config.js';
+import { showToast, sortInsert } from './utils.js';
+import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
+
 const PLANS_INDEX_KEY = 'tourplan_plans';
 const PLAN_PREFIX = 'tourplan_plan_';
 const LOGOS_KEY = 'tourplan_logos'; // Logos sind GLOBAL
 let activePlanId = null;
 
-function getPlansIndex(){
+export function getPlansIndex(){
   try{const r=localStorage.getItem(PLANS_INDEX_KEY);return r?JSON.parse(r):[];}catch(e){return[];}
 }
-function savePlansIndex(list){
+export function savePlansIndex(list){
   try{localStorage.setItem(PLANS_INDEX_KEY,JSON.stringify(list));}catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');}
 }
-function genPlanId(){return 'p'+Date.now().toString(36);}
+export function genPlanId(){return 'p'+Date.now().toString(36);}
 
-function renderPlanList(){
+export function renderPlanList(){
   const plans=getPlansIndex();
   const el=document.getElementById('planList');
   if(!el)return;
@@ -28,7 +34,7 @@ function renderPlanList(){
   if(nameEl){const active=plans.find(p=>p.id===activePlanId);nameEl.textContent=active?active.name:'';}
 }
 
-function switchPlan(id){
+export function switchPlan(id){
   if(id===activePlanId)return;
   _savePlanToLS(activePlanId);
   activePlanId=id;
@@ -37,7 +43,7 @@ function switchPlan(id){
   showToast('Plan geladen ✓','#4f81bd');
 }
 
-async function deletePlan(id){
+export async function deletePlan(id){
   if(!hasPermission('deletePlan'))return;
   const plans=getPlansIndex();
   const plan=plans.find(p=>p.id===id);
@@ -55,7 +61,7 @@ async function deletePlan(id){
   showToast('Plan gelöscht','#d4b84a');
 }
 
-function renamePlan(id){
+export function renamePlan(id){
   const plans=getPlansIndex();const plan=plans.find(p=>p.id===id);if(!plan)return;
   document.getElementById('sharedTitle').textContent='Plan umbenennen';
   document.getElementById('sharedBody').innerHTML=`
@@ -64,7 +70,7 @@ function renamePlan(id){
   openModal('sharedModal');setTimeout(()=>{const i=document.getElementById('renamePlanInput');if(i){i.focus();i.select();}},50);
 }
 
-async function confirmRenamePlan(id){
+export async function confirmRenamePlan(id){
   const name=(document.getElementById('renamePlanInput')?.value||'').trim();if(!name)return;
   const plans=getPlansIndex();const plan=plans.find(p=>p.id===id);
   if(plan){plan.name=name;savePlansIndex(plans);}
@@ -79,7 +85,7 @@ async function confirmRenamePlan(id){
   showToast('Umbenannt ✓','#2d6a3f');
 }
 
-function openNewPlan(){
+export function openNewPlan(){
   if(!hasPermission('createPlan'))return;
   document.getElementById('sharedTitle').textContent='Neuer Plan';
   document.getElementById('sharedBody').innerHTML=`
@@ -92,7 +98,7 @@ function openNewPlan(){
   setTimeout(()=>document.getElementById('newPlanName')?.focus(),50);
 }
 
-async function confirmNewPlan(){
+export async function confirmNewPlan(){
   const name=(document.getElementById('newPlanName')?.value||'').trim();
   if(!name){await showAlert('Bitte Namen eingeben.');return;}
   closeModal('sharedModal');

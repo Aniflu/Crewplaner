@@ -1,4 +1,5 @@
 // Custom dialog system — ersetzt alle nativen confirm/alert/prompt Aufrufe
+export function initDialogSystem(){
 (function(){
   let _overlay=null;
   let _active=false;
@@ -83,4 +84,6 @@
   window.showPrompt=function(msg,def){
     return _show({type:'prompt',title:'Eingabe',msg,def:def||''});
   };
-})();
+});
+}
+initDialogSystem();

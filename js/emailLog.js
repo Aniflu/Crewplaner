@@ -1,5 +1,9 @@
 // ── E-Mail-Log Tab (Admin) ────────────────────────────────────────────────────
 // Client-Side Filtering: Lade 1x, filtere instant
+import { SUPABASE_ENABLED } from './config.js';
+import { pbList } from './pb.js';
+import { esc } from './utils.js';
+
 const EMAIL_TYPE_LABELS = {
   invite:       '📧 Einladung',
   reminder:     '🔔 Erinnerung',
@@ -13,7 +17,7 @@ let _emailLogRecords = [];
 let _emailLogStatus = 'all';
 let _emailLogActiveDate = 'all';
 
-async function renderEmailLog() {
+export async function renderEmailLog() {
   const container = document.getElementById('emailLogBody');
   if (!container) return;
   if (!_wrkPbPlanId) {

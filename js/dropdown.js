@@ -1,5 +1,15 @@
 // ── Dropdown Engine ────────────────────────────────────────────────────────────
-function showDD(rect,header,items){
+import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew,
+         assignmentStatuses, IS_MANAGER, IS_CREW,
+         OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, crewMeta } from './state.js';
+import { SUPABASE_ENABLED } from './config.js';
+import { getVal, isPending, esc, showToast, sortInsert, fmtD, showConfirm } from './utils.js';
+import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
+import { renderTable } from './render.js';
+import { pbDelete } from './pb.js';
+import { cancelProposal, bulkCancelProposals, proposeCrew, loadAssignmentStatuses } from './dataService.js';
+
+export function showDD(rect,header,items){
   const menu=document.getElementById('ddMenu');
   menu.innerHTML=`<div class="dd-hdr">${header}</div>`;
   items.forEach(it=>{
@@ -19,10 +29,10 @@ function showDD(rect,header,items){
   menu.style.display='block';
   document.getElementById('ddOv').classList.add('open');
 }
-function closeDD(){document.getElementById('ddOv').classList.remove('open');document.getElementById('ddMenu').style.display='none';}
+export function closeDD(){document.getElementById('ddOv').classList.remove('open');document.getElementById('ddMenu').style.display='none';}
 
 // ── Type Dropdown ──────────────────────────────────────────────────────────────
-function openTypeDD(e,dateStr){
+export function openTypeDD(e,dateStr){
   if(!IS_MANAGER)return;
   e.stopPropagation();
   const row=TOUR_DATES.find(r=>r.date===dateStr);
@@ -53,7 +63,7 @@ function openTypeDD(e,dateStr){
 }
 
 // ── Date Dropdown (löschen) ───────────────────────────────────────────────────
-function openDateDD(e,dateStr){
+export function openDateDD(e,dateStr){
   if(!IS_MANAGER)return;
   e.stopPropagation();
   const row=TOUR_DATES.find(r=>r.date===dateStr);
@@ -74,7 +84,7 @@ function openDateDD(e,dateStr){
 }
 
 // ── Crew Assignment Dropdown ───────────────────────────────────────────────────
-function openCrewDD(e,dateStr,posId){
+export function openCrewDD(e,dateStr,posId){
   if(!hasPermission('assignCrew'))return;
   e.stopPropagation();
   const pos=POSITIONS.find(p=>p.id===posId);
@@ -144,10 +154,10 @@ function openCrewDD(e,dateStr,posId){
   });
   showDD(e.currentTarget.getBoundingClientRect(),pos.label+(SUPABASE_ENABLED?' · 📧=Benachrichtigung':''),items);
 }
-function setAssign(d,p,v){if(!assignments[d])assignments[d]={};assignments[d][p]=v;_savePlanToLS(activePlanId);renderTable();}
+export function setAssign(d,p,v){if(!assignments[d])assignments[d]={};assignments[d][p]=v;_savePlanToLS(activePlanId);renderTable();}
 
 // ── Default Crew Dropdown ──────────────────────────────────────────────────────
-function openDefaultDD(e,posId){
+export function openDefaultDD(e,posId){
   e.stopPropagation();
   const pos=POSITIONS.find(p=>p.id===posId);
   const cur=defaultCrew[posId]||'';
@@ -156,7 +166,7 @@ function openDefaultDD(e,posId){
   showDD(e.currentTarget.getBoundingClientRect(),`Standard: ${pos.label}`,items);
 }
 
-async function bulkCancelPos(e,posId){
+export async function bulkCancelPos(e,posId){
   e.stopPropagation();
   const pos=POSITIONS.find(p=>p.id===posId);
   const ok=await showConfirm(`Alle offenen Anfragen für "${pos?.label}" zurückziehen?`,'Zurückziehen');
@@ -179,7 +189,7 @@ async function bulkCancelPos(e,posId){
   renderTable();
 }
 
-async function requestAll(e){
+export async function requestAll(e){
   if(!IS_MANAGER)return;
   e.stopPropagation();
   const _ok=await showConfirm('Alle leeren Slots mit Standard-Crew füllen?\nDas überschreibt deinen Plan und kann nicht rückgängig gemacht werden.','Übernehmen');
@@ -198,7 +208,7 @@ async function requestAll(e){
   showToast('Alle Standard-Zuweisungen übernommen ✓','#4ae8a0');
 }
 
-function requestForPos(e,posId){
+export function requestForPos(e,posId){
   if(!IS_MANAGER)return;
   e.stopPropagation();
   const def=defaultCrew[posId];

@@ -1,11 +1,14 @@
 // ── Crew & Positionen Modal ─────────────────────────────────────────────────────
-function openCrewModal(){
+import { IS_MANAGER, IS_CREW, SUPABASE_ENABLED } from './state.js';
+import { renderTable } from './render.js';
+
+export function openCrewModal(){
   renderCrew();
   openModal('crewModal');
 }
 
 // ── Sidebar Toggle ─────────────────────────────────────────────────────────────
-function toggleSidebar(){
+export function toggleSidebar(){
   const sb=document.getElementById('sidebar'),layout=document.getElementById('mainLayout'),btn=document.getElementById('btnSidebar');
   const vis=sb.style.display!=='none';
   sb.style.display=vis?'none':'';

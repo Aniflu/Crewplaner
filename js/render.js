@@ -1,9 +1,15 @@
 // ── Table Rendering ────────────────────────────────────────────────────────────
+import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, defaultCrew,
+         IS_MANAGER, IS_CREW, IS_BOOKER, SUPABASE_ENABLED,
+         OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, CURRENT_USER_EMAIL } from './state.js';
+import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS } from './utils.js';
+import { TYPE_OPTS } from './types.js';
+
 // View state
 let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'
 const VIEW_KEY = 'tourplan_view';
 
-function setView(v){
+export function setView(v){
   if(!['table','blocks','crew'].includes(v))v='table';
   CURRENT_VIEW=v;
   try{localStorage.setItem(VIEW_KEY,v);}catch(e){}
@@ -14,18 +20,18 @@ function setView(v){
   renderTable();
 }
 
-function renderTable(){
+export function renderTable(){
   // Always update stats
   if(CURRENT_VIEW==='table'){renderHead();renderBody();}
   else if(CURRENT_VIEW==='blocks'){if(typeof renderBlockView==='function')renderBlockView();}
   else if(CURRENT_VIEW==='crew'){if(typeof renderCrewView==='function')renderCrewView();}
   updateStats();
-  updateViewMeta();
+  _updateViewMeta();
   if(typeof _updateMeldungBar==='function')_updateMeldungBar();
   if(typeof _updateCrewUpdateBar==='function')_updateCrewUpdateBar();
 }
 
-function updateViewMeta(){
+function _updateViewMeta(){
   const el=document.getElementById('viewMeta');if(!el)return;
   const shows=TOUR_DATES.filter(r=>r.type==='show').length;
   const total=TOUR_DATES.length;
@@ -33,7 +39,7 @@ function updateViewMeta(){
   el.innerHTML=`<strong>${total}</strong> Tage · <strong>${shows}</strong> Shows · <strong>${blocks}</strong> Blöcke`;
 }
 
-function renderHead(){
+export function renderHead(){
   let h='<tr>';
   h+=`<th rowspan="2" style="left:0;text-align:left;vertical-align:middle;z-index:12;">Datum${IS_MANAGER?`<br><button onclick="requestAll(event)" style="margin-top:4px;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 6px;font-family:'IBM Plex Mono',monospace;font-size:.55rem;border-radius:3px;cursor:pointer;white-space:nowrap;">↓ Alle</button>`:''}</th>`;
   h+='<th rowspan="2" style="left:88px;text-align:left;vertical-align:middle;z-index:12;">Art</th>';
@@ -67,7 +73,7 @@ function renderHead(){
   document.getElementById('tHead').innerHTML=h;
 }
 
-function renderBody(){
+export function renderBody(){
   let b='',lastBlockId=null;
   const _meldungSentData=(typeof _getMeldungSent==='function')?_getMeldungSent():{};
   const myName=SUPABASE_ENABLED&&typeof getMyCrewName==='function'?getMyCrewName():null;
@@ -146,7 +152,7 @@ function renderBody(){
 }
 
 // ── Inline Loc Edit ────────────────────────────────────────────────────────────
-function startLocEdit(e,dateStr){
+export function startLocEdit(e,dateStr){
   e.stopPropagation();
   const td=e.currentTarget.parentElement;
   const row=TOUR_DATES.find(r=>r.date===dateStr);
@@ -165,7 +171,7 @@ function startLocEdit(e,dateStr){
 }
 
 // ── Sticky Column Fix ──────────────────────────────────────────────────────────
-function fixStickyColumns(){
+export function fixStickyColumns(){
   const table = document.querySelector('table');
   if(!table) return;
   const firstTh = table.querySelector('thead th:first-child');

@@ -1,7 +1,10 @@
 // ── Save / Load / AutoSave ─────────────────────────────────────────────────────
-function collectData(){return{version:3,crew,positions:POSITIONS,defaultCrew,tourDates:TOUR_DATES,assignments};} // Logos sind global in LOGOS_KEY
+import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos } from './state.js';
+import { showToast } from './utils.js';
 
-function applyData(data){
+export function collectData(){return{version:3,crew,positions:POSITIONS,defaultCrew,tourDates:TOUR_DATES,assignments};} // Logos sind global in LOGOS_KEY
+
+export function applyData(data){
   if(!data.tourDates)throw new Error('Ungültiges Format');
   crew.length=0;data.crew.forEach(c=>crew.push(c));
   if(data.positions){POSITIONS.length=0;data.positions.forEach(p=>POSITIONS.push(p));}
@@ -14,7 +17,7 @@ function applyData(data){
 }
 
 let autoSaveTimer=null;
-function autoSave(){
+export function autoSave(){
   clearTimeout(autoSaveTimer);
   autoSaveTimer=setTimeout(()=>{
     _savePlanToLS(activePlanId);
@@ -23,7 +26,7 @@ function autoSave(){
   },30000);
 }
 
-async function saveJSON(){
+export async function saveJSON(){
   const json=JSON.stringify(collectData(),null,2);
   const plans=getPlansIndex();
   const planName=plans.find(p=>p.id===activePlanId)?.name||'tourplan';
@@ -32,9 +35,9 @@ async function saveJSON(){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=`${safeName}.json`;a.click();showToast('Gespeichert ✓','#2d6a3f');
 }
 
-function loadJSON(){document.getElementById('fileInput').click();}
+export function loadJSON(){document.getElementById('fileInput').click();}
 
-function onFileLoad(e){
+export function onFileLoad(e){
   const file=e.target.files[0];if(!file)return;
   const r=new FileReader();
   r.onload=ev=>{

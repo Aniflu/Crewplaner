@@ -1,9 +1,16 @@
 // ── User View — Meine Einsätze / Confirm / Decline ────────────────────────────
+import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
+         IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID } from './state.js';
+import { SUPABASE_ENABLED } from './config.js';
+import { getVal, isPending, esc, showToast, fmtD } from './utils.js';
+import { pbPatch, pbPost } from './pb.js';
+import { confirmAssignment, declineAssignment, loadAssignmentStatuses } from './dataService.js';
+import { renderTable } from './render.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
 const _pendingCancellations = new Set();
 
-function toggleCancellation(dateStr, posId) {
+export function toggleCancellation(dateStr, posId) {
   const key = dateStr + '|' + posId;
   if (_pendingCancellations.has(key)) _pendingCancellations.delete(key);
   else _pendingCancellations.add(key);
@@ -11,7 +18,7 @@ function toggleCancellation(dateStr, posId) {
   renderTable();
 }
 
-function _updateCancellationBar() {
+export function _updateCancellationBar() {
   const btn = document.getElementById('btnSendCancellations');
   if (!btn) return;
   const n = _pendingCancellations.size;
@@ -19,7 +26,7 @@ function _updateCancellationBar() {
   btn.querySelector('.sb-gl').textContent = n > 0 ? `⚠ ${n}` : '⚠';
 }
 
-async function sendCancellations() {
+export async function sendCancellations() {
   if (!_pendingCancellations.size) return;
   showToast('Wird übermittelt…', '#e8c84a');
   try {
@@ -37,7 +44,7 @@ async function sendCancellations() {
   }
 }
 
-function getMyCrewName() {
+export function getMyCrewName() {
   if (!SUPABASE_ENABLED || !CURRENT_USER_ID) return null;
   const myEmail = (CURRENT_USER_EMAIL || '').toLowerCase();
   return Object.keys(crewMeta).find(n =>
@@ -47,7 +54,7 @@ function getMyCrewName() {
 }
 
 // ── Meine offenen Slots sammeln ───────────────────────────────────────────────
-function getMyPendingSlots() {
+export function getMyPendingSlots() {
   const myName = getMyCrewName();
   if (!myName) return [];
   const slots = [];
@@ -63,14 +70,14 @@ function getMyPendingSlots() {
 }
 
 // ── Modal automatisch öffnen wenn offene Slots vorhanden ─────────────────────
-function checkAndOpenMySchedule() {
+export function checkAndOpenMySchedule() {
   if (IS_MANAGER) return;
   const pending = getMyPendingSlots();
   if (pending.length > 0) openMyScheduleModal();
 }
 
 // ── Meine Einsätze Modal ──────────────────────────────────────────────────────
-function openMyScheduleModal() {
+export function openMyScheduleModal() {
   const myName = getMyCrewName();
   if (!myName) return;
   document.getElementById('sharedTitle').textContent = 'Meine Einsätze';
@@ -78,7 +85,7 @@ function openMyScheduleModal() {
   openModal('sharedModal');
 }
 
-function _renderMySchedule(myName) {
+export function _renderMySchedule(myName) {
   const slots = getMyPendingSlots();
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
@@ -139,7 +146,7 @@ function _renderMySchedule(myName) {
   });
 }
 
-async function _bulkConfirmMySlots() {
+export async function _bulkConfirmMySlots() {
   const checkboxes = document.querySelectorAll('#sharedBody input[type=checkbox]');
   const decisions = Array.from(checkboxes).map(cb => ({
     date: cb.dataset.date,
@@ -172,7 +179,7 @@ async function _bulkConfirmMySlots() {
 }
 
 // ── Slot-Bestätigungs-Modal (Einzelklick aus Tabelle) ────────────────────────
-function openSlotConfirmModal(dateStr, posId) {
+export function openSlotConfirmModal(dateStr, posId) {
   const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
   const tourDay = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []).find(d => d.date === dateStr);
   const [y, m, d] = dateStr.split('-');
@@ -192,7 +199,7 @@ function openSlotConfirmModal(dateStr, posId) {
 }
 
 // ── Alle angefragten Termine auf einmal bestätigen ────────────────────────────
-async function bulkConfirmAllMySlots() {
+export async function bulkConfirmAllMySlots() {
   if (!getMyCrewName()) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return; }
   const slots = getMyPendingSlots();
   if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
@@ -204,7 +211,7 @@ async function bulkConfirmAllMySlots() {
 }
 
 // ── Alle angefragten Termine auf einmal absagen ───────────────────────────────
-async function bulkDeclineAllMySlots() {
+export async function bulkDeclineAllMySlots() {
   if (!getMyCrewName()) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return; }
   const slots = getMyPendingSlots();
   if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
@@ -216,13 +223,13 @@ async function bulkDeclineAllMySlots() {
 }
 
 // ── Einzelne Slot-Aktionen (aus Tabelle heraus) ───────────────────────────────
-async function confirmMySlot(dateStr, posId) {
+export async function confirmMySlot(dateStr, posId) {
   await confirmAssignment(dateStr, posId);
   showToast('Bestätigt ✓', '#4ae8a0');
   renderTable();
 }
 
-async function declineMySlot(dateStr, posId) {
+export async function declineMySlot(dateStr, posId) {
   await declineAssignment(dateStr, posId);
   showToast('Abgelehnt', '#e84a4a');
   renderTable();
