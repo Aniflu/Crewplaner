@@ -10,11 +10,11 @@ import { bulkProposeCrew, sendCrewInvite, sendCancellationNotice,
 const CREW_INVITES_KEY = 'tourplan_crew_invites';
 const PENDING_CANCELLATIONS_KEY = 'tourplan_pending_cancellations';
 
-export function _loadCancellations() {
+function _loadCancellations() {
   try { return JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}'); } catch { return {}; }
 }
 
-export function _storePendingCancellation(crewName, email, dateStr, posLabel) {
+function _storePendingCancellation(crewName, email, dateStr, posLabel) {
   const q = _loadCancellations();
   if (!q[crewName]) q[crewName] = { email, slots: [] };
   const exists = q[crewName].slots.some(s => s.date === dateStr && s.posLabel === posLabel);
@@ -23,7 +23,7 @@ export function _storePendingCancellation(crewName, email, dateStr, posLabel) {
   renderCancellationBanner();
 }
 
-export function _clearPendingCancellations(crewName) {
+function _clearPendingCancellations(crewName) {
   const q = _loadCancellations();
   delete q[crewName];
   localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(q));
@@ -57,17 +57,17 @@ export function clearAllCancellations() {
   renderCancellationBanner();
 }
 
-export function _loadInvites() {
+function _loadInvites() {
   try { return JSON.parse(localStorage.getItem(CREW_INVITES_KEY) || '{}'); } catch { return {}; }
 }
 
-export function _saveInvite(name) {
+function _saveInvite(name) {
   const inv = _loadInvites();
   inv[name] = new Date().toISOString();
   localStorage.setItem(CREW_INVITES_KEY, JSON.stringify(inv));
 }
 
-export function _getCrewInviteStatus(name, invites) {
+function _getCrewInviteStatus(name, invites) {
   const inv = invites || _loadInvites();
   const hasConfirmed = Object.values(assignmentStatuses || {}).some(day =>
     Object.values(day).some(s => s.crewName === name && s.status === 'confirmed')
@@ -80,7 +80,7 @@ export function _getCrewInviteStatus(name, invites) {
   return 'not_invited';
 }
 
-export function _fmtInviteDate(name, invites) {
+function _fmtInviteDate(name, invites) {
   const inv = invites || _loadInvites();
   if (!inv[name]) return '';
   const d = new Date(inv[name]);
@@ -94,7 +94,7 @@ export function openCrewNotifyModal() {
   openModal('sharedModal');
 }
 
-export function _renderCrewNotifyList() {
+function _renderCrewNotifyList() {
   const pending = _loadCancellations();
   const invites = _loadInvites();
   const rows = crew.map((name, i) => {
@@ -170,7 +170,7 @@ export async function sendCancellationSummary(crewName) {
 }
 
 // ── Alle Slots eines Crew-Mitglieds via getVal() (inkl. defaultCrew) ─────────
-export function _getAllSlotsForCrew(crewName, crewEmail) {
+function _getAllSlotsForCrew(crewName, crewEmail) {
   const slots = [];
   const _dates = typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : [];
   const _pos   = typeof POSITIONS  !== 'undefined' ? POSITIONS  : [];
@@ -187,7 +187,7 @@ export function _getAllSlotsForCrew(crewName, crewEmail) {
   return slots;
 }
 
-export function _getNewSlotsForCrew(crewName, crewEmail) {
+function _getNewSlotsForCrew(crewName, crewEmail) {
   return _getAllSlotsForCrew(crewName, crewEmail).filter(s => {
     const existing = assignmentStatuses[s.date]?.[s.posId];
     return !existing || existing.status === 'declined';

@@ -11,7 +11,7 @@ export function openCrewLinkModal() {
   openModal('sharedModal');
 }
 
-export function _renderCrewLinkList() {
+function _renderCrewLinkList() {
   const rows = crew.map((name, i) => {
     const meta = crewMeta[name] || {};
     const dot = CREW_COLORS[i % CREW_COLORS.length];

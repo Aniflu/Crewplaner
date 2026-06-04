@@ -18,7 +18,7 @@ export function toggleCancellation(dateStr, posId) {
   renderTable();
 }
 
-export function _updateCancellationBar() {
+function _updateCancellationBar() {
   const btn = document.getElementById('btnSendCancellations');
   if (!btn) return;
   const n = _pendingCancellations.size;
@@ -85,7 +85,7 @@ export function openMyScheduleModal() {
   openModal('sharedModal');
 }
 
-export function _renderMySchedule(myName) {
+function _renderMySchedule(myName) {
   const slots = getMyPendingSlots();
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
@@ -146,7 +146,7 @@ export function _renderMySchedule(myName) {
   });
 }
 
-export async function _bulkConfirmMySlots() {
+async function _bulkConfirmMySlots() {
   const checkboxes = document.querySelectorAll('#sharedBody input[type=checkbox]');
   const decisions = Array.from(checkboxes).map(cb => ({
     date: cb.dataset.date,

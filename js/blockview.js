@@ -4,7 +4,7 @@ import { TOUR_DATES, POSITIONS, crew, assignments, assignmentStatuses,
          IS_MANAGER, OFFEN, OFFDAY, REISE_TAG, CREW_COLORS } from './state.js';
 import { getVal, isPending, esc, parseD, DE_DAYS } from './utils.js';
 
-export function _blockGroups(){
+function _blockGroups(){
   const groups=[];const map=new Map();
   TOUR_DATES.forEach(r=>{
     const key=r.blockId||'__unassigned__';
@@ -22,9 +22,9 @@ export function _blockGroups(){
   });
 }
 
-export function _fmtDateShort(s){const d=parseD(s);return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getFullYear()).slice(2)}`;}
+function _fmtDateShort(s){const d=parseD(s);return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getFullYear()).slice(2)}`;}
 
-export function _dayDiff(a,b){const da=parseD(a),db=parseD(b);return Math.round((db-da)/86400000)+1;}
+function _dayDiff(a,b){const da=parseD(a),db=parseD(b);return Math.round((db-da)/86400000)+1;}
 
 export function renderBlockView(){
   const host=document.getElementById('blocksArea');if(!host)return;
