@@ -1,7 +1,12 @@
+import { SUPABASE_ENABLED } from './config.js';
+import { _setAuthState, _clearAuthState } from './state.js';
+import { pbPost, pbGet, pbPatch } from './pb.js';
+import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses } from './dataService.js';
+
 // ── Auth Service (Pocketbase) ──────────────────────────────────────────────────
 window.__authGuarded = SUPABASE_ENABLED;
 
-async function _authCheckAndStart() {
+export async function _authCheckAndStart() {
   try {
     const token   = localStorage.getItem('pb_token');
     const userStr = localStorage.getItem('pb_user');
@@ -28,14 +33,7 @@ async function _authCheckAndStart() {
       return;
     }
 
-    CURRENT_USER_ID    = user.id;
-    CURRENT_USER_EMAIL = user.email;
-    USER_ROLE          = user.role || 'crew';
-    IS_SUPERADMIN      = USER_ROLE === 'superadmin';
-    IS_MANAGER         = USER_ROLE === 'manager' || IS_SUPERADMIN;
-    IS_BOOKER          = USER_ROLE === 'booker';
-    IS_CREW            = USER_ROLE === 'crew';
-    IS_ADMIN           = IS_MANAGER; // backwards compat
+    _setAuthState(user.id, user.email, user.role || 'crew');
     _showUserBadge(user);
     document.body.style.visibility = 'visible';
 
@@ -104,7 +102,7 @@ async function logout() {
   window.location.href = 'login.html';
 }
 
-async function _handleEmailAction() {
+export async function _handleEmailAction() {
   const params = new URLSearchParams(window.location.search);
   const action = params.get('action');
   const aid    = params.get('aid');
@@ -133,10 +131,7 @@ async function _handleEmailAction() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  if (!SUPABASE_ENABLED) return;
-  // Nicht auf login.html ausführen!
-  if (window.location.pathname.includes('login')) return;
-  document.body.style.visibility = 'hidden';
-  _authCheckAndStart();
-});
+// _checkPendingAction is defined in init.js — placeholder for Phase 2
+export function _checkPendingAction() {
+  // Will be overridden/called from init.js after it's migrated
+}

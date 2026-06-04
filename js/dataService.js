@@ -1,3 +1,12 @@
+import { POCKETBASE_URL, SUPABASE_ENABLED } from './config.js';
+import {
+  POSITIONS, crew, defaultCrew, assignments, crewMeta,
+  assignmentStatuses, TOUR_DATES, IS_CREW, IS_MANAGER,
+  CURRENT_USER_EMAIL, USER_ROLE, CURRENT_USER_ID
+} from './state.js';
+import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
+import { showToast } from './utils.js';
+
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
 function _showMailError(msg) {
   const t = document.getElementById('toast');
@@ -100,7 +109,7 @@ async function _createOrFetchPlanId(key) {
 }
 
 // ── Plan-Daten für Crew-Mitglieder aus PocketBase laden ───────────────────────
-async function loadPlanForCrew() {
+export async function loadPlanForCrew() {
   if (!SUPABASE_ENABLED || !IS_CREW) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -127,7 +136,7 @@ async function loadPlanForCrew() {
 }
 
 // ── Plan-Daten für Manager aus PocketBase laden ────────────────────────────
-async function loadPlanForManager() {
+export async function loadPlanForManager() {
   if (!SUPABASE_ENABLED || !IS_MANAGER) return;
   try {
     // Direkt nach owner suchen — unabhängig von activePlanId / localStorage
@@ -163,7 +172,7 @@ async function loadPlanForManager() {
 }
 
 // ── Crew-Meta laden (E-Mail + user_id pro Crew-Name) ──────────────────────────
-async function loadCrewMeta() {
+export async function loadCrewMeta() {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -182,7 +191,7 @@ async function loadCrewMeta() {
 }
 
 // ── Assignment-Status laden ────────────────────────────────────────────────────
-async function loadAssignmentStatuses() {
+export async function loadAssignmentStatuses() {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -205,7 +214,7 @@ async function loadAssignmentStatuses() {
 }
 
 // ── Slot bestätigen (Crew-Mitglied) ───────────────────────────────────────────
-async function confirmAssignment(dateStr, posId) {
+export async function confirmAssignment(dateStr, posId) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -227,7 +236,7 @@ async function confirmAssignment(dateStr, posId) {
 }
 
 // ── Slot ablehnen (Crew-Mitglied → E-Mail an Admin via Hook) ──────────────────
-async function declineAssignment(dateStr, posId) {
+export async function declineAssignment(dateStr, posId) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -250,7 +259,7 @@ async function declineAssignment(dateStr, posId) {
 }
 
 // ── Anfrage zurückziehen (Admin) ──────────────────────────────────────────────
-async function cancelProposal(dateStr, posId) {
+export async function cancelProposal(dateStr, posId) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -268,7 +277,7 @@ async function cancelProposal(dateStr, posId) {
 }
 
 // ── Alle Anfragen einer Position zurückziehen (Admin) ─────────────────────────
-async function bulkCancelProposals(posId) {
+export async function bulkCancelProposals(posId) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -286,7 +295,7 @@ async function bulkCancelProposals(posId) {
 }
 
 // ── Crew für mehrere Slots auf einmal vorschlagen ─────────────────────────────
-async function bulkProposeCrew(slots) {
+export async function bulkProposeCrew(slots) {
   if (!SUPABASE_ENABLED || !slots.length) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -315,7 +324,7 @@ async function bulkProposeCrew(slots) {
 }
 
 // ── Absage-Sammel-E-Mail an Crew-Mitglied (via Pocketbase-Hook) ───────────────
-async function sendCancellationNotice(crewName, crewEmail, slots) {
+export async function sendCancellationNotice(crewName, crewEmail, slots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -334,7 +343,7 @@ async function sendCancellationNotice(crewName, crewEmail, slots) {
 }
 
 // ── Bereitschaftsmeldung an Admin (via Pocketbase-Hook) ───────────────────────
-async function sendAvailabilityNotice(crewName, crewEmail, slots) {
+export async function sendAvailabilityNotice(crewName, crewEmail, slots) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -353,7 +362,7 @@ async function sendAvailabilityNotice(crewName, crewEmail, slots) {
   }
 }
 
-async function sendUpdateNotice(crewName, crewEmail, slots) {
+export async function sendUpdateNotice(crewName, crewEmail, slots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -373,7 +382,7 @@ async function sendUpdateNotice(crewName, crewEmail, slots) {
 }
 
 // ── Crew einladen / Erinnerung schicken (E-Mail via Pocketbase-Hook) ──────────
-async function sendCrewInvite(crewName, crewEmail, type) {
+export async function sendCrewInvite(crewName, crewEmail, type) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   // Hook-Trigger: temporären invite-Record anlegen, Hook sendet Mail und löscht ihn
   const planId = await _getActivePlanId();
@@ -397,7 +406,7 @@ async function sendCrewInvite(crewName, crewEmail, type) {
 }
 
 // ── Crew-Mitglied mit E-Mail verknüpfen (Admin) ───────────────────────────────
-async function saveCrewLink(crewName, email) {
+export async function saveCrewLink(crewName, email) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) throw new Error('Plan nicht gefunden – bitte neu einloggen');

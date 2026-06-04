@@ -94,3 +94,25 @@ export let TOUR_DATES = [
   {date:'2026-09-27',type:'show', typeLabel:'Show',                loc:'Zürich – Hallenstadion (CH)'},
   {date:'2026-09-29',type:'reise',typeLabel:'Reise',               loc:'Nightliner'},
 ];
+
+// ── Temporary auth state setters (for Phase 2 only) ────────────────────────────
+export function _setAuthState(userId, email, role) {
+  CURRENT_USER_ID    = userId;
+  CURRENT_USER_EMAIL = email;
+  USER_ROLE          = role;
+  IS_SUPERADMIN      = role === 'superadmin';
+  IS_MANAGER         = role === 'manager' || IS_SUPERADMIN;
+  IS_BOOKER          = role === 'booker';
+  IS_CREW            = role === 'crew';
+  IS_ADMIN           = IS_MANAGER;
+}
+export function _clearAuthState() {
+  CURRENT_USER_ID = null;
+  CURRENT_USER_EMAIL = null;
+  USER_ROLE = 'crew';
+  IS_SUPERADMIN = false;
+  IS_MANAGER = false;
+  IS_BOOKER = false;
+  IS_CREW = false;
+  IS_ADMIN = false;
+}
