@@ -141,7 +141,7 @@ export function startApp(){
   renderPlanList();
 }
 
-function _checkPendingAction(){
+export function _checkPendingAction(){
   const pa=localStorage.getItem('tourplan_pending_action');
   if(!pa)return;
   localStorage.removeItem('tourplan_pending_action');
@@ -152,5 +152,3 @@ function _checkPendingAction(){
     else if(pa==='openCrewModal'&&typeof openCrewModal==='function')openCrewModal();
   },400);
 }
-
-if (!window.__authGuarded){startApp();setTimeout(_checkPendingAction,500);}
