@@ -1,13 +1,22 @@
 // ── Modal Utilities ────────────────────────────────────────────────────────────
-function openModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+export function openModal(id){
+  document.getElementById(id).classList.add('open');
+}
+
+export function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+}
 
 document.addEventListener('click',e=>{
-  ['sharedModal','pdfModal','logoModal'].forEach(id=>{const el=document.getElementById(id);if(el.classList.contains('open')&&e.target===el)closeModal(id);});
+  ['sharedModal','pdfModal','logoModal'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el.classList.contains('open')&&e.target===el)closeModal(id);
+  });
 });
 
 // ── Shared Modal (Rename / Add Position) ──────────────────────────────────────
-function openSharedModal(title,currentVal,onConfirm){
+export function openSharedModal(title,currentVal,onConfirm){
   document.getElementById('sharedTitle').textContent=title;
   document.getElementById('sharedBody').innerHTML=`
     <div class="mf"><label class="ml">Bezeichnung</label><input type="text" id="sharedInput" class="mi" value="${currentVal}"></div>

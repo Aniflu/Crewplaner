@@ -1,5 +1,12 @@
 // ── Add Date Wizard ────────────────────────────────────────────────────────────
-function openAddDate(){if(!IS_MANAGER)return;
+import { TOUR_DATES, IS_MANAGER } from './state.js';
+import { sortInsert, showToast, esc } from './utils.js';
+import { typeFromLabel } from './types.js';
+
+// Global functions called: openModal, closeModal, showAlert, _queueGlobalCrewUpdate, _askBlockAssign, _savePlanToLS, renderTable
+
+export function openAddDate(){
+  if(!IS_MANAGER)return;
   const typeOpts=TYPE_OPTS.map(o=>`<option value="${o.label}">${o.label}</option>`).join('');
   document.getElementById('sharedTitle').textContent='Datum hinzufügen';
   document.getElementById('sharedBody').innerHTML=`
@@ -27,14 +34,15 @@ function openAddDate(){if(!IS_MANAGER)return;
   setTimeout(()=>document.getElementById('adDate')?.focus(),50);
 }
 
-function adSetMode(mode){
+export function adSetMode(mode){
   document.getElementById('adSingleFields').style.display=mode==='day'?'':'none';
   document.getElementById('adRangeFields').style.display=mode==='range'?'':'none';
   document.getElementById('adModeDay').className='mbtn'+(mode==='day'?' primary':'');
   document.getElementById('adModeRange').className='mbtn'+(mode==='range'?' primary':'');
 }
 
-async function confirmAddDate(){if(!IS_MANAGER)return;
+export async function confirmAddDate(){
+  if(!IS_MANAGER)return;
   const isSingle=document.getElementById('adSingleFields').style.display!=='none';
   const typeLabel=document.getElementById('adTypeSelect')?.value||'';
   const lv=(document.getElementById('adLoc')?.value||'').trim();
@@ -65,7 +73,7 @@ async function confirmAddDate(){if(!IS_MANAGER)return;
   else{_savePlanToLS(activePlanId);renderTable();}
 }
 
-function _askBlockAssign(addedDates){
+export function _askBlockAssign(addedDates){
   const blockMap=new Map();
   TOUR_DATES.forEach(d=>{if(d.blockId)blockMap.set(d.blockId,d.blockName);});
   const blockOpts=`<option value="">— Kein Block —</option><option value="__new__">+ Neuer Block …</option>`+
