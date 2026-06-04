@@ -82,8 +82,7 @@ async function _authCheckAndStart() {
       });
   } catch (e) {
     console.error('Auth-Fehler:', e);
-    document.body.style.visibility = 'visible';
-    startApp();
+    window.location.href = 'login.html';
   }
 }
 
