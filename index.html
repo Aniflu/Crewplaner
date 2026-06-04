@@ -356,31 +356,8 @@
 </div>
 <div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
 
-<!-- SCRIPTS (Ladereihenfolge ist wichtig) -->
-<script src="js/pb.js?v=33"></script>
-<script src="js/dialog.js?v=23"></script>
-<script src="js/config.js?v=29"></script>
-<script src="js/dataService.js?v=41"></script>
-<script src="js/authService.js?v=36"></script>
-<script src="js/state.js?v=25"></script>
-<script src="js/rbac.js?v=1"></script>
-<script src="js/types.js?v=24"></script>
-<script src="js/utils.js?v=23"></script>
-<script src="js/render.js?v=28"></script>
-<script src="js/bundle.js?v=32"></script>
-<script src="js/dropdown.js?v=30"></script>
-<script src="js/tourblock.js?v=25"></script>
-<script src="js/stats.js?v=23"></script>
-<script src="js/sidebar.js?v=24"></script>
-<script src="js/plans.js?v=27"></script>
-<script src="js/pdf.js?v=27"></script>
-<script src="js/persistence.js?v=23"></script>
-<script src="js/blockview.js?v=23"></script>
-<script src="js/crewview.js?v=23"></script>
-<script src="js/crewLink.js?v=24"></script>
-<script src="js/crewNotify.js?v=29"></script>
-<script src="js/userView.js?v=34"></script>
-<script src="js/init.js?v=30"></script>
+<!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
+<script type="module" src="js/app.js?v=1"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">

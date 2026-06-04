@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Konsole — Tour/Crew</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script src="js/pb.js?v=33"></script>
-<script src="js/config.js?v=29"></script>
-<script src="js/pdf.js?v=27"></script>
-<script src="js/emailLog.js?v=2"></script>
+<script type="module" src="js/admin-app.js?v=1"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -838,25 +835,9 @@ const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e'
 const LOGOS_KEY = 'tourplan_logos';
 let activePlanId = null;
 
-// Stubs und Konstanten für pdf.js / calendar.js
-function openModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'flex'; }
-function closeModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
-function showToast(msg, color) { adminToast(msg, color); }
-function isPending(si) { return si && (si.status === 'proposed' || si.status === 'declined'); }
-function getVal(dateStr, posId) {
-  const ov=dateStr in assignments&&posId in(assignments[dateStr]||{});
-  const v=ov?assignments[dateStr][posId]:undefined;
-  // Non-empty local value wins
-  if(v!==undefined&&v!==''&&v!==null)return v;
-  // PB-Record als Fallback (auch wenn leerer lokaler Override existiert)
-  const si=assignmentStatuses[dateStr]?.[posId];
-  if(si?.crewName)return si.crewName;
-  // defaultCrew
-  if(!ov)return defaultCrew[posId]||'';
-  return '';
-}
-function hasPermission() { return true; }
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Utilities provided by admin-app.js module via window.* aliases
+// getVal, isPending, esc, showToast, openModal, closeModal are now available
+// from the module entry point
 
 // Konstanten für pdf.js
 const OFFEN      = '__offen__';
