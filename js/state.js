@@ -1,14 +1,14 @@
 // ── Constants & State ──────────────────────────────────────────────────────────
-const OFFEN     = '__offen__';
-const OFFDAY       = '__offday__';
-const REISE_TAG    = '__reise_tag__';
-const AUSSCHREIBEN = '__ausschreiben__';
-const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e','#2e75b6','#548235'];
-const DE_DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-const DE_MON  = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-const DE_MON_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+export const OFFEN     = '__offen__';
+export const OFFDAY       = '__offday__';
+export const REISE_TAG    = '__reise_tag__';
+export const AUSSCHREIBEN = '__ausschreiben__';
+export const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e','#2e75b6','#548235'];
+export const DE_DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+export const DE_MON  = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+export const DE_MON_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
-let POSITIONS = [
+export let POSITIONS = [
   {id:'gl',  label:'GL',        short:'GL'},
   {id:'sys', label:'System',    short:'System'},
   {id:'lt1', label:'Licht 1',   short:'Licht 1'},
@@ -16,26 +16,26 @@ let POSITIONS = [
   {id:'lt3', label:'Licht 3',   short:'Licht 3'},
   {id:'fm',  label:'Follow Me', short:'Follow Me'},
 ];
-let crew = ['Max Mustermann','Anna Bauer','Tom Richter','Sara Klein','Felix Wagner','Lena Braun'];
-let defaultCrew = {};
-let assignments  = {};
-let logos = {booking:'', band:'', planer:''};
+export let crew = ['Max Mustermann','Anna Bauer','Tom Richter','Sara Klein','Felix Wagner','Lena Braun'];
+export let defaultCrew = {};
+export let assignments  = {};
+export let logos = {booking:'', band:'', planer:''};
 
 // Supabase-Laufzeit-Caches (werden nach Login befüllt)
-let crewMeta = {};            // { "Max Mustermann": { email, userId } }
-let assignmentStatuses = {};  // { "2026-07-01": { "gl": { status, proposedBy, crewName } } }
+export let crewMeta = {};            // { "Max Mustermann": { email, userId } }
+export let assignmentStatuses = {};  // { "2026-07-01": { "gl": { status, proposedBy, crewName } } }
 
 // ── Role-Based Access Control ──────────────────────────────────────────
-let USER_ROLE     = 'crew';   // superadmin | manager | booker | crew
-let IS_SUPERADMIN = false;
-let IS_MANAGER    = false;
-let IS_BOOKER     = false;
-let IS_CREW       = false;
-let IS_ADMIN      = false;    // backwards compat: true wenn IS_MANAGER
-let CURRENT_USER_ID = null;
-let CURRENT_USER_EMAIL = null;
+export let USER_ROLE     = 'crew';   // superadmin | manager | booker | crew
+export let IS_SUPERADMIN = false;
+export let IS_MANAGER    = false;
+export let IS_BOOKER     = false;
+export let IS_CREW       = false;
+export let IS_ADMIN      = false;    // backwards compat: true wenn IS_MANAGER
+export let CURRENT_USER_ID = null;
+export let CURRENT_USER_EMAIL = null;
 
-const TOUR_DATES = [
+export let TOUR_DATES = [
   {date:'2026-06-23',type:'prep', typeLabel:'Option Vorbereitung', loc:'CAB'},
   {date:'2026-06-24',type:'prep', typeLabel:'Vorbereitung',        loc:'CAB'},
   {date:'2026-06-25',type:'prep', typeLabel:'Aufbau Tag 1',        loc:'BBM'},
