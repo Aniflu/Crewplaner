@@ -8,7 +8,7 @@
 <script src="js/pb.js?v=33"></script>
 <script src="js/config.js?v=29"></script>
 <script src="js/pdf.js?v=27"></script>
-<script src="js/emailLog.js?v=1"></script>
+<script src="js/emailLog.js?v=2"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -442,7 +442,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.11.5</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.12.0</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -749,8 +749,9 @@ body {
   <!-- E-MAIL-LOG -->
   <div class="section" id="tabEmaillog">
     <div class="section-title">E-Mail-Log</div>
-    <div class="section-sub">Alle für diesen Plan versendeten E-Mails</div>
-    <div id="emailLogBody" style="margin-top:16px;">
+    <div class="section-sub">Alle für diesen Plan versendeten E-Mails — kombinierbar filterbar</div>
+    <div id="emailLogFilters" style="margin-bottom:8px;"></div>
+    <div id="emailLogBody">
       <p style="font-size:.65rem;color:#5a6070;">Tab anklicken um zu laden.</p>
     </div>
   </div>
