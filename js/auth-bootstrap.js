@@ -86,11 +86,13 @@ document.documentElement.style.visibility = 'hidden';
 
   } catch (e) {
     // Token-Refresh fehlgeschlagen → Token löschen
+    console.error('[auth-bootstrap] Token refresh failed:', e.message || e);
     localStorage.removeItem('pb_token');
     localStorage.removeItem('pb_user');
 
     if (!EXEMPT_PAGES.includes(currentPage)) {
       // Zu login.html redirecten (außer auf exempt Seiten)
+      console.warn('[auth-bootstrap] Redirecting to login.html from', currentPage);
       window.location.replace('login.html');
     } else {
       // login.html / view.html → zeigen
