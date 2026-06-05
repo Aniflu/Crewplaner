@@ -8,8 +8,17 @@
  * MUST: window.POCKETBASE_URL muss VOR diesem Script in der Seite gesetzt sein
  */
 
+// ─ Persist logs to localStorage (for debugging redirects)
+window._authBootstrapLogs = [];
+function _logAuth(msg) {
+  window._authBootstrapLogs.push(msg);
+  localStorage.setItem('_authBootstrapLogs', JSON.stringify(window._authBootstrapLogs.slice(-20))); // keep last 20
+  console.log('[auth-bootstrap]', msg);
+}
+
 // ─ PHASE 1: SYNC — Sofort Seite ausblenden + Token-Check
 document.documentElement.style.visibility = 'hidden';
+_logAuth('Page visibility hidden, starting auth bootstrap');
 
 (async function authBootstrapFlow() {
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
@@ -86,13 +95,13 @@ document.documentElement.style.visibility = 'hidden';
 
   } catch (e) {
     // Token-Refresh fehlgeschlagen → Token löschen
-    console.error('[auth-bootstrap] Token refresh failed:', e.message || e);
+    _logAuth('ERROR: Token refresh failed: ' + (e.message || e));
     localStorage.removeItem('pb_token');
     localStorage.removeItem('pb_user');
 
     if (!EXEMPT_PAGES.includes(currentPage)) {
       // Zu login.html redirecten (außer auf exempt Seiten)
-      console.warn('[auth-bootstrap] Redirecting to login.html from', currentPage);
+      _logAuth('Redirecting to login.html from ' + currentPage);
       window.location.replace('login.html');
     } else {
       // login.html / view.html → zeigen
