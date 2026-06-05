@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.9.3** — Bugfix: ES6-Module-Migration, Auth-Check, Import Fixes
 **v0.9.2** — Phase 3 Release: Centralized State Reform & Refactored Architecture
 
 ## Tech-Stack
