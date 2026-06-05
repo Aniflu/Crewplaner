@@ -5,6 +5,7 @@ import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, defaultCrew,
 import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS } from './utils.js';
 import { TYPE_OPTS } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
+import { _updateMeldungBar, _updateCrewUpdateBar } from './crewNotify.js';
 
 // View state
 export let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'

@@ -2,10 +2,12 @@
 import { crew, assignments, assignmentStatuses, TOUR_DATES, POSITIONS,
          CURRENT_USER_EMAIL, IS_MANAGER, crewMeta, CREW_COLORS } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
-import { showToast } from './utils.js';
+import { showToast, isPending, getVal } from './utils.js';
 import { pbPost, pbList, pbFirst } from './pb.js';
 import { bulkProposeCrew, sendCrewInvite, sendCancellationNotice,
          sendUpdateNotice, loadAssignmentStatuses } from './dataService.js';
+import { hasPermission } from './rbac.js';
+import { openModal, closeModal } from './modals.js';
 
 const CREW_INVITES_KEY = 'tourplan_crew_invites';
 const PENDING_CANCELLATIONS_KEY = 'tourplan_pending_cancellations';

@@ -7,7 +7,7 @@ import {
 } from './state.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
 import { showToast } from './utils.js';
-import { getActivePlanId, getPlansIndex } from './plans.js';
+import { getActivePlanId, getPlansIndex, savePlansIndex } from './plans.js';
 
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
 function _showMailError(msg) {

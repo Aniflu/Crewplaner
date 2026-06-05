@@ -10,6 +10,7 @@ import { renderTable } from './render.js';
 import { pbDelete } from './pb.js';
 import { cancelProposal, bulkCancelProposals, proposeCrew, loadAssignmentStatuses } from './dataService.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
+import { showPrompt, showConfirm } from './dialog.js';
 
 export function showDD(rect,header,items){
   const menu=document.getElementById('ddMenu');
