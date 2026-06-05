@@ -1,6 +1,8 @@
 // ── Crew Management ────────────────────────────────────────────────────────────
 import { crew, TOUR_DATES, POSITIONS, assignments, IS_MANAGER, CREW_COLORS } from './state.js';
 import { showToast, esc, getVal } from './utils.js';
+import { _savePlanToLS, getActivePlanId } from './plans.js';
+import { renderTable } from './render.js';
 
 // Global functions called: _savePlanToLS, renderCrew, renderTable
 
@@ -38,7 +40,7 @@ export function addCrew(){
   }
   crew.push(n);
   inp.value='';
-  _savePlanToLS(activePlanId);
+  _savePlanToLS(getActivePlanId());
   renderCrew();
 }
 
@@ -51,7 +53,7 @@ export function removeCrew(i){
       if(assignments[d][p]===name)delete assignments[d][p];
     });
   });
-  _savePlanToLS(activePlanId);
+  _savePlanToLS(getActivePlanId());
   renderCrew();
   renderTable();
 }

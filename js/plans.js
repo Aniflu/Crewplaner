@@ -6,9 +6,12 @@ import { showToast, sortInsert } from './utils.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
 
 const PLANS_INDEX_KEY = 'tourplan_plans';
-const PLAN_PREFIX = 'tourplan_plan_';
+export const PLAN_PREFIX = 'tourplan_plan_';
 const LOGOS_KEY = 'tourplan_logos'; // Logos sind GLOBAL
-let activePlanId = null;
+export let activePlanId = null;
+
+export function getActivePlanId() { return activePlanId; }
+export function setActivePlanId(id) { activePlanId = id; }
 
 export function getPlansIndex(){
   try{const r=localStorage.getItem(PLANS_INDEX_KEY);return r?JSON.parse(r):[];}catch(e){return[];}
@@ -114,9 +117,9 @@ export async function confirmNewPlan(){
   showToast(`Plan „${name}" erstellt ✓`,'#2d6a3f');
 }
 
-function _today(){return new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+export function _today(){return new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});}
 
-function _resetToEmpty(){
+export function _resetToEmpty(){
   crew.length=0;
   POSITIONS.length=0;
   [{id:'gl',label:'GL',short:'GL'},{id:'sys',label:'System',short:'System'},
@@ -127,10 +130,11 @@ function _resetToEmpty(){
   // Logos NICHT zurücksetzen — global
   TOUR_DATES.length=0;
   Object.keys(assignments).forEach(k=>delete assignments[k]);
-  renderCrew();renderTable();
+  if(typeof renderCrew==='function')renderCrew();
+  if(typeof renderTable==='function')renderTable();
 }
 
-function _savePlanToLS(id){
+export function _savePlanToLS(id){
   if(!id)return;
   try{
     const data={version:3,crew,positions:POSITIONS,defaultCrew,tourDates:TOUR_DATES,assignments};
@@ -147,7 +151,7 @@ function _savePlanToLS(id){
   }catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');}
 }
 
-function _loadPlanFromLS(id){
+export function _loadPlanFromLS(id){
   if(!id)return false;
   try{
     const raw=localStorage.getItem(PLAN_PREFIX+id);
@@ -161,7 +165,8 @@ function _loadPlanFromLS(id){
     Object.keys(assignments).forEach(k=>delete assignments[k]);
     Object.assign(assignments,data.assignments||{});
     // Logos NICHT überschreiben — global
-    renderCrew();renderTable();
+    if(typeof renderCrew==='function')renderCrew();
+    if(typeof renderTable==='function')renderTable();
     return true;
   }catch(e){return false;}
 }

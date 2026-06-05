@@ -7,6 +7,7 @@ import {
 } from './state.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
 import { showToast } from './utils.js';
+import { getActivePlanId, getPlansIndex } from './plans.js';
 
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
 function _showMailError(msg) {
@@ -43,6 +44,7 @@ async function _getActivePlanId() {
     return null;
   }
 
+  const activePlanId = getActivePlanId();
   const key = 'tourplan_pb_' + (activePlanId || 'default');
   const stored = localStorage.getItem(key);
   if (stored) return stored;
@@ -60,7 +62,8 @@ async function _getActivePlanId() {
 }
 
 async function _createOrFetchPlanId(key) {
-  const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
+  const plans = getPlansIndex();
+  const activePlanId = getActivePlanId();
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
 
   try {

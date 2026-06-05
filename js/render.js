@@ -6,8 +6,11 @@ import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS } from './utils.js';
 import { TYPE_OPTS } from './types.js';
 
 // View state
-let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'
-const VIEW_KEY = 'tourplan_view';
+export let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'
+export const VIEW_KEY = 'tourplan_view';
+
+export function getCurrentView() { return CURRENT_VIEW; }
+export function setCurrentView(v) { CURRENT_VIEW = v; }
 
 export function setView(v){
   if(!['table','blocks','crew'].includes(v))v='table';

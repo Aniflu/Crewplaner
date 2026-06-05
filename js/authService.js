@@ -1,7 +1,10 @@
 import { SUPABASE_ENABLED } from './config.js';
-import { setAuthState } from './state.js';
+import { setAuthState, IS_MANAGER, IS_CREW, CURRENT_USER_EMAIL } from './state.js';
 import { pbPost, pbGet, pbPatch } from './pb.js';
 import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses } from './dataService.js';
+import { renderTable } from './render.js';
+import { showToast } from './utils.js';
+import { getActivePlanId } from './plans.js';
 
 // ── Auth Service (Pocketbase) ──────────────────────────────────────────────────
 window.__authGuarded = SUPABASE_ENABLED;
@@ -58,9 +61,15 @@ export async function _authCheckAndStart() {
       } catch(e) { console.warn('[auth] Plan-Transfer Fehler:', e); }
     }
 
-    startApp();
+    // Call startApp — defined in init.js which is imported after this module
+    if (typeof window.startApp === 'function') {
+      window.startApp();
+    } else {
+      console.warn('[auth] startApp not yet defined');
+    }
 
     // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
+    const activePlanId = getActivePlanId();
     const pbPlanCached = activePlanId && !!localStorage.getItem('tourplan_pb_' + activePlanId);
     const loadAll = IS_CREW
       ? loadPlanForCrew().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]))
