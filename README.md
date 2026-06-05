@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.9.9** — fix: Module-Timing-Bug — Warte auf authReady + DOMContentLoaded
 **v0.9.8** — fix: Zentrales Auth-Wall Muster — Einheitliche Authentifizierung auf allen Seiten
 **v0.9.7** — Bugfix: DE_DAYS/DE_MON Export, Module-Load-Error
 **v0.9.3** — Bugfix: ES6-Module-Migration, Auth-Check, Import Fixes

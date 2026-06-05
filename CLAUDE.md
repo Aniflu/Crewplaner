@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.8**
+- Aktuelle Version: **v0.9.9**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.8 — fix: Zentrales Auth-Wall Muster — Einheitliche Authentifizierung auf allen Seiten (aktuell)
+v0.9.9 — fix: Module-Timing-Bug in admin.html — Warte auf beide authReady + DOMContentLoaded (aktuell)
+v0.9.8 — fix: Zentrales Auth-Wall Muster — Einheitliche Authentifizierung auf allen Seiten
 v0.9.7 — fix: DE_DAYS/DE_MON Export + Module-Load-Error gefixt
 v0.9.3 — fix: ES6-Module-Migration + Auth-Check + 22 fehlende Imports gefixt
 v0.9.2 — feat: Email-Log Tab — Filter, Suche & erweiterte Anzeige
