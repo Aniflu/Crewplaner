@@ -3,6 +3,8 @@ import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses,
          IS_MANAGER, IS_CREW, OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN } from './state.js';
 import { getVal, isPending, esc, fmtD, parseD, DE_DAYS, sortInsert, showToast } from './utils.js';
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
+import { _savePlanToLS, getActivePlanId } from './plans.js';
+import { renderTable } from './render.js';
 
 let tbDays=[];
 
@@ -78,7 +80,7 @@ export function openBlockAssign(dateStr){
     const blockName=blockId?blockMap.get(blockId)||'':'';
     const r=TOUR_DATES.find(d=>d.date===ds);
     if(r){r.blockId=blockId;r.blockName=blockName;}
-    closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();
+    closeModal('sharedModal');_savePlanToLS(getActivePlanId());renderTable();
     showToast(blockName?`${fmtD(ds)} → ${blockName} ✓`:`${fmtD(ds)} aus Block entfernt`,'#4ae8a0');
   };
   openModal('sharedModal');setTimeout(()=>document.getElementById('baBlock')?.focus(),50);
@@ -108,7 +110,7 @@ export function openBlockRange(){
     if(start>end){await showAlert('Startdatum muss vor Enddatum liegen.');return;}
     const blockId=exId!=='__new__'?exId:Date.now().toString(36)+Math.random().toString(36).slice(2);
     let n=0;TOUR_DATES.forEach(d=>{if(d.date>=start&&d.date<=end){d.blockName=name;d.blockId=blockId;n++;}});
-    closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();showToast(`${n} Tage → ${name} ✓`,'#2d6a3f');
+    closeModal('sharedModal');_savePlanToLS(getActivePlanId());renderTable();showToast(`${n} Tage → ${name} ✓`,'#2d6a3f');
   };
   openModal('sharedModal');setTimeout(()=>document.getElementById('brName')?.focus(),50);
 }

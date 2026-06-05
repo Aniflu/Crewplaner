@@ -4,6 +4,7 @@ import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, defaultCrew,
          OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, CURRENT_USER_EMAIL } from './state.js';
 import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS } from './utils.js';
 import { TYPE_OPTS } from './types.js';
+import { _savePlanToLS, getActivePlanId } from './plans.js';
 
 // View state
 export let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'
@@ -165,7 +166,7 @@ export function startLocEdit(e,dateStr){
     const newLoc=inp.value.trim();
     if(!newLoc){renderTable();return;}
     row.loc=newLoc;
-    _savePlanToLS(activePlanId);
+    _savePlanToLS(getActivePlanId());
     if(newLoc!==oldLoc&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(dateStr,`Ort: ${oldLoc} → ${newLoc}`);
     else renderTable();
   };

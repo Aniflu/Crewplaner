@@ -2,6 +2,9 @@
 import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos,
          setTourDates, setPositions, setCrew, setDefaultCrew, setLogos, loadAssignmentsData } from './state.js';
 import { showToast } from './utils.js';
+import { _savePlanToLS, getActivePlanId } from './plans.js';
+import { renderCrew } from './crew.js';
+import { renderTable } from './render.js';
 
 export function collectData(){return{version:3,crew,positions:POSITIONS,defaultCrew,tourDates:TOUR_DATES,assignments};} // Logos sind global in LOGOS_KEY
 
@@ -20,7 +23,7 @@ let autoSaveTimer=null;
 export function autoSave(){
   clearTimeout(autoSaveTimer);
   autoSaveTimer=setTimeout(()=>{
-    _savePlanToLS(activePlanId);
+    _savePlanToLS(getActivePlanId());
     renderPlanList();
     showToast('Auto-gespeichert ✓','#2d6a3f');
   },30000);
@@ -29,7 +32,7 @@ export function autoSave(){
 export async function saveJSON(){
   const json=JSON.stringify(collectData(),null,2);
   const plans=getPlansIndex();
-  const planName=plans.find(p=>p.id===activePlanId)?.name||'tourplan';
+  const planName=plans.find(p=>p.id===getActivePlanId())?.name||'tourplan';
   const safeName=planName.replace(/[^a-zA-Z0-9äöüÄÖÜß\-_ ]/g,'_');
   if(window.showSaveFilePicker){try{const h=await window.showSaveFilePicker({suggestedName:`${safeName}.json`,types:[{description:'JSON',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(json);await w.close();showToast('Gespeichert ✓','#2d6a3f');return;}catch(e){if(e.name==='AbortError')return;}}
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=`${safeName}.json`;a.click();showToast('Gespeichert ✓','#2d6a3f');
@@ -45,9 +48,9 @@ export function onFileLoad(e){
       const data=JSON.parse(ev.target.result);
       if(!data.tourDates)throw new Error('Ungültiges Format');
       const name=file.name.replace(/\.json$/i,'')||'Importierter Plan';
-      _savePlanToLS(activePlanId);
+      _savePlanToLS(getActivePlanId());
       const id=genPlanId();
-      activePlanId=id;
+      getActivePlanId()=id;
       applyData(data);
       const plans=getPlansIndex();
       plans.push({id,name,created:_today(),modified:_today()});

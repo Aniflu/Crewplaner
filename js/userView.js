@@ -6,6 +6,7 @@ import { getVal, isPending, esc, showToast, fmtD } from './utils.js';
 import { pbPatch, pbPost } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses } from './dataService.js';
 import { renderTable } from './render.js';
+import { getActivePlanId, getPlansIndex } from './plans.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
 const _pendingCancellations = new Set();
@@ -89,7 +90,7 @@ export function openMyScheduleModal() {
 function _renderMySchedule(myName) {
   const slots = getMyPendingSlots();
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
-  const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
+  const planName = plans.find(p => p.id === getActivePlanId())?.name || 'Tour Plan';
 
   if (slots.length === 0) {
     document.getElementById('sharedBody').innerHTML = `
@@ -245,9 +246,9 @@ export async function declineMySlot(dateStr, posId) {
 const _meldungDraft = {}; // { 'YYYY-MM-DD': Set<posId> } — in-memory only
 
 const _getMeldungSent = () => {
-  try { return JSON.parse(localStorage.getItem('crewplan_meldungen_'+(activePlanId||'')) || '{}'); } catch(_) { return {}; }
+  try { return JSON.parse(localStorage.getItem('crewplan_meldungen_'+(getActivePlanId()||'')) || '{}'); } catch(_) { return {}; }
 };
-const _saveMeldungSent = d => localStorage.setItem('crewplan_meldungen_'+(activePlanId||''), JSON.stringify(d));
+const _saveMeldungSent = d => localStorage.setItem('crewplan_meldungen_'+(getActivePlanId()||''), JSON.stringify(d));
 
 function _meldungCount() {
   return Object.values(_meldungDraft).reduce((s, set) => s + set.size, 0);
@@ -276,10 +277,10 @@ function meinesMelden(dateStr, posId) {
 
 // ── Plan-Änderungs-Queue (Admin → Crew re-bestätigen) ─────────────────────────
 function _getCrewUpdateQueue() {
-  try { return JSON.parse(localStorage.getItem('crewplan_updates_'+(activePlanId||'')) || '{}'); } catch(_) { return {}; }
+  try { return JSON.parse(localStorage.getItem('crewplan_updates_'+(getActivePlanId()||'')) || '{}'); } catch(_) { return {}; }
 }
 function _saveCrewUpdateQueue(q) {
-  localStorage.setItem('crewplan_updates_'+(activePlanId||''), JSON.stringify(q));
+  localStorage.setItem('crewplan_updates_'+(getActivePlanId()||''), JSON.stringify(q));
 }
 
 function _queueCrewUpdate(dateStr, changeDesc) {

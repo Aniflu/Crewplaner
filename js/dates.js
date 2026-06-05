@@ -2,8 +2,10 @@
 import { TOUR_DATES, IS_MANAGER } from './state.js';
 import { sortInsert, showToast, esc } from './utils.js';
 import { typeFromLabel } from './types.js';
+import { _savePlanToLS, getActivePlanId } from './plans.js';
+import { renderTable } from './render.js';
 
-// Global functions called: openModal, closeModal, showAlert, _queueGlobalCrewUpdate, _askBlockAssign, _savePlanToLS, renderTable
+// Global functions called: openModal, closeModal, showAlert, _queueGlobalCrewUpdate, _askBlockAssign
 
 export function openAddDate(){
   if(!IS_MANAGER)return;
@@ -70,7 +72,7 @@ export async function confirmAddDate(){
   if(typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt');
   closeModal('sharedModal');
   if(addedDates.length>0)_askBlockAssign(addedDates);
-  else{_savePlanToLS(activePlanId);renderTable();}
+  else{_savePlanToLS(getActivePlanId());renderTable();}
 }
 
 export function _askBlockAssign(addedDates){
@@ -92,14 +94,14 @@ export function _askBlockAssign(addedDates){
       <button class="mbtn" onclick="window._skipBA()">Kein Block</button>
       <button class="mbtn primary" onclick="window._confirmBA2()">Zuweisen</button>
     </div>`;
-  window._skipBA=()=>{closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();};
+  window._skipBA=()=>{closeModal('sharedModal');_savePlanToLS(getActivePlanId());renderTable();};
   window._confirmBA2=()=>{
     const sel=document.getElementById('adBlockSel').value;
     if(!sel){window._skipBA();return;}
     const name=sel==='__new__'?(document.getElementById('adBlockName').value.trim()||'Tourblock'):blockMap.get(sel)||'';
     const blockId=sel!=='__new__'?sel:(Date.now().toString(36)+Math.random().toString(36).slice(2));
     TOUR_DATES.forEach(d=>{if(addedDates.includes(d.date)){d.blockId=blockId;d.blockName=name;}});
-    closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();
+    closeModal('sharedModal');_savePlanToLS(getActivePlanId());renderTable();
     showToast(`${addedDates.length} Tag(e) → ${name} ✓`,'#4ae8a0');
   };
   openModal('sharedModal');

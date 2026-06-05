@@ -6,6 +6,7 @@ import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew,
          assignmentStatuses, logos, IS_MANAGER, CREW_COLORS } from './state.js';
 import { getVal, isPending, esc, parseD, fmtD, dw } from './utils.js';
 import { TYPE_OPTS } from './types.js';
+import { getPlansIndex, getActivePlanId } from './plans.js';
 
 let PDF_VIEW='table'; // 'table' | 'blocks' | 'crew'
 
@@ -427,7 +428,7 @@ async function generatePDF(){
     else if(PDF_VIEW==='crew'){ viewResult=pdfRenderCrew(fd,selCrew); viewLabel='Crew-Timeline'; }
     else { viewResult=pdfRenderTable(fd,selPos,selCrew); viewLabel='Tabelle'; }
 
-    const planName=(()=>{try{const p=(typeof getPlansIndex==='function')?getPlansIndex():[];const a=p.find(x=>x.id===activePlanId);return a?a.name:'';}catch(e){return '';}})();
+    const planName=(()=>{try{const p=(typeof getPlansIndex==='function')?getPlansIndex():[];const a=p.find(x=>x.id===getActivePlanId());return a?a.name:'';}catch(e){return '';}})();
     const html=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Tour/Crew Plan</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>${pdfSharedCSS()}${viewResult.css}</style></head><body>

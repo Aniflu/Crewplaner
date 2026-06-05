@@ -4,11 +4,12 @@ import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew,
          OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, crewMeta,
          setAssignment, clearAssignmentSlot } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
-import { getVal, isPending, esc, showToast, sortInsert, fmtD, showConfirm } from './utils.js';
+import { getVal, isPending, esc, showToast, sortInsert, fmtD } from './utils.js';
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
 import { renderTable } from './render.js';
 import { pbDelete } from './pb.js';
 import { cancelProposal, bulkCancelProposals, proposeCrew, loadAssignmentStatuses } from './dataService.js';
+import { _savePlanToLS, getActivePlanId } from './plans.js';
 
 export function showDD(rect,header,items){
   const menu=document.getElementById('ddMenu');
@@ -43,7 +44,7 @@ export function openTypeDD(e,dateStr){
     action:()=>{
       const oldLabel=row.typeLabel;
       row.type=o.type;row.typeLabel=o.label;saveCustomType(o.label,o.type);closeDD();
-      _savePlanToLS(activePlanId);
+      _savePlanToLS(getActivePlanId());
       if(oldLabel!==o.label&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(row.date,`Tagesart: ${oldLabel} → ${o.label}`);
       else renderTable();
     }
@@ -56,7 +57,7 @@ export function openTypeDD(e,dateStr){
     saveCustomType(label,type);
     const oldLabel=row.typeLabel;
     row.type=type;row.typeLabel=label;
-    _savePlanToLS(activePlanId);
+    _savePlanToLS(getActivePlanId());
     if(oldLabel!==label&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(row.date,`Tagesart: ${oldLabel} → ${label}`);
     else renderTable();
   }});
@@ -77,10 +78,10 @@ export function openDateDD(e,dateStr){
       const idx=TOUR_DATES.findIndex(r=>r.date===dateStr);
       if(idx>-1)TOUR_DATES.splice(idx,1);
       if(assignments[dateStr])delete assignments[dateStr];
-      closeDD();_savePlanToLS(activePlanId);renderTable();
+      closeDD();_savePlanToLS(getActivePlanId());renderTable();
     }}
   ];
-  if(row?.blockId)items.unshift({label:'✕ Aus Block entfernen',cls:'clear',action:()=>{row.blockId='';row.blockName='';closeDD();_savePlanToLS(activePlanId);renderTable();}});
+  if(row?.blockId)items.unshift({label:'✕ Aus Block entfernen',cls:'clear',action:()=>{row.blockId='';row.blockName='';closeDD();_savePlanToLS(getActivePlanId());renderTable();}});
   showDD(e.currentTarget.getBoundingClientRect(),fmtD(dateStr),items);
 }
 
@@ -155,15 +156,15 @@ export function openCrewDD(e,dateStr,posId){
   });
   showDD(e.currentTarget.getBoundingClientRect(),pos.label+(SUPABASE_ENABLED?' · 📧=Benachrichtigung':''),items);
 }
-export function setAssign(d,p,v){setAssignment(d,p,v);_savePlanToLS(activePlanId);renderTable();}
+export function setAssign(d,p,v){setAssignment(d,p,v);_savePlanToLS(getActivePlanId());renderTable();}
 
 // ── Default Crew Dropdown ──────────────────────────────────────────────────────
 export function openDefaultDD(e,posId){
   e.stopPropagation();
   const pos=POSITIONS.find(p=>p.id===posId);
   const cur=defaultCrew[posId]||'';
-  const items=[{label:'— Kein Standard',cls:'clear',action:()=>{defaultCrew[posId]='';closeDD();_savePlanToLS(activePlanId);renderTable();}},
-    ...crew.map((name,i)=>({label:name,dot:CREW_COLORS[i%CREW_COLORS.length],selected:name===cur,action:()=>{defaultCrew[posId]=name;closeDD();_savePlanToLS(activePlanId);renderTable();}}))];
+  const items=[{label:'— Kein Standard',cls:'clear',action:()=>{defaultCrew[posId]='';closeDD();_savePlanToLS(getActivePlanId());renderTable();}},
+    ...crew.map((name,i)=>({label:name,dot:CREW_COLORS[i%CREW_COLORS.length],selected:name===cur,action:()=>{defaultCrew[posId]=name;closeDD();_savePlanToLS(getActivePlanId());renderTable();}}))];
   showDD(e.currentTarget.getBoundingClientRect(),`Standard: ${pos.label}`,items);
 }
 
@@ -203,7 +204,7 @@ export async function requestAll(e){
       setAssignment(day.date, pos.id, def);
     });
   });
-  _savePlanToLS(activePlanId);
+  _savePlanToLS(getActivePlanId());
   renderTable();
   showToast('Alle Standard-Zuweisungen übernommen ✓','#4ae8a0');
 }
@@ -217,7 +218,7 @@ export function requestForPos(e,posId){
     if(day.date in assignments&&posId in(assignments[day.date]||{}))return;
     setAssignment(day.date, posId, def);
   });
-  _savePlanToLS(activePlanId);
+  _savePlanToLS(getActivePlanId());
   renderTable();
   const pos=POSITIONS.find(p=>p.id===posId);
   showToast(`${pos?.label}: Standard übernommen ✓`,'#4ae8a0');
