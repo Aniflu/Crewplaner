@@ -356,6 +356,16 @@
 </div>
 <div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
 
+<!-- SECURITY: Redirect to login if no token (before loading app.js) -->
+<script>
+  if (!localStorage.getItem('pb_token')) {
+    const pathname = window.location.pathname;
+    if (!pathname.includes('login') && !pathname.includes('view')) {
+      window.location.href = 'login.html';
+    }
+  }
+</script>
+
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
 <script type="module" src="js/app.js?v=1"></script>
 
