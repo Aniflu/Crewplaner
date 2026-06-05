@@ -29,6 +29,13 @@ import './userView.js';
 import './dialog.js';
 import './init.js';
 
+// ── Security: Redirect to login if not authenticated ──────────────────────
+if (!localStorage.getItem('pb_token')) {
+  if (!window.location.pathname.includes('login') && !window.location.pathname.includes('view')) {
+    window.location.href = 'login.html';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[app.js] DOMContentLoaded fired. SUPABASE_ENABLED:', SUPABASE_ENABLED);
   if (!SUPABASE_ENABLED) {
