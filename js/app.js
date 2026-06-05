@@ -30,8 +30,19 @@ import './dialog.js';
 import './init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (!SUPABASE_ENABLED) return;
-  if (window.location.pathname.includes('login')) return;
+  console.log('[app.js] DOMContentLoaded fired. SUPABASE_ENABLED:', SUPABASE_ENABLED);
+  if (!SUPABASE_ENABLED) {
+    console.warn('[app.js] SUPABASE_ENABLED=false, skipping auth check');
+    return;
+  }
+  if (window.location.pathname.includes('login')) {
+    console.log('[app.js] On login page, skipping auth check');
+    return;
+  }
+  console.log('[app.js] Starting auth check...');
   document.body.style.visibility = 'hidden';
-  _authCheckAndStart();
+  _authCheckAndStart().catch(e => {
+    console.error('[app.js] Auth check failed:', e);
+    window.location.href = 'login.html';
+  });
 });
