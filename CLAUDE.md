@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.5**
+- Aktuelle Version: **v0.9.6**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.5 — fix: DE_DAYS/DE_MON Export + Module-Load-Error gefixt (aktuell)
+v0.9.6 — fix: DE_DAYS/DE_MON Export + Module-Load-Error gefixt (aktuell)
 v0.9.3 — fix: ES6-Module-Migration + Auth-Check + 22 fehlende Imports gefixt
 v0.9.2 — feat: Email-Log Tab — Filter, Suche & erweiterte Anzeige
 v0.9.11.5 — fix: Code Review Fixes — Queue-Stabilität & Checkbox-State Persistence
@@ -56,8 +56,8 @@ v0.9.9.10 — getMyCrewName() case-insensitiv, PB-Plan direkt für Crew, PB-Bere
 v0.9.9.9  — Crew-Ansicht: angefragt/bestätigt/abgelehnt, Sidebar-Buttons, Legende
 v0.9.9.8  — E-Mail-Log Tab in Admin-Konsole (Hook v4.1 + email_log Collection)
 v0.9.6    — Passwortloses Anlegen: kein Passwortfeld, Auto-Reset-Mail, 🔑-Button
-v0.9.5    — Partner-Einladungsmail (♥) + Demo-Plan für neue Manager
-v0.9.5    — Einladungssystem + Öffentlicher Booker-View-Link
+v0.9.6    — Partner-Einladungsmail (♥) + Demo-Plan für neue Manager
+v0.9.6    — Einladungssystem + Öffentlicher Booker-View-Link
 v0.9.0    — Multi-Rollen-System (RBAC): superadmin, manager, booker, crew
 v1.0      — Stable Release
 ```
