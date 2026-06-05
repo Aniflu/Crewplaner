@@ -15,6 +15,40 @@
 <!-- Auth Bootstrap: Centralized auth validation -->
 <script src="js/auth-bootstrap.js"></script>
 
+<!-- Register authReady listener IMMEDIATELY after auth-bootstrap.js to prevent race condition -->
+<script>
+  let _IS_SUPERADMIN_CONSOLE = false;
+
+  window.addEventListener('authReady', function(e) {
+    const user = e.detail;
+    if (!user) {
+      console.error('[admin] No user in authReady event');
+      return;
+    }
+
+    const role = user.role || 'crew';
+    _IS_SUPERADMIN_CONSOLE = (role === 'superadmin');
+
+    const badge = document.getElementById('adminUserBadge');
+    if (badge) badge.textContent = user.email + ' · ' + role;
+
+    const consoleBadge = document.getElementById('consoleBadge');
+    if (consoleBadge) consoleBadge.textContent = role === 'superadmin' ? 'Admin Konsole' : 'Manager Konsole';
+
+    if (_IS_SUPERADMIN_CONSOLE) {
+      document.querySelectorAll('.superadmin-only').forEach(el => el.style.display = '');
+      loadUsers();
+      loadRoleCounts();
+      loadPlans();
+    }
+
+    _loadAdminLogos();
+    renderAdminLogos();
+    loadAdminPlans();
+    switchTab('werkzeuge');
+  });
+</script>
+
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -871,39 +905,6 @@ let _wrkPlanData = null;
 let _wrkPlanName = '';
 let _wrkCrewMeta = {}; // { name: { email, id } }
 let _wrkAssignmentStatuses = {};
-
-// ── Auth Guard ─────────────────────────────────────────────────────────────────
-// Auth validation handled by auth-bootstrap.js — waits for 'authReady' event
-let _IS_SUPERADMIN_CONSOLE = false;
-
-window.addEventListener('authReady', function(e) {
-  const user = e.detail;
-  if (!user) {
-    console.error('[admin] No user in authReady event');
-    return;
-  }
-
-  const role = user.role || 'crew';
-  _IS_SUPERADMIN_CONSOLE = (role === 'superadmin');
-
-  const badge = document.getElementById('adminUserBadge');
-  if (badge) badge.textContent = user.email + ' · ' + role;
-
-  const consoleBadge = document.getElementById('consoleBadge');
-  if (consoleBadge) consoleBadge.textContent = role === 'superadmin' ? 'Admin Konsole' : 'Manager Konsole';
-
-  if (_IS_SUPERADMIN_CONSOLE) {
-    document.querySelectorAll('.superadmin-only').forEach(el => el.style.display = '');
-    loadUsers();
-    loadRoleCounts();
-    loadPlans();
-  }
-
-  _loadAdminLogos();
-  renderAdminLogos();
-  loadAdminPlans();
-  switchTab('werkzeuge');
-});
 
 // ── Tab Switching ──────────────────────────────────────────────────────────────
 function switchTab(name) {
