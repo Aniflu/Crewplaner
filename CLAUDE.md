@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.3**
+- Aktuelle Version: **v0.9.4**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.3 — fix: ES6-Module-Migration + Auth-Check + 22 fehlende Imports gefixt (aktuell)
+v0.9.4 — fix: DE_DAYS/DE_MON Export + Module-Load-Error gefixt (aktuell)
+v0.9.3 — fix: ES6-Module-Migration + Auth-Check + 22 fehlende Imports gefixt
 v0.9.2 — feat: Email-Log Tab — Filter, Suche & erweiterte Anzeige
 v0.9.11.5 — fix: Code Review Fixes — Queue-Stabilität & Checkbox-State Persistence
 v0.9.11.4 — fix: Leere Queue-Einträge nicht rendern
