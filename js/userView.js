@@ -353,7 +353,7 @@ function _updateCrewUpdateBar() {
   if (badge) badge.textContent = n;
 }
 
-function _openUpdateQueueModal() {
+export function _openUpdateQueueModal() {
   const q = _getCrewUpdateQueue();
   const body = document.getElementById('crewUpdateModalBody');
   if (!body) return;
@@ -383,7 +383,7 @@ function _openUpdateQueueModal() {
   _updateSendButton();
 }
 
-function _closeUpdateQueueModal() {
+export function _closeUpdateQueueModal() {
   const modal = document.getElementById('crewUpdateModal');
   if (modal) modal.style.display = 'none';
   document.body.style.overflow = '';
@@ -422,7 +422,7 @@ function _updateSendButton() {
   if (btn) btn.textContent = `AUSWAHL SENDEN (${count}) →`;
 }
 
-async function _sendSelectedUpdates() {
+export async function _sendSelectedUpdates() {
   const full = _getCrewUpdateQueue();
   const filtered = {};
   const remaining = {};
@@ -483,12 +483,12 @@ async function _sendQueueEntries(q) {
   }
 }
 
-async function _sendPendingUpdates() {
+export async function _sendPendingUpdates() {
   const q = _getCrewUpdateQueue();
   await _sendQueueEntries(q);
 }
 
-async function _submitMeldung() {
+export async function _submitMeldung() {
   const myName = getMyCrewName();
   if (!myName) return;
   const meta = crewMeta[myName] || {};

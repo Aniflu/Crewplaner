@@ -105,7 +105,7 @@ function _showUserBadge(user) {
   document.querySelectorAll('.crew-only').forEach(el => el.style.display = IS_CREW ? '' : 'none');
 }
 
-async function logout() {
+export async function logout() {
   localStorage.removeItem('pb_token');
   localStorage.removeItem('pb_user');
   window.location.href = 'login.html';
