@@ -27,6 +27,7 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
 
   const token = localStorage.getItem('pb_token');
   const userStr = localStorage.getItem('pb_user');
+  const skipRefresh = new URLSearchParams(window.location.search).has('noreauth');
 
   // ─ Kein Token vorhanden
   if (!token || !userStr) {
@@ -40,7 +41,12 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
     return;
   }
 
-  // ─ PHASE 2: Token vorhanden — Async Refresh + Rollen-Validierung
+  // ─ PHASE 2: Token vorhanden — Async Refresh + Rollen-Validierung (skip if ?noreauth=1)
+  if (skipRefresh) {
+    _logAuth('Token valid + noreauth=1 flag set, skipping refresh');
+    document.documentElement.style.visibility = '';
+    return;
+  }
   try {
     // Token erneuern
     const response = await fetch(pbUrl + '/api/collections/users/auth-refresh', {

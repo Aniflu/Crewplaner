@@ -1165,7 +1165,8 @@ function loadPlanIntoTourview() {
   sessionStorage.setItem('crewplan_transfer_data', JSON.stringify(_wrkPlanData));
   sessionStorage.setItem('crewplan_transfer_name', _wrkPlanName || 'Plan');
   sessionStorage.setItem('crewplan_transfer_pbid', _wrkPbPlanId || '');
-  window.location.href = 'index.html';
+  // Use ?noreauth=1 to skip auth-refresh (we're already authenticated in this admin session)
+  window.location.href = 'index.html?noreauth=1';
 }
 
 // ── Werkzeuge: Mitarbeiter einladen ───────────────────────────────────────────
