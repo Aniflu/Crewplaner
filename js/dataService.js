@@ -2,7 +2,8 @@ import { POCKETBASE_URL, SUPABASE_ENABLED } from './config.js';
 import {
   POSITIONS, crew, defaultCrew, assignments, crewMeta,
   assignmentStatuses, TOUR_DATES, IS_CREW, IS_MANAGER,
-  CURRENT_USER_EMAIL, USER_ROLE, CURRENT_USER_ID
+  CURRENT_USER_EMAIL, USER_ROLE, CURRENT_USER_ID,
+  clearStatus
 } from './state.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
 import { showToast } from './utils.js';
@@ -269,6 +270,7 @@ export async function cancelProposal(dateStr, posId) {
       `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
     if (existing) {
       await pbDelete('/api/collections/assignments/records/' + existing.id);
+      clearStatus(dateStr, posId);  // ← NEW: fix stale state
     }
   } catch(e) {
     console.warn('cancelProposal Fehler:', e.message);
@@ -285,9 +287,10 @@ export async function bulkCancelProposals(posId) {
   try {
     const data = await pbList('assignments',
       `plan_id = "${pbEscapeFilter(planId)}" && pos_id = "${pbEscapeFilter(posId)}" && (status = "proposed" || status = "declined")`);
-    await Promise.all((data?.items || []).map(row =>
-      pbDelete('/api/collections/assignments/records/' + row.id)
-    ));
+    await Promise.all((data?.items || []).map(row => {
+      clearStatus(row.date, row.pos_id);  // ← NEW: fix stale state
+      return pbDelete('/api/collections/assignments/records/' + row.id);
+    }));
   } catch(e) {
     console.warn('bulkCancelProposals Fehler:', e.message);
     throw e;
