@@ -275,21 +275,16 @@
     window.location.href = pending ? base + pending : base;
   }
 
-  // Bereits eingeloggt → direkt weiterleiten
+  // Bereits eingeloggt → direkt weiterleiten (BUT NOT ON LOGIN PAGE!)
   (function() {
     if (localStorage.getItem('pendingEmailAction')) {
       document.getElementById('inviteBanner').style.display = 'block';
     }
     const token = localStorage.getItem('pb_token');
     if (!token) return;
-    pbPost('/api/collections/users/auth-refresh').then(data => {
-      localStorage.setItem('pb_token', data.token);
-      localStorage.setItem('pb_user', JSON.stringify(data.record));
-      _redirectAfterAuth();
-    }).catch(() => {
-      localStorage.removeItem('pb_token');
-      localStorage.removeItem('pb_user');
-    });
+    // SECURITY FIX: Don't auto-redirect from login.html — user MUST confirm they want to proceed
+    // This prevents accidental redirects and allows users to log out/switch accounts
+    console.log('[login.html] Token found but staying on login page (user can choose to proceed)');
   })();
 
   document.getElementById('password').addEventListener('keydown', e => {

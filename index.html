@@ -6,6 +6,20 @@
 <title>Tour Crew Plan 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=23">
+
+<!-- SECURITY: ABSOLUTE FIRST CHECK — Redirect to login if not authenticated -->
+<script>
+  (function() {
+    // Must run BEFORE body renders
+    if (!localStorage.getItem('pb_token')) {
+      const p = window.location.pathname;
+      if (!p.includes('login') && !p.includes('view')) {
+        window.location.href = 'login.html';
+      }
+    }
+  })();
+</script>
+
 <style>
 #crewUpdateModalBody::-webkit-scrollbar {
   width: 12px;
