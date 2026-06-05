@@ -1,18 +1,18 @@
 // ── Save / Load / AutoSave ─────────────────────────────────────────────────────
-import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos } from './state.js';
+import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos,
+         setTourDates, setPositions, setCrew, setDefaultCrew, setLogos, loadAssignmentsData } from './state.js';
 import { showToast } from './utils.js';
 
 export function collectData(){return{version:3,crew,positions:POSITIONS,defaultCrew,tourDates:TOUR_DATES,assignments};} // Logos sind global in LOGOS_KEY
 
 export function applyData(data){
   if(!data.tourDates)throw new Error('Ungültiges Format');
-  crew.length=0;data.crew.forEach(c=>crew.push(c));
-  if(data.positions){POSITIONS.length=0;data.positions.forEach(p=>POSITIONS.push(p));}
-  Object.keys(defaultCrew).forEach(k=>delete defaultCrew[k]);if(data.defaultCrew)Object.assign(defaultCrew,data.defaultCrew);
-  if(data.logos){logos.booking=data.logos.booking||'';logos.band=data.logos.band||'';logos.planer=data.logos.planer||'';applyAllLogos();saveLogosGlobal();} // Legacy JSON mit Logos
-  TOUR_DATES.length=0;data.tourDates.forEach(d=>TOUR_DATES.push(d));
-  Object.keys(assignments).forEach(k=>delete assignments[k]);
-  Object.assign(assignments,data.assignments||{});
+  setCrew(data.crew || []);
+  if(data.positions){setPositions(data.positions);}
+  setDefaultCrew(data.defaultCrew || {});
+  if(data.logos){setLogos(data.logos);applyAllLogos();saveLogosGlobal();} // Legacy JSON mit Logos
+  setTourDates(data.tourDates);
+  loadAssignmentsData(data.assignments || {});
   renderCrew();renderTable();
 }
 

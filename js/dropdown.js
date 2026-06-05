@@ -1,7 +1,8 @@
 // ── Dropdown Engine ────────────────────────────────────────────────────────────
 import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew,
          assignmentStatuses, IS_MANAGER, IS_CREW,
-         OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, crewMeta } from './state.js';
+         OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, crewMeta,
+         setAssignment, clearAssignmentSlot } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
 import { getVal, isPending, esc, showToast, sortInsert, fmtD, showConfirm } from './utils.js';
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
@@ -75,7 +76,7 @@ export function openDateDD(e,dateStr){
       if(typeof _queueCrewUpdate==='function')_queueCrewUpdate(dateStr,'Datum entfernt');
       const idx=TOUR_DATES.findIndex(r=>r.date===dateStr);
       if(idx>-1)TOUR_DATES.splice(idx,1);
-      delete assignments[dateStr];
+      if(assignments[dateStr])delete assignments[dateStr];
       closeDD();_savePlanToLS(activePlanId);renderTable();
     }}
   ];
@@ -100,7 +101,7 @@ export function openCrewDD(e,dateStr,posId){
         const _email=crewMeta?.[si.crewName]?.email;
         if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
-        if(assignments[dateStr])delete assignments[dateStr][posId];
+        clearAssignmentSlot(dateStr, posId);
         showToast('Anfrage zurückgezogen ✓','#4ae8a0');
       }catch(err){
         console.error('cancelProposal failed:',err);
@@ -117,7 +118,7 @@ export function openCrewDD(e,dateStr,posId){
         const _email=crewMeta?.[si.crewName]?.email;
         if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
-        if(assignments[dateStr])delete assignments[dateStr][posId];
+        clearAssignmentSlot(dateStr, posId);
         showToast('Besetzung aufgehoben ✓','#4ae8a0');
       }catch(err){
         showToast('Fehler: '+err.message,'#e84a4a');
@@ -138,7 +139,7 @@ export function openCrewDD(e,dateStr,posId){
   if(def)items.push({label:`↩ Standard: ${def}`,cls:'reset',action:async()=>{
     closeDD();
     if(si){try{await cancelProposal(dateStr,posId);}catch(e){console.warn(e);}if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];}
-    if(!assignments[dateStr])assignments[dateStr]={};delete assignments[dateStr][posId];
+    clearAssignmentSlot(dateStr, posId);
     renderTable();
   }});
   items.push({label:'— Nicht besetzt',cls:'clear',action:()=>_applyState('')});
@@ -154,7 +155,7 @@ export function openCrewDD(e,dateStr,posId){
   });
   showDD(e.currentTarget.getBoundingClientRect(),pos.label+(SUPABASE_ENABLED?' · 📧=Benachrichtigung':''),items);
 }
-export function setAssign(d,p,v){if(!assignments[d])assignments[d]={};assignments[d][p]=v;_savePlanToLS(activePlanId);renderTable();}
+export function setAssign(d,p,v){setAssignment(d,p,v);_savePlanToLS(activePlanId);renderTable();}
 
 // ── Default Crew Dropdown ──────────────────────────────────────────────────────
 export function openDefaultDD(e,posId){
@@ -177,7 +178,7 @@ export async function bulkCancelPos(e,posId){
       const si=assignmentStatuses[date]?.[posId];
       if(isPending(si)){
         delete assignmentStatuses[date][posId];
-        if(assignments[date])delete assignments[date][posId];
+        clearAssignmentSlot(date, posId);
       }
     });
     showToast(`${pos?.label}: Alle Anfragen zurückgezogen`,'#4ae8a0');
@@ -199,8 +200,7 @@ export async function requestAll(e){
       const def=defaultCrew[pos.id];
       if(!def)return;
       if(day.date in assignments&&pos.id in(assignments[day.date]||{}))return;
-      if(!assignments[day.date])assignments[day.date]={};
-      assignments[day.date][pos.id]=def;
+      setAssignment(day.date, pos.id, def);
     });
   });
   _savePlanToLS(activePlanId);
@@ -215,8 +215,7 @@ export function requestForPos(e,posId){
   if(!def)return;
   TOUR_DATES.forEach(day=>{
     if(day.date in assignments&&posId in(assignments[day.date]||{}))return;
-    if(!assignments[day.date])assignments[day.date]={};
-    assignments[day.date][posId]=def;
+    setAssignment(day.date, posId, def);
   });
   _savePlanToLS(activePlanId);
   renderTable();
