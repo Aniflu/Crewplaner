@@ -1,6 +1,6 @@
 // ── User View — Meine Einsätze / Confirm / Decline ────────────────────────────
 import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
-         IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID } from './state.js';
+         IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID, setStatus } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
 import { getVal, isPending, esc, showToast, fmtD } from './utils.js';
 import { pbPatch, pbPost } from './pb.js';
@@ -33,7 +33,8 @@ export async function sendCancellations() {
     for (const key of Array.from(_pendingCancellations)) {
       const [dateStr, posId] = key.split('|');
       await declineAssignment(dateStr, posId);
-      if (assignmentStatuses[dateStr]?.[posId]) assignmentStatuses[dateStr][posId].status = 'declined';
+      const _si36 = assignmentStatuses[dateStr]?.[posId];
+      if (_si36) setStatus(dateStr, posId, { ..._si36, status: 'declined' });
     }
     _pendingCancellations.clear();
     _updateCancellationBar();
@@ -168,9 +169,8 @@ async function _bulkConfirmMySlots() {
 
   // Lokale assignmentStatuses aktualisieren
   decisions.forEach(d => {
-    if (assignmentStatuses[d.date]?.[d.posId]) {
-      assignmentStatuses[d.date][d.posId].status = d.confirmed ? 'confirmed' : 'declined';
-    }
+    const _si165 = assignmentStatuses[d.date]?.[d.posId];
+    if (_si165) setStatus(d.date, d.posId, { ..._si165, status: d.confirmed ? 'confirmed' : 'declined' });
   });
 
   closeModal('sharedModal');
@@ -205,7 +205,10 @@ export async function bulkConfirmAllMySlots() {
   if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
   showToast('Wird bestätigt…', '#e8c84a');
   await Promise.all(slots.map(s => confirmAssignment(s.date, s.posId)));
-  slots.forEach(s => { if (assignmentStatuses[s.date]?.[s.posId]) assignmentStatuses[s.date][s.posId].status = 'confirmed'; });
+  slots.forEach(s => {
+    const _si = assignmentStatuses[s.date]?.[s.posId];
+    if (_si) setStatus(s.date, s.posId, { ..._si, status: 'confirmed' });
+  });
   showToast('Alle Termine bestätigt ✓', '#4ae8a0');
   renderTable();
 }
@@ -217,7 +220,10 @@ export async function bulkDeclineAllMySlots() {
   if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
   showToast('Wird abgelehnt…', '#e8c84a');
   await Promise.all(slots.map(s => declineAssignment(s.date, s.posId)));
-  slots.forEach(s => { if (assignmentStatuses[s.date]?.[s.posId]) assignmentStatuses[s.date][s.posId].status = 'declined'; });
+  slots.forEach(s => {
+    const _si = assignmentStatuses[s.date]?.[s.posId];
+    if (_si) setStatus(s.date, s.posId, { ..._si, status: 'declined' });
+  });
   showToast('Alle Termine abgelehnt', '#e84a4a');
   renderTable();
 }
@@ -291,7 +297,7 @@ function _queueCrewUpdate(dateStr, changeDesc) {
     let slot = q[si.crewName].slots.find(s => s.date === dateStr && s.posLabel === posLabel);
     if (!slot) { slot = { date: dateStr, posLabel, changes: [] }; q[si.crewName].slots.push(slot); }
     if (!slot.changes.includes(changeDesc)) slot.changes.push(changeDesc);
-    assignmentStatuses[dateStr][posId] = { ...si, status: 'proposed' };
+    setStatus(dateStr, posId, { ...si, status: 'proposed' });
     affected++;
   });
   if (affected === 0) return;
