@@ -10,7 +10,8 @@ import { renderBlockView } from './blockview.js';
 import { updateStats } from './stats.js';
 import { loadLogosGlobal } from './logos.js';
 import { renderCrew } from './crew.js';
-import { getPlansIndex, renderPlanList, applyData, genPlanId, savePlansIndex, PLAN_PREFIX, getActivePlanId, setActivePlanId, _today, _savePlanToLS, _loadPlanFromLS, _resetToEmpty } from './plans.js';
+import { getPlansIndex, renderPlanList, genPlanId, savePlansIndex, PLAN_PREFIX, getActivePlanId, setActivePlanId, _today, _savePlanToLS, _loadPlanFromLS, _resetToEmpty } from './plans.js';
+import { applyData } from './persistence.js';
 
 export function startApp(){
   loadCustomTypes();
