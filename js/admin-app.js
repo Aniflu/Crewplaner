@@ -16,7 +16,7 @@ import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
 import { renderEmailLog } from './emailLog.js';
 import { loadAssignmentStatuses, loadCrewMeta } from './dataService.js';
 import { exportPDF } from './pdf.js';
-import { adminGenerateICS } from './calendar.js';
+import { generateICS as adminGenerateICS } from './calendar.js';
 
 // Admin.html has its own inline bootstrap script for auth.
 // This entry point ensures all modules are loaded and their functions are available.
