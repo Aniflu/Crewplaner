@@ -7,7 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
-**v0.9.15** — fix: window.* Exports für onclick-Handler — fix: ES6-Imports in app.js — fix: Vollständige window-Exports in admin-app.js für HTML-inline-scripts
+**v0.9.16** — debug: Auth-Redirect Debugging — fix: window.* Exports für onclick-Handler — fix: ES6-Imports in app.js — fix: Vollständige window-Exports in admin-app.js für HTML-inline-scripts
 **v0.9.12** — fix: admin-app.js importiert generateICS korrekt aus calendar.js
 **v0.9.10** — fix: Entferne falsche Module-Imports
 **v0.9.9** — fix: Module-Timing-Bug — Warte auf authReady + DOMContentLoaded
