@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anmelden — Tour Crew Plan</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script>
+  window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
+</script>
+<script src="js/auth-bootstrap.js"></script>
 <script src="js/pb-login-bundle.js?v=1"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -275,16 +279,11 @@
     window.location.href = pending ? base + pending : base;
   }
 
-  // Bereits eingeloggt → direkt weiterleiten (BUT NOT ON LOGIN PAGE!)
+  // Show invite banner if user was invited (auth-bootstrap.js handles token validation)
   (function() {
     if (localStorage.getItem('pendingEmailAction')) {
       document.getElementById('inviteBanner').style.display = 'block';
     }
-    const token = localStorage.getItem('pb_token');
-    if (!token) return;
-    // SECURITY FIX: Don't auto-redirect from login.html — user MUST confirm they want to proceed
-    // This prevents accidental redirects and allows users to log out/switch accounts
-    console.log('[login.html] Token found but staying on login page (user can choose to proceed)');
   })();
 
   document.getElementById('password').addEventListener('keydown', e => {

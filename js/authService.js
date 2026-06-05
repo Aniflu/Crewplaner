@@ -38,7 +38,7 @@ export async function _authCheckAndStart() {
 
     setAuthState(user.id, user.email, user.role || 'crew');
     _showUserBadge(user);
-    document.body.style.visibility = 'visible';
+    // Page visibility handled by auth-bootstrap.js
 
     // Plan-Transfer von admin.html via sessionStorage anwenden (vor startApp)
     const _transferData = sessionStorage.getItem('crewplan_transfer_data');

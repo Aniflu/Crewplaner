@@ -7,19 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=23">
 
-<!-- SECURITY: ABSOLUTE FIRST CHECK — Redirect to login if not authenticated -->
-<script>
-  (function() {
-    // Must run BEFORE body renders
-    if (!localStorage.getItem('pb_token')) {
-      const p = window.location.pathname;
-      if (!p.includes('login') && !p.includes('view')) {
-        window.location.href = 'login.html';
-      }
-    }
-  })();
-</script>
-
 <style>
 #crewUpdateModalBody::-webkit-scrollbar {
   width: 12px;
@@ -370,15 +357,13 @@
 </div>
 <div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
 
-<!-- SECURITY: Redirect to login if no token (before loading app.js) -->
+<!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
-  if (!localStorage.getItem('pb_token')) {
-    const pathname = window.location.pathname;
-    if (!pathname.includes('login') && !pathname.includes('view')) {
-      window.location.href = 'login.html';
-    }
-  }
+  window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
 </script>
+
+<!-- Auth Bootstrap: Centralized auth validation (before app.js loads) -->
+<script src="js/auth-bootstrap.js"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
 <script type="module" src="js/app.js?v=1"></script>
