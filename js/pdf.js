@@ -382,7 +382,7 @@ function pdfRenderCrew(fd,selCrew){
 }
 
 // ── MAIN GENERATE ──────────────────────────────────────────────────────────────
-async function generatePDF(){
+export async function generatePDF(){
   // Fenster sofort öffnen (synchron, im User-Gesture-Kontext) → Popup-Blocker umgehen
   if(!POSITIONS?.length||!TOUR_DATES?.length){showToast('Kein Plan geladen','#e84a4a');return;}
   const win=window.open('','_blank');
