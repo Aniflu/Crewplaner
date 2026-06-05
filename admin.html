@@ -15,17 +15,34 @@
 <!-- Auth Bootstrap: Centralized auth validation -->
 <script src="js/auth-bootstrap.js"></script>
 
-<!-- Register authReady listener IMMEDIATELY after auth-bootstrap.js to prevent race condition -->
+<!-- Admin Initialization: Wait for both authReady and DOMContentLoaded -->
 <script>
   let _IS_SUPERADMIN_CONSOLE = false;
+  let _adminAuthUser = null;
+  let _domReady = false;
+
+  function _tryInitAdmin() {
+    if (!_adminAuthUser || !_domReady) return; // Wait for both signals
+    const user = _adminAuthUser;
+    _adminAuthUser = null; // Prevent double execution
+    _runAdminInit(user);
+  }
 
   window.addEventListener('authReady', function(e) {
-    const user = e.detail;
-    if (!user) {
+    _adminAuthUser = e.detail;
+    if (!_adminAuthUser) {
       console.error('[admin] No user in authReady event');
       return;
     }
+    _tryInitAdmin();
+  });
 
+  document.addEventListener('DOMContentLoaded', function() {
+    _domReady = true;
+    _tryInitAdmin();
+  });
+
+  function _runAdminInit(user) {
     const role = user.role || 'crew';
     _IS_SUPERADMIN_CONSOLE = (role === 'superadmin');
 
@@ -46,7 +63,7 @@
     renderAdminLogos();
     loadAdminPlans();
     switchTab('werkzeuge');
-  });
+  }
 </script>
 
 <style>
