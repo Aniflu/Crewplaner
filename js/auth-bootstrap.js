@@ -42,30 +42,32 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
   }
 
   // ─ PHASE 2: Token vorhanden — Async Refresh + Rollen-Validierung (skip if ?noreauth=1)
-  if (skipRefresh) {
-    _logAuth('Token valid + noreauth=1 flag set, skipping refresh');
-    document.documentElement.style.visibility = '';
-    return;
-  }
+  let data;
   try {
-    // Token erneuern
-    const response = await fetch(pbUrl + '/api/collections/users/auth-refresh', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Content-Type': 'application/json'
-      }
-    });
+    if (skipRefresh) {
+      // Token already valid, skip refresh but still use cached user data
+      _logAuth('Token valid + noreauth=1 flag set, skipping refresh');
+      data = JSON.parse(userStr);
+    } else {
+      // Token erneuern
+      const response = await fetch(pbUrl + '/api/collections/users/auth-refresh', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    if (!response.ok) {
-      throw new Error('Token refresh failed: ' + response.status);
+      if (!response.ok) {
+        throw new Error('Token refresh failed: ' + response.status);
+      }
+
+      data = await response.json();
+      localStorage.setItem('pb_token', data.token);
+      localStorage.setItem('pb_user', JSON.stringify(data.record));
     }
 
-    const data = await response.json();
-    localStorage.setItem('pb_token', data.token);
-    localStorage.setItem('pb_user', JSON.stringify(data.record));
-
-    const role = data.record.role || 'crew';
+    const role = data.record?.role || 'crew';
     const isAdmin = role === 'superadmin' || role === 'manager';
 
     // ─ login.html mit gültigem Token → auto-redirect zur richtigen Seite
@@ -77,14 +79,17 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
       return;
     }
 
-    // ─ Falsche Seite für diese Rolle → redirect
+    // ─ Plan-Transfer aktiv? Wenn ja, stay on index.html um Plan zu laden (skip role redirect)
+    const hasPlanTransfer = !!sessionStorage.getItem('crewplan_transfer_data');
+
+    // ─ Falsche Seite für diese Rolle → redirect (aber NICHT wenn Plan-Transfer aktiv)
     if (currentPage === 'admin.html' && !isAdmin) {
       // Crew/Booker auf admin.html → zu index.html
       window.location.replace('index.html');
       return;
     }
-    if (currentPage === 'index.html' && isAdmin) {
-      // Manager/Superadmin auf index.html → zu admin.html
+    if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer) {
+      // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer)
       window.location.replace('admin.html');
       return;
     }
