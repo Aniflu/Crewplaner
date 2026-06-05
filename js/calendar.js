@@ -1,8 +1,7 @@
 // ── ICS Calendar Export ────────────────────────────────────────────────────
 import { TOUR_DATES, POSITIONS } from './state.js';
 import { showToast, getVal } from './utils.js';
-
-// Global functions called: openModal
+import { openModal } from './modals.js';
 
 export function openCalendarExport(){
   openModal('calModal');

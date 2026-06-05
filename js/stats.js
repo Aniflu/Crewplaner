@@ -1,5 +1,5 @@
 // ── Stats Bar ──────────────────────────────────────────────────────────────────
-import { TOUR_DATES, POSITIONS, crew, assignments, assignmentStatuses, IS_MANAGER, CREW_COLORS } from './state.js';
+import { TOUR_DATES, POSITIONS, crew, assignments, assignmentStatuses, IS_MANAGER, CREW_COLORS, OFFEN } from './state.js';
 import { getVal, dw, fmt, fmtD } from './utils.js';
 
 export function calcByPos(){

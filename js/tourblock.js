@@ -5,6 +5,8 @@ import { getVal, isPending, esc, fmtD, parseD, DE_DAYS, sortInsert, showToast } 
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { renderTable } from './render.js';
+import { closeModal, openModal } from './modals.js';
+import { showAlert } from './dialog.js';
 
 let tbDays=[];
 

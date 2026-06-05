@@ -1,6 +1,8 @@
 // ── Crew & Positionen Modal ─────────────────────────────────────────────────────
 import { IS_MANAGER, IS_CREW, SUPABASE_ENABLED } from './state.js';
 import { renderTable } from './render.js';
+import { openModal } from './modals.js';
+import { renderCrew } from './crew.js';
 
 export function openCrewModal(){
   renderCrew();

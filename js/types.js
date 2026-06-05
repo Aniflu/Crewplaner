@@ -1,5 +1,8 @@
 // ── Day Type Options & Custom Types ───────────────────────────────────────────
 import { TOUR_DATES } from './state.js';
+import { renderTable } from './render.js';
+import { closeModal, openModal } from './modals.js';
+import { showAlert, showConfirm } from './dialog.js';
 
 export const TYPE_COLOR_DEFAULTS = {show:'#4caf72', reise:'#5a9fd4', prep:'#e8883a', off:'#888888'};
 export const TYPE_WEIGHT_DEFAULTS = {show:1.0, reise:0.5, prep:1.0, off:0.5};

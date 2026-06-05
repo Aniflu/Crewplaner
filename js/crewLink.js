@@ -3,6 +3,8 @@ import { IS_MANAGER, crew, crewMeta, CREW_COLORS } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
 import { pbGet, pbPatch } from './pb.js';
 import { showToast } from './utils.js';
+import { closeModal, openModal } from './modals.js';
+import { hasPermission } from './rbac.js';
 
 export function openCrewLinkModal() {
   if (!hasPermission('linkCrewEmail')) return;

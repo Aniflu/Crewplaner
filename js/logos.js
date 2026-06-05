@@ -1,11 +1,10 @@
 // ── Logo System ────────────────────────────────────────────────────────────────
 import { logos } from './state.js';
 import { showToast } from './utils.js';
+import { openModal } from './modals.js';
 
 // Global constants
 const LOGOS_KEY = 'tourplan_logos';
-
-// Global functions called: openModal
 
 export function saveLogosGlobal(){
   try{

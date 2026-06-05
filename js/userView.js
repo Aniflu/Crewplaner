@@ -7,6 +7,7 @@ import { pbPatch, pbPost } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses } from './dataService.js';
 import { renderTable } from './render.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
+import { closeModal, openModal } from './modals.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
 const _pendingCancellations = new Set();

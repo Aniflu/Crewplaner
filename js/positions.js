@@ -3,8 +3,9 @@ import { POSITIONS, assignments, IS_MANAGER } from './state.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { renderCrew } from './crew.js';
 import { renderTable } from './render.js';
-
-// Global functions called: closeDD, openRenamePos, showDD, openSharedModal, showConfirm
+import { closeDD, showDD } from './dropdown.js';
+import { openSharedModal } from './modals.js';
+import { showConfirm } from './dialog.js';
 
 export function openPosMenu(e,idx){
   if(!IS_MANAGER)return;
