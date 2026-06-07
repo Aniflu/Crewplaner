@@ -1351,13 +1351,23 @@ async function loadSelectedPlan() {
 async function loadAndTransferPlan() {
   // Lade ersten Plan aus PocketBase und transferiere zu index.html
   try {
+    const pbUrl = window.POCKETBASE_URL || 'https://api.crewplanner.nyxlightwork.de';
+    const token = localStorage.getItem('pb_token');
     const pbUser = JSON.parse(localStorage.getItem('pb_user') || '{}');
     const userId = pbUser.id;
-    let url = '/api/collections/plans/records?perPage=1&sort=-id';
+
+    let url = pbUrl + '/api/collections/plans/records?perPage=1&sort=-id';
     if (!_IS_SUPERADMIN_CONSOLE && userId) {
       url += '&filter=' + encodeURIComponent(`owner="${userId}"`);
     }
-    const data = await pbGet(url);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = await response.json();
     const items = data.items || [];
     if (!items.length) { adminToast('Keine Pläne gefunden', '#e84a4a'); return; }
 
