@@ -82,6 +82,7 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
 
     // ─ Plan-Transfer aktiv? Wenn ja, stay on index.html um Plan zu laden (skip role redirect)
     const hasPlanTransfer = !!sessionStorage.getItem('crewplan_transfer_data');
+    document.title = '[DEBUG] hasPlanTransfer=' + hasPlanTransfer + ', isAdmin=' + isAdmin + ', page=' + currentPage;
 
     // ─ Falsche Seite für diese Rolle → redirect (aber NICHT wenn Plan-Transfer aktiv)
     if (currentPage === 'admin.html' && !isAdmin) {
