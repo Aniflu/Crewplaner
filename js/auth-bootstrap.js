@@ -67,7 +67,8 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
       localStorage.setItem('pb_user', JSON.stringify(data.record));
     }
 
-    const role = data.record?.role || 'crew';
+    // ⚠️ FIX: skipRefresh-Pfad hat data=Record direkt, normaler Pfad hat data={token, record}
+    const role = (skipRefresh ? data.role : data.record?.role) || 'crew';
     const isAdmin = role === 'superadmin' || role === 'manager';
 
     // ─ login.html mit gültigem Token → auto-redirect zur richtigen Seite
