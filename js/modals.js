@@ -11,7 +11,7 @@ export function closeModal(id){
 document.addEventListener('click',e=>{
   ['sharedModal','pdfModal','logoModal'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el&&el.classList.contains('open')&&e.target===el)closeModal(id);
+    if(el.classList.contains('open')&&e.target===el)closeModal(id);
   });
 });
 
