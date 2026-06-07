@@ -20,17 +20,30 @@ function _logAuth(msg) {
 document.documentElement.style.visibility = 'hidden';
 _logAuth('Page visibility hidden, starting auth bootstrap');
 
-// PLAN-TRANSFER GUARD: Wenn Plan aktiv, blockiere admin.html Redirects
+// PLAN-TRANSFER GUARD: Wenn Plan aktiv, blockiere admin.html Redirects KOMPLETT
 const _planTransferActive = !!sessionStorage.getItem('crewplan_transfer_data');
 if (_planTransferActive && window.location.pathname.includes('index.html')) {
+  // Block location.replace
   const originalReplace = window.location.replace.bind(window.location);
   window.location.replace = function(url) {
-    if (url === 'admin.html' || url.startsWith('admin.html?')) {
-      console.log('[GUARD] Blocked redirect to admin.html');
+    if (url === 'admin.html' || url.startsWith('admin.html')) {
+      console.log('[GUARD] BLOCKED location.replace to admin.html');
       return;
     }
     originalReplace(url);
   };
+
+  // Block location.href assignment
+  Object.defineProperty(window.location, 'href', {
+    set: function(url) {
+      if (url.includes('admin.html')) {
+        console.log('[GUARD] BLOCKED location.href to admin.html');
+        return;
+      }
+      window.location.replace(url);
+    },
+    get: function() { return window.location.toString(); }
+  });
 }
 
 (async function authBootstrapFlow() {
