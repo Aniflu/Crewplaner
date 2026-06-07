@@ -8,17 +8,9 @@
  * MUST: window.POCKETBASE_URL muss VOR diesem Script in der Seite gesetzt sein
  */
 
-// ─ Persist logs to localStorage (for debugging redirects)
-window._authBootstrapLogs = [];
-function _logAuth(msg) {
-  window._authBootstrapLogs.push(msg);
-  localStorage.setItem('_authBootstrapLogs', JSON.stringify(window._authBootstrapLogs.slice(-20))); // keep last 20
-  console.log('[auth-bootstrap]', msg);
-}
-
 // ─ PHASE 1: SYNC — Sofort Seite ausblenden + Token-Check
 document.documentElement.style.visibility = 'hidden';
-_logAuth('Page visibility hidden, starting auth bootstrap');
+console.log('[auth-bootstrap] Page visibility hidden, starting auth bootstrap');
 
 (async function authBootstrapFlow() {
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
@@ -46,10 +38,11 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
   try {
     if (skipRefresh) {
       // Token already valid, skip refresh but still use cached user data
-      _logAuth('Token valid + noreauth=1 flag set, skipping refresh');
+      // ⚠️ WICHTIG: pb_user wird als direkte Record-Struktur gespeichert: {id, role, email, ...}
+      // also NICHT {token, record: {...}}
       data = JSON.parse(userStr);
     } else {
-      // Token erneuern
+      // Token erneuern — Response hat Struktur {token, record: {...}}
       const response = await fetch(pbUrl + '/api/collections/users/auth-refresh', {
         method: 'POST',
         headers: {
@@ -67,7 +60,10 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
       localStorage.setItem('pb_user', JSON.stringify(data.record));
     }
 
-    const role = data.record?.role || 'crew';
+    // ─ BUG FIX: Correct data structure handling for skipRefresh path
+    // Im skipRefresh-Pfad ist `data` die Record direkt, sonst data.record
+    const record = skipRefresh ? data : data.record;
+    const role = record?.role || 'crew';
     const isAdmin = role === 'superadmin' || role === 'manager';
 
     // ─ login.html mit gültigem Token → auto-redirect zur richtigen Seite
@@ -95,24 +91,23 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
     }
 
     // ─ Autorisiert für diese Seite → Seite zeigen + User bereitstellen
-    window.BOOTSTRAP_CURRENT_USER = data.record;
+    window.BOOTSTRAP_CURRENT_USER = record;
     document.documentElement.style.visibility = '';
 
     // Dispatch event für Seiten die auf authReady warten (z.B. admin.html)
     window.dispatchEvent(new CustomEvent('authReady', {
-      detail: data.record,
+      detail: record,
       bubbles: true
     }));
 
   } catch (e) {
     // Token-Refresh fehlgeschlagen → Token löschen
-    _logAuth('ERROR: Token refresh failed: ' + (e.message || e));
+    console.error('[auth-bootstrap] ERROR: Token refresh failed:', e.message || e);
     localStorage.removeItem('pb_token');
     localStorage.removeItem('pb_user');
 
     if (!EXEMPT_PAGES.includes(currentPage)) {
       // Zu login.html redirecten (außer auf exempt Seiten)
-      _logAuth('Redirecting to login.html from ' + currentPage);
       window.location.replace('login.html');
     } else {
       // login.html / view.html → zeigen
