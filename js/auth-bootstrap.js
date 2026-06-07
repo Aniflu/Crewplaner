@@ -22,7 +22,8 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
 
 // PLAN-TRANSFER GUARD: Wenn Plan aktiv, blockiere admin.html Redirects KOMPLETT
 const _planTransferActive = !!sessionStorage.getItem('crewplan_transfer_data');
-if (_planTransferActive && window.location.pathname.includes('index.html')) {
+const _isIndexPage = !window.location.pathname.includes('admin.html') && !window.location.pathname.includes('login.html');
+if (_planTransferActive && _isIndexPage) {
   // Block location.replace
   const originalReplace = window.location.replace.bind(window.location);
   window.location.replace = function(url) {
