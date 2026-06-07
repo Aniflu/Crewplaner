@@ -21,12 +21,18 @@ export async function _authCheckAndStart() {
     }
 
     // Token beim Server erneuern (validiert + gibt frisches Token)
+    // EXCEPT wenn ?noreauth=1 (plan transfer — token ist bereits gültig)
     let user;
+    const skipRefresh = new URLSearchParams(window.location.search).has('noreauth');
     try {
-      const data = await pbPost('/api/collections/users/auth-refresh');
-      localStorage.setItem('pb_token', data.token);
-      localStorage.setItem('pb_user', JSON.stringify(data.record));
-      user = data.record;
+      if (skipRefresh) {
+        user = JSON.parse(userStr);
+      } else {
+        const data = await pbPost('/api/collections/users/auth-refresh');
+        localStorage.setItem('pb_token', data.token);
+        localStorage.setItem('pb_user', JSON.stringify(data.record));
+        user = data.record;
+      }
     } catch (e) {
       // Token abgelaufen oder ungültig
       localStorage.removeItem('pb_token');
