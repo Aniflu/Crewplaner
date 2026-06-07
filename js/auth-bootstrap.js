@@ -82,7 +82,6 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
 
     // ─ Plan-Transfer aktiv? Wenn ja, stay on index.html um Plan zu laden (skip role redirect)
     const hasPlanTransfer = !!sessionStorage.getItem('crewplan_transfer_data');
-    document.title = '[DEBUG] hasPlanTransfer=' + hasPlanTransfer + ', isAdmin=' + isAdmin + ', page=' + currentPage;
 
     // ─ Falsche Seite für diese Rolle → redirect (aber NICHT wenn Plan-Transfer aktiv)
     if (currentPage === 'admin.html' && !isAdmin) {
@@ -97,12 +96,12 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
     }
 
     // ─ Autorisiert für diese Seite → Seite zeigen + User bereitstellen
-    window.BOOTSTRAP_CURRENT_USER = data.record;
+    window.BOOTSTRAP_CURRENT_USER = skipRefresh ? data : data.record;
     document.documentElement.style.visibility = '';
 
     // Dispatch event für Seiten die auf authReady warten (z.B. admin.html)
     window.dispatchEvent(new CustomEvent('authReady', {
-      detail: data.record,
+      detail: skipRefresh ? data : data.record,
       bubbles: true
     }));
 
