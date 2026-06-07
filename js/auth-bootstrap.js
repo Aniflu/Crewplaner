@@ -89,8 +89,8 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
       window.location.replace('index.html');
       return;
     }
-    if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer) {
-      // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer)
+    if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer && !skipRefresh) {
+      // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer oder ?noreauth=1)
       window.location.replace('admin.html');
       return;
     }
