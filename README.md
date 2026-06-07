@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.9.21** — fix: Plan-Transfer Button lädt ersten Plan automatisch
 **v0.9.20** — fix: Plan-Transfer Bug — sessionStorage und modals.js Null-Check
 **v0.9.19** — fix: Plan-Transfer — fix: auth-bootstrap Cache — fix: Plan-Transfer-Redirect — debug: Auth-Redirect Debugging — fix: window.* Exports für onclick-Handler — fix: ES6-Imports in app.js — fix: Vollständige window-Exports in admin-app.js für HTML-inline-scripts
 **v0.9.12** — fix: admin-app.js importiert generateICS korrekt aus calendar.js
