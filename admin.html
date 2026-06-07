@@ -503,7 +503,7 @@ body {
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
-    <button class="btn btn-primary btn-sm" onclick="_wrkPlanData ? loadPlanIntoTourview() : window.location.href='index.html'">Aktuellen Plan bearbeiten →</button>
+    <button class="btn btn-primary btn-sm" onclick="loadAndTransferPlan()">Aktuellen Plan bearbeiten →</button>
     <button class="btn btn-ghost btn-sm" onclick="adminLogout()">Abmelden</button>
   </div>
 </div>
@@ -1345,6 +1345,32 @@ async function loadSelectedPlan() {
     loadingEl.style.display = 'none';
     errEl.textContent = 'Fehler: ' + e.message;
     errEl.style.display = 'block';
+  }
+}
+
+async function loadAndTransferPlan() {
+  // Lade ersten Plan aus PocketBase und transferiere zu index.html
+  try {
+    const pbUser = JSON.parse(localStorage.getItem('pb_user') || '{}');
+    const userId = pbUser.id;
+    let url = '/api/collections/plans/records?perPage=1&sort=-id';
+    if (!_IS_SUPERADMIN_CONSOLE && userId) {
+      url += '&filter=' + encodeURIComponent(`owner="${userId}"`);
+    }
+    const data = await pbGet(url);
+    const items = data.items || [];
+    if (!items.length) { adminToast('Keine Pläne gefunden', '#e84a4a'); return; }
+
+    const plan = items[0];
+    _wrkPbPlanId = plan.id;
+    _wrkPlanName = plan.name || 'Plan';
+
+    if (!plan.plan_data) { adminToast('Plan hat keine Daten', '#e84a4a'); return; }
+    _wrkPlanData = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
+
+    loadPlanIntoTourview();
+  } catch(e) {
+    adminToast('Fehler: ' + e.message, '#e84a4a');
   }
 }
 
