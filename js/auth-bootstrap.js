@@ -20,6 +20,19 @@ function _logAuth(msg) {
 document.documentElement.style.visibility = 'hidden';
 _logAuth('Page visibility hidden, starting auth bootstrap');
 
+// PLAN-TRANSFER GUARD: Wenn Plan aktiv, blockiere admin.html Redirects
+const _planTransferActive = !!sessionStorage.getItem('crewplan_transfer_data');
+if (_planTransferActive && window.location.pathname.includes('index.html')) {
+  const originalReplace = window.location.replace.bind(window.location);
+  window.location.replace = function(url) {
+    if (url === 'admin.html' || url.startsWith('admin.html?')) {
+      console.log('[GUARD] Blocked redirect to admin.html');
+      return;
+    }
+    originalReplace(url);
+  };
+}
+
 (async function authBootstrapFlow() {
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
   const EXEMPT_PAGES = ['login.html', 'view.html'];
