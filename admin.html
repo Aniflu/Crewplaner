@@ -1350,11 +1350,16 @@ async function loadSelectedPlan() {
 
 async function loadAndTransferPlan() {
   // Lade ersten Plan aus PocketBase und transferiere zu index.html
+  const _logs = [];
+  const _log = (msg) => { _logs.push('[' + new Date().toLocaleTimeString() + '] ' + msg); localStorage.setItem('_planTransferLogs', JSON.stringify(_logs)); };
+  _log('loadAndTransferPlan START');
+
   try {
     const pbUrl = window.POCKETBASE_URL || 'https://api.crewplanner.nyxlightwork.de';
     const token = localStorage.getItem('pb_token');
     const pbUser = JSON.parse(localStorage.getItem('pb_user') || '{}');
     const userId = pbUser.id;
+    _log('pbUrl=' + pbUrl + ', userId=' + userId);
 
     let url = pbUrl + '/api/collections/plans/records?perPage=1&sort=-id';
     if (!_IS_SUPERADMIN_CONSOLE && userId) {
@@ -1369,17 +1374,22 @@ async function loadAndTransferPlan() {
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const data = await response.json();
     const items = data.items || [];
-    if (!items.length) { adminToast('Keine Pläne gefunden', '#e84a4a'); return; }
+    _log('response OK, items=' + items.length);
+    if (!items.length) { _log('NO ITEMS FOUND'); adminToast('Keine Pläne gefunden', '#e84a4a'); return; }
 
     const plan = items[0];
     _wrkPbPlanId = plan.id;
     _wrkPlanName = plan.name || 'Plan';
+    _log('Plan loaded: id=' + plan.id + ', name=' + _wrkPlanName);
 
-    if (!plan.plan_data) { adminToast('Plan hat keine Daten', '#e84a4a'); return; }
+    if (!plan.plan_data) { _log('NO PLAN_DATA'); adminToast('Plan hat keine Daten', '#e84a4a'); return; }
     _wrkPlanData = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
+    _log('_wrkPlanData SET, tourDates=' + (_wrkPlanData.tourDates?.length || 0));
 
+    _log('Calling loadPlanIntoTourview()');
     loadPlanIntoTourview();
   } catch(e) {
+    _log('ERROR: ' + e.message);
     adminToast('Fehler: ' + e.message, '#e84a4a');
   }
 }
