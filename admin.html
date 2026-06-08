@@ -1387,6 +1387,8 @@ async function loadAndTransferPlan() {
     _wrkPlanData = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
     _log('_wrkPlanData SET, tourDates=' + (_wrkPlanData.tourDates?.length || 0));
 
+    alert('Vor sessionStorage.setItem! _wrkPlanData vorhanden: ' + (!!_wrkPlanData) + ', _wrkPlanName: ' + _wrkPlanName);
+
     _log('Calling loadPlanIntoTourview()');
     loadPlanIntoTourview();
   } catch(e) {
