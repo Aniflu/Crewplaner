@@ -24,10 +24,12 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
 const redirectKey = '_redirectCounter';
 const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0');
 if (redirectCount > 2) {
-  document.documentElement.style.visibility = '';
-  document.body.innerHTML = '<h1 style="color:red;padding:20px;">Redirect Loop Detected</h1><p>Storage wurde gelöscht. Bitte Seite neu laden.</p>';
+  // Nur pb_token/pb_user löschen, NICHT Plan-Transfer Flags!
+  localStorage.removeItem('pb_token');
+  localStorage.removeItem('pb_user');
   sessionStorage.clear();
-  localStorage.clear();
+  document.documentElement.style.visibility = '';
+  document.body.innerHTML = '<h1 style="color:red;padding:20px;">Redirect Loop Detected</h1><p>Bitte Seite neu laden.</p>';
   throw new Error('Redirect loop breaker activated');
 }
 sessionStorage.setItem(redirectKey, redirectCount + 1);
