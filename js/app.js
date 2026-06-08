@@ -90,8 +90,8 @@ window.openPDFFilter = openPDFFilter;
 
 // ── Security: Redirect to login if not authenticated ──────────────────────
 if (!localStorage.getItem('pb_token')) {
-  // Check if plan-transfer is in progress (sessionStorage signal is more reliable than URL query params)
-  const planTransferActive = !!sessionStorage.getItem('crewplan_transfer_data');
+  // Check if plan-transfer is in progress — NUTZE localStorage, nicht sessionStorage!
+  const planTransferActive = !!localStorage.getItem('_planTransfer_flag');
   if (!window.location.pathname.includes('login') && !window.location.pathname.includes('view') && !planTransferActive) {
     window.location.href = 'login.html';
   }
