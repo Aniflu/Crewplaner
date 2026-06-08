@@ -1,4 +1,5 @@
 // Custom dialog system — ersetzt alle nativen confirm/alert/prompt Aufrufe
+export function initDialogSystem(){
 (function(){
   let _overlay=null;
   let _active=false;
@@ -83,4 +84,11 @@
   window.showPrompt=function(msg,def){
     return _show({type:'prompt',title:'Eingabe',msg,def:def||''});
   };
-})();
+});
+}
+initDialogSystem();
+
+// ES6-Exports als Wrapper — setzen window.* nach initDialogSystem()
+export function showAlert(msg) { return window.showAlert(msg); }
+export function showConfirm(msg, label) { return window.showConfirm(msg, label); }
+export function showPrompt(msg, def) { return window.showPrompt(msg, def); }

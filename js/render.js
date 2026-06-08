@@ -1,9 +1,20 @@
 // ── Table Rendering ────────────────────────────────────────────────────────────
-// View state
-let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'
-const VIEW_KEY = 'tourplan_view';
+import { SUPABASE_ENABLED } from './config.js';
+import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, defaultCrew,
+         IS_MANAGER, IS_CREW, IS_BOOKER,
+         OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, CURRENT_USER_EMAIL } from './state.js';
+import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS } from './utils.js';
+import { TYPE_OPTS } from './types.js';
+import { _savePlanToLS, getActivePlanId } from './plans.js';
 
-function setView(v){
+// View state
+export let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'
+export const VIEW_KEY = 'tourplan_view';
+
+export function getCurrentView() { return CURRENT_VIEW; }
+export function setCurrentView(v) { CURRENT_VIEW = v; }
+
+export function setView(v){
   if(!['table','blocks','crew'].includes(v))v='table';
   CURRENT_VIEW=v;
   try{localStorage.setItem(VIEW_KEY,v);}catch(e){}
@@ -14,18 +25,18 @@ function setView(v){
   renderTable();
 }
 
-function renderTable(){
+export function renderTable(){
   // Always update stats
   if(CURRENT_VIEW==='table'){renderHead();renderBody();}
   else if(CURRENT_VIEW==='blocks'){if(typeof renderBlockView==='function')renderBlockView();}
   else if(CURRENT_VIEW==='crew'){if(typeof renderCrewView==='function')renderCrewView();}
   updateStats();
-  updateViewMeta();
+  _updateViewMeta();
   if(typeof _updateMeldungBar==='function')_updateMeldungBar();
   if(typeof _updateCrewUpdateBar==='function')_updateCrewUpdateBar();
 }
 
-function updateViewMeta(){
+function _updateViewMeta(){
   const el=document.getElementById('viewMeta');if(!el)return;
   const shows=TOUR_DATES.filter(r=>r.type==='show').length;
   const total=TOUR_DATES.length;
@@ -33,7 +44,7 @@ function updateViewMeta(){
   el.innerHTML=`<strong>${total}</strong> Tage · <strong>${shows}</strong> Shows · <strong>${blocks}</strong> Blöcke`;
 }
 
-function renderHead(){
+export function renderHead(){
   let h='<tr>';
   h+=`<th rowspan="2" style="left:0;text-align:left;vertical-align:middle;z-index:12;">Datum${IS_MANAGER?`<br><button onclick="requestAll(event)" style="margin-top:4px;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 6px;font-family:'IBM Plex Mono',monospace;font-size:.55rem;border-radius:3px;cursor:pointer;white-space:nowrap;">↓ Alle</button>`:''}</th>`;
   h+='<th rowspan="2" style="left:88px;text-align:left;vertical-align:middle;z-index:12;">Art</th>';
@@ -67,11 +78,12 @@ function renderHead(){
   document.getElementById('tHead').innerHTML=h;
 }
 
-function renderBody(){
+export function renderBody(){
   let b='',lastBlockId=null;
   const _meldungSentData=(typeof _getMeldungSent==='function')?_getMeldungSent():{};
+  const myName=SUPABASE_ENABLED&&typeof getMyCrewName==='function'?getMyCrewName():null;
   TOUR_DATES.forEach(row=>{
-    if(row.blockId&&row.blockId!==lastBlockId){lastBlockId=row.blockId;b+=`<tr class="month-sep"><td colspan="${3+POSITIONS.length+1}">${row.blockName||''}</td></tr>`;}
+    if(row.blockId&&row.blockId!==lastBlockId){lastBlockId=row.blockId;b+=`<tr class="month-sep"><td colspan="${3+POSITIONS.length+1}">${esc(row.blockName||'')}</td></tr>`;}
     const tOpt=TYPE_OPTS.find(t=>t.label===row.typeLabel);
     const tColor=tOpt?.color||'';
     const rowBg=tColor?colorToDarkBg(tColor):'';
@@ -80,8 +92,8 @@ function renderBody(){
     b+=IS_MANAGER
       ?`<td class="date-cell" onclick="openDateDD(event,'${row.date}')" style="cursor:pointer;" title="Klick für Optionen"><span class="wd">${_wd}</span><span class="dt">${_dt}</span></td>`
       :`<td class="date-cell"><span class="wd">${_wd}</span><span class="dt">${_dt}</span></td>`;}
-    b+=`<td class="type-cell">${IS_MANAGER?`<button class="type-btn" style="${tColor?'color:'+tColor+';':''}" onclick="openTypeDD(event,'${row.date}')">${row.typeLabel}</button>`:`<span class="type-btn" style="${tColor?'color:'+tColor+';':''}cursor:default;">${row.typeLabel}</span>`}</td>`;
-    b+=`<td class="loc-cell">${IS_MANAGER?`<button class="loc-btn" onclick="startLocEdit(event,'${row.date}')" title="${row.loc}">${row.loc}</button>`:`<span class="loc-btn" style="cursor:default;">${row.loc}</span>`}</td>`;
+    b+=`<td class="type-cell">${IS_MANAGER?`<button class="type-btn" style="${tColor?'color:'+tColor+';':''}" onclick="openTypeDD(event,'${row.date}')">${esc(row.typeLabel)}</button>`:`<span class="type-btn" style="${tColor?'color:'+tColor+';':''}cursor:default;">${esc(row.typeLabel)}</span>`}</td>`;
+    b+=`<td class="loc-cell">${IS_MANAGER?`<button class="loc-btn" onclick="startLocEdit(event,'${row.date}')" title="${esc(row.loc)}">${esc(row.loc)}</button>`:`<span class="loc-btn" style="cursor:default;">${esc(row.loc)}</span>`}</td>`;
     POSITIONS.forEach(p=>{
       const isOv=row.date in assignments&&p.id in(assignments[row.date]||{});
       const val=getVal(row.date,p.id);
@@ -102,7 +114,6 @@ function renderBody(){
       } else if(val===OFFDAY){style='color:#70ad47;border-color:rgba(112,173,71,.4);background:rgba(112,173,71,.07);font-weight:600;';display='🏖 Offday';}
       else if(val===REISE_TAG){style='color:#4f81bd;border-color:rgba(79,129,189,.4);background:rgba(79,129,189,.07);font-weight:600;';display='✈ Reise';}
       else if(val===AUSSCHREIBEN){style='color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);font-weight:600;';display='📋 Ausschr.';}
-      const myName=SUPABASE_ENABLED?(typeof getMyCrewName==='function'?getMyCrewName():null):null;
       const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName;
       const isAusschreibenSlot=SUPABASE_ENABLED&&IS_CREW&&val===AUSSCHREIBEN&&!si;
       const isDrafted=isAusschreibenSlot&&typeof _meldungDraft!=='undefined'&&!!_meldungDraft[row.date]?.has(p.id);
@@ -121,15 +132,22 @@ function renderBody(){
         else if(si.status==='declined'){b+=`<span style="font-size:.6rem;color:#e84a4a;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
         else{b+=`<span style="font-size:.6rem;color:#e8c84a;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
       }else if(IS_CREW&&si&&si.crewName===myName){
-        b+=`<span class="${cls}" style="${style};cursor:default;">${display}</span>`;
+        const _pkey=row.date+'|'+p.id;
+        const _isPending=typeof _pendingCancellations!=='undefined'&&_pendingCancellations.has(_pkey);
+        if(si.status==='confirmed'){
+          const _ps=_isPending?'background:rgba(232,74,74,.12);border-color:rgba(232,74,74,.4);color:#e84a4a;text-decoration:line-through;':'color:#4ae8a0;border-color:rgba(74,232,160,.35);background:rgba(74,232,160,.07);';
+          b+=`<button class="assign-btn" style="${_ps}" onclick="toggleCancellation('${row.date}','${p.id}')">${_isPending?'Absagen?':'✓ '+esc(si.crewName||myName)}</button>`;
+        }else{
+          b+=`<span class="${cls}" style="${style};cursor:default;">${display}</span>`;
+        }
       }else if(IS_CREW&&!si&&val&&val!==OFFEN&&val!==OFFDAY&&val!==REISE_TAG&&val!==AUSSCHREIBEN){
         b+=`<span style="font-size:.6rem;color:#5a6070;display:block;text-align:center;">${esc(val)}</span>`;
       }else if(IS_MANAGER||!SUPABASE_ENABLED){
-        b+=`<button class="${cls}" style="${style}" onclick="openCrewDD(event,'${row.date}','${p.id}')">${display}</button>`;
+        b+=`<button class="${cls}" style="${style}" onclick="openCrewDD(event,'${row.date}','${p.id}')">${esc(display)}</button>`;
       }else if(IS_BOOKER){
-        b+=`<span class="${cls}" style="${style};cursor:default;">${display}</span>`;
+        b+=`<span class="${cls}" style="${style};cursor:default;">${esc(display)}</span>`;
       }else if(!IS_CREW){
-        b+=`<button class="${cls}" style="${style}" disabled>${display}</button>`;
+        b+=`<button class="${cls}" style="${style}" disabled>${esc(display)}</button>`;
       }
       b+=`</td>`;
     });
@@ -139,7 +157,7 @@ function renderBody(){
 }
 
 // ── Inline Loc Edit ────────────────────────────────────────────────────────────
-function startLocEdit(e,dateStr){
+export function startLocEdit(e,dateStr){
   e.stopPropagation();
   const td=e.currentTarget.parentElement;
   const row=TOUR_DATES.find(r=>r.date===dateStr);
@@ -149,7 +167,7 @@ function startLocEdit(e,dateStr){
     const newLoc=inp.value.trim();
     if(!newLoc){renderTable();return;}
     row.loc=newLoc;
-    _savePlanToLS(activePlanId);
+    _savePlanToLS(getActivePlanId());
     if(newLoc!==oldLoc&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(dateStr,`Ort: ${oldLoc} → ${newLoc}`);
     else renderTable();
   };
@@ -158,7 +176,7 @@ function startLocEdit(e,dateStr){
 }
 
 // ── Sticky Column Fix ──────────────────────────────────────────────────────────
-function fixStickyColumns(){
+export function fixStickyColumns(){
   const table = document.querySelector('table');
   if(!table) return;
   const firstTh = table.querySelector('thead th:first-child');

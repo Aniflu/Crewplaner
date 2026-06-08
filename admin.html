@@ -5,10 +5,67 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Konsole — Tour/Crew</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script src="js/pb.js?v=33"></script>
-<script src="js/config.js?v=29"></script>
-<script src="js/pdf.js?v=27"></script>
-<script src="js/emailLog.js?v=1"></script>
+<script type="module" src="js/admin-app.js?v=1"></script>
+
+<!-- Configure PocketBase URL for auth-bootstrap.js -->
+<script>
+  window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
+</script>
+
+<!-- Auth Bootstrap: Centralized auth validation -->
+<script src="js/auth-bootstrap.js?v=2"></script>
+
+<!-- Admin Initialization: Wait for both authReady and DOMContentLoaded -->
+<script>
+  let _IS_SUPERADMIN_CONSOLE = false;
+  let _adminAuthUser = null;
+  let _domReady = false;
+
+  function _tryInitAdmin() {
+    if (!_adminAuthUser || !_domReady) return; // Wait for both signals
+    const user = _adminAuthUser;
+    _adminAuthUser = null; // Prevent double execution
+    _runAdminInit(user);
+  }
+
+  window.addEventListener('authReady', function(e) {
+    _adminAuthUser = e.detail;
+    if (!_adminAuthUser) {
+      console.error('[admin] No user in authReady event');
+      return;
+    }
+    _tryInitAdmin();
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    _domReady = true;
+    _tryInitAdmin();
+  });
+
+  function _runAdminInit(user) {
+    const role = user.role || 'crew';
+    _IS_SUPERADMIN_CONSOLE = (role === 'superadmin');
+
+    const badge = document.getElementById('adminUserBadge');
+    if (badge) badge.textContent = user.email + ' · ' + role;
+
+    const consoleBadge = document.getElementById('consoleBadge');
+    if (consoleBadge) consoleBadge.textContent = role === 'superadmin' ? 'Admin Konsole' : 'Manager Konsole';
+
+    if (_IS_SUPERADMIN_CONSOLE) {
+      document.querySelectorAll('.superadmin-only').forEach(el => el.style.display = '');
+      loadUsers();
+      loadRoleCounts();
+      loadPlans();
+    }
+
+    _loadAdminLogos();
+    renderAdminLogos();
+    loadAdminPlans();
+    switchTab('werkzeuge');
+  }
+</script>
+
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -442,7 +499,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.9.17</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.9.18</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -599,11 +656,18 @@ body {
         <div class="tool-card full-width">
           <div class="tool-card-title">Öffentlicher Link</div>
           <div class="tool-card-sub">Read-only Ansicht für Booker — kein Login nötig</div>
-          <div id="viewLinkBox" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-            <input id="viewLinkUrl" class="tool-input" readonly style="max-width:420px;">
-            <button class="btn btn-ghost btn-sm" onclick="copyViewLink()">Kopieren</button>
+          <div id="viewLinkBox" style="display:none;flex-direction:column;gap:10px;margin-bottom:12px;">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:.6rem;color:#5a6070;min-width:80px;">Kurzlink</span>
+              <input id="viewShortUrl" class="tool-input" readonly style="max-width:260px;font-weight:600;color:#e8c84a;">
+              <button class="btn btn-gold btn-sm" onclick="copyShortLink()">Kopieren</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:.6rem;color:#5a6070;min-width:80px;">Vollständig</span>
+              <input id="viewLinkUrl" class="tool-input" readonly style="max-width:360px;font-size:.6rem;color:#5a6070;">
+            </div>
           </div>
-          <button class="btn btn-gold btn-sm" onclick="generateViewLink()">Link generieren</button>
+          <button class="btn btn-gold btn-sm" onclick="generateViewLink()" id="btnGenerateLink">Link generieren</button>
         </div>
 
       </div><!-- end tool-grid -->
@@ -742,8 +806,9 @@ body {
   <!-- E-MAIL-LOG -->
   <div class="section" id="tabEmaillog">
     <div class="section-title">E-Mail-Log</div>
-    <div class="section-sub">Alle für diesen Plan versendeten E-Mails</div>
-    <div id="emailLogBody" style="margin-top:16px;">
+    <div class="section-sub">Alle für diesen Plan versendeten E-Mails — kombinierbar filterbar</div>
+    <div id="emailLogFilters" style="margin-bottom:8px;"></div>
+    <div id="emailLogBody">
       <p style="font-size:.65rem;color:#5a6070;">Tab anklicken um zu laden.</p>
     </div>
   </div>
@@ -830,25 +895,9 @@ const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e'
 const LOGOS_KEY = 'tourplan_logos';
 let activePlanId = null;
 
-// Stubs und Konstanten für pdf.js / calendar.js
-function openModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'flex'; }
-function closeModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
-function showToast(msg, color) { adminToast(msg, color); }
-function isPending(si) { return si && (si.status === 'proposed' || si.status === 'declined'); }
-function getVal(dateStr, posId) {
-  const ov=dateStr in assignments&&posId in(assignments[dateStr]||{});
-  const v=ov?assignments[dateStr][posId]:undefined;
-  // Non-empty local value wins
-  if(v!==undefined&&v!==''&&v!==null)return v;
-  // PB-Record als Fallback (auch wenn leerer lokaler Override existiert)
-  const si=assignmentStatuses[dateStr]?.[posId];
-  if(si?.crewName)return si.crewName;
-  // defaultCrew
-  if(!ov)return defaultCrew[posId]||'';
-  return '';
-}
-function hasPermission() { return true; }
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Utilities provided by admin-app.js module via window.* aliases
+// getVal, isPending, esc, showToast, openModal, closeModal are now available
+// from the module entry point
 
 // Konstanten für pdf.js
 const OFFEN      = '__offen__';
@@ -873,54 +922,6 @@ let _wrkPlanData = null;
 let _wrkPlanName = '';
 let _wrkCrewMeta = {}; // { name: { email, id } }
 let _wrkAssignmentStatuses = {};
-
-// ── Auth Guard ─────────────────────────────────────────────────────────────────
-let _IS_SUPERADMIN_CONSOLE = false;
-
-(async function() {
-  const token   = localStorage.getItem('pb_token');
-  const userStr = localStorage.getItem('pb_user');
-  if (!token || !userStr) { window.location.href = 'login.html'; return; }
-
-  let user;
-  try {
-    const data = await pbPost('/api/collections/users/auth-refresh');
-    localStorage.setItem('pb_token', data.token);
-    localStorage.setItem('pb_user', JSON.stringify(data.record));
-    user = data.record;
-  } catch(e) {
-    localStorage.removeItem('pb_token');
-    localStorage.removeItem('pb_user');
-    window.location.href = 'login.html';
-    return;
-  }
-
-  const role = user.role || 'crew';
-  if (role !== 'superadmin' && role !== 'manager') {
-    window.location.href = 'index.html';
-    return;
-  }
-
-  _IS_SUPERADMIN_CONSOLE = (role === 'superadmin');
-
-  const badge = document.getElementById('adminUserBadge');
-  if (badge) badge.textContent = user.email + ' · ' + role;
-
-  const consoleBadge = document.getElementById('consoleBadge');
-  if (consoleBadge) consoleBadge.textContent = role === 'superadmin' ? 'Admin Konsole' : 'Manager Konsole';
-
-  if (_IS_SUPERADMIN_CONSOLE) {
-    document.querySelectorAll('.superadmin-only').forEach(el => el.style.display = '');
-    loadUsers();
-    loadRoleCounts();
-    loadPlans();
-  }
-
-  _loadAdminLogos();
-  renderAdminLogos();
-  loadAdminPlans();
-  switchTab('werkzeuge');
-})();
 
 // ── Tab Switching ──────────────────────────────────────────────────────────────
 function switchTab(name) {
@@ -1160,10 +1161,12 @@ function _adminPlanAction(action) {
 function loadPlanIntoTourview() {
   if (!_wrkPlanData) { adminToast('Kein Plan geladen', '#e84a4a'); return; }
 
-  // Plan direkt via sessionStorage übergeben — zuverlässiger als localStorage-Kette
-  sessionStorage.setItem('crewplan_transfer_data', JSON.stringify(_wrkPlanData));
-  sessionStorage.setItem('crewplan_transfer_name', _wrkPlanName || 'Plan');
-  sessionStorage.setItem('crewplan_transfer_pbid', _wrkPbPlanId || '');
+  // NUTZE localStorage STATT sessionStorage — sessionStorage wird gelöscht bei Reloads!
+  localStorage.setItem('_planTransfer_data', JSON.stringify(_wrkPlanData));
+  localStorage.setItem('_planTransfer_name', _wrkPlanName || 'Plan');
+  localStorage.setItem('_planTransfer_pbid', _wrkPbPlanId || '');
+  localStorage.setItem('_planTransfer_flag', '1');  // Signal Flag
+
   window.location.href = 'index.html';
 }
 
@@ -1204,16 +1207,41 @@ async function sendLoveInvite() {
 
 // ── Werkzeuge: Öffentlicher View-Link ─────────────────────────────────────────
 async function generateViewLink() {
+  const btn = document.getElementById('btnGenerateLink');
+  if (btn) btn.textContent = 'Wird generiert…';
   const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
     .map(b => b.toString(16).padStart(2, '0')).join('');
   try {
-    await pbPatch('/api/collections/plans/records/' + _wrkPbPlanId, { view_token: token });
-    const url = window.location.href.replace(/\/[^/]*$/, '/') + 'view.html?token=' + token;
-    const box = document.getElementById('viewLinkBox');
-    document.getElementById('viewLinkUrl').value = url;
-    box.style.display = 'flex';
+    const fullUrl = 'https://crewplanner.nyxlightwork.de/view.html?token=' + token;
+    // Kurzlink via is.gd API (CORS-fähig)
+    let shortUrl = fullUrl;
+    try {
+      const res = await fetch('https://is.gd/create.php?format=simple&url=' + encodeURIComponent(fullUrl));
+      if (res.ok) shortUrl = (await res.text()).trim();
+    } catch(_) { /* Fallback auf vollen Link */ }
+    await pbPatch('/api/collections/plans/records/' + _wrkPbPlanId, {
+      view_token: token,
+      view_shorturl: shortUrl
+    });
+    _showViewLink(fullUrl, shortUrl);
     adminToast('Link generiert ✓', '#4ae8a0');
   } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+  finally { if (btn) btn.textContent = 'Neu generieren'; }
+}
+
+function _showViewLink(fullUrl, shortUrl) {
+  document.getElementById('viewLinkUrl').value = fullUrl;
+  document.getElementById('viewShortUrl').value = shortUrl;
+  const box = document.getElementById('viewLinkBox');
+  box.style.display = 'flex';
+  const btn = document.getElementById('btnGenerateLink');
+  if (btn) btn.textContent = 'Neu generieren';
+}
+
+function copyShortLink() {
+  navigator.clipboard.writeText(document.getElementById('viewShortUrl').value)
+    .then(() => adminToast('Kurzlink kopiert ✓', '#4ae8a0'))
+    .catch(() => adminToast('Kopieren fehlgeschlagen', '#e84a4a'));
 }
 
 function copyViewLink() {
@@ -1304,6 +1332,12 @@ async function loadSelectedPlan() {
 
     renderAdminCrewLink();
     renderAdminNotify();
+
+    // Gespeicherten View-Link anzeigen
+    if (plan.view_token) {
+      const fullUrl = 'https://crewplanner.nyxlightwork.de/view.html?token=' + plan.view_token;
+      _showViewLink(fullUrl, plan.view_shorturl || fullUrl);
+    }
 
     loadingEl.style.display = 'none';
     loadedDiv.style.display = 'block';

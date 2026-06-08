@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tour Plan — Ansicht</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script src="js/config.js?v=29"></script>
-<script src="js/pb.js?v=33"></script>
+<link rel="stylesheet" href="styles.css?v=23">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #1a1a2e; color: #c8cdd5; font-family: 'IBM Plex Mono', monospace; min-height: 100vh; }
@@ -65,74 +64,6 @@ body { background: #1a1a2e; color: #c8cdd5; font-family: 'IBM Plex Mono', monosp
 <div id="statsBar" style="display:none;"></div>
 <div id="toast"></div>
 
-<link rel="stylesheet" href="styles.css?v=23">
-<script src="js/state.js?v=25"></script>
-<script src="js/utils.js?v=23"></script>
-<script src="js/types.js?v=23"></script>
-<script src="js/render.js?v=27"></script>
-<script>
-// Read-only Modus — keine Dropdowns, keine Bearbeitungsfunktionen
-IS_MANAGER     = false;
-IS_SUPERADMIN  = false;
-IS_BOOKER      = true;
-IS_CREW        = false;
-
-// Stubs für Funktionen die render.js ggf. aufruft
-function showDD() {}
-function openCrewDD() {}
-function updateStats() {}
-function autoSave() {}
-function startLocEdit() {}
-
-(async function() {
-  const token = new URLSearchParams(window.location.search).get('token');
-  if (!token) {
-    document.getElementById('viewLoading').style.display = 'none';
-    const err = document.getElementById('viewError');
-    err.textContent = 'Kein Token angegeben.';
-    err.style.display = 'block';
-    return;
-  }
-
-  try {
-    const data = await pbGet('/api/collections/plans/records?filter='
-      + encodeURIComponent('view_token="' + token + '"') + '&perPage=1&sort=-id');
-    const plan = (data.items || [])[0];
-    if (!plan) throw new Error('Plan nicht gefunden oder Link ungültig.');
-
-    const pd = typeof plan.plan_data === 'string'
-      ? JSON.parse(plan.plan_data)
-      : plan.plan_data;
-    if (!pd || !pd.tourDates) throw new Error('Plan enthält keine Daten.');
-
-    // Globals für render.js befüllen
-    crew               = pd.crew        || [];
-    POSITIONS          = pd.positions   || [];
-    TOUR_DATES.splice(0, TOUR_DATES.length, ...(pd.tourDates || []));
-    assignments        = pd.assignments || {};
-    defaultCrew        = pd.defaultCrew || {};
-    assignmentStatuses = {};
-    try {
-      const aData = await pbListAll('assignments',
-        `plan_id="${plan.id}" && status!="assigned"`, '-id');
-      (aData?.items || []).forEach(row => {
-        if (!assignmentStatuses[row.date]) assignmentStatuses[row.date] = {};
-        assignmentStatuses[row.date][row.pos_id] = { status: row.status, crewName: row.crew_name };
-      });
-    } catch(e) { console.warn('[view] assignmentStatuses:', e.message); }
-
-    document.getElementById('viewPlanName').textContent = plan.name || 'Tour Plan';
-    document.title = (plan.name || 'Tour Plan') + ' — Ansicht';
-    document.getElementById('viewLoading').style.display = 'none';
-    renderTable();
-  } catch(e) {
-    console.error('[view] Ladefehler:', e);
-    document.getElementById('viewLoading').style.display = 'none';
-    const err = document.getElementById('viewError');
-    err.textContent = 'Fehler: ' + e.message;
-    err.style.display = 'block';
-  }
-})();
-</script>
+<script type="module" src="js/view-app.js?v=1"></script>
 </body>
 </html>

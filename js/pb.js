@@ -1,3 +1,5 @@
+import { POCKETBASE_URL } from './config.js';
+
 // ── Pocketbase REST Client ──────────────────────────────────────────────────────
 // Thin fetch-wrapper: setzt Authorization-Header automatisch aus localStorage.
 // Alle API-Routen: https://pocketbase.io/docs/api-records/
@@ -18,13 +20,21 @@ async function _pbFetch(method, path, body) {
   return json;
 }
 
-function pbGet(path)          { return _pbFetch('GET',    path);       }
-function pbPost(path, body)   { return _pbFetch('POST',   path, body); }
-function pbPatch(path, body)  { return _pbFetch('PATCH',  path, body); }
-function pbDelete(path)       { return _pbFetch('DELETE', path);       }
+export function pbGet(path)          { return _pbFetch('GET',    path);       }
+export function pbPost(path, body)   { return _pbFetch('POST',   path, body); }
+export function pbPatch(path, body)  { return _pbFetch('PATCH',  path, body); }
+export function pbDelete(path)       { return _pbFetch('DELETE', path);       }
+
+// ── Escapes a value for safe use inside PocketBase filter strings ────────────
+export function pbEscapeFilter(val) {
+  return String(val == null ? '' : val)
+    .replace(/\\\\/g, '\\\\\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/'/g, "\\'");
+}
 
 // ── Liste mit Filter ───────────────────────────────────────────────────────────
-function pbList(collection, filter, sort, perPage) {
+export function pbList(collection, filter, sort, perPage) {
   const params = new URLSearchParams({
     filter: filter || '',
     sort: sort || '-id',
@@ -34,7 +44,7 @@ function pbList(collection, filter, sort, perPage) {
 }
 
 // ── Alle Seiten einer gefilterten Liste laden ──────────────────────────────────
-async function pbListAll(collection, filter, sort) {
+export async function pbListAll(collection, filter, sort) {
   const perPage = 200;
   let page = 1, allItems = [];
   while (true) {
@@ -48,13 +58,13 @@ async function pbListAll(collection, filter, sort) {
 }
 
 // ── Ersten Treffer einer Filter-Abfrage holen ──────────────────────────────────
-async function pbFirst(collection, filter) {
+export async function pbFirst(collection, filter) {
   const data = await pbList(collection, filter, '-id', 1);
   return data?.items?.[0] || null;
 }
 
 // ── Upsert: existierenden Record aktualisieren oder neuen anlegen ──────────────
-async function pbUpsert(collection, filter, createData, updateData) {
+export async function pbUpsert(collection, filter, createData, updateData) {
   let existing = null;
   try {
     existing = await pbFirst(collection, filter);

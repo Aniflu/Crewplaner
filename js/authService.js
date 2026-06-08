@@ -1,7 +1,15 @@
+import { SUPABASE_ENABLED } from './config.js';
+import { setAuthState, IS_MANAGER, IS_CREW, CURRENT_USER_EMAIL } from './state.js';
+import { pbPost, pbGet, pbPatch } from './pb.js';
+import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses } from './dataService.js';
+import { renderTable } from './render.js';
+import { showToast } from './utils.js';
+import { getActivePlanId } from './plans.js';
+
 // ── Auth Service (Pocketbase) ──────────────────────────────────────────────────
 window.__authGuarded = SUPABASE_ENABLED;
 
-async function _authCheckAndStart() {
+export async function _authCheckAndStart() {
   try {
     const token   = localStorage.getItem('pb_token');
     const userStr = localStorage.getItem('pb_user');
@@ -13,12 +21,18 @@ async function _authCheckAndStart() {
     }
 
     // Token beim Server erneuern (validiert + gibt frisches Token)
+    // EXCEPT wenn ?noreauth=1 (plan transfer — token ist bereits gültig)
     let user;
+    const skipRefresh = new URLSearchParams(window.location.search).has('noreauth');
     try {
-      const data = await pbPost('/api/collections/users/auth-refresh');
-      localStorage.setItem('pb_token', data.token);
-      localStorage.setItem('pb_user', JSON.stringify(data.record));
-      user = data.record;
+      if (skipRefresh) {
+        user = JSON.parse(userStr);
+      } else {
+        const data = await pbPost('/api/collections/users/auth-refresh');
+        localStorage.setItem('pb_token', data.token);
+        localStorage.setItem('pb_user', JSON.stringify(data.record));
+        user = data.record;
+      }
     } catch (e) {
       // Token abgelaufen oder ungültig
       localStorage.removeItem('pb_token');
@@ -28,40 +42,41 @@ async function _authCheckAndStart() {
       return;
     }
 
-    CURRENT_USER_ID    = user.id;
-    CURRENT_USER_EMAIL = user.email;
-    USER_ROLE          = user.role || 'crew';
-    IS_SUPERADMIN      = USER_ROLE === 'superadmin';
-    IS_MANAGER         = USER_ROLE === 'manager' || IS_SUPERADMIN;
-    IS_BOOKER          = USER_ROLE === 'booker';
-    IS_CREW            = USER_ROLE === 'crew';
-    IS_ADMIN           = IS_MANAGER; // backwards compat
+    setAuthState(user.id, user.email, user.role || 'crew');
     _showUserBadge(user);
-    document.body.style.visibility = 'visible';
+    // Page visibility handled by auth-bootstrap.js
 
-    // Plan-Transfer von admin.html via sessionStorage anwenden (vor startApp)
-    const _transferData = sessionStorage.getItem('crewplan_transfer_data');
+    // Plan-Transfer von admin.html via localStorage anwenden (vor startApp)
+    const _transferData = localStorage.getItem('_planTransfer_data');
     if (_transferData && IS_MANAGER) {
       try {
         const _td = JSON.parse(_transferData);
-        const _tn = sessionStorage.getItem('crewplan_transfer_name') || 'Plan';
-        const _tp = sessionStorage.getItem('crewplan_transfer_pbid') || '';
-        sessionStorage.removeItem('crewplan_transfer_data');
-        sessionStorage.removeItem('crewplan_transfer_name');
-        sessionStorage.removeItem('crewplan_transfer_pbid');
-        // In localStorage speichern damit startApp() + _savePlanToLS() funktionieren
+        const _tn = localStorage.getItem('_planTransfer_name') || 'Plan';
+        const _tp = localStorage.getItem('_planTransfer_pbid') || '';
+        console.log('[auth] Plan-Transfer: name=' + _tn + ' pbid=' + _tp + ' tourDates=' + (_td.tourDates?.length || 0));
+        localStorage.removeItem('_planTransfer_data');
+        localStorage.removeItem('_planTransfer_name');
+        localStorage.removeItem('_planTransfer_pbid');
+        localStorage.removeItem('_planTransfer_flag');
         const _tid = 'p' + Date.now().toString(36);
         localStorage.setItem('tourplan_plan_' + _tid, _transferData);
-        if (_tp) localStorage.setItem('tourplan_pb_' + _tid, _tp);
+        if (_tp) { localStorage.setItem('tourplan_pb_' + _tid, _tp); localStorage.setItem('tourplan_active_pb_id', _tp); }
         const _today = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'2-digit'});
         localStorage.setItem('tourplan_plans', JSON.stringify([{id:_tid, name:_tn, created:_today, modified:_today}]));
         localStorage.setItem('tourplan_active_plan', _tid);
-      } catch(e) { console.warn('Plan-Transfer Fehler:', e); }
+        console.log('[auth] Plan in localStorage gesetzt: tourplan_plan_' + _tid);
+      } catch(e) { console.warn('[auth] Plan-Transfer Fehler:', e); }
     }
 
-    startApp();
+    // Call startApp — defined in init.js which is imported after this module
+    if (typeof window.startApp === 'function') {
+      window.startApp();
+    } else {
+      console.warn('[auth] startApp not yet defined');
+    }
 
     // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
+    const activePlanId = getActivePlanId();
     const pbPlanCached = activePlanId && !!localStorage.getItem('tourplan_pb_' + activePlanId);
     const loadAll = IS_CREW
       ? loadPlanForCrew().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]))
@@ -81,8 +96,7 @@ async function _authCheckAndStart() {
       });
   } catch (e) {
     console.error('Auth-Fehler:', e);
-    document.body.style.visibility = 'visible';
-    startApp();
+    window.location.href = 'login.html';
   }
 }
 
@@ -98,19 +112,24 @@ function _showUserBadge(user) {
   document.querySelectorAll('.crew-only').forEach(el => el.style.display = IS_CREW ? '' : 'none');
 }
 
-async function logout() {
+export async function logout() {
   localStorage.removeItem('pb_token');
   localStorage.removeItem('pb_user');
   window.location.href = 'login.html';
 }
 
-async function _handleEmailAction() {
+export async function _handleEmailAction() {
   const params = new URLSearchParams(window.location.search);
   const action = params.get('action');
   const aid    = params.get('aid');
   if (!action || !aid || !SUPABASE_ENABLED) return;
   history.replaceState({}, '', window.location.pathname);
   try {
+    const record = await pbGet('/api/collections/assignments/records/' + aid);
+    if (!record || (record.crew_email || '').toLowerCase() !== (CURRENT_USER_EMAIL || '').toLowerCase()) {
+      showToast('Zugriff verweigert', '#e84a4a');
+      return;
+    }
     const payload = { responded_at: new Date().toISOString() };
     if (action === 'confirm') {
       payload.status = 'confirmed';
@@ -128,10 +147,7 @@ async function _handleEmailAction() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  if (!SUPABASE_ENABLED) return;
-  // Nicht auf login.html ausführen!
-  if (window.location.pathname.includes('login')) return;
-  document.body.style.visibility = 'hidden';
-  _authCheckAndStart();
-});
+// _checkPendingAction is defined in init.js — placeholder for Phase 2
+export function _checkPendingAction() {
+  // Will be overridden/called from init.js after it's migrated
+}

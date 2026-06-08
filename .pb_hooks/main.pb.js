@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.3
-console.log('[hook] main.pb.js v4.3 geladen');
+// Version: 4.4
+console.log('[hook] main.pb.js v4.4 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -312,3 +312,28 @@ onRecordAfterCreateSuccess(function(e) {
   }
 }, 'users');
 
+
+// ── 4. Short-URL für View-Link (plans view_token Update) ─────────────────────
+onRecordAfterUpdateSuccess(function(e) {
+  e.next();
+  var r = e.record;
+  var token = r.get('view_token');
+  if (!token) return;
+  var existing = r.get('view_shorturl') || '';
+  // Nur generieren wenn noch kein Short-URL gesetzt oder Token sich geändert hat
+  if (existing && existing.indexOf('is.gd') !== -1) return;
+  try {
+    var fullUrl = 'https://crewplanner.nyxlightwork.de/view.html?token=' + token;
+    var res = $http.send({
+      url: 'https://is.gd/create.php?format=simple&url=' + encodeURIComponent(fullUrl),
+      method: 'GET'
+    });
+    if (res.statusCode === 200 && res.raw && res.raw.indexOf('is.gd') !== -1) {
+      r.set('view_shorturl', res.raw.trim());
+      $app.save(r);
+      console.log('[hook] Short-URL generiert: ' + res.raw.trim());
+    }
+  } catch(err) {
+    console.error('[hook] Short-URL Fehler:', err.message);
+  }
+}, 'plans');

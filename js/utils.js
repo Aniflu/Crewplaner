@@ -1,18 +1,23 @@
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
-function fmtD(s){const d=parseD(s);return `${DE_DAYS[d.getDay()]} ${d.getDate()}. ${DE_MON[d.getMonth()]}`;}
-function fmtDParts(s){const d=parseD(s);return {wd:DE_DAYS[d.getDay()],dt:`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`};}
-function sortInsert(row){const i=TOUR_DATES.findIndex(r=>r.date>row.date);if(i===-1)TOUR_DATES.push(row);else TOUR_DATES.splice(i,0,row);}
-function getVal(dateStr,posId){const ov=dateStr in assignments&&posId in(assignments[dateStr]||{});if(!ov)return defaultCrew[posId]||'';const v=assignments[dateStr][posId];if(v===''||v===null||v===undefined)return '';return v;}
-function dw(row){
+import { assignments, defaultCrew, TOUR_DATES, DE_DAYS, DE_MON } from './state.js';
+import { TYPE_OPTS } from './types.js';
+
+export { DE_DAYS, DE_MON };
+
+export function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+export function fmtD(s){const d=parseD(s);return `${DE_DAYS[d.getDay()]} ${d.getDate()}. ${DE_MON[d.getMonth()]}`;}
+export function fmtDParts(s){const d=parseD(s);return {wd:DE_DAYS[d.getDay()],dt:`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`};}
+export function sortInsert(row){const i=TOUR_DATES.findIndex(r=>r.date>row.date);if(i===-1)TOUR_DATES.push(row);else TOUR_DATES.splice(i,0,row);}
+export function getVal(dateStr,posId){const ov=dateStr in assignments&&posId in(assignments[dateStr]||{});if(!ov)return defaultCrew[posId]||'';const v=assignments[dateStr][posId];if(v===''||v===null||v===undefined)return '';return v;}
+export function dw(row){
   const opt=TYPE_OPTS.find(t=>t.label===row.typeLabel);
   if(opt&&opt.weight!==undefined)return opt.weight;
   return (row.type==='reise'||row.type==='off')?0.5:1;
 }
-function fmt(n){return n%1===0?n:n.toFixed(1);}
+export function fmt(n){return n%1===0?n:n.toFixed(1);}
 
 // Erzeugt aus einer hellen Akzentfarbe einen dunklen Zeilen-Hintergrund (gleicher Farbton, ~9% Helligkeit)
-function colorToDarkBg(hex){
+export function colorToDarkBg(hex){
   if(!hex||hex.length<7)return '';
   const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
   const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;
@@ -33,6 +38,6 @@ function colorToDarkBg(hex){
   const hex2=v=>Math.round((v+m)*255).toString(16).padStart(2,'0');
   return `#${hex2(r2)}${hex2(g2)}${hex2(b2)}`;
 }
-function isPending(si){return!!(si&&(si.status==='proposed'||si.status==='declined'));}
-function showToast(msg,color='#4f81bd'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.opacity='0';},2200);}
-function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+export function isPending(si){return!!(si&&(si.status==='proposed'||si.status==='declined'));}
+export function showToast(msg,color='#4f81bd'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.opacity='0';},2200);}
+export function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}

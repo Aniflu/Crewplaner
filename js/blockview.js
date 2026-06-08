@@ -1,5 +1,8 @@
 // ── Block View ─────────────────────────────────────────────────────────────────
 // Gruppiert TOUR_DATES nach blockId und rendert Karten
+import { TOUR_DATES, POSITIONS, crew, assignments, assignmentStatuses,
+         IS_MANAGER, OFFEN, OFFDAY, REISE_TAG, CREW_COLORS } from './state.js';
+import { getVal, isPending, esc, parseD, DE_DAYS } from './utils.js';
 
 function _blockGroups(){
   const groups=[];const map=new Map();
@@ -23,7 +26,7 @@ function _fmtDateShort(s){const d=parseD(s);return `${String(d.getDate()).padSta
 
 function _dayDiff(a,b){const da=parseD(a),db=parseD(b);return Math.round((db-da)/86400000)+1;}
 
-function renderBlockView(){
+export function renderBlockView(){
   const host=document.getElementById('blocksArea');if(!host)return;
   const groups=_blockGroups();
   if(!groups.length){
