@@ -81,8 +81,8 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
     }
 
     // ─ Plan-Transfer aktiv? Wenn ja, stay on index.html um Plan zu laden (skip role redirect)
-    // NUTZE localStorage statt sessionStorage — zuverlässiger!
-    const hasPlanTransfer = !!localStorage.getItem('_planTransfer_flag');
+    // Prüfe SOWOHL Flag als auch tatsächliche Daten (robuster)
+    const hasPlanTransfer = !!localStorage.getItem('_planTransfer_flag') || !!localStorage.getItem('_planTransfer_data');
 
     // ─ Falsche Seite für diese Rolle → redirect (aber NICHT wenn Plan-Transfer aktiv)
     if (currentPage === 'admin.html' && !isAdmin) {
