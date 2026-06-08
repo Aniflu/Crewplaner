@@ -8,6 +8,8 @@
  * MUST: window.POCKETBASE_URL muss VOR diesem Script in der Seite gesetzt sein
  */
 
+alert('auth-bootstrap.js GELADEN');
+
 // ─ Persist logs to localStorage (for debugging redirects)
 window._authBootstrapLogs = [];
 function _logAuth(msg) {
