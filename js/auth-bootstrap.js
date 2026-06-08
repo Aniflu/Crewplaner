@@ -93,7 +93,13 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
     }
     if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer) {
       // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer)
-      window.location.replace('admin.html');
+      // DELAY: Gib localStorage Zeit, sich zu speichern (Plan-Transfer könnte gerade passiert sein)
+      setTimeout(() => {
+        const finalCheck = !!localStorage.getItem('_planTransfer_flag') || !!localStorage.getItem('_planTransfer_data');
+        if (!finalCheck) {
+          window.location.replace('admin.html');
+        }
+      }, 50);
       return;
     }
 
