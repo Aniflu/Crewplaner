@@ -20,17 +20,17 @@ function _logAuth(msg) {
 document.documentElement.style.visibility = 'hidden';
 _logAuth('Page visibility hidden, starting auth bootstrap');
 
-// ANTI-REDIRECT BLOCKER: Wenn Plan-Transfer aktiv, blockiere ALLE Redirects zu admin.html
-if (localStorage.getItem('_planTransfer_flag')) {
-  const origReplace = window.location.replace;
-  window.location.replace = function(url) {
-    if (typeof url === 'string' && url.includes('admin.html')) {
-      console.log('[BLOCKER] Redirect zu admin.html blockiert! Plan-Transfer aktiv');
-      return;
-    }
-    origReplace.call(window.location, url);
-  };
+// EMERGENCY: Detect redirect loops
+const redirectKey = '_redirectCounter';
+const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0');
+if (redirectCount > 2) {
+  document.documentElement.style.visibility = '';
+  document.body.innerHTML = '<h1 style="color:red;padding:20px;">Redirect Loop Detected</h1><p>Storage wurde gelöscht. Bitte Seite neu laden.</p>';
+  sessionStorage.clear();
+  localStorage.clear();
+  throw new Error('Redirect loop breaker activated');
 }
+sessionStorage.setItem(redirectKey, redirectCount + 1);
 
 (async function authBootstrapFlow() {
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
