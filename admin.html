@@ -1349,7 +1349,6 @@ async function loadSelectedPlan() {
 }
 
 async function loadAndTransferPlan() {
-  alert('loadAndTransferPlan() AUFGERUFEN!');
   // Lade ersten Plan aus PocketBase und transferiere zu index.html
   const _logs = [];
   const _log = (msg) => { _logs.push('[' + new Date().toLocaleTimeString() + '] ' + msg); localStorage.setItem('_planTransferLogs', JSON.stringify(_logs)); };
@@ -1386,8 +1385,6 @@ async function loadAndTransferPlan() {
     if (!plan.plan_data) { _log('NO PLAN_DATA'); adminToast('Plan hat keine Daten', '#e84a4a'); return; }
     _wrkPlanData = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
     _log('_wrkPlanData SET, tourDates=' + (_wrkPlanData.tourDates?.length || 0));
-
-    alert('Vor sessionStorage.setItem! _wrkPlanData vorhanden: ' + (!!_wrkPlanData) + ', _wrkPlanName: ' + _wrkPlanName);
 
     _log('Calling loadPlanIntoTourview()');
     loadPlanIntoTourview();

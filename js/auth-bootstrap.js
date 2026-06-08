@@ -8,8 +8,6 @@
  * MUST: window.POCKETBASE_URL muss VOR diesem Script in der Seite gesetzt sein
  */
 
-alert('auth-bootstrap.js GELADEN');
-
 // ─ Persist logs to localStorage (for debugging redirects)
 window._authBootstrapLogs = [];
 function _logAuth(msg) {
@@ -25,10 +23,6 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
 // PLAN-TRANSFER GUARD: Wenn Plan aktiv, blockiere admin.html Redirects KOMPLETT
 const _planTransferActive = !!sessionStorage.getItem('crewplan_transfer_data');
 const _isIndexPage = !window.location.pathname.includes('admin.html') && !window.location.pathname.includes('login.html');
-
-if (_planTransferActive) {
-  alert('GUARD AKTIV! Plan-Transfer erkannt.\n_isIndexPage: ' + _isIndexPage);
-}
 
 if (_planTransferActive && _isIndexPage) {
   // Block location.replace

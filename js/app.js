@@ -90,7 +90,8 @@ window.openPDFFilter = openPDFFilter;
 
 // ── Security: Redirect to login if not authenticated ──────────────────────
 if (!localStorage.getItem('pb_token')) {
-  if (!window.location.pathname.includes('login') && !window.location.pathname.includes('view')) {
+  const hasNoreauth = new URLSearchParams(window.location.search).has('noreauth');
+  if (!window.location.pathname.includes('login') && !window.location.pathname.includes('view') && !hasNoreauth) {
     window.location.href = 'login.html';
   }
 }
