@@ -20,34 +20,6 @@ function _logAuth(msg) {
 document.documentElement.style.visibility = 'hidden';
 _logAuth('Page visibility hidden, starting auth bootstrap');
 
-// PLAN-TRANSFER GUARD: Wenn Plan aktiv, blockiere admin.html Redirects KOMPLETT
-const _planTransferActive = !!sessionStorage.getItem('crewplan_transfer_data');
-const _isIndexPage = !window.location.pathname.includes('admin.html') && !window.location.pathname.includes('login.html');
-
-if (_planTransferActive && _isIndexPage) {
-  // Block location.replace
-  const originalReplace = window.location.replace.bind(window.location);
-  window.location.replace = function(url) {
-    if (url === 'admin.html' || url.startsWith('admin.html')) {
-      console.log('[GUARD] BLOCKED location.replace to admin.html');
-      return;
-    }
-    originalReplace(url);
-  };
-
-  // Block location.href assignment
-  Object.defineProperty(window.location, 'href', {
-    set: function(url) {
-      if (url.includes('admin.html')) {
-        console.log('[GUARD] BLOCKED location.href to admin.html');
-        return;
-      }
-      window.location.replace(url);
-    },
-    get: function() { return window.location.toString(); }
-  });
-}
-
 (async function authBootstrapFlow() {
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
   const EXEMPT_PAGES = ['login.html', 'view.html'];
@@ -95,8 +67,7 @@ if (_planTransferActive && _isIndexPage) {
       localStorage.setItem('pb_user', JSON.stringify(data.record));
     }
 
-    // ⚠️ FIX: skipRefresh-Pfad hat data=Record direkt, normaler Pfad hat data={token, record}
-    const role = (skipRefresh ? data.role : data.record?.role) || 'crew';
+    const role = data.record?.role || 'crew';
     const isAdmin = role === 'superadmin' || role === 'manager';
 
     // ─ login.html mit gültigem Token → auto-redirect zur richtigen Seite
@@ -117,19 +88,19 @@ if (_planTransferActive && _isIndexPage) {
       window.location.replace('index.html');
       return;
     }
-    if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer && !skipRefresh) {
-      // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer oder ?noreauth=1)
+    if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer) {
+      // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer)
       window.location.replace('admin.html');
       return;
     }
 
     // ─ Autorisiert für diese Seite → Seite zeigen + User bereitstellen
-    window.BOOTSTRAP_CURRENT_USER = skipRefresh ? data : data.record;
+    window.BOOTSTRAP_CURRENT_USER = data.record;
     document.documentElement.style.visibility = '';
 
     // Dispatch event für Seiten die auf authReady warten (z.B. admin.html)
     window.dispatchEvent(new CustomEvent('authReady', {
-      detail: skipRefresh ? data : data.record,
+      detail: data.record,
       bubbles: true
     }));
 
