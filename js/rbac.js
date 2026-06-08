@@ -1,7 +1,7 @@
 // ── Role-Based Access Control — v1 ────────────────────────────────────────────
-import { IS_SUPERADMIN, IS_MANAGER, IS_BOOKER, IS_CREW } from './state.js';
+// Lädt NACH state.js (braucht IS_SUPERADMIN, IS_MANAGER, IS_BOOKER, IS_CREW)
 
-export function hasPermission(action) {
+function hasPermission(action) {
   if (IS_SUPERADMIN) return true;
   switch (action) {
     case 'assignCrew':

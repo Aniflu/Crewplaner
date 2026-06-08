@@ -1,14 +1,14 @@
 // ── Constants & State ──────────────────────────────────────────────────────────
-export const OFFEN     = '__offen__';
-export const OFFDAY       = '__offday__';
-export const REISE_TAG    = '__reise_tag__';
-export const AUSSCHREIBEN = '__ausschreiben__';
-export const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e','#2e75b6','#548235'];
-export const DE_DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-export const DE_MON  = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-export const DE_MON_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const OFFEN     = '__offen__';
+const OFFDAY       = '__offday__';
+const REISE_TAG    = '__reise_tag__';
+const AUSSCHREIBEN = '__ausschreiben__';
+const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e','#2e75b6','#548235'];
+const DE_DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+const DE_MON  = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const DE_MON_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
-export let POSITIONS = [
+let POSITIONS = [
   {id:'gl',  label:'GL',        short:'GL'},
   {id:'sys', label:'System',    short:'System'},
   {id:'lt1', label:'Licht 1',   short:'Licht 1'},
@@ -16,26 +16,26 @@ export let POSITIONS = [
   {id:'lt3', label:'Licht 3',   short:'Licht 3'},
   {id:'fm',  label:'Follow Me', short:'Follow Me'},
 ];
-export let crew = ['Max Mustermann','Anna Bauer','Tom Richter','Sara Klein','Felix Wagner','Lena Braun'];
-export let defaultCrew = {};
-export let assignments  = {};
-export let logos = {booking:'', band:'', planer:''};
+let crew = ['Max Mustermann','Anna Bauer','Tom Richter','Sara Klein','Felix Wagner','Lena Braun'];
+let defaultCrew = {};
+let assignments  = {};
+let logos = {booking:'', band:'', planer:''};
 
 // Supabase-Laufzeit-Caches (werden nach Login befüllt)
-export let crewMeta = {};            // { "Max Mustermann": { email, userId } }
-export let assignmentStatuses = {};  // { "2026-07-01": { "gl": { status, proposedBy, crewName } } }
+let crewMeta = {};            // { "Max Mustermann": { email, userId } }
+let assignmentStatuses = {};  // { "2026-07-01": { "gl": { status, proposedBy, crewName } } }
 
 // ── Role-Based Access Control ──────────────────────────────────────────
-export let USER_ROLE     = 'crew';   // superadmin | manager | booker | crew
-export let IS_SUPERADMIN = false;
-export let IS_MANAGER    = false;
-export let IS_BOOKER     = false;
-export let IS_CREW       = false;
-export let IS_ADMIN      = false;    // backwards compat: true wenn IS_MANAGER
-export let CURRENT_USER_ID = null;
-export let CURRENT_USER_EMAIL = null;
+let USER_ROLE     = 'crew';   // superadmin | manager | booker | crew
+let IS_SUPERADMIN = false;
+let IS_MANAGER    = false;
+let IS_BOOKER     = false;
+let IS_CREW       = false;
+let IS_ADMIN      = false;    // backwards compat: true wenn IS_MANAGER
+let CURRENT_USER_ID = null;
+let CURRENT_USER_EMAIL = null;
 
-export let TOUR_DATES = [
+const TOUR_DATES = [
   {date:'2026-06-23',type:'prep', typeLabel:'Option Vorbereitung', loc:'CAB'},
   {date:'2026-06-24',type:'prep', typeLabel:'Vorbereitung',        loc:'CAB'},
   {date:'2026-06-25',type:'prep', typeLabel:'Aufbau Tag 1',        loc:'BBM'},
@@ -94,84 +94,3 @@ export let TOUR_DATES = [
   {date:'2026-09-27',type:'show', typeLabel:'Show',                loc:'Zürich – Hallenstadion (CH)'},
   {date:'2026-09-29',type:'reise',typeLabel:'Reise',               loc:'Nightliner'},
 ];
-
-// ── Setters ────────────────────────────────────────────────────────────────────
-export function setAssignment(date, posId, value) {
-  if (!assignments[date]) assignments[date] = {};
-  assignments[date][posId] = value;
-}
-
-export function clearAssignmentSlot(date, posId) {
-  if (assignments[date]) delete assignments[date][posId];
-}
-
-export function loadAssignmentsData(data) {
-  assignments = data || {};
-}
-
-export function setStatus(date, posId, statusObj) {
-  if (!assignmentStatuses[date]) assignmentStatuses[date] = {};
-  assignmentStatuses[date][posId] = statusObj;
-}
-
-export function clearStatus(date, posId) {
-  if (assignmentStatuses[date]) delete assignmentStatuses[date][posId];
-}
-
-export function loadStatusesData(data) {
-  assignmentStatuses = data || {};
-}
-
-export function setTourDates(dates) {
-  TOUR_DATES = [...dates];
-}
-
-export function pushTourDate(row) {
-  TOUR_DATES.push(row);
-}
-
-export function spliceTourDate(index, count) {
-  TOUR_DATES.splice(index, count);
-}
-
-export function setPositions(positions) {
-  POSITIONS = [...positions];
-}
-
-export function setCrew(crewArray) {
-  crew = [...crewArray];
-}
-
-export function setDefaultCrew(dc) {
-  defaultCrew = { ...dc };
-}
-
-export function setCrewMeta(meta) {
-  crewMeta = { ...meta };
-}
-
-export function setLogos(l) {
-  logos = { ...l };
-}
-
-export function setAuthState(userId, email, role) {
-  CURRENT_USER_ID    = userId;
-  CURRENT_USER_EMAIL = email;
-  USER_ROLE          = role;
-  IS_SUPERADMIN      = role === 'superadmin';
-  IS_MANAGER         = role === 'manager' || IS_SUPERADMIN;
-  IS_BOOKER          = role === 'booker';
-  IS_CREW            = role === 'crew';
-  IS_ADMIN           = IS_MANAGER;
-}
-
-export function clearAuthState() {
-  CURRENT_USER_ID = null;
-  CURRENT_USER_EMAIL = null;
-  USER_ROLE = 'crew';
-  IS_SUPERADMIN = false;
-  IS_MANAGER = false;
-  IS_BOOKER = false;
-  IS_CREW = false;
-  IS_ADMIN = false;
-}

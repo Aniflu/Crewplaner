@@ -7,17 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
-**v0.9.22** — fix: Plan-Transfer GUARD blockiert admin.html Redirects
-**v0.9.21** — fix: Plan-Transfer Button lädt ersten Plan automatisch
-**v0.9.20** — fix: Plan-Transfer Bug — sessionStorage und modals.js Null-Check
-**v0.9.19** — fix: Plan-Transfer — fix: auth-bootstrap Cache — fix: Plan-Transfer-Redirect — debug: Auth-Redirect Debugging — fix: window.* Exports für onclick-Handler — fix: ES6-Imports in app.js — fix: Vollständige window-Exports in admin-app.js für HTML-inline-scripts
-**v0.9.12** — fix: admin-app.js importiert generateICS korrekt aus calendar.js
-**v0.9.10** — fix: Entferne falsche Module-Imports
-**v0.9.9** — fix: Module-Timing-Bug — Warte auf authReady + DOMContentLoaded
-**v0.9.8** — fix: Zentrales Auth-Wall Muster — Einheitliche Authentifizierung auf allen Seiten
-**v0.9.7** — Bugfix: DE_DAYS/DE_MON Export, Module-Load-Error
-**v0.9.3** — Bugfix: ES6-Module-Migration, Auth-Check, Import Fixes
-**v0.9.2** — Phase 3 Release: Centralized State Reform & Refactored Architecture
+**v0.9.9.17** — [Changelog](CHANGELOG.md)
 
 ## Tech-Stack
 

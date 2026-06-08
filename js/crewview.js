@@ -1,10 +1,7 @@
 // ── Crew View ──────────────────────────────────────────────────────────────────
 // Pro Crew-Mitglied: Zeile mit Kennzahlen + Timeline über alle Tour-Tage
-import { TOUR_DATES, POSITIONS, crew, assignments, assignmentStatuses,
-         IS_MANAGER, CURRENT_USER_EMAIL, CREW_COLORS, DE_MON } from './state.js';
-import { getVal, isPending, esc, fmtD, fmt, dw, parseD, DE_DAYS } from './utils.js';
 
-export function renderCrewView(){
+function renderCrewView(){
   const host=document.getElementById('crewArea');if(!host)return;
   if(!TOUR_DATES.length){
     host.innerHTML=`<div class="crew-empty"><strong>Keine Daten</strong>Noch keine Tour-Tage angelegt.</div>`;
@@ -102,7 +99,7 @@ export function renderCrewView(){
         <div class="crew-row-name">
           <div class="crew-row-dot" style="background:${col}"></div>
           <div class="crew-row-text">
-            <strong>${esc(name)}</strong>
+            <strong>${name.replace(/</g,'&lt;')}</strong>
             <span class="crew-pos-list">${posList}</span>
           </div>
         </div>

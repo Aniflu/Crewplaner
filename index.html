@@ -6,22 +6,6 @@
 <title>Tour Crew Plan 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=23">
-
-<style>
-#crewUpdateModalBody::-webkit-scrollbar {
-  width: 12px;
-}
-#crewUpdateModalBody::-webkit-scrollbar-track {
-  background: transparent;
-}
-#crewUpdateModalBody::-webkit-scrollbar-thumb {
-  background: #e8c84a;
-  border-radius: 6px;
-}
-#crewUpdateModalBody::-webkit-scrollbar-thumb:hover {
-  background: #f0d860;
-}
-</style>
 </head>
 <body>
 
@@ -38,7 +22,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.9.22</span>
+            <span class="tour-tag">Personalplan · v0.9.9.17</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -67,11 +51,11 @@
         <button class="primary manager-only" onclick="saveJSON()"><span class="sb-gl">▶</span>Speichern</button>
         <button class="manager-only" onclick="loadJSON()"><span class="sb-gl">▶</span>Laden</button>
         <button class="manager-only" onclick="openCrewModal()"><span class="sb-gl">👥</span>Crew &amp; Positionen</button>
-        <button id="btnUpdateQueue" class="manager-only" onclick="_openUpdateQueueModal()" style="display:none;"><span class="sb-gl">↻</span>Updates <span id="updateQueueBadge" style="background:#e84a4a;color:#fff;border-radius:50%;padding:1px 6px;font-size:.7rem;margin-left:4px;">0</span></button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
         <button id="btnKonsole" onclick="window.location.href='admin.html'" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
         <button class="crew-only primary" onclick="bulkConfirmAllMySlots()" style="display:none;"><span class="sb-gl">✓</span>Termine bestätigen</button>
-        <button class="crew-only" id="btnSendCancellations" onclick="sendCancellations()" style="display:none;background:rgba(232,74,74,.15);border-color:rgba(232,74,74,.4);color:#e84a4a;"><span class="sb-gl">⚠</span>Änderungen mitteilen</button>
+        <button class="crew-only" onclick="bulkDeclineAllMySlots()" style="display:none;"><span class="sb-gl">✗</span>Termine absagen</button>
+        <button class="crew-only" onclick="window.open('https://aniflu.github.io/Crewplaner/docs/guide-crew.html','_blank')" style="display:none;"><span class="sb-gl">?</span>Anleitung</button>
       </div>
     </div>
     <div class="sidebar-section crew-only" style="display:none;">
@@ -357,30 +341,31 @@
 </div>
 <div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
 
-<!-- Configure PocketBase URL for auth-bootstrap.js -->
-<script>
-  window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
-</script>
-
-<!-- Auth Bootstrap: Centralized auth validation (before app.js loads) -->
-<script src="js/auth-bootstrap.js?v=4"></script>
-
-<!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=1"></script>
-
-<!-- UPDATE QUEUE MODAL -->
-<div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
-  <div style="background:#1a1a2e;border:1px solid #e8c84a;padding:24px;max-width:520px;width:90%;max-height:80vh;overflow:hidden;font-family:'IBM Plex Mono',monospace;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <span style="color:#e8c84a;letter-spacing:2px;font-size:.75rem;">AUSSTEHENDE UPDATES</span>
-      <span style="cursor:pointer;color:#aaa;" onclick="_closeUpdateQueueModal()">✕</span>
-    </div>
-    <div id="crewUpdateModalBody" style="max-height:60vh;overflow-y:scroll;overscroll-behavior:contain;margin-bottom:12px;padding-right:4px;"></div>
-    <div style="margin-top:16px;text-align:right;">
-      <button id="btnSendUpdates" onclick="_sendSelectedUpdates()" style="background:#e8c84a;color:#0d0d1a;border:none;padding:8px 16px;cursor:pointer;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;font-size:.7rem;">AUSWAHL SENDEN (0) →</button>
-    </div>
-  </div>
-</div>
+<!-- SCRIPTS (Ladereihenfolge ist wichtig) -->
+<script src="js/pb.js?v=33"></script>
+<script src="js/dialog.js?v=23"></script>
+<script src="js/config.js?v=29"></script>
+<script src="js/dataService.js?v=38"></script>
+<script src="js/authService.js?v=34"></script>
+<script src="js/state.js?v=25"></script>
+<script src="js/rbac.js?v=1"></script>
+<script src="js/types.js?v=23"></script>
+<script src="js/utils.js?v=23"></script>
+<script src="js/render.js?v=27"></script>
+<script src="js/bundle.js?v=32"></script>
+<script src="js/dropdown.js?v=30"></script>
+<script src="js/tourblock.js?v=25"></script>
+<script src="js/stats.js?v=23"></script>
+<script src="js/sidebar.js?v=24"></script>
+<script src="js/plans.js?v=26"></script>
+<script src="js/pdf.js?v=27"></script>
+<script src="js/persistence.js?v=23"></script>
+<script src="js/blockview.js?v=23"></script>
+<script src="js/crewview.js?v=23"></script>
+<script src="js/crewLink.js?v=24"></script>
+<script src="js/crewNotify.js?v=29"></script>
+<script src="js/userView.js?v=27"></script>
+<script src="js/init.js?v=30"></script>
 
 </body>
 </html>

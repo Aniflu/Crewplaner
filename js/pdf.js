@@ -2,15 +2,10 @@
 // Ops-Console Print-Look: Gold-Rail, Archivo Display, Mini-KPI, weiss auf dunkel invertiert.
 // Drei Ansichten: Tabelle (volle Kreuztabelle), Blöcke (Tourblock-Zusammenfassung),
 // Crew (Timeline pro Person).
-import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew,
-         assignmentStatuses, logos, IS_MANAGER, CREW_COLORS } from './state.js';
-import { getVal, isPending, esc, parseD, fmtD, dw } from './utils.js';
-import { TYPE_OPTS } from './types.js';
-import { getPlansIndex, getActivePlanId } from './plans.js';
 
 let PDF_VIEW='table'; // 'table' | 'blocks' | 'crew'
 
-export function pdfSetView(v){
+function pdfSetView(v){
   PDF_VIEW=v;
   document.querySelectorAll('#pdfViewChoice .pvc').forEach(b=>{
     b.classList.toggle('active', b.dataset.view===v);
@@ -20,7 +15,7 @@ export function pdfSetView(v){
   if(posWrap)posWrap.style.display = v==='table' ? '' : 'none';
 }
 
-export function openPDFFilter(){
+function openPDFFilter(){
   document.getElementById('pdfPosCbs').innerHTML=POSITIONS.map((p,i)=>
     `<label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;padding:2px 0;"><input type="checkbox" class="pdfcb" data-idx="${i}" checked style="accent-color:#d4a53a;"> <span style="color:#d4a53a;font-weight:600;letter-spacing:.1em;font-size:10px;text-transform:uppercase;min-width:44px;">${p.short||''}</span><span>${p.label}</span></label>`
   ).join('');
@@ -32,7 +27,7 @@ export function openPDFFilter(){
   openModal('pdfModal');
 }
 
-export function pdfToggleAll(containerId, state){
+function pdfToggleAll(containerId, state){
   document.querySelectorAll('#'+containerId+' input[type="checkbox"]').forEach(cb=>cb.checked=state);
 }
 
@@ -382,7 +377,7 @@ function pdfRenderCrew(fd,selCrew){
 }
 
 // ── MAIN GENERATE ──────────────────────────────────────────────────────────────
-export async function generatePDF(){
+async function generatePDF(){
   // Fenster sofort öffnen (synchron, im User-Gesture-Kontext) → Popup-Blocker umgehen
   if(!POSITIONS?.length||!TOUR_DATES?.length){showToast('Kein Plan geladen','#e84a4a');return;}
   const win=window.open('','_blank');
@@ -428,7 +423,7 @@ export async function generatePDF(){
     else if(PDF_VIEW==='crew'){ viewResult=pdfRenderCrew(fd,selCrew); viewLabel='Crew-Timeline'; }
     else { viewResult=pdfRenderTable(fd,selPos,selCrew); viewLabel='Tabelle'; }
 
-    const planName=(()=>{try{const p=(typeof getPlansIndex==='function')?getPlansIndex():[];const a=p.find(x=>x.id===getActivePlanId());return a?a.name:'';}catch(e){return '';}})();
+    const planName=(()=>{try{const p=(typeof getPlansIndex==='function')?getPlansIndex():[];const a=p.find(x=>x.id===activePlanId);return a?a.name:'';}catch(e){return '';}})();
     const html=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Tour/Crew Plan</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>${pdfSharedCSS()}${viewResult.css}</style></head><body>

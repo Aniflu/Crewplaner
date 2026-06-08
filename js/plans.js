@@ -1,27 +1,18 @@
 // ── Multi-Plan System ──────────────────────────────────────────────────────────
-import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos,
-         IS_MANAGER } from './state.js';
-import { SUPABASE_ENABLED } from './config.js';
-import { showToast, sortInsert } from './utils.js';
-import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
-
 const PLANS_INDEX_KEY = 'tourplan_plans';
-export const PLAN_PREFIX = 'tourplan_plan_';
+const PLAN_PREFIX = 'tourplan_plan_';
 const LOGOS_KEY = 'tourplan_logos'; // Logos sind GLOBAL
-export let activePlanId = null;
+let activePlanId = null;
 
-export function getActivePlanId() { return activePlanId; }
-export function setActivePlanId(id) { activePlanId = id; }
-
-export function getPlansIndex(){
+function getPlansIndex(){
   try{const r=localStorage.getItem(PLANS_INDEX_KEY);return r?JSON.parse(r):[];}catch(e){return[];}
 }
-export function savePlansIndex(list){
-  try{localStorage.setItem(PLANS_INDEX_KEY,JSON.stringify(list));}catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');}
+function savePlansIndex(list){
+  try{localStorage.setItem(PLANS_INDEX_KEY,JSON.stringify(list));}catch(e){}
 }
-export function genPlanId(){return 'p'+Date.now().toString(36);}
+function genPlanId(){return 'p'+Date.now().toString(36);}
 
-export function renderPlanList(){
+function renderPlanList(){
   const plans=getPlansIndex();
   const el=document.getElementById('planList');
   if(!el)return;
@@ -37,7 +28,7 @@ export function renderPlanList(){
   if(nameEl){const active=plans.find(p=>p.id===activePlanId);nameEl.textContent=active?active.name:'';}
 }
 
-export function switchPlan(id){
+function switchPlan(id){
   if(id===activePlanId)return;
   _savePlanToLS(activePlanId);
   activePlanId=id;
@@ -46,7 +37,7 @@ export function switchPlan(id){
   showToast('Plan geladen ✓','#4f81bd');
 }
 
-export async function deletePlan(id){
+async function deletePlan(id){
   if(!hasPermission('deletePlan'))return;
   const plans=getPlansIndex();
   const plan=plans.find(p=>p.id===id);
@@ -64,7 +55,7 @@ export async function deletePlan(id){
   showToast('Plan gelöscht','#d4b84a');
 }
 
-export function renamePlan(id){
+function renamePlan(id){
   const plans=getPlansIndex();const plan=plans.find(p=>p.id===id);if(!plan)return;
   document.getElementById('sharedTitle').textContent='Plan umbenennen';
   document.getElementById('sharedBody').innerHTML=`
@@ -73,7 +64,7 @@ export function renamePlan(id){
   openModal('sharedModal');setTimeout(()=>{const i=document.getElementById('renamePlanInput');if(i){i.focus();i.select();}},50);
 }
 
-export async function confirmRenamePlan(id){
+async function confirmRenamePlan(id){
   const name=(document.getElementById('renamePlanInput')?.value||'').trim();if(!name)return;
   const plans=getPlansIndex();const plan=plans.find(p=>p.id===id);
   if(plan){plan.name=name;savePlansIndex(plans);}
@@ -88,7 +79,7 @@ export async function confirmRenamePlan(id){
   showToast('Umbenannt ✓','#2d6a3f');
 }
 
-export function openNewPlan(){
+function openNewPlan(){
   if(!hasPermission('createPlan'))return;
   document.getElementById('sharedTitle').textContent='Neuer Plan';
   document.getElementById('sharedBody').innerHTML=`
@@ -101,7 +92,7 @@ export function openNewPlan(){
   setTimeout(()=>document.getElementById('newPlanName')?.focus(),50);
 }
 
-export async function confirmNewPlan(){
+async function confirmNewPlan(){
   const name=(document.getElementById('newPlanName')?.value||'').trim();
   if(!name){await showAlert('Bitte Namen eingeben.');return;}
   closeModal('sharedModal');
@@ -117,9 +108,9 @@ export async function confirmNewPlan(){
   showToast(`Plan „${name}" erstellt ✓`,'#2d6a3f');
 }
 
-export function _today(){return new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+function _today(){return new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});}
 
-export function _resetToEmpty(){
+function _resetToEmpty(){
   crew.length=0;
   POSITIONS.length=0;
   [{id:'gl',label:'GL',short:'GL'},{id:'sys',label:'System',short:'System'},
@@ -130,11 +121,10 @@ export function _resetToEmpty(){
   // Logos NICHT zurücksetzen — global
   TOUR_DATES.length=0;
   Object.keys(assignments).forEach(k=>delete assignments[k]);
-  if(typeof renderCrew==='function')renderCrew();
-  if(typeof renderTable==='function')renderTable();
+  renderCrew();renderTable();
 }
 
-export function _savePlanToLS(id){
+function _savePlanToLS(id){
   if(!id)return;
   try{
     const data={version:3,crew,positions:POSITIONS,defaultCrew,tourDates:TOUR_DATES,assignments};
@@ -142,16 +132,15 @@ export function _savePlanToLS(id){
     const plans=getPlansIndex();
     const p=plans.find(x=>x.id===id);
     if(p){p.modified=_today();savePlansIndex(plans);}
-    // Sync plan_data to PocketBase
+    // Sync plan_data to PocketBase (silent fail ok)
     if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED){
-      const pbId=localStorage.getItem('tourplan_pb_'+id)||localStorage.getItem('tourplan_active_pb_id');
+      const pbId=localStorage.getItem('tourplan_pb_'+id);
       if(pbId){pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)}).catch(e=>console.warn('[plans] PB-Sync fehlgeschlagen:',e));}
-      else{console.warn('[plans] PB-Sync: kein pbId gefunden für',id);}
     }
-  }catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');}
+  }catch(e){console.warn(e);}
 }
 
-export function _loadPlanFromLS(id){
+function _loadPlanFromLS(id){
   if(!id)return false;
   try{
     const raw=localStorage.getItem(PLAN_PREFIX+id);
@@ -165,8 +154,7 @@ export function _loadPlanFromLS(id){
     Object.keys(assignments).forEach(k=>delete assignments[k]);
     Object.assign(assignments,data.assignments||{});
     // Logos NICHT überschreiben — global
-    if(typeof renderCrew==='function')renderCrew();
-    if(typeof renderTable==='function')renderTable();
+    renderCrew();renderTable();
     return true;
   }catch(e){return false;}
 }

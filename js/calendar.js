@@ -1,13 +1,7 @@
-// ── ICS Calendar Export ────────────────────────────────────────────────────
-import { TOUR_DATES, POSITIONS } from './state.js';
-import { showToast, getVal } from './utils.js';
-import { openModal } from './modals.js';
+// ── ICS Calendar Export ─────────────────────────────────────────────────────
+function openCalendarExport(){openModal('calModal');}
 
-export function openCalendarExport(){
-  openModal('calModal');
-}
-
-export function generateICS(){
+function generateICS(){
   const inclTypes={
     show:document.getElementById('calShow').checked,
     reise:document.getElementById('calReise').checked,
@@ -15,10 +9,7 @@ export function generateICS(){
     off:document.getElementById('calOff').checked,
   };
   const rows=TOUR_DATES.filter(r=>inclTypes[r.type]);
-  if(!rows.length){
-    showToast('Keine Tage ausgewählt','#e84a4a');
-    return;
-  }
+  if(!rows.length){showToast('Keine Tage ausgewählt','#e84a4a');return;}
 
   const lines=[
     'BEGIN:VCALENDAR',
@@ -55,9 +46,7 @@ export function generateICS(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download='tourplan.ics';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
   showToast(`${rows.length} Termine exportiert ✓`,'#2d6a3f');
 }

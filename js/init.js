@@ -1,31 +1,17 @@
 // ── Init ───────────────────────────────────────────────────────────────────────
 // Wird von authService.js nach Session-Check aufgerufen (oder direkt wenn Auth deaktiviert)
-import { TOUR_DATES, POSITIONS, crew, assignments, IS_MANAGER, IS_CREW,
-         IS_SUPERADMIN, IS_BOOKER } from './state.js';
-import { SUPABASE_ENABLED } from './config.js';
-import { showToast, esc } from './utils.js';
-import { loadCustomTypes, renderTypeList, TYPE_OPTS } from './types.js';
-import { renderTable, getCurrentView, setCurrentView, VIEW_KEY } from './render.js';
-import { renderBlockView } from './blockview.js';
-import { updateStats } from './stats.js';
-import { loadLogosGlobal } from './logos.js';
-import { renderCrew } from './crew.js';
-import { getPlansIndex, renderPlanList, genPlanId, savePlansIndex, PLAN_PREFIX, getActivePlanId, setActivePlanId, _today, _savePlanToLS, _loadPlanFromLS, _resetToEmpty } from './plans.js';
-import { applyData } from './persistence.js';
-
-export function startApp(){
+function startApp(){
   loadCustomTypes();
   renderTypeList();
   loadLogosGlobal();
   // View aus localStorage wiederherstellen
   try{
     const savedView=localStorage.getItem(VIEW_KEY);
-    const currentView = getCurrentView();
-    if(savedView&&['table','blocks','crew'].includes(savedView)){setCurrentView(savedView);}
-    document.querySelectorAll('.vt-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===currentView));
-    document.getElementById('viewTable').style.display = currentView==='table'?'':'none';
-    document.getElementById('viewBlocks').style.display= currentView==='blocks'?'':'none';
-    document.getElementById('viewCrew').style.display  = currentView==='crew' ?'':'none';
+    if(savedView&&['table','blocks','crew'].includes(savedView)){CURRENT_VIEW=savedView;}
+    document.querySelectorAll('.vt-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===CURRENT_VIEW));
+    document.getElementById('viewTable').style.display = CURRENT_VIEW==='table'?'':'none';
+    document.getElementById('viewBlocks').style.display= CURRENT_VIEW==='blocks'?'':'none';
+    document.getElementById('viewCrew').style.display  = CURRENT_VIEW==='crew' ?'':'none';
   }catch(e){console.warn('View-Restore fehlgeschlagen:',e);}
   const plans=getPlansIndex();
 
@@ -40,7 +26,7 @@ export function startApp(){
         const name='Tour 2026';
         localStorage.setItem(PLAN_PREFIX+id,legacy);
         savePlansIndex([{id,name,created:_today(),modified:_today()}]);
-        setActivePlanId(id);
+        activePlanId=id;
         applyData(data);
         renderPlanList();
         showToast('Alter Plan migriert ✓','#4f81bd');
@@ -55,8 +41,8 @@ export function startApp(){
 
   if(plans.length>0){
     const startId=(pendingPlan&&plans.find(p=>p.id===pendingPlan))?pendingPlan:plans[0].id;
-    setActivePlanId(startId);
-    if(_loadPlanFromLS(startId)){
+    activePlanId=startId;
+    if(_loadPlanFromLS(activePlanId)){
       renderPlanList();
       showToast('Plan geladen ✓','#4f81bd');
       return;
@@ -126,7 +112,7 @@ export function startApp(){
       }
     };
     const demoId=genPlanId();
-    setActivePlanId(demoId);
+    activePlanId=demoId;
     localStorage.setItem(PLAN_PREFIX+demoId,JSON.stringify(_demoPlan));
     savePlansIndex([{id:demoId,name:'🎸 Demo Tour — Europa 2027',created:_today(),modified:_today()}]);
     applyData(_demoPlan);
@@ -137,7 +123,7 @@ export function startApp(){
 
   // Kein Plan vorhanden → leeren Standard-Plan erstellen
   const id=genPlanId();
-  setActivePlanId(id);
+  activePlanId=id;
   const name='Tour 2026';
   savePlansIndex([{id,name,created:_today(),modified:_today()}]);
   _savePlanToLS(id);
@@ -145,7 +131,7 @@ export function startApp(){
   renderPlanList();
 }
 
-export function _checkPendingAction(){
+function _checkPendingAction(){
   const pa=localStorage.getItem('tourplan_pending_action');
   if(!pa)return;
   localStorage.removeItem('tourplan_pending_action');
@@ -157,5 +143,4 @@ export function _checkPendingAction(){
   },400);
 }
 
-// Make startApp available globally for authService.js
-window.startApp = startApp;
+if (!window.__authGuarded){startApp();setTimeout(_checkPendingAction,500);}

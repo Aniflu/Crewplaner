@@ -5,11 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anmelden — Tour Crew Plan</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script>
-  window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
-</script>
-<script src="js/auth-bootstrap.js?v=2"></script>
-<script src="js/pb-login-bundle.js?v=1"></script>
+<script src="js/pb.js?v=29"></script>
+<script src="js/config.js?v=29"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -52,13 +49,6 @@
     margin-top: 6px;
     letter-spacing: .04em;
     text-transform: uppercase;
-  }
-
-  .login-version {
-    font-size: .55rem;
-    color: #3a4050;
-    margin-top: 3px;
-    letter-spacing: .08em;
   }
 
   .login-card {
@@ -183,7 +173,6 @@
   <div class="login-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <p>Personalplan · Anmelden</p>
-    <div class="login-version">v0.9.7</div>
   </div>
 
   <div class="login-card">
@@ -238,18 +227,6 @@
 </div>
 
 <script>
-  // Show auth-bootstrap logs if redirected here
-  window.addEventListener('DOMContentLoaded', () => {
-    const logs = JSON.parse(localStorage.getItem('_authBootstrapLogs') || '[]');
-    if (logs.length > 0) {
-      const debugEl = document.createElement('div');
-      debugEl.style.cssText = 'position:fixed;bottom:10px;right:10px;max-width:400px;background:#222;color:#0f0;font-family:monospace;font-size:10px;padding:8px;border:1px solid #0f0;max-height:200px;overflow-y:auto;z-index:9999;';
-      debugEl.innerHTML = '<div style="color:#f0f;margin-bottom:4px;">Auth Bootstrap Logs:</div>' +
-        logs.map(l => '<div>' + l.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>').join('');
-      document.body.appendChild(debugEl);
-    }
-  });
-
   const _resetToken = new URLSearchParams(window.location.search).get('token');
   if (_resetToken) {
     document.addEventListener('DOMContentLoaded', function() {
@@ -291,11 +268,21 @@
     window.location.href = pending ? base + pending : base;
   }
 
-  // Show invite banner if user was invited (auth-bootstrap.js handles token validation)
+  // Bereits eingeloggt → direkt weiterleiten
   (function() {
     if (localStorage.getItem('pendingEmailAction')) {
       document.getElementById('inviteBanner').style.display = 'block';
     }
+    const token = localStorage.getItem('pb_token');
+    if (!token) return;
+    pbPost('/api/collections/users/auth-refresh').then(data => {
+      localStorage.setItem('pb_token', data.token);
+      localStorage.setItem('pb_user', JSON.stringify(data.record));
+      _redirectAfterAuth();
+    }).catch(() => {
+      localStorage.removeItem('pb_token');
+      localStorage.removeItem('pb_user');
+    });
   })();
 
   document.getElementById('password').addEventListener('keydown', e => {

@@ -56,8 +56,7 @@ body {
   font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   border-radius: 2px; margin-right: 8px; margin-top: 8px; text-decoration: none;
 }
-.btn-primary { background: #e8c84a; color: #0d0d1a; }
-.btn-confirm { background: #4ae8a0; color: #0d0d1a; }
+.btn-confirm { background: #e8c84a; color: #0d0d1a; }
 .btn-decline { background: #ffffff; border: 1px solid #ddd; color: #555; }
 .status-dot {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
@@ -65,13 +64,6 @@ body {
 .dot-green { background: #4ae8a0; }
 .dot-red { background: #e84a4a; }
 .dot-yellow { background: #e8c84a; }
-.dot-gray { background: #5a6070; }
-.sidebar-btn {
-  display: inline-block; background: #12122a; border: 1px solid #2a2a40;
-  border-radius: 3px; padding: 8px 14px; font-size: .65rem; color: #c8cdd5;
-  margin: 4px 4px 4px 0; font-family: 'IBM Plex Mono', monospace;
-}
-.sidebar-btn.primary { background: #e8c84a; color: #0d0d1a; border-color: #e8c84a; font-weight: 700; }
 .footer {
   margin-top: 64px; padding-top: 24px; border-top: 1px solid #2a2a40;
   font-size: .6rem; color: #3a3a50; letter-spacing: .08em; text-align: center;
@@ -95,79 +87,66 @@ body {
     <div class="section-num">Überblick</div>
     <div class="section-title">Was ist der Tour Crew Plan?</div>
     <div class="section-body">
-      Der Tour Crew Plan ist das zentrale Planungstool für Tourneen. Dein Manager trägt dich für bestimmte Tage und Positionen ein und schickt dir eine Einladungsmail. Du loggst dich ein, siehst alle deine Termine und kannst sie einzeln bestätigen oder ablehnen.
+      Der Tour Crew Plan ist das zentrale Planungstool für Tourneen. Dein Manager weist dir Positionen für bestimmte Tage zu — du bekommst per E-Mail eine Anfrage und kannst mit einem Klick bestätigen oder ablehnen.
     </div>
   </div>
 
   <div class="section">
     <div class="section-num">Schritt 1</div>
-    <div class="section-title">Konto erstellen &amp; einloggen</div>
+    <div class="section-title">Konto erstellen</div>
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-text">Du hast eine Einladungsmail erhalten. Klicke auf <strong>„EINSÄTZE BESTÄTIGEN →"</strong> — du wirst zur App weitergeleitet.</div>
+      <div class="step-text">Du hast eine Einladungsmail erhalten. Klicke auf den Button <strong>„Konto erstellen"</strong> in der E-Mail.</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-text">Falls du noch kein Konto hast: Gehe zu <strong>crewplanner.nyxlightwork.de/login.html</strong>, klicke auf <strong>„Noch kein Konto?"</strong> und registriere dich mit derselben E-Mail-Adresse, an die du die Einladung bekommen hast.</div>
+      <div class="step-text">Gib deine <strong>E-Mail-Adresse</strong> (dieselbe, an die du die Einladung bekommen hast) und ein <strong>Passwort</strong> (min. 8 Zeichen) ein.</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div class="step-text">Logge dich ein — der Tourplan lädt automatisch.</div>
+      <div class="step-text">Klicke auf <strong>„Registrieren"</strong> — du wirst automatisch eingeloggt.</div>
     </div>
     <div class="highlight">
-      Du hast bereits ein Konto? Einfach direkt einloggen — kein neues Konto nötig.
+      Du hast bereits ein Konto? Dann einfach einloggen — kein neues Konto nötig.
     </div>
   </div>
 
   <div class="section">
     <div class="section-num">Schritt 2</div>
-    <div class="section-title">Den Plan verstehen</div>
+    <div class="section-title">Einsatz bestätigen oder ablehnen</div>
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-text">Du siehst den kompletten Tourplan mit allen Tagen und allen Positionen.</div>
+      <div class="step-text">Wenn dein Manager dich für einen Einsatz anfrägt, bekommst du eine E-Mail mit zwei Buttons:</div>
+    </div>
+    <div style="padding: 0 16px 16px 56px;">
+      <span class="btn-demo btn-confirm">✓ Bestätigen →</span>
+      <span class="btn-demo btn-decline">✗ Ablehnen →</span>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-text">Die <strong>Farben</strong> zeigen den Status jedes Crew-Mitglieds:</div>
-    </div>
-    <div style="padding: 8px 16px 16px 56px; font-size: .72rem; line-height: 2.4; color: #c8cdd5;">
-      <div><span class="status-dot dot-yellow"></span><strong>Orange</strong> — Angefragt, noch keine Antwort</div>
-      <div><span class="status-dot dot-green"></span><strong>Grün</strong> — Bestätigt</div>
-      <div><span class="status-dot dot-red"></span><strong>Rot</strong> — Abgelehnt</div>
-      <div><span class="status-dot dot-gray"></span><strong>Grau</strong> — Im Plan eingetragen, noch nicht angefragt</div>
+      <div class="step-text">Klicke auf den passenden Button. Falls du noch nicht eingeloggt bist, wirst du kurz zur Login-Seite weitergeleitet — danach wird deine Antwort automatisch gespeichert.</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div class="step-text"><strong>Deine eigenen Termine</strong> erkennst du an dem gelben Button <strong>„Bitte bestätigen"</strong>. Termine anderer Crew-Mitglieder siehst du nur lesend.</div>
+      <div class="step-text">Dein Manager wird bei einer Ablehnung automatisch benachrichtigt.</div>
     </div>
   </div>
 
   <div class="section">
     <div class="section-num">Schritt 3</div>
-    <div class="section-title">Termine bestätigen oder ablehnen</div>
+    <div class="section-title">Deine Einsätze in der App sehen</div>
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-text"><strong>Einzeln:</strong> Klicke auf einen gelben <strong>„Bitte bestätigen"</strong>-Button in der Tabelle. Es öffnet sich ein Fenster mit Datum und Position — wähle <strong>✓ Bestätigen</strong> oder <strong>✗ Ablehnen</strong>.</div>
-    </div>
-    <div style="padding: 0 16px 16px 56px;">
-      <span class="btn-demo btn-confirm">✓ Bestätigen</span>
-      <span class="btn-demo btn-decline">✗ Ablehnen</span>
+      <div class="step-text">Logge dich unter <strong>crewplanner.nyxlightwork.de</strong> ein.</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-text"><strong>Alle auf einmal:</strong> Nutze die Buttons in der linken Sidebar:</div>
+      <div class="step-text">Du siehst den Tourenplan mit deinen zugewiesenen Positionen. Die Farben zeigen den Status:</div>
     </div>
-    <div style="padding: 0 16px 16px 56px;">
-      <span class="sidebar-btn primary">✓ Termine bestätigen</span>
-      <span class="sidebar-btn">✗ Termine absagen</span>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-text"><strong>Teilweise ablehnen:</strong> Lehne zuerst einzeln die Termine ab, die du nicht kannst — dann drücke <strong>„Termine bestätigen"</strong> für alle verbleibenden.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-text">Dein Manager wird automatisch benachrichtigt wenn du Termine ablehnst.</div>
+    <div style="padding: 8px 16px 8px 56px; font-size: .72rem; line-height: 2.2; color: #c8cdd5;">
+      <div><span class="status-dot dot-yellow"></span><strong>Gelb</strong> — Anfrage ausstehend</div>
+      <div><span class="status-dot dot-green"></span><strong>Grün</strong> — Bestätigt</div>
+      <div><span class="status-dot dot-red"></span><strong>Rot</strong> — Abgelehnt</div>
     </div>
   </div>
 
@@ -179,16 +158,12 @@ body {
       Bitte Spam-Ordner prüfen — insbesondere bei web.de und GMX kann die Mail dort landen.
     </div>
     <div class="highlight">
-      <strong>Ich sehe meinen Plan nicht?</strong><br>
-      Stelle sicher dass du dich mit derselben E-Mail-Adresse registriert hast, an die die Einladung geschickt wurde. Wende dich sonst an deinen Manager.
-    </div>
-    <div class="highlight">
-      <strong>Kein „Bitte bestätigen"-Button sichtbar?</strong><br>
-      Entweder hast du alle Termine bereits beantwortet, oder dein Manager hat noch keine Anfragen gesendet. Schau ob in der Legende orange Felder sichtbar sind.
+      <strong>Link in der E-Mail funktioniert nicht?</strong><br>
+      Einfach direkt einloggen unter crewplanner.nyxlightwork.de — deine Anfragen sind dort trotzdem sichtbar.
     </div>
     <div class="highlight">
       <strong>Passwort vergessen?</strong><br>
-      Wende dich an deinen Manager — er kann über die Admin-Konsole eine Passwort-Reset-Mail schicken.
+      Wende dich an deinen Manager — er kann dein Konto zurücksetzen.
     </div>
   </div>
 

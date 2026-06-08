@@ -8,17 +8,8 @@
  * MUST: window.POCKETBASE_URL muss VOR diesem Script in der Seite gesetzt sein
  */
 
-// ─ Persist logs to localStorage (for debugging redirects)
-window._authBootstrapLogs = [];
-function _logAuth(msg) {
-  window._authBootstrapLogs.push(msg);
-  localStorage.setItem('_authBootstrapLogs', JSON.stringify(window._authBootstrapLogs.slice(-20))); // keep last 20
-  console.log('[auth-bootstrap]', msg);
-}
-
 // ─ PHASE 1: SYNC — Sofort Seite ausblenden + Token-Check
 document.documentElement.style.visibility = 'hidden';
-_logAuth('Page visibility hidden, starting auth bootstrap');
 
 (async function authBootstrapFlow() {
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
@@ -27,7 +18,6 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
 
   const token = localStorage.getItem('pb_token');
   const userStr = localStorage.getItem('pb_user');
-  const skipRefresh = new URLSearchParams(window.location.search).has('noreauth');
 
   // ─ Kein Token vorhanden
   if (!token || !userStr) {
@@ -41,33 +31,26 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
     return;
   }
 
-  // ─ PHASE 2: Token vorhanden — Async Refresh + Rollen-Validierung (skip if ?noreauth=1)
-  let data;
+  // ─ PHASE 2: Token vorhanden — Async Refresh + Rollen-Validierung
   try {
-    if (skipRefresh) {
-      // Token already valid, skip refresh but still use cached user data
-      _logAuth('Token valid + noreauth=1 flag set, skipping refresh');
-      data = JSON.parse(userStr);
-    } else {
-      // Token erneuern
-      const response = await fetch(pbUrl + '/api/collections/users/auth-refresh', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Token refresh failed: ' + response.status);
+    // Token erneuern
+    const response = await fetch(pbUrl + '/api/collections/users/auth-refresh', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
       }
+    });
 
-      data = await response.json();
-      localStorage.setItem('pb_token', data.token);
-      localStorage.setItem('pb_user', JSON.stringify(data.record));
+    if (!response.ok) {
+      throw new Error('Token refresh failed: ' + response.status);
     }
 
-    const role = data.record?.role || 'crew';
+    const data = await response.json();
+    localStorage.setItem('pb_token', data.token);
+    localStorage.setItem('pb_user', JSON.stringify(data.record));
+
+    const role = data.record.role || 'crew';
     const isAdmin = role === 'superadmin' || role === 'manager';
 
     // ─ login.html mit gültigem Token → auto-redirect zur richtigen Seite
@@ -79,18 +62,14 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
       return;
     }
 
-    // ─ Plan-Transfer aktiv? Wenn ja, stay on index.html um Plan zu laden (skip role redirect)
-    // NUTZE localStorage statt sessionStorage — zuverlässiger!
-    const hasPlanTransfer = !!localStorage.getItem('_planTransfer_flag');
-
-    // ─ Falsche Seite für diese Rolle → redirect (aber NICHT wenn Plan-Transfer aktiv)
+    // ─ Falsche Seite für diese Rolle → redirect
     if (currentPage === 'admin.html' && !isAdmin) {
       // Crew/Booker auf admin.html → zu index.html
       window.location.replace('index.html');
       return;
     }
-    if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer) {
-      // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer)
+    if (currentPage === 'index.html' && isAdmin) {
+      // Manager/Superadmin auf index.html → zu admin.html
       window.location.replace('admin.html');
       return;
     }
@@ -107,13 +86,11 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
 
   } catch (e) {
     // Token-Refresh fehlgeschlagen → Token löschen
-    _logAuth('ERROR: Token refresh failed: ' + (e.message || e));
     localStorage.removeItem('pb_token');
     localStorage.removeItem('pb_user');
 
     if (!EXEMPT_PAGES.includes(currentPage)) {
       // Zu login.html redirecten (außer auf exempt Seiten)
-      _logAuth('Redirecting to login.html from ' + currentPage);
       window.location.replace('login.html');
     } else {
       // login.html / view.html → zeigen

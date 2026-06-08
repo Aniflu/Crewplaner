@@ -1,28 +1,23 @@
 // ── Day Type Options & Custom Types ───────────────────────────────────────────
-import { TOUR_DATES } from './state.js';
-import { renderTable } from './render.js';
-import { closeModal, openModal } from './modals.js';
+const TYPE_COLOR_DEFAULTS = {show:'#4caf72', reise:'#5a9fd4', prep:'#e8883a', off:'#888888'};
+const TYPE_WEIGHT_DEFAULTS = {show:1.0, reise:0.5, prep:1.0, off:0.5};
 
-export const TYPE_COLOR_DEFAULTS = {show:'#4caf72', reise:'#5a9fd4', prep:'#e8883a', off:'#888888'};
-export const TYPE_WEIGHT_DEFAULTS = {show:1.0, reise:0.5, prep:1.0, off:0.5};
-
-export const DEFAULT_TYPE_OPTS = [
+const DEFAULT_TYPE_OPTS = [
   {v:'show|Show',    label:'Show',         type:'show',  color:'#4caf72', weight:1.0},
   {v:'reise|Reise',  label:'Reise',        type:'reise', color:'#5a9fd4', weight:0.5},
   {v:'reise|Nightliner',label:'Nightliner',type:'reise', color:'#5a9fd4', weight:0.5},
   {v:'prep|Aufbau',  label:'Aufbau',       type:'prep',  color:'#e8883a', weight:1.0},
   {v:'prep|Probe',   label:'Probe',        type:'prep',  color:'#e8883a', weight:1.0},
   {v:'prep|Abbau',   label:'Abbau',        type:'prep',  color:'#e8883a', weight:1.0},
-  {v:'prep|Vorbereitung',  label:'Vorbereitung',  type:'prep', color:'#e8883a', weight:1.0},
-  {v:'prep|Nachbereitung', label:'Nachbereitung', type:'prep', color:'#e8883a', weight:1.0},
-  {v:'prep|Packen',        label:'Packen',        type:'prep', color:'#e8883a', weight:1.0},
+  {v:'prep|Vorbereitung',label:'Vorbereitung',type:'prep',color:'#e8883a',weight:1.0},
+  {v:'prep|Packen',  label:'Packen',       type:'prep',  color:'#e8883a', weight:1.0},
   {v:'off|OFF',      label:'OFF',          type:'off',   color:'#888888', weight:0.5},
   {v:'off|Anreise',  label:'Anreise',      type:'off',   color:'#888888', weight:0.5},
   {v:'off|Abreise',  label:'Abreise',      type:'off',   color:'#888888', weight:0.5},
 ];
 // Dynamische Liste — wird aus localStorage ergänzt
-export let TYPE_OPTS = DEFAULT_TYPE_OPTS.map(o=>({...o}));
-export const TYPES_KEY = 'tourplan_custom_types';
+let TYPE_OPTS = DEFAULT_TYPE_OPTS.map(o=>({...o}));
+const TYPES_KEY = 'tourplan_custom_types';
 
 // Fallback-Felder für alte Einträge ohne color/weight
 function _fillTypeDefaults(entry){
@@ -31,7 +26,7 @@ function _fillTypeDefaults(entry){
   return entry;
 }
 
-export function loadCustomTypes(){
+function loadCustomTypes(){
   try{
     const raw=localStorage.getItem(TYPES_KEY);
     if(!raw) return;
@@ -59,7 +54,7 @@ function _saveAllTypes(){
 const _saveAllCustomTypes=_saveAllTypes;
 
 // Für Rückwärtskompatibilität (wird noch aus tourblock/dates aufgerufen)
-export function saveCustomType(label,type){
+function saveCustomType(label,type){
   if(TYPE_OPTS.find(t=>t.label===label)) return;
   const color=TYPE_COLOR_DEFAULTS[type]||'#888888';
   const weight=TYPE_WEIGHT_DEFAULTS[type]??1.0;
@@ -69,7 +64,7 @@ export function saveCustomType(label,type){
 }
 
 // Neuen Typ anlegen
-export function addType(label,type,color,weight){
+function addType(label,type,color,weight){
   if(!label.trim()) return;
   const existing=TYPE_OPTS.find(t=>t.label===label);
   if(existing){
@@ -82,7 +77,7 @@ export function addType(label,type,color,weight){
 }
 
 // Typ bearbeiten
-export function editType(oldLabel,newLabel,type,color,weight){
+function editType(oldLabel,newLabel,type,color,weight){
   const idx=TYPE_OPTS.findIndex(t=>t.label===oldLabel);
   if(idx<0) return;
   TYPE_OPTS[idx]={v:`${type}|${newLabel}`,label:newLabel,type,color,weight};
@@ -94,7 +89,7 @@ export function editType(oldLabel,newLabel,type,color,weight){
 }
 
 // Typ löschen (alle Typen, auch Defaults)
-export async function deleteType(label){
+async function deleteType(label){
   const ok=await showConfirm(`Tagesart „${label}" wirklich löschen?`,'Löschen');
   if(!ok) return;
   const idx=TYPE_OPTS.findIndex(t=>t.label===label);
@@ -104,7 +99,7 @@ export async function deleteType(label){
 }
 
 // Kategorie-Typ aus Label ableiten
-export function typeFromLabel(label){
+function typeFromLabel(label){
   const known=TYPE_OPTS.find(t=>t.label===label);
   if(known) return known.type;
   const l=label.toLowerCase();
@@ -116,11 +111,11 @@ export function typeFromLabel(label){
 
 
 // ── Typ hinzufügen / bearbeiten Modal ─────────────────────────────────────────
-export function openAddType(){
+function openAddType(){
   _openTypeModal('Neue Tagesart', '', 'off', '#888888', 0.5, null);
 }
 
-export function openEditType(label){
+function openEditType(label){
   const t=TYPE_OPTS.find(x=>x.label===label);
   if(!t) return;
   _openTypeModal('Tagesart bearbeiten', t.label, t.type, t.color||'#888888', t.weight??0.5, label);
@@ -161,7 +156,7 @@ function _openTypeModal(title, label, type, color, weight, editingLabel){
   setTimeout(()=>document.getElementById('typeLabel')?.focus(),50);
 }
 
-export async function _confirmTypeModal(editingLabel){
+async function _confirmTypeModal(editingLabel){
   const label=(document.getElementById('typeLabel')?.value||'').trim();
   const type=document.getElementById('typeBase')?.value||'off';
   const color=document.getElementById('typeColor')?.value||'#888888';
@@ -177,12 +172,12 @@ export async function _confirmTypeModal(editingLabel){
 }
 
 // ── Typ-Manager Popup ──────────────────────────────────────────────────────────
-export function openTypeManager(){
+function openTypeManager(){
   renderTypeManagerList();
   openModal('typeManagerModal');
 }
 
-export function renderTypeManagerList(){
+function renderTypeManagerList(){
   const el=document.getElementById('typeManagerList');
   if(!el) return;
   el.innerHTML=TYPE_OPTS.map(t=>{
@@ -199,4 +194,4 @@ export function renderTypeManagerList(){
 }
 
 // Alias — wird noch aus init.js aufgerufen
-export function renderTypeList(){ renderTypeManagerList(); }
+function renderTypeList(){ renderTypeManagerList(); }

@@ -1,20 +1,17 @@
 // ── Stats Bar ──────────────────────────────────────────────────────────────────
-import { TOUR_DATES, POSITIONS, crew, assignments, assignmentStatuses, IS_MANAGER, CREW_COLORS, OFFEN } from './state.js';
-import { getVal, dw, fmt, fmtD } from './utils.js';
-
-export function calcByPos(){
+function calcByPos(){
   const res={};POSITIONS.forEach(p=>{res[p.id]={filled:0,open:0};});
   TOUR_DATES.forEach(r=>{POSITIONS.forEach(p=>{const v=getVal(r.date,p.id),w=dw(r);if(v===OFFEN)res[p.id].open+=w;else if(v)res[p.id].filled+=w;});});
   return res;
 }
 
-export function calcByPers(filterDates){
+function calcByPers(filterDates){
   const dates=filterDates||TOUR_DATES,res={};
   dates.forEach(r=>{const w=dw(r);POSITIONS.forEach(p=>{const v=getVal(r.date,p.id);if(!v||v===OFFEN)return;if(!res[v])res[v]={total:0,show:0,other:0};if(r.type==='show'){res[v].total+=w;res[v].show+=w;}else{res[v].total+=w;res[v].other+=w;}});});
   return res;
 }
 
-export function updateStats(){
+function updateStats(){
   const shows=TOUR_DATES.filter(r=>r.type==='show').length;
   const reise=TOUR_DATES.filter(r=>r.type==='reise').length;
   const preps=TOUR_DATES.filter(r=>r.type==='prep').length;

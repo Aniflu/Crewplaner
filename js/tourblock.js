@@ -1,20 +1,11 @@
 // ── Tourblock Wizard ───────────────────────────────────────────────────────────
-import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses,
-         IS_MANAGER, IS_CREW, OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN } from './state.js';
-import { getVal, isPending, esc, fmtD, parseD, DE_DAYS, sortInsert, showToast } from './utils.js';
-import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
-import { _savePlanToLS, getActivePlanId } from './plans.js';
-import { renderTable } from './render.js';
-import { closeModal, openModal } from './modals.js';
-import { showAlert } from './dialog.js';
-
 let tbDays=[];
 
-export function openTourBlock(){if(!IS_MANAGER)return;document.getElementById('tbStep1').style.display='';document.getElementById('tbStep2').style.display='none';['tbName','tbLoc','tbStart','tbEnd'].forEach(id=>document.getElementById(id).value='');openModal('tbModal');}
+function openTourBlock(){if(!IS_MANAGER)return;document.getElementById('tbStep1').style.display='';document.getElementById('tbStep2').style.display='none';['tbName','tbLoc','tbStart','tbEnd'].forEach(id=>document.getElementById(id).value='');openModal('tbModal');}
 
-export function tbBack(){document.getElementById('tbStep1').style.display='';document.getElementById('tbStep2').style.display='none';}
+function tbBack(){document.getElementById('tbStep1').style.display='';document.getElementById('tbStep2').style.display='none';}
 
-export async function tbStep2(){
+async function tbStep2(){
   const start=document.getElementById('tbStart').value,end=document.getElementById('tbEnd').value,loc=document.getElementById('tbLoc').value.trim()||'–';
   if(!start||!end){await showAlert('Bitte Start- und Enddatum wählen.');return;}if(start>end){await showAlert('Startdatum muss vor Enddatum liegen.');return;}
   const blockName=document.getElementById('tbName').value.trim()||'Tourblock';const blockId=Date.now().toString(36)+Math.random().toString(36).slice(2);
@@ -24,7 +15,7 @@ export async function tbStep2(){
   tbRenderDays();document.getElementById('tbStep1').style.display='none';document.getElementById('tbStep2').style.display='';
 }
 
-export function tbRenderDays(){
+function tbRenderDays(){
   const TC={show:'#1a3825',reise:'#0e1a2e',prep:'#2a1800',off:'#1a1a1a'},TB={show:'#2d6a3f',reise:'#1a3a6a',prep:'#7a3a10',off:'#3a3a3a'};
   const typeSelectOpts=TYPE_OPTS.map(o=>`<option value="${o.label}">${o.label}</option>`).join('');
   document.getElementById('tbDayList').innerHTML=tbDays.map((day,i)=>{
@@ -42,20 +33,20 @@ export function tbRenderDays(){
   }).join('');
 }
 
-export function tbChangeType(i,label){
+function tbChangeType(i,label){
   const type=typeFromLabel(label);
   tbDays[i].type=type;tbDays[i].typeLabel=label;
   tbRenderDays();
 }
 
-export function tbChangeLoc(i,val){tbDays[i].loc=val.trim()||'–';}
+function tbChangeLoc(i,val){tbDays[i].loc=val.trim()||'–';}
 
-export function tbSetAll(t,tl){tbDays.forEach(d=>{d.type=t;d.typeLabel=tl;});tbRenderDays();}
+function tbSetAll(t,tl){tbDays.forEach(d=>{d.type=t;d.typeLabel=tl;});tbRenderDays();}
 
-export function tbConfirm(){let n=0;tbDays.forEach(day=>{if(TOUR_DATES.find(r=>r.date===day.date))return;sortInsert({date:day.date,type:day.type,typeLabel:day.typeLabel,loc:day.loc,blockName:day.blockName,blockId:day.blockId});n++;});if(n>0&&typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt');closeModal('tbModal');renderTable();showToast(`${n} Tage eingefügt ✓`,'#2d6a3f');}
+function tbConfirm(){let n=0;tbDays.forEach(day=>{if(TOUR_DATES.find(r=>r.date===day.date))return;sortInsert({date:day.date,type:day.type,typeLabel:day.typeLabel,loc:day.loc,blockName:day.blockName,blockId:day.blockId});n++;});if(n>0&&typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt');closeModal('tbModal');renderTable();showToast(`${n} Tage eingefügt ✓`,'#2d6a3f');}
 
 // ── Einzelnes Datum einem Block zuweisen ──────────────────────────────────────
-export function openBlockAssign(dateStr){
+function openBlockAssign(dateStr){
   if(!IS_MANAGER)return;
   const row=TOUR_DATES.find(r=>r.date===dateStr);
   if(!row)return;
@@ -82,14 +73,14 @@ export function openBlockAssign(dateStr){
     const blockName=blockId?blockMap.get(blockId)||'':'';
     const r=TOUR_DATES.find(d=>d.date===ds);
     if(r){r.blockId=blockId;r.blockName=blockName;}
-    closeModal('sharedModal');_savePlanToLS(getActivePlanId());renderTable();
+    closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();
     showToast(blockName?`${fmtD(ds)} → ${blockName} ✓`:`${fmtD(ds)} aus Block entfernt`,'#4ae8a0');
   };
   openModal('sharedModal');setTimeout(()=>document.getElementById('baBlock')?.focus(),50);
 }
 
 // ── Datumsbereich → vorhandene Tage einem Block zuweisen ───────────────────────
-export function openBlockRange(){
+function openBlockRange(){
   if(!IS_MANAGER)return;
   const sorted=[...TOUR_DATES].sort((a,b)=>a.date.localeCompare(b.date));
   const fmt=d=>{const dt=parseD(d.date),wd=DE_DAYS[dt.getDay()];return `<option value="${d.date}">${wd} ${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')} – ${d.typeLabel||''} ${d.loc?'('+d.loc+')':''}</option>`;};
@@ -112,7 +103,7 @@ export function openBlockRange(){
     if(start>end){await showAlert('Startdatum muss vor Enddatum liegen.');return;}
     const blockId=exId!=='__new__'?exId:Date.now().toString(36)+Math.random().toString(36).slice(2);
     let n=0;TOUR_DATES.forEach(d=>{if(d.date>=start&&d.date<=end){d.blockName=name;d.blockId=blockId;n++;}});
-    closeModal('sharedModal');_savePlanToLS(getActivePlanId());renderTable();showToast(`${n} Tage → ${name} ✓`,'#2d6a3f');
+    closeModal('sharedModal');_savePlanToLS(activePlanId);renderTable();showToast(`${n} Tage → ${name} ✓`,'#2d6a3f');
   };
   openModal('sharedModal');setTimeout(()=>document.getElementById('brName')?.focus(),50);
 }

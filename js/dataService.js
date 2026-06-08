@@ -1,14 +1,3 @@
-import { POCKETBASE_URL, SUPABASE_ENABLED } from './config.js';
-import {
-  POSITIONS, crew, defaultCrew, assignments, crewMeta,
-  assignmentStatuses, TOUR_DATES, IS_CREW, IS_MANAGER,
-  CURRENT_USER_EMAIL, USER_ROLE, CURRENT_USER_ID,
-  clearStatus
-} from './state.js';
-import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
-import { showToast } from './utils.js';
-import { getActivePlanId, getPlansIndex, savePlansIndex } from './plans.js';
-
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
 function _showMailError(msg) {
   const t = document.getElementById('toast');
@@ -27,15 +16,17 @@ let _planIdPromiseKey = null;
 
 async function _getActivePlanId() {
   if (!SUPABASE_ENABLED || !CURRENT_USER_ID) return null;
+  const key = 'tourplan_pb_' + (activePlanId || 'default');
+  const stored = localStorage.getItem(key);
+  if (stored) return stored;
 
-  // Crew: immer frisch aus PB via crew_members-Email laden — kein localStorage-Cache
-  // (localStorage überlebt Hard-Refresh und kann auf falschen Plan zeigen)
+  // Crew-Mitglieder sind keine Plan-Besitzer — Plan via crew_members-Email suchen
   if (IS_CREW) {
     try {
       const email = (CURRENT_USER_EMAIL || '').toLowerCase();
-      const found = await pbFirst('crew_members', `email = "${pbEscapeFilter(email)}"`);
+      const found = await pbFirst('crew_members', `email = "${email}"`);
       if (found?.plan_id) {
-        localStorage.setItem('tourplan_active_pb_id', found.plan_id);
+        localStorage.setItem(key, found.plan_id);
         return found.plan_id;
       }
     } catch(e) {
@@ -43,11 +34,6 @@ async function _getActivePlanId() {
     }
     return null;
   }
-
-  const activePlanId = getActivePlanId();
-  const key = 'tourplan_pb_' + (activePlanId || 'default');
-  const stored = localStorage.getItem(key);
-  if (stored) return stored;
 
   // Manager/Admin: Plan per Owner finden oder anlegen
   // Singleton-Promise verhindert Race Condition bei parallelen Aufrufen.
@@ -62,13 +48,12 @@ async function _getActivePlanId() {
 }
 
 async function _createOrFetchPlanId(key) {
-  const plans = getPlansIndex();
-  const activePlanId = getActivePlanId();
+  const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
 
   try {
     const existing = await pbFirst('plans',
-      `name = "${pbEscapeFilter(planName)}" && owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
+      `name = "${planName.replace(/"/g, '\\"')}" && owner = "${CURRENT_USER_ID}"`);
     if (existing) {
       localStorage.setItem(key, existing.id);
       return existing.id;
@@ -79,7 +64,7 @@ async function _createOrFetchPlanId(key) {
 
   // Fallback: Plan per owner suchen (falls name-Feld leer/verloren) und Namen reparieren
   try {
-    const fallback = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
+    const fallback = await pbFirst('plans', `owner = "${CURRENT_USER_ID}"`);
     if (fallback) {
       if (!fallback.name) {
         await pbPatch('/api/collections/plans/records/' + fallback.id, { name: planName });
@@ -113,7 +98,7 @@ async function _createOrFetchPlanId(key) {
 }
 
 // ── Plan-Daten für Crew-Mitglieder aus PocketBase laden ───────────────────────
-export async function loadPlanForCrew() {
+async function loadPlanForCrew() {
   if (!SUPABASE_ENABLED || !IS_CREW) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -126,25 +111,25 @@ export async function loadPlanForCrew() {
     }
     const data = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
     if (!data?.tourDates) return;
-    crew.length = 0; (data.crew || []).forEach(c => crew.push(c));
+    crew.length = 0; data.crew.forEach(c => crew.push(c));
     if (data.positions) { POSITIONS.length = 0; data.positions.forEach(p => POSITIONS.push(p)); }
     Object.keys(defaultCrew).forEach(k => delete defaultCrew[k]);
     if (data.defaultCrew) Object.assign(defaultCrew, data.defaultCrew);
     TOUR_DATES.length = 0; data.tourDates.forEach(d => TOUR_DATES.push(d));
     Object.keys(assignments).forEach(k => delete assignments[k]);
     Object.assign(assignments, data.assignments || {});
-    localStorage.setItem('tourplan_active_pb_id', planId);
+    console.log('[crew] Plan-Daten geladen aus PocketBase (' + TOUR_DATES.length + ' Tage)');
   } catch(e) {
     console.warn('loadPlanForCrew Fehler:', e.message);
   }
 }
 
 // ── Plan-Daten für Manager aus PocketBase laden ────────────────────────────
-export async function loadPlanForManager() {
+async function loadPlanForManager() {
   if (!SUPABASE_ENABLED || !IS_MANAGER) return;
   try {
     // Direkt nach owner suchen — unabhängig von activePlanId / localStorage
-    const plan = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
+    const plan = await pbFirst('plans', `owner = "${CURRENT_USER_ID}"`);
     if (!plan) { console.warn('loadPlanForManager: kein Plan für owner gefunden'); return; }
     if (!plan.plan_data) {
       console.warn('loadPlanForManager: plan_data ist leer');
@@ -154,7 +139,7 @@ export async function loadPlanForManager() {
     }
     const data = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
     if (!data?.tourDates) return;
-    crew.length = 0; (data.crew || []).forEach(c => crew.push(c));
+    crew.length = 0; data.crew.forEach(c => crew.push(c));
     if (data.positions) { POSITIONS.length = 0; data.positions.forEach(p => POSITIONS.push(p)); }
     Object.keys(defaultCrew).forEach(k => delete defaultCrew[k]);
     if (data.defaultCrew) Object.assign(defaultCrew, data.defaultCrew);
@@ -163,26 +148,26 @@ export async function loadPlanForManager() {
     Object.assign(assignments, data.assignments || {});
     // PB-Plan-ID im localStorage cachen für _savePlanToLS
     if (activePlanId) localStorage.setItem('tourplan_pb_' + activePlanId, plan.id);
-    localStorage.setItem('tourplan_active_pb_id', plan.id);
     // Plans-Index aktualisieren
     if (activePlanId && typeof savePlansIndex === 'function') {
       const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
       const found = plans.find(p => p.id === activePlanId);
       if (found) { found.name = plan.name; savePlansIndex(plans); }
     }
+    console.log('[manager] Plan geladen aus PocketBase: ' + plan.name + ' (' + TOUR_DATES.length + ' Tage)');
   } catch(e) {
     console.warn('loadPlanForManager Fehler:', e.message);
   }
 }
 
 // ── Crew-Meta laden (E-Mail + user_id pro Crew-Name) ──────────────────────────
-export async function loadCrewMeta() {
+async function loadCrewMeta() {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
 
   try {
-    const data = await pbList('crew_members', `plan_id = "${pbEscapeFilter(planId)}"`);
+    const data = await pbList('crew_members', `plan_id = "${planId}"`);
     Object.keys(crewMeta).forEach(k => delete crewMeta[k]);
     (data?.items || []).forEach(row => {
       if (row.email || row.user_id) {
@@ -195,14 +180,14 @@ export async function loadCrewMeta() {
 }
 
 // ── Assignment-Status laden ────────────────────────────────────────────────────
-export async function loadAssignmentStatuses() {
+async function loadAssignmentStatuses() {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
 
   try {
     const data = await pbListAll('assignments',
-      `plan_id = "${pbEscapeFilter(planId)}" && status != "assigned"`);
+      `plan_id = "${planId}" && status != "assigned"`);
     Object.keys(assignmentStatuses).forEach(k => delete assignmentStatuses[k]);
     (data?.items || []).forEach(row => {
       if (!assignmentStatuses[row.date]) assignmentStatuses[row.date] = {};
@@ -217,15 +202,54 @@ export async function loadAssignmentStatuses() {
   }
 }
 
+// ── Crew vorschlagen (Admin → Crew-Mitglied) ───────────────────────────────────
+// WARNUNG: Erstellt PB-Record mit status='proposed' → PB-Hook sendet E-Mail an crewEmail.
+// Nur aufrufen wenn crewEmail gesetzt ist und eine E-Mail-Benachrichtigung gewünscht ist.
+// Wird aktuell von keiner UI-Aktion aufgerufen (Stand v0.9.7.1).
+async function proposeCrew(dateStr, posId, crewName, crewEmail) {
+  if (!SUPABASE_ENABLED) return;
+  const planId = await _getActivePlanId();
+  console.log('[propose] planId:', planId, 'crew:', crewName, 'date:', dateStr);
+  if (!planId) {
+    if (typeof showToast === 'function') showToast('⚠ Kein Plan gefunden – bitte neu einloggen', 6000);
+    return;
+  }
+
+  const pos = typeof POSITIONS !== 'undefined' ? POSITIONS.find(p => p.id === posId) : null;
+  const posLabel = pos?.label || posId;
+
+  try {
+    await pbUpsert(
+      'assignments',
+      `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`,
+      {
+        plan_id: planId, date: dateStr, pos_id: posId, pos_label: posLabel,
+        crew_name: crewName, crew_email: crewEmail || '',
+        status: 'proposed'
+      },
+      { crew_name: crewName, pos_label: posLabel, crew_email: crewEmail || '',
+        status: 'proposed' }
+    );
+  } catch (e) {
+    console.error('proposeCrew Fehler:', e.message);
+    if (typeof showToast === 'function') showToast('⚠ PB-Fehler: ' + e.message, '#e84a4a');
+    return;
+  }
+
+  if (!assignmentStatuses[dateStr]) assignmentStatuses[dateStr] = {};
+  assignmentStatuses[dateStr][posId] = { status: 'proposed', proposedBy: CURRENT_USER_ID, crewName };
+  // E-Mail wird via Pocketbase-Hook automatisch gesendet (siehe .pb_hooks/main.pb.js)
+}
+
 // ── Slot bestätigen (Crew-Mitglied) ───────────────────────────────────────────
-export async function confirmAssignment(dateStr, posId) {
+async function confirmAssignment(dateStr, posId) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
 
   try {
     const existing = await pbFirst('assignments',
-      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
+      `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`);
     if (existing) {
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'confirmed', responded_at: new Date().toISOString()
@@ -240,7 +264,7 @@ export async function confirmAssignment(dateStr, posId) {
 }
 
 // ── Slot ablehnen (Crew-Mitglied → E-Mail an Admin via Hook) ──────────────────
-export async function declineAssignment(dateStr, posId) {
+async function declineAssignment(dateStr, posId) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -249,7 +273,7 @@ export async function declineAssignment(dateStr, posId) {
 
   try {
     const existing = await pbFirst('assignments',
-      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
+      `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`);
     if (existing) {
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'declined', responded_at: new Date().toISOString()
@@ -263,45 +287,35 @@ export async function declineAssignment(dateStr, posId) {
 }
 
 // ── Anfrage zurückziehen (Admin) ──────────────────────────────────────────────
-export async function cancelProposal(dateStr, posId) {
+async function cancelProposal(dateStr, posId) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
 
-  try {
-    const existing = await pbFirst('assignments',
-      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
-    if (existing) {
-      await pbDelete('/api/collections/assignments/records/' + existing.id);
-      clearStatus(dateStr, posId);  // ← NEW: fix stale state
-    }
-  } catch(e) {
-    console.warn('cancelProposal Fehler:', e.message);
-    throw e;
+  const existing = await pbFirst('assignments',
+    `plan_id = "${planId}" && date = "${dateStr}" && pos_id = "${posId}"`);
+  if (existing) {
+    await pbDelete('/api/collections/assignments/records/' + existing.id);
   }
 }
 
 // ── Alle Anfragen einer Position zurückziehen (Admin) ─────────────────────────
-export async function bulkCancelProposals(posId) {
+async function bulkCancelProposals(posId) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
 
-  try {
-    const data = await pbList('assignments',
-      `plan_id = "${pbEscapeFilter(planId)}" && pos_id = "${pbEscapeFilter(posId)}" && (status = "proposed" || status = "declined")`);
-    await Promise.all((data?.items || []).map(row => {
-      clearStatus(row.date, row.pos_id);  // ← NEW: fix stale state
-      return pbDelete('/api/collections/assignments/records/' + row.id);
-    }));
-  } catch(e) {
-    console.warn('bulkCancelProposals Fehler:', e.message);
-    throw e;
-  }
+  const data = await pbList('assignments',
+    `plan_id = "${planId}" && pos_id = "${posId}" && (status = "proposed" || status = "declined")`);
+  await Promise.all((data?.items || []).map(row =>
+    pbDelete('/api/collections/assignments/records/' + row.id)
+  ));
 }
 
 // ── Crew für mehrere Slots auf einmal vorschlagen ─────────────────────────────
-export async function bulkProposeCrew(slots) {
+// WARNUNG: Erstellt N PB-Records mit status='proposed' → N E-Mails via PB-Hook.
+// Wird aktuell von keiner UI-Aktion aufgerufen (Stand v0.9.7.1).
+async function bulkProposeCrew(slots) {
   if (!SUPABASE_ENABLED || !slots.length) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -310,7 +324,7 @@ export async function bulkProposeCrew(slots) {
     const pos = typeof POSITIONS !== 'undefined' ? POSITIONS.find(p => p.id === s.posId) : null;
     return pbUpsert(
       'assignments',
-      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(s.date)}" && pos_id = "${pbEscapeFilter(s.posId)}"`,
+      `plan_id = "${planId}" && date = "${s.date}" && pos_id = "${s.posId}"`,
       {
         plan_id: planId, date: s.date, pos_id: s.posId, pos_label: pos?.label || s.posId,
         crew_name: s.crewName, crew_email: s.crewEmail || '',
@@ -330,7 +344,7 @@ export async function bulkProposeCrew(slots) {
 }
 
 // ── Absage-Sammel-E-Mail an Crew-Mitglied (via Pocketbase-Hook) ───────────────
-export async function sendCancellationNotice(crewName, crewEmail, slots) {
+async function sendCancellationNotice(crewName, crewEmail, slots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -349,46 +363,34 @@ export async function sendCancellationNotice(crewName, crewEmail, slots) {
 }
 
 // ── Bereitschaftsmeldung an Admin (via Pocketbase-Hook) ───────────────────────
-export async function sendAvailabilityNotice(crewName, crewEmail, slots) {
+async function sendAvailabilityNotice(crewName, crewEmail, slots) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
-  try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id: planId, crew_name: crewName, crew_email: crewEmail,
-      type: 'availability', plan_name: planName,
-      app_url: JSON.stringify(slots)
-    });
-  } catch(e) {
-    console.warn('sendAvailabilityNotice Fehler:', e.message);
-    _showMailError(e.message);
-    throw e;
-  }
+  await pbPost('/api/collections/crew_invites/records', {
+    plan_id: planId, crew_name: crewName, crew_email: crewEmail,
+    type: 'availability', plan_name: planName,
+    app_url: JSON.stringify(slots)
+  });
 }
 
-export async function sendUpdateNotice(crewName, crewEmail, slots) {
+async function sendUpdateNotice(crewName, crewEmail, slots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
-  try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id: planId, crew_name: crewName, crew_email: crewEmail,
-      type: 'update', plan_name: planName,
-      app_url: JSON.stringify(slots)
-    });
-  } catch(e) {
-    console.warn('sendUpdateNotice Fehler:', e.message);
-    _showMailError(e.message);
-    throw e;
-  }
+  await pbPost('/api/collections/crew_invites/records', {
+    plan_id: planId, crew_name: crewName, crew_email: crewEmail,
+    type: 'update', plan_name: planName,
+    app_url: JSON.stringify(slots)
+  });
 }
 
 // ── Crew einladen / Erinnerung schicken (E-Mail via Pocketbase-Hook) ──────────
-export async function sendCrewInvite(crewName, crewEmail, type) {
+async function sendCrewInvite(crewName, crewEmail, type) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   // Hook-Trigger: temporären invite-Record anlegen, Hook sendet Mail und löscht ihn
   const planId = await _getActivePlanId();
@@ -412,7 +414,7 @@ export async function sendCrewInvite(crewName, crewEmail, type) {
 }
 
 // ── Crew-Mitglied mit E-Mail verknüpfen (Admin) ───────────────────────────────
-export async function saveCrewLink(crewName, email) {
+async function saveCrewLink(crewName, email) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) throw new Error('Plan nicht gefunden – bitte neu einloggen');
@@ -420,7 +422,7 @@ export async function saveCrewLink(crewName, email) {
   try {
     await pbUpsert(
       'crew_members',
-      `plan_id = "${pbEscapeFilter(planId)}" && name = "${pbEscapeFilter(crewName)}"`,
+      `plan_id = "${planId}" && name = "${crewName.replace(/"/g, '\\"')}"`,
       { plan_id: planId, name: crewName, email, sort_order: crew.indexOf(crewName) },
       { email }
     );
