@@ -1161,11 +1161,16 @@ function _adminPlanAction(action) {
 function loadPlanIntoTourview() {
   if (!_wrkPlanData) { adminToast('Kein Plan geladen', '#e84a4a'); return; }
 
-  // NUTZE localStorage STATT sessionStorage — sessionStorage wird gelöscht bei Reloads!
-  localStorage.setItem('_planTransfer_data', JSON.stringify(_wrkPlanData));
-  localStorage.setItem('_planTransfer_name', _wrkPlanName || 'Plan');
-  localStorage.setItem('_planTransfer_pbid', _wrkPbPlanId || '');
-  localStorage.setItem('_planTransfer_flag', '1');  // Signal Flag
+  // Versuche localStorage zu nutzen
+  try {
+    localStorage.setItem('_planTransfer_data', JSON.stringify(_wrkPlanData));
+    localStorage.setItem('_planTransfer_name', _wrkPlanName || 'Plan');
+    localStorage.setItem('_planTransfer_pbid', _wrkPbPlanId || '');
+    localStorage.setItem('_planTransfer_flag', '1');  // Signal Flag
+  } catch(e) {
+    adminToast('localStorage Fehler: ' + e.message, '#e84a4a');
+    return;
+  }
 
   window.location.href = 'index.html';
 }
