@@ -1349,6 +1349,7 @@ async function loadSelectedPlan() {
 }
 
 async function loadAndTransferPlan() {
+  alert('loadAndTransferPlan() AUFGERUFEN!');
   // Lade ersten Plan aus PocketBase und transferiere zu index.html
   const _logs = [];
   const _log = (msg) => { _logs.push('[' + new Date().toLocaleTimeString() + '] ' + msg); localStorage.setItem('_planTransferLogs', JSON.stringify(_logs)); };
