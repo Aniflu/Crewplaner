@@ -22,7 +22,8 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
 
 
 (async function authBootstrapFlow() {
-  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  const pageName = window.location.pathname.split('/').pop();
+  const currentPage = (pageName && pageName !== '') ? pageName : 'index.html';
   const EXEMPT_PAGES = ['login.html', 'view.html'];
   const pbUrl = window.POCKETBASE_URL || 'http://localhost:8090';
 
