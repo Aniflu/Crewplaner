@@ -20,6 +20,18 @@ function _logAuth(msg) {
 document.documentElement.style.visibility = 'hidden';
 _logAuth('Page visibility hidden, starting auth bootstrap');
 
+// ANTI-REDIRECT BLOCKER: Wenn Plan-Transfer aktiv, blockiere ALLE Redirects zu admin.html
+if (localStorage.getItem('_planTransfer_flag')) {
+  const origReplace = window.location.replace;
+  window.location.replace = function(url) {
+    if (typeof url === 'string' && url.includes('admin.html')) {
+      console.log('[BLOCKER] Redirect zu admin.html blockiert! Plan-Transfer aktiv');
+      return;
+    }
+    origReplace.call(window.location, url);
+  };
+}
+
 (async function authBootstrapFlow() {
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
   const EXEMPT_PAGES = ['login.html', 'view.html'];
