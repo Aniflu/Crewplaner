@@ -90,8 +90,9 @@ window.openPDFFilter = openPDFFilter;
 
 // ── Security: Redirect to login if not authenticated ──────────────────────
 if (!localStorage.getItem('pb_token')) {
-  const hasNoreauth = new URLSearchParams(window.location.search).has('noreauth');
-  if (!window.location.pathname.includes('login') && !window.location.pathname.includes('view') && !hasNoreauth) {
+  // Check if plan-transfer is in progress (sessionStorage signal is more reliable than URL query params)
+  const planTransferActive = !!sessionStorage.getItem('crewplan_transfer_data');
+  if (!window.location.pathname.includes('login') && !window.location.pathname.includes('view') && !planTransferActive) {
     window.location.href = 'login.html';
   }
 }
