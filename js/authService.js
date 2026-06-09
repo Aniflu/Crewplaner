@@ -5,7 +5,6 @@ import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatus
 import { renderTable } from './render.js';
 import { showToast } from './utils.js';
 import { getActivePlanId } from './plans.js';
-import { startApp } from './init.js';
 
 // ── Auth Service (Pocketbase) ──────────────────────────────────────────────────
 window.__authGuarded = SUPABASE_ENABLED;
@@ -17,7 +16,7 @@ export async function _authCheckAndStart() {
 
     if (!token || !userStr) {
       if (window.location.search) localStorage.setItem('pendingEmailAction', window.location.search);
-      window.location.href = 'login.html';
+      window.location.href = '/login.html';
       return;
     }
 
@@ -40,7 +39,7 @@ export async function _authCheckAndStart() {
       localStorage.removeItem('pb_token');
       localStorage.removeItem('pb_user');
       if (window.location.search) localStorage.setItem('pendingEmailAction', window.location.search);
-      window.location.href = 'login.html';
+      window.location.href = '/login.html';
       return;
     }
 
@@ -86,13 +85,8 @@ export async function _authCheckAndStart() {
       } catch(e) { console.warn('[auth] Plan-Transfer Fehler:', e); }
     }
 
-    // Call startApp (UI initialization) — startApp is imported from init.js in app.js
-    // It's safe to call here because app.js imports all modules before calling _authCheckAndStart()
-    if (typeof startApp === 'function') {
-      startApp();
-    } else if (typeof window.startApp === 'function') {
-      window.startApp();
-    }
+    // REMOVED: startApp wird jetzt in app.js nach DOMContentLoaded aufgerufen, nicht hier
+    // Das verhindert Timing-Probleme mit ES6 Module async imports
 
     // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
     const activePlanId = getActivePlanId();
@@ -115,7 +109,7 @@ export async function _authCheckAndStart() {
       });
   } catch (e) {
     console.error('Auth-Fehler:', e);
-    window.location.href = 'login.html';
+    window.location.href = '/login.html';
   }
 }
 
@@ -134,7 +128,7 @@ function _showUserBadge(user) {
 export async function logout() {
   localStorage.removeItem('pb_token');
   localStorage.removeItem('pb_user');
-  window.location.href = 'login.html';
+  window.location.href = '/login.html';
 }
 
 export async function _handleEmailAction() {

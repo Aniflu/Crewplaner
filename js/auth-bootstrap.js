@@ -35,7 +35,7 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
   if (!token || !userStr) {
     if (!EXEMPT_PAGES.includes(currentPage)) {
       // Alle anderen Seiten: redirect zu login.html
-      window.location.replace('login.html');
+      window.location.replace('/login.html');
       return;
     }
     // login.html / view.html ohne Token → Seite zeigen
@@ -88,7 +88,7 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
     // ─ Falsche Seite für diese Rolle → redirect (aber NICHT wenn Plan-Transfer aktiv)
     if (currentPage === 'admin.html' && !isAdmin) {
       // Crew/Booker auf admin.html → zu index.html
-      window.location.replace('index.html');
+      window.location.replace('/index.html');
       return;
     }
     // ENTFERNT: Redirect Admin zu admin.html
@@ -114,7 +114,7 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
     if (!EXEMPT_PAGES.includes(currentPage)) {
       // Zu login.html redirecten (außer auf exempt Seiten)
       _logAuth('Redirecting to login.html from ' + currentPage);
-      window.location.replace('login.html');
+      window.location.replace('/login.html');
     } else {
       // login.html / view.html → zeigen
       document.documentElement.style.visibility = '';
