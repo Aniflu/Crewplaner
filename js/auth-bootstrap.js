@@ -91,20 +91,9 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
       window.location.replace('index.html');
       return;
     }
-    if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer) {
-      // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer)
-      // ABER: Verzögere Redirect bis startApp() aufgerufen wurde (Plan ist geladen)
-      // Sonst: Redirect passiert BEVOR Plan geladen wird → User sieht leere Seite
-      const checkAppReady = setInterval(() => {
-        if (window.__appStarted) {
-          clearInterval(checkAppReady);
-          window.location.replace('admin.html');
-        }
-      }, 100);
-      // Timeout: Wenn startApp nie aufgerufen wird, redirecte nach 3 Sekunden
-      setTimeout(() => { clearInterval(checkAppReady); window.location.replace('admin.html'); }, 3000);
-      return;
-    }
+    // ENTFERNT: Redirect Admin zu admin.html
+    // Admin kann auf index.html bleiben — kein Grund zu zwingen auf admin.html zu gehen
+    // Plan-Transfer funktioniert jetzt zuverlässig ohne redirect-Roulette
 
     // ─ Autorisiert für diese Seite → Seite zeigen + User bereitstellen
     window.BOOTSTRAP_CURRENT_USER = data.record;
