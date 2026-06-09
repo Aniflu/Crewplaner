@@ -1,7 +1,6 @@
 // Entry point for index.html
 import { SUPABASE_ENABLED } from './config.js';
 import { _authCheckAndStart, logout } from './authService.js';
-import { startApp } from './init.js';
 
 // Import all modules to ensure they are loaded and registered
 import './state.js';
@@ -114,8 +113,4 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('[app.js] Auth check failed:', e);
     window.location.href = 'login.html';
   });
-
-  // CRITICAL: startApp must be called here to initialize the app
-  // It was previously called in authService.js but that caused timing issues with ES6 modules
-  startApp();
 });
