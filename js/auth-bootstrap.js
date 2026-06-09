@@ -93,7 +93,16 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
     }
     if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer) {
       // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer)
-      window.location.replace('admin.html');
+      // ABER: Verzögere Redirect bis startApp() aufgerufen wurde (Plan ist geladen)
+      // Sonst: Redirect passiert BEVOR Plan geladen wird → User sieht leere Seite
+      const checkAppReady = setInterval(() => {
+        if (window.__appStarted) {
+          clearInterval(checkAppReady);
+          window.location.replace('admin.html');
+        }
+      }, 100);
+      // Timeout: Wenn startApp nie aufgerufen wird, redirecte nach 3 Sekunden
+      setTimeout(() => { clearInterval(checkAppReady); window.location.replace('admin.html'); }, 3000);
       return;
     }
 

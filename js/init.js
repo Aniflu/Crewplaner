@@ -14,6 +14,7 @@ import { getPlansIndex, renderPlanList, genPlanId, savePlansIndex, PLAN_PREFIX, 
 import { applyData } from './persistence.js';
 
 export function startApp(){
+  window.__appStarted = true;  // Signal für auth-bootstrap dass App geladen ist
   loadCustomTypes();
   renderTypeList();
   loadLogosGlobal();
