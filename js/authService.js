@@ -23,7 +23,8 @@ export async function _authCheckAndStart() {
     // Token beim Server erneuern (validiert + gibt frisches Token)
     // EXCEPT wenn ?noreauth=1 (plan transfer — token ist bereits gültig)
     let user;
-    const skipRefresh = new URLSearchParams(window.location.search).has('noreauth');
+    const skipRefresh = new URLSearchParams(window.location.search).has('noreauth')
+                     || !!localStorage.getItem('_planTransfer_data');
     try {
       if (skipRefresh) {
         user = JSON.parse(userStr);

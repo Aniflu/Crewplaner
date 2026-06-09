@@ -91,8 +91,11 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
       window.location.replace('index.html');
       return;
     }
-    // Entfernt: Redirect Admin zu admin.html
-    // Admin kann auf index.html bleiben wenn sie wollen (z.B. Plan-Transfer)
+    if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer) {
+      // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer)
+      window.location.replace('admin.html');
+      return;
+    }
 
     // ─ Autorisiert für diese Seite → Seite zeigen + User bereitstellen
     window.BOOTSTRAP_CURRENT_USER = data.record;
