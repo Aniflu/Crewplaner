@@ -91,17 +91,8 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
       window.location.replace('index.html');
       return;
     }
-    if (currentPage === 'index.html' && isAdmin && !hasPlanTransfer) {
-      // Manager/Superadmin auf index.html → zu admin.html (EXCEPT wenn Plan-Transfer)
-      // DELAY: Gib localStorage Zeit, sich zu speichern (Plan-Transfer könnte gerade passiert sein)
-      setTimeout(() => {
-        const finalCheck = !!localStorage.getItem('_planTransfer_flag') || !!localStorage.getItem('_planTransfer_data');
-        if (!finalCheck) {
-          window.location.replace('admin.html');
-        }
-      }, 50);
-      return;
-    }
+    // Entfernt: Redirect Admin zu admin.html
+    // Admin kann auf index.html bleiben wenn sie wollen (z.B. Plan-Transfer)
 
     // ─ Autorisiert für diese Seite → Seite zeigen + User bereitstellen
     window.BOOTSTRAP_CURRENT_USER = data.record;
