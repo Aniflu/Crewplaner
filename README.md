@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.9.24** — fix: Plan-Transfer Bug — CDN-Cache killt alle Fixes. Cache-Buster v=10 + Redirect + skipRefresh
 **v0.9.23** — fix: Plan-Transfer — 3 Tage Arbeit wiederhergestellt + authService.js localStorage Keys
 **v0.9.22** — fix: Plan-Transfer GUARD blockiert admin.html Redirects
 **v0.9.21** — fix: Plan-Transfer Button lädt ersten Plan automatisch

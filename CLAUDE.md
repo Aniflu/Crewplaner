@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.23**
+- Aktuelle Version: **v0.9.24**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.9.24 — fix: Plan-Transfer Bug — CDN-Cache + Redirect wiederherstellen + skipRefresh
+v0.9.23 — fix: Plan-Transfer — 3 Tage Arbeit wiederhergestellt + authService.js localStorage Keys
 v0.9.11 — fix: admin-app.js importiert generateICS als adminGenerateICS aus calendar.js (aktuell)
 v0.9.10 — fix: Entferne falsche Module-Imports aus render.js und types.js
 v0.9.9 — fix: Module-Timing-Bug in admin.html — Warte auf beide authReady + DOMContentLoaded
