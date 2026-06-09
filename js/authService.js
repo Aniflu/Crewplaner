@@ -85,12 +85,8 @@ export async function _authCheckAndStart() {
       } catch(e) { console.warn('[auth] Plan-Transfer Fehler:', e); }
     }
 
-    // Call startApp — defined in init.js which is imported after this module
-    if (typeof window.startApp === 'function') {
-      window.startApp();
-    } else {
-      console.warn('[auth] startApp not yet defined');
-    }
+    // REMOVED: startApp wird jetzt in app.js nach DOMContentLoaded aufgerufen, nicht hier
+    // Das verhindert Timing-Probleme mit ES6 Module async imports
 
     // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
     const activePlanId = getActivePlanId();

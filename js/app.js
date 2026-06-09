@@ -1,6 +1,7 @@
 // Entry point for index.html
 import { SUPABASE_ENABLED } from './config.js';
 import { _authCheckAndStart, logout } from './authService.js';
+import { startApp } from './init.js';
 
 // Import all modules to ensure they are loaded and registered
 import './state.js';
@@ -27,7 +28,6 @@ import './crewNotify.js';
 import './crewLink.js';
 import './userView.js';
 import './dialog.js';
-import './init.js';
 
 // ── Explicit imports for window.* registrations (onclick handlers) ──
 import { saveJSON, loadJSON, onFileLoad } from './persistence.js';
@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('[app.js] DOMContentLoaded fired. SUPABASE_ENABLED:', SUPABASE_ENABLED);
   if (!SUPABASE_ENABLED) {
     console.warn('[app.js] SUPABASE_ENABLED=false, skipping auth check');
+    startApp();
     return;
   }
   if (window.location.pathname.includes('login')) {
@@ -113,4 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('[app.js] Auth check failed:', e);
     window.location.href = 'login.html';
   });
+
+  // CRITICAL: startApp must be called here to initialize the app
+  // It was previously called in authService.js but that caused timing issues with ES6 modules
+  startApp();
 });
