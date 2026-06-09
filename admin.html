@@ -1162,21 +1162,33 @@ function loadPlanIntoTourview() {
   if (!_wrkPlanData) { adminToast('Kein Plan geladen', '#e84a4a'); return; }
 
   // Versuche localStorage zu nutzen
+  let usedStorage = false;
   try {
     localStorage.setItem('_planTransfer_data', JSON.stringify(_wrkPlanData));
     localStorage.setItem('_planTransfer_name', _wrkPlanName || 'Plan');
     localStorage.setItem('_planTransfer_pbid', _wrkPbPlanId || '');
-    localStorage.setItem('_planTransfer_flag', '1');  // Signal Flag
+    localStorage.setItem('_planTransfer_flag', '1');
 
-    // DEBUG: Verifiziere, dass es gespeichert wurde
+    // Verifiziere
     const verify = localStorage.getItem('_planTransfer_data');
-    if (!verify) {
-      alert('FEHLER: _planTransfer_data konnte nicht in localStorage gespeichert werden!');
-      return;
+    if (verify) {
+      usedStorage = true;
     }
   } catch(e) {
-    adminToast('localStorage Fehler: ' + e.message, '#e84a4a');
-    return;
+    console.warn('localStorage fehlgeschlagen:', e.message);
+  }
+
+  // Fallback: URL Parameter (funktioniert auch wenn localStorage blocked ist)
+  if (!usedStorage) {
+    // Komprimiere Daten für URL (klein genug?)
+    const planStr = JSON.stringify(_wrkPlanData);
+    if (planStr.length < 8000) {
+      window.location.href = 'index.html?planTransfer=1&planData=' + encodeURIComponent(planStr);
+      return;
+    } else {
+      adminToast('Plan zu groß für Transfer!', '#e84a4a');
+      return;
+    }
   }
 
   window.location.href = 'index.html';

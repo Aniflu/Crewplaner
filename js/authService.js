@@ -47,8 +47,24 @@ export async function _authCheckAndStart() {
     _showUserBadge(user);
     // Page visibility handled by auth-bootstrap.js
 
-    // Plan-Transfer von admin.html via localStorage anwenden (vor startApp)
-    const _transferData = localStorage.getItem('_planTransfer_data');
+    // Plan-Transfer von admin.html via localStorage ODER URL Parameter anwenden (vor startApp)
+    let _transferData = localStorage.getItem('_planTransfer_data');
+
+    // Fallback: Prüfe URL Parameter (wenn localStorage blockiert ist)
+    if (!_transferData) {
+      const params = new URLSearchParams(window.location.search);
+      const urlPlanData = params.get('planData');
+      if (urlPlanData) {
+        try {
+          _transferData = urlPlanData;
+          // Cleanup URL
+          window.history.replaceState({}, '', window.location.pathname);
+        } catch(e) {
+          console.warn('Plan-Transfer URL Parameter Fehler:', e);
+        }
+      }
+    }
+
     if (_transferData && IS_MANAGER) {
       try {
         const _td = JSON.parse(_transferData);
