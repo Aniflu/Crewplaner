@@ -503,7 +503,7 @@ body {
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
-    <button class="btn btn-primary btn-sm" onclick="_wrkPlanData ? loadPlanIntoTourview() : window.location.href='/index.html'">Aktuellen Plan bearbeiten →</button>
+    <button class="btn btn-primary btn-sm" onclick="_wrkPlanData ? loadPlanIntoTourview() : window.location.href='index.html'">Aktuellen Plan bearbeiten →</button>
     <button class="btn btn-ghost btn-sm" onclick="adminLogout()">Abmelden</button>
   </div>
 </div>
@@ -948,7 +948,7 @@ function adminToast(msg, color) {
 function adminLogout() {
   localStorage.removeItem('pb_token');
   localStorage.removeItem('pb_user');
-  window.location.href = '/login.html';
+  window.location.href = 'login.html';
 }
 
 // ── New User Form ──────────────────────────────────────────────────────────────
