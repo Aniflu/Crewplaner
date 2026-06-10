@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.29**
+- Aktuelle Version: **v0.9.30**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,7 +27,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.9.29 — fix: KRITISCH — Alle window.location.href Redirects zu absoluten Pfaden
+v0.9.30 — fix: KRITISCH — Alle window.location.href Redirects zu absoluten Pfaden
+v0.9.29 — fix: startApp() Timing + Undo broken ES6 Module fixes
 v0.9.28 — fix: ES6 Modul Timing-Bug + Undo broken fixes
 v0.9.27 — fix: Plan-Transfer Fallback — URL Parameter wenn localStorage blockiert
 v0.9.26 — feat: Debug Dashboard — Live-Logging aller console/redirects/storage
