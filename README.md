@@ -7,7 +7,8 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
-**v0.9.28** — fix: KRITISCH — Alle window.location.href Redirects zu absoluten Pfaden
+**v0.9.29** — fix: KRITISCH — Alle window.location.href Redirects zu absoluten Pfaden
+**v0.9.28** — fix: ES6 Modul Timing-Bug + Undo broken fixes
 **v0.9.27** — fix: Plan-Transfer Fallback — URL Parameter wenn localStorage blockiert
 **v0.9.26** — feat: Debug Dashboard — Live-Logging aller console/redirects/storage
 **v0.9.25** — fix: ENDGÜLTIG — Redirect zu admin.html entfernt. Admin bleibt auf index.html
