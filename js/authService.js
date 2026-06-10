@@ -5,6 +5,7 @@ import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatus
 import { renderTable } from './render.js';
 import { showToast } from './utils.js';
 import { getActivePlanId } from './plans.js';
+import { startApp } from './init.js';
 
 // ── Auth Service (Pocketbase) ──────────────────────────────────────────────────
 window.__authGuarded = SUPABASE_ENABLED;
@@ -85,8 +86,9 @@ export async function _authCheckAndStart() {
       } catch(e) { console.warn('[auth] Plan-Transfer Fehler:', e); }
     }
 
-    // REMOVED: startApp wird jetzt in app.js nach DOMContentLoaded aufgerufen, nicht hier
-    // Das verhindert Timing-Probleme mit ES6 Module async imports
+    // Starte die App NACH Plan-Transfer (falls vorhanden)
+    // Das garantiert dass startApp() die korrekten localStorage Keys sieht
+    startApp();
 
     // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
     const activePlanId = getActivePlanId();

@@ -1,7 +1,6 @@
 // Entry point for index.html
 import { SUPABASE_ENABLED } from './config.js';
 import { _authCheckAndStart, logout } from './authService.js';
-import { startApp } from './init.js';
 
 // Import all modules to ensure they are loaded and registered
 import './state.js';
@@ -101,7 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('[app.js] DOMContentLoaded fired. SUPABASE_ENABLED:', SUPABASE_ENABLED);
   if (!SUPABASE_ENABLED) {
     console.warn('[app.js] SUPABASE_ENABLED=false, skipping auth check');
-    startApp();
+    // Direct import + call for offline mode (no PocketBase)
+    import('./init.js').then(m => m.startApp());
     return;
   }
   if (window.location.pathname.includes('login')) {
@@ -110,12 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   console.log('[app.js] Starting auth check...');
   // auth-bootstrap.js already handles visibility
+  // startApp() wird von authService.js nach Plan-Transfer aufgerufen
   _authCheckAndStart().catch(e => {
     console.error('[app.js] Auth check failed:', e);
     window.location.href = '/login.html';
   });
-
-  // CRITICAL: startApp must be called here to initialize the app
-  // It was previously called in authService.js but that caused timing issues with ES6 modules
-  startApp();
 });
