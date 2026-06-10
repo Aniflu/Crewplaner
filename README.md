@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.9.33** — fix: GitHub Pages — Dynamischer <base> Tag für relative Pfade
 **v0.9.32** — fix: GitHub Pages — Absolute Pfade zurück auf relative Pfade
 **v0.9.31** — fix: Plan-Transfer Timing — startApp() nach Plan-Schreiben aufrufen
 **v0.9.30** — fix: KRITISCH — Alle window.location.href Redirects zu absoluten Pfaden

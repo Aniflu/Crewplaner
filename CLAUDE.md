@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.9.32**
+- Aktuelle Version: **v0.9.33**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.9.33 — fix: GitHub Pages — Dynamischer <base> Tag für relative Pfade
 v0.9.32 — fix: GitHub Pages — Absolute Pfade zurück auf relative Pfade
 v0.9.31 — fix: Plan-Transfer Timing — startApp() nach Plan-Schreiben aufrufen
 v0.9.30 — fix: KRITISCH — Alle window.location.href Redirects zu absoluten Pfaden
