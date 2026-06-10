@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tour Crew Plan 2026</title>
+<script>
+  // Dynamischer Base Tag für GitHub Pages + Produktivserver
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  const isGitHubPages = window.location.hostname.includes('github.io');
+  const basePath = isGitHubPages && pathParts[0] ? '/' + pathParts[0] + '/' : '/';
+  document.write('<base href="' + basePath + '">');
+</script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=23">
 
