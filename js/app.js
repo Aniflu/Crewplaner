@@ -92,7 +92,7 @@ if (!localStorage.getItem('pb_token')) {
   // Check if plan-transfer is in progress — NUTZE localStorage, nicht sessionStorage!
   const planTransferActive = !!localStorage.getItem('_planTransfer_flag');
   if (!window.location.pathname.includes('login') && !window.location.pathname.includes('view') && !planTransferActive) {
-    window.location.href = 'login.html';
+    window.location.href = './login.html';
   }
 }
 
@@ -113,6 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // startApp() wird von authService.js nach Plan-Transfer aufgerufen
   _authCheckAndStart().catch(e => {
     console.error('[app.js] Auth check failed:', e);
-    window.location.href = 'login.html';
+    window.location.href = './login.html';
   });
 });

@@ -4,13 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Konsole — Tour/Crew</title>
-<script>
-  // Dynamischer Base Tag für GitHub Pages + Produktivserver
-  const pathParts = window.location.pathname.split('/').filter(Boolean);
-  const isGitHubPages = window.location.hostname.includes('github.io');
-  const basePath = isGitHubPages && pathParts[0] ? '/' + pathParts[0] + '/' : '/';
-  document.write('<base href="' + basePath + '">');
-</script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <script type="module" src="js/admin-app.js?v=1"></script>
 
@@ -510,7 +503,7 @@ body {
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
-    <button class="btn btn-primary btn-sm" onclick="_wrkPlanData ? loadPlanIntoTourview() : window.location.href='index.html'">Aktuellen Plan bearbeiten →</button>
+    <button class="btn btn-primary btn-sm" onclick="_wrkPlanData ? loadPlanIntoTourview() : window.location.href='./index.html'">Aktuellen Plan bearbeiten →</button>
     <button class="btn btn-ghost btn-sm" onclick="adminLogout()">Abmelden</button>
   </div>
 </div>
@@ -955,7 +948,7 @@ function adminToast(msg, color) {
 function adminLogout() {
   localStorage.removeItem('pb_token');
   localStorage.removeItem('pb_user');
-  window.location.href = 'login.html';
+  window.location.href = './login.html';
 }
 
 // ── New User Form ──────────────────────────────────────────────────────────────
