@@ -17,7 +17,7 @@ export async function _authCheckAndStart() {
 
     if (!token || !userStr) {
       if (window.location.search) localStorage.setItem('pendingEmailAction', window.location.search);
-      window.location.href = './login.html';
+      window.location.href = window.getNavUrl('login.html');
       return;
     }
 
@@ -40,7 +40,7 @@ export async function _authCheckAndStart() {
       localStorage.removeItem('pb_token');
       localStorage.removeItem('pb_user');
       if (window.location.search) localStorage.setItem('pendingEmailAction', window.location.search);
-      window.location.href = './login.html';
+      window.location.href = window.getNavUrl('login.html');
       return;
     }
 
@@ -111,7 +111,7 @@ export async function _authCheckAndStart() {
       });
   } catch (e) {
     console.error('Auth-Fehler:', e);
-    window.location.href = './login.html';
+    window.location.href = window.getNavUrl('login.html');
   }
 }
 
@@ -130,7 +130,7 @@ function _showUserBadge(user) {
 export async function logout() {
   localStorage.removeItem('pb_token');
   localStorage.removeItem('pb_user');
-  window.location.href = './login.html';
+  window.location.href = window.getNavUrl('login.html');
 }
 
 export async function _handleEmailAction() {

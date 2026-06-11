@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tour Crew Plan 2026</title>
+<script>
+  // Smart URL navigation — funktioniert auf GitHub Pages + Produktivserver
+  window.getNavUrl = function(filename) {
+    const pathname = window.location.pathname;
+    const parts = pathname.split('/').filter(Boolean);
+    // GitHub Pages: /Crewplaner/admin.html → parts = ['Crewplaner', 'admin.html']
+    // Produktivserver: /admin.html → parts = ['admin.html']
+    if (parts.length > 1) {
+      return '/' + parts[0] + '/' + filename;  // GitHub Pages: /Crewplaner/filename
+    } else {
+      return '/' + filename;  // Produktivserver: /filename
+    }
+  };
+</script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=23">
 
@@ -69,7 +83,7 @@
         <button class="manager-only" onclick="openCrewModal()"><span class="sb-gl">👥</span>Crew &amp; Positionen</button>
         <button id="btnUpdateQueue" class="manager-only" onclick="_openUpdateQueueModal()" style="display:none;"><span class="sb-gl">↻</span>Updates <span id="updateQueueBadge" style="background:#e84a4a;color:#fff;border-radius:50%;padding:1px 6px;font-size:.7rem;margin-left:4px;">0</span></button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
-        <button id="btnKonsole" onclick="window.location.href='./admin.html'" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
+        <button id="btnKonsole" onclick="window.location.href=window.getNavUrl('admin.html')" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
         <button class="crew-only primary" onclick="bulkConfirmAllMySlots()" style="display:none;"><span class="sb-gl">✓</span>Termine bestätigen</button>
         <button class="crew-only" id="btnSendCancellations" onclick="sendCancellations()" style="display:none;background:rgba(232,74,74,.15);border-color:rgba(232,74,74,.4);color:#e84a4a;"><span class="sb-gl">⚠</span>Änderungen mitteilen</button>
       </div>
