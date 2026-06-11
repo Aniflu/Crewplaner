@@ -27,6 +27,8 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
   const EXEMPT_PAGES = ['login.html', 'view.html'];
   const pbUrl = window.POCKETBASE_URL || 'http://localhost:8090';
 
+  _logAuth('DEBUG: pathname=' + window.location.pathname + ' pageName=' + pageName + ' currentPage=' + currentPage);
+
   const token = localStorage.getItem('pb_token');
   const userStr = localStorage.getItem('pb_user');
   const skipRefresh = new URLSearchParams(window.location.search).has('noreauth');
