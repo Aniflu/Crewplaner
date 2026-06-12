@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.10.5** — fix: ES6-Audit — 35 onclick-Handler auf index.html waren seit Migration nicht mehr global registriert (crashten beim Klick), jetzt in app.js registriert
 **v0.10.4** — chore: Diagnose-Logs entfernt + Plan-Leichen-Leak gefixt (stabile Transfer-ID + Auto-Cleanup verwaister localStorage-Keys)
 **v0.10.3** — fix: ALLE restlichen fehlenden ES6-Imports (render updateStats/autoSave, persistence, plans/dropdown hasPermission, userView, crewLink) — behebt Bounce + Feature-Crashes
 **v0.10.2** — fix: Bounce behoben (render.js colorToDarkBg) + 4 weitere fehlende ES6-Imports (dropdown, pdf, crewNotify)

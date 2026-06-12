@@ -149,7 +149,7 @@ function _renderMySchedule(myName) {
   });
 }
 
-async function _bulkConfirmMySlots() {
+export async function _bulkConfirmMySlots() {
   const checkboxes = document.querySelectorAll('#sharedBody input[type=checkbox]');
   const decisions = Array.from(checkboxes).map(cb => ({
     date: cb.dataset.date,
@@ -264,7 +264,7 @@ function _updateMeldungBar() {
   if (cnt) cnt.textContent = n;
 }
 
-function meinesMelden(dateStr, posId) {
+export function meinesMelden(dateStr, posId) {
   if (!getMyCrewName()) { showToast('Dein Konto ist noch nicht verknüpft. Bitte Admin kontaktieren.', '#e84a4a'); return; }
   if (!_meldungDraft[dateStr]) _meldungDraft[dateStr] = new Set();
   if (_meldungDraft[dateStr].has(posId)) {
@@ -389,7 +389,7 @@ export function _closeUpdateQueueModal() {
   document.body.style.overflow = '';
 }
 
-function _deleteSlotFromQueue(crewName, slotKey) {
+export function _deleteSlotFromQueue(crewName, slotKey) {
   const q = _getCrewUpdateQueue();
   if (!q[crewName]) return;
   q[crewName].slots = q[crewName].slots.filter(s => `${s.date}|${s.posLabel}` !== slotKey);
@@ -399,7 +399,7 @@ function _deleteSlotFromQueue(crewName, slotKey) {
   _openUpdateQueueModal();
 }
 
-function _toggleSlotSelection(cb) {
+export function _toggleSlotSelection(cb) {
   const crewName = cb.dataset.crew;
   const slotKey = cb.dataset.key;
   const q = _getCrewUpdateQueue();

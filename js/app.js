@@ -48,6 +48,20 @@ import { openModal, closeModal } from './modals.js';
 import { showToast } from './utils.js';
 import { generatePDF, pdfSetView, pdfToggleAll, openPDFFilter } from './pdf.js';
 
+// ── Migrations-Fix v0.10.5: onclick-Handler die nach ES6-Migration nicht mehr global registriert waren ──
+import { openCrewDD, openDateDD, openDefaultDD, openTypeDD, requestAll, requestForPos, bulkCancelPos } from './dropdown.js';
+import { openPosMenu, openRenamePos } from './positions.js';
+import { confirmNewPlan, confirmRenamePlan, deletePlan, renamePlan, switchPlan } from './plans.js';
+import { _confirmTypeModal, deleteType, openEditType } from './types.js';
+import { adSetMode, confirmAddDate } from './dates.js';
+import { removeCrew } from './crew.js';
+import { saveCrewLinkRow } from './crewLink.js';
+import { sendCancellationSummary, sendInvite, sendUpdate } from './crewNotify.js';
+import { tbChangeLoc, tbChangeType } from './tourblock.js';
+import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
+         _bulkConfirmMySlots, _deleteSlotFromQueue, _toggleSlotSelection, meinesMelden } from './userView.js';
+import { startLocEdit } from './render.js';
+
 // ── Register all onclick-handler functions as window globals ──
 window.logout = logout;
 window.saveJSON = saveJSON;
@@ -86,6 +100,44 @@ window.generatePDF = generatePDF;
 window.pdfSetView = pdfSetView;
 window.pdfToggleAll = pdfToggleAll;
 window.openPDFFilter = openPDFFilter;
+
+// ── Migrations-Fix v0.10.5: fehlende onclick-Handler-Registrierungen (index.html) ──
+window.openCrewDD = openCrewDD;
+window.openDateDD = openDateDD;
+window.openDefaultDD = openDefaultDD;
+window.openTypeDD = openTypeDD;
+window.requestAll = requestAll;
+window.requestForPos = requestForPos;
+window.bulkCancelPos = bulkCancelPos;
+window.openPosMenu = openPosMenu;
+window.openRenamePos = openRenamePos;
+window.confirmNewPlan = confirmNewPlan;
+window.confirmRenamePlan = confirmRenamePlan;
+window.deletePlan = deletePlan;
+window.renamePlan = renamePlan;
+window.switchPlan = switchPlan;
+window._confirmTypeModal = _confirmTypeModal;
+window.deleteType = deleteType;
+window.openEditType = openEditType;
+window.adSetMode = adSetMode;
+window.confirmAddDate = confirmAddDate;
+window.removeCrew = removeCrew;
+window.saveCrewLinkRow = saveCrewLinkRow;
+window.sendCancellationSummary = sendCancellationSummary;
+window.sendInvite = sendInvite;
+window.sendUpdate = sendUpdate;
+window.tbChangeLoc = tbChangeLoc;
+window.tbChangeType = tbChangeType;
+window.confirmMySlot = confirmMySlot;
+window.declineMySlot = declineMySlot;
+window.openSlotConfirmModal = openSlotConfirmModal;
+window.toggleCancellation = toggleCancellation;
+window._bulkConfirmMySlots = _bulkConfirmMySlots;
+window._deleteSlotFromQueue = _deleteSlotFromQueue;
+window._toggleSlotSelection = _toggleSlotSelection;
+window.meinesMelden = meinesMelden;
+window.startLocEdit = startLocEdit;
+window._dismissCrewUpdates = function(){ const b=document.getElementById('crewUpdateBar'); if(b) b.style.display='none'; };
 
 // ── Security: Redirect to login if not authenticated ──────────────────────
 if (!localStorage.getItem('pb_token')) {
