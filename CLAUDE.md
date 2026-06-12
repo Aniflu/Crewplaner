@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ⚠️ PFLICHTREGELN — VOR JEDEM TASK LESEN
 
-1. **Nach JEDEM Fix/Feature: Version erhöhen** — User nach gewünschter Nummer fragen, Stufe vorschlagen. In 4 Dateien: `index.html`, `admin.html`, `CLAUDE.md`, `README.md`
+1. **Nach JEDEM Fix/Feature: Version erhöhen** — User nach gewünschter Nummer fragen, Stufe vorschlagen. In 5 Dateien: `index.html`, `admin.html`, `login.html`, `CLAUDE.md`, `README.md`
 2. **Kein SSH für Marco** — Marco hat keinen Server-Zugang. Server-Aktionen laufen über den Admin (hat SSH via `ssh hetzner`).
 3. **Versionsnummer = User-Entscheidung** — nie selbst festlegen ohne Rückfrage.
 4. **Nach Coolify-Redeploy → IMMER strip-api prüfen** — Coolify überschreibt Traefik-Labels bei jedem Redeploy. Fix ist permanent in `/data/coolify/proxy/dynamic/pocketbase-fix.yaml` (Priorität 1000), aber wenn API 404 gibt → das ist die Ursache.
@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.10.5**
+- Aktuelle Version: **v0.10.6**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.10.6 — chore: Debug-Panel (Auth Bootstrap Logs) aus login.html entfernt + Versions-Marker auf login.html ergänzt
 v0.10.5 — fix: ES6-Audit — 35 onclick-Handler auf index.html waren seit Modul-Migration nicht mehr window-registriert (openCrewDD, openDateDD, deletePlan, switchPlan, removeCrew, meinesMelden, toggleCancellation u.v.m.) → crashten beim Klick. Jetzt in app.js zentral registriert. War durch den Bounce verdeckt. + _dismissCrewUpdates Handler ergänzt.
 v0.10.4 — chore: Diagnose-Instrumentierung entfernt + Plan-Leichen-Leak gefixt (stabile Transfer-ID + _pruneOrphanPlans Auto-Cleanup). 65 verwaiste localStorage-Keys werden beim nächsten Laden automatisch entfernt.
 v0.10.3 — fix: ALLE restlichen fehlenden ES6-Imports (render updateStats/autoSave, persistence savePlansIndex/genPlanId/_today, plans+dropdown hasPermission, dropdown openBlockAssign, userView sendUpdateNotice/pbFirst, crewLink saveCrewLink). Behebt updateStats-Bounce + verhindert Feature-Crashes. Ursache: window-Globals sind seiten-spezifisch.

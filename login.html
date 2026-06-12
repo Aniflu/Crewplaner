@@ -237,19 +237,9 @@
   </div>
 </div>
 
-<script>
-  // Show auth-bootstrap logs if redirected here
-  window.addEventListener('DOMContentLoaded', () => {
-    const logs = JSON.parse(localStorage.getItem('_authBootstrapLogs') || '[]');
-    if (logs.length > 0) {
-      const debugEl = document.createElement('div');
-      debugEl.style.cssText = 'position:fixed;bottom:10px;right:10px;max-width:400px;background:#222;color:#0f0;font-family:monospace;font-size:10px;padding:8px;border:1px solid #0f0;max-height:200px;overflow-y:auto;z-index:9999;';
-      debugEl.innerHTML = '<div style="color:#f0f;margin-bottom:4px;">Auth Bootstrap Logs:</div>' +
-        logs.map(l => '<div>' + l.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>').join('');
-      document.body.appendChild(debugEl);
-    }
-  });
+<div style="text-align:center;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:#5a6070;letter-spacing:.08em;">Personalplan · v0.10.6</div>
 
+<script>
   const _resetToken = new URLSearchParams(window.location.search).get('token');
   if (_resetToken) {
     document.addEventListener('DOMContentLoaded', function() {
