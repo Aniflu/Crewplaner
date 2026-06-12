@@ -282,14 +282,15 @@ export async function cancelProposal(dateStr, posId) {
 }
 
 // ── Alle Anfragen einer Position zurückziehen (Admin) ─────────────────────────
-export async function bulkCancelProposals(posId) {
+export async function bulkCancelProposals(posId, crewName) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
 
   try {
-    const data = await pbList('assignments',
-      `plan_id = "${pbEscapeFilter(planId)}" && pos_id = "${pbEscapeFilter(posId)}" && (status = "proposed" || status = "declined")`);
+    let filter = `plan_id = "${pbEscapeFilter(planId)}" && pos_id = "${pbEscapeFilter(posId)}" && (status = "proposed" || status = "declined")`;
+    if (crewName) filter += ` && crew_name = "${pbEscapeFilter(crewName)}"`;
+    const data = await pbList('assignments', filter);
     await Promise.all((data?.items || []).map(row => {
       clearStatus(row.date, row.pos_id);  // ← NEW: fix stale state
       return pbDelete('/api/collections/assignments/records/' + row.id);

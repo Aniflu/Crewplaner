@@ -68,7 +68,10 @@ export function renderHead(){
     const def=defaultCrew[p.id]||'';
     const ci=crew.indexOf(def);
     const dot=def&&ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'transparent';
-    const hasOpen=Object.values(assignmentStatuses).some(day=>isPending(day[p.id]));
+    const hasOpen=!!def&&Object.values(assignmentStatuses).some(day=>{
+      const si=day[p.id];
+      return si&&si.crewName===def&&isPending(si);
+    });
     const hasAny=!!def&&TOUR_DATES.some(day=>!(day.date in assignments&&p.id in(assignments[day.date]||{})));
     if(IS_MANAGER){
       h+=`<th style="background:#12141a;border:1px solid var(--border);border-top:none;padding:3px;">

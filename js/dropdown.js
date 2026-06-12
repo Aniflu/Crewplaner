@@ -175,18 +175,19 @@ export function openDefaultDD(e,posId){
 export async function bulkCancelPos(e,posId){
   e.stopPropagation();
   const pos=POSITIONS.find(p=>p.id===posId);
-  const ok=await showConfirm(`Alle offenen Anfragen für "${pos?.label}" zurückziehen?`,'Zurückziehen');
+  const def=defaultCrew[posId]||'';
+  const ok=await showConfirm(`Offene Anfragen von „${def}" für „${pos?.label}" zurückziehen?`,'Zurückziehen');
   if(!ok)return;
   try{
-    await bulkCancelProposals(posId);
+    await bulkCancelProposals(posId, def);
     Object.keys(assignmentStatuses).forEach(date=>{
       const si=assignmentStatuses[date]?.[posId];
-      if(isPending(si)){
+      if(si&&si.crewName===def&&isPending(si)){
         delete assignmentStatuses[date][posId];
         clearAssignmentSlot(date, posId);
       }
     });
-    showToast(`${pos?.label}: Alle Anfragen zurückgezogen`,'#4ae8a0');
+    showToast(`${pos?.label}: Anfragen von ${def} zurückgezogen`,'#4ae8a0');
   }catch(err){
     console.error('bulkCancelProposals failed:',err);
     showToast(`${pos?.label}: Fehler beim Zurückziehen`,'#e84a4a');
