@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ⚠️ PFLICHTREGELN — VOR JEDEM TASK LESEN
 
-1. **Nach JEDEM Fix/Feature: Version erhöhen** — User nach gewünschter Nummer fragen, Stufe vorschlagen. In 5 Dateien: `index.html`, `admin.html`, `login.html`, `CLAUDE.md`, `README.md`
+1. **Nach JEDEM Fix/Feature: Version erhöhen** — User nach gewünschter Nummer fragen, Stufe vorschlagen. In 5 Dateien: `index.html`, `admin.html`, `login.html` (im bestehenden `<div class="login-version">` — KEIN neues Element anlegen!), `CLAUDE.md`, `README.md`
 2. **Kein SSH für Marco** — Marco hat keinen Server-Zugang. Server-Aktionen laufen über den Admin (hat SSH via `ssh hetzner`).
 3. **Versionsnummer = User-Entscheidung** — nie selbst festlegen ohne Rückfrage.
 4. **Nach Coolify-Redeploy → IMMER strip-api prüfen** — Coolify überschreibt Traefik-Labels bei jedem Redeploy. Fix ist permanent in `/data/coolify/proxy/dynamic/pocketbase-fix.yaml` (Priorität 1000), aber wenn API 404 gibt → das ist die Ursache.
