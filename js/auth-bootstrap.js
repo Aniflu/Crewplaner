@@ -79,7 +79,7 @@ _logAuth('Page visibility hidden, starting auth bootstrap');
       const base = isAdmin ? 'admin.html' : 'index.html';
       const pending = localStorage.getItem('pendingEmailAction') || '';
       localStorage.removeItem('pendingEmailAction');
-      window.location.replace(base + pending);
+      window.location.replace(window.getNavUrl(base) + pending);
       return;
     }
 

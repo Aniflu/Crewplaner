@@ -9,13 +9,12 @@
   window.getNavUrl = function(filename) {
     const pathname = window.location.pathname;
     const parts = pathname.split('/').filter(Boolean);
-    // GitHub Pages: /Crewplaner/admin.html → parts = ['Crewplaner', 'admin.html']
-    // Produktivserver: /admin.html → parts = ['admin.html']
-    if (parts.length > 1) {
-      return '/' + parts[0] + '/' + filename;  // GitHub Pages: /Crewplaner/filename
-    } else {
-      return '/' + filename;  // Produktivserver: /filename
+    // GitHub Pages: /Crewplaner/ → parts[0]='Crewplaner' (kein Punkt = Verzeichnis)
+    // Produktivserver: /index.html → parts[0]='index.html' (hat Punkt = Datei)
+    if (parts.length >= 1 && !parts[0].includes('.')) {
+      return '/' + parts[0] + '/' + filename;
     }
+    return '/' + filename;
   };
 </script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -52,7 +51,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.10.6</span>
+            <span class="tour-tag">Personalplan · v0.10.7</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>

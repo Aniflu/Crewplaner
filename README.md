@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.10.7** — fix: getNavUrl erkennt /Crewplaner/ korrekt → Admin-Konsole 404 auf GitHub Pages behoben
 **v0.10.6** — chore: Debug-Panel aus login.html entfernt + Versions-Marker auf login.html
 **v0.10.5** — fix: ES6-Audit — 35 onclick-Handler auf index.html waren seit Migration nicht mehr global registriert (crashten beim Klick), jetzt in app.js registriert
 **v0.10.4** — chore: Diagnose-Logs entfernt + Plan-Leichen-Leak gefixt (stabile Transfer-ID + Auto-Cleanup verwaister localStorage-Keys)

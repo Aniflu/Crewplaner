@@ -7,6 +7,13 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <script>
   window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
+  window.getNavUrl = function(filename) {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length >= 1 && !parts[0].includes('.')) {
+      return '/' + parts[0] + '/' + filename;
+    }
+    return '/' + filename;
+  };
 </script>
 <script src="js/auth-bootstrap.js?v=12"></script>
 <script src="js/pb-login-bundle.js?v=1"></script>
@@ -183,7 +190,7 @@
   <div class="login-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <p>Personalplan · Anmelden</p>
-    <div class="login-version">v0.10.6</div>
+    <div class="login-version">v0.10.7</div>
   </div>
 
   <div class="login-card">
@@ -276,7 +283,7 @@
     localStorage.removeItem('pendingEmailAction');
     const user = JSON.parse(localStorage.getItem('pb_user') || '{}');
     const base = user.role === 'superadmin' ? 'admin.html' : 'index.html';
-    window.location.href = pending ? base + pending : base;
+    window.location.href = window.getNavUrl(base) + (pending || '');
   }
 
   // Show invite banner if user was invited (auth-bootstrap.js handles token validation)
