@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.10.9** — fix: zirkulärer Import render↔userView brach alle Klicks — pendingCancellations in state.js verschoben
 **v0.10.8** — fix: Crew kann bestätigte Termine absagen — pendingCancellations war nie als ES6-Export sichtbar für render.js
 **v0.10.7** — fix: getNavUrl erkennt /Crewplaner/ korrekt → Admin-Konsole 404 auf GitHub Pages behoben
 **v0.10.6** — chore: Debug-Panel aus login.html entfernt + Versions-Marker auf login.html

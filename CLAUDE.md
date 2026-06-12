@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.10.8**
+- Aktuelle Version: **v0.10.9**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.10.9 — fix: zirkulärer Import render↔userView brach alle Klicks — pendingCancellations in state.js verschoben (neutrales Shared-State-Modul)
 v0.10.8 — fix: pendingCancellations war module-privat in userView.js → render.js konnte Absagen-Markierung nie anzeigen. Export + Import ergänzt, Crew kann jetzt bestätigte Termine absagen.
 v0.10.7 — fix: getNavUrl Bug — /Crewplaner/ (ohne Dateiname) wurde als Produktivserver erkannt → Admin-Konsole + Login-Redirect landeten auf 404. Prüft jetzt parts[0].includes('.') statt length > 1. getNavUrl in login.html ergänzt.
 v0.10.6 — chore: Debug-Panel (Auth Bootstrap Logs) aus login.html entfernt + Versions-Marker auf login.html ergänzt
