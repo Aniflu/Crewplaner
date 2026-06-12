@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.10.2** — fix: Bounce behoben (render.js colorToDarkBg) + 4 weitere fehlende ES6-Imports (dropdown, pdf, crewNotify)
 **v0.10.1** — debug: Persistente Cross-Page Auth-Logs zur Bounce-Diagnose
 **v0.10.0** — fix: ROOT-CAUSE — Fehlende ES6-Imports (crew/CREW_COLORS in render.js, activePlanId in dataService.js). Behebt admin↔login↔admin-Bounce + Plan-Ladung.
 **v0.9.33** — fix: GitHub Pages — Dynamischer <base> Tag für relative Pfade

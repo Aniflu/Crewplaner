@@ -3,8 +3,8 @@
 // Drei Ansichten: Tabelle (volle Kreuztabelle), Blöcke (Tourblock-Zusammenfassung),
 // Crew (Timeline pro Person).
 import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew,
-         assignmentStatuses, logos, IS_MANAGER, CREW_COLORS } from './state.js';
-import { getVal, isPending, esc, parseD, fmtD, dw } from './utils.js';
+         assignmentStatuses, logos, IS_MANAGER, CREW_COLORS, OFFEN } from './state.js';
+import { getVal, isPending, esc, parseD, fmtD, dw, DE_DAYS, DE_MON, fmt } from './utils.js';
 import { TYPE_OPTS } from './types.js';
 import { getPlansIndex, getActivePlanId } from './plans.js';
 

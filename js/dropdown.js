@@ -1,5 +1,5 @@
 // ── Dropdown Engine ────────────────────────────────────────────────────────────
-import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew,
+import { TOUR_DATES, POSITIONS, crew, CREW_COLORS, assignments, defaultCrew,
          assignmentStatuses, IS_MANAGER, IS_CREW,
          OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, crewMeta,
          setAssignment, clearAssignmentSlot } from './state.js';
