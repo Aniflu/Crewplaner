@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.10.9**
+- Aktuelle Version: **v0.11.0**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.11.0 — fix: ES6-MODUL-VOLLSANIERUNG — 24 fehlende Imports/typeof-Guards behoben (via Node-Analyzer gefunden). Behebt: Crew-Namen nicht klickbar (getMyCrewName fehlte in render.js → myName immer null), Block-/Crew-Tabs tot (renderBlockView/renderCrewView nicht importiert), Update-Queue (dropdown/dates/tourblock/render → _queueCrewUpdate/_queueGlobalCrewUpdate), Verfügbarkeit melden (userView _getNewSlotsForCrew/bulkProposeCrew/sendAvailabilityNotice), pending-Action-Handler (init.js openTourBlock u.a.), Plan-Laden (plans.js renderTable/renderCrew, admin-sicher per DOM-Guard), checkAndOpenMySchedule. + Cache-Bust app.js?v=2 / admin-app.js?v=2 (Sub-Module wurden ohne Versionsquery gecached → frühere Fixes kamen verzögert an).
 v0.10.9 — fix: zirkulärer Import render↔userView brach alle Klicks — pendingCancellations in state.js verschoben (neutrales Shared-State-Modul)
 v0.10.8 — fix: pendingCancellations war module-privat in userView.js → render.js konnte Absagen-Markierung nie anzeigen. Export + Import ergänzt, Crew kann jetzt bestätigte Termine absagen.
 v0.10.7 — fix: getNavUrl Bug — /Crewplaner/ (ohne Dateiname) wurde als Produktivserver erkannt → Admin-Konsole + Login-Redirect landeten auf 404. Prüft jetzt parts[0].includes('.') statt length > 1. getNavUrl in login.html ergänzt.

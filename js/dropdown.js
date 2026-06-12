@@ -13,6 +13,7 @@ import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { showPrompt, showConfirm } from './dialog.js';
 import { hasPermission } from './rbac.js';
 import { openBlockAssign } from './tourblock.js';
+import { _queueCrewUpdate } from './userView.js';
 
 export function showDD(rect,header,items){
   const menu=document.getElementById('ddMenu');
@@ -48,7 +49,7 @@ export function openTypeDD(e,dateStr){
       const oldLabel=row.typeLabel;
       row.type=o.type;row.typeLabel=o.label;saveCustomType(o.label,o.type);closeDD();
       _savePlanToLS(getActivePlanId());
-      if(oldLabel!==o.label&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(row.date,`Tagesart: ${oldLabel} → ${o.label}`);
+      if(oldLabel!==o.label)_queueCrewUpdate(row.date,`Tagesart: ${oldLabel} → ${o.label}`);
       else renderTable();
     }
   }));
@@ -61,7 +62,7 @@ export function openTypeDD(e,dateStr){
     const oldLabel=row.typeLabel;
     row.type=type;row.typeLabel=label;
     _savePlanToLS(getActivePlanId());
-    if(oldLabel!==label&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(row.date,`Tagesart: ${oldLabel} → ${label}`);
+    if(oldLabel!==label)_queueCrewUpdate(row.date,`Tagesart: ${oldLabel} → ${label}`);
     else renderTable();
   }});
   showDD(rect,'Tagesart',items);
@@ -77,7 +78,7 @@ export function openDateDD(e,dateStr){
     {label:'🗑 Zeile löschen',cls:'danger',action:async()=>{
       const ok=await showConfirm('Zeile '+fmtD(dateStr)+' wirklich löschen?','Löschen');
       if(!ok)return;
-      if(typeof _queueCrewUpdate==='function')_queueCrewUpdate(dateStr,'Datum entfernt');
+      _queueCrewUpdate(dateStr,'Datum entfernt');
       const idx=TOUR_DATES.findIndex(r=>r.date===dateStr);
       if(idx>-1)TOUR_DATES.splice(idx,1);
       if(assignments[dateStr])delete assignments[dateStr];

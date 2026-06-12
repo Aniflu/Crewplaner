@@ -5,6 +5,8 @@ import { SUPABASE_ENABLED } from './config.js';
 import { showToast, sortInsert } from './utils.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
 import { hasPermission } from './rbac.js';
+import { renderTable } from './render.js';
+import { renderCrew } from './crew.js';
 
 const PLANS_INDEX_KEY = 'tourplan_plans';
 export const PLAN_PREFIX = 'tourplan_plan_';
@@ -143,8 +145,7 @@ export function _resetToEmpty(){
   // Logos NICHT zurücksetzen — global
   TOUR_DATES.length=0;
   Object.keys(assignments).forEach(k=>delete assignments[k]);
-  if(typeof renderCrew==='function')renderCrew();
-  if(typeof renderTable==='function')renderTable();
+  if(document.getElementById('tBody')){renderCrew();renderTable();}
 }
 
 export function _savePlanToLS(id){
@@ -178,8 +179,7 @@ export function _loadPlanFromLS(id){
     Object.keys(assignments).forEach(k=>delete assignments[k]);
     Object.assign(assignments,data.assignments||{});
     // Logos NICHT überschreiben — global
-    if(typeof renderCrew==='function')renderCrew();
-    if(typeof renderTable==='function')renderTable();
+    if(document.getElementById('tBody')){renderCrew();renderTable();}
     return true;
   }catch(e){return false;}
 }

@@ -5,7 +5,9 @@ import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
 import { SUPABASE_ENABLED } from './config.js';
 import { getVal, isPending, esc, showToast, fmtD } from './utils.js';
 import { pbPatch, pbPost, pbFirst } from './pb.js';
-import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice } from './dataService.js';
+import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
+         bulkProposeCrew, sendAvailabilityNotice } from './dataService.js';
+import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable } from './render.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
 import { closeModal, openModal } from './modals.js';
@@ -243,9 +245,9 @@ export async function declineMySlot(dateStr, posId) {
 }
 
 // ── Bereitschaftsmeldung Draft ────────────────────────────────────────────────
-const _meldungDraft = {}; // { 'YYYY-MM-DD': Set<posId> } — in-memory only
+export const _meldungDraft = {}; // { 'YYYY-MM-DD': Set<posId> } — in-memory only
 
-const _getMeldungSent = () => {
+export const _getMeldungSent = () => {
   try { return JSON.parse(localStorage.getItem('crewplan_meldungen_'+(getActivePlanId()||'')) || '{}'); } catch(_) { return {}; }
 };
 const _saveMeldungSent = d => localStorage.setItem('crewplan_meldungen_'+(getActivePlanId()||''), JSON.stringify(d));
@@ -254,7 +256,7 @@ function _meldungCount() {
   return Object.values(_meldungDraft).reduce((s, set) => s + set.size, 0);
 }
 
-function _updateMeldungBar() {
+export function _updateMeldungBar() {
   const bar = document.getElementById('meldungSubmitBar');
   if (!bar) return;
   const n = _meldungCount();
@@ -283,7 +285,7 @@ function _saveCrewUpdateQueue(q) {
   localStorage.setItem('crewplan_updates_'+(getActivePlanId()||''), JSON.stringify(q));
 }
 
-function _queueCrewUpdate(dateStr, changeDesc) {
+export function _queueCrewUpdate(dateStr, changeDesc) {
   const day = assignmentStatuses[dateStr];
   if (!day) return;
   let affected = 0;
@@ -307,7 +309,7 @@ function _queueCrewUpdate(dateStr, changeDesc) {
   renderTable();
 }
 
-function _queueGlobalCrewUpdate(changeDesc) {
+export function _queueGlobalCrewUpdate(changeDesc) {
   const q = _getCrewUpdateQueue();
   let affected = 0;
   Object.entries(assignmentStatuses || {}).forEach(([dateStr, positions]) => {
@@ -329,7 +331,7 @@ function _queueGlobalCrewUpdate(changeDesc) {
   _updateCrewUpdateBar();
 }
 
-function _updateCrewUpdateBar() {
+export function _updateCrewUpdateBar() {
   const q = _getCrewUpdateQueue();
   // Queue mit fehlenden proposed-Mitgliedern ergänzen (Migration alter Queues)
   if (Object.keys(q).length > 0) {
@@ -442,11 +444,8 @@ async function _sendQueueEntries(q) {
   try {
     for (const name of names) {
       const entry = q[name];
-      let newSlots = [];
-      if (typeof _getNewSlotsForCrew === 'function' && typeof bulkProposeCrew === 'function') {
-        newSlots = _getNewSlotsForCrew(name, entry.email);
-        if (newSlots.length) await bulkProposeCrew(newSlots);
-      }
+      let newSlots = _getNewSlotsForCrew(name, entry.email);
+      if (newSlots.length) await bulkProposeCrew(newSlots);
       if (!entry.informational) {
         const planId = localStorage.getItem('tourplan_active_pb_id');
         for (const slot of entry.slots) {

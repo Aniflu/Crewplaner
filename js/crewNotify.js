@@ -189,7 +189,7 @@ function _getAllSlotsForCrew(crewName, crewEmail) {
   return slots;
 }
 
-function _getNewSlotsForCrew(crewName, crewEmail) {
+export function _getNewSlotsForCrew(crewName, crewEmail) {
   return _getAllSlotsForCrew(crewName, crewEmail).filter(s => {
     const existing = assignmentStatuses[s.date]?.[s.posId];
     return !existing || existing.status === 'declined';

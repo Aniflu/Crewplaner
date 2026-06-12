@@ -12,6 +12,9 @@ import { loadLogosGlobal } from './logos.js';
 import { renderCrew } from './crew.js';
 import { getPlansIndex, renderPlanList, genPlanId, savePlansIndex, PLAN_PREFIX, getActivePlanId, setActivePlanId, _today, _savePlanToLS, _loadPlanFromLS, _resetToEmpty, _pruneOrphanPlans } from './plans.js';
 import { applyData } from './persistence.js';
+import { openTourBlock, openBlockRange } from './tourblock.js';
+import { openAddDate } from './dates.js';
+import { openCrewModal } from './sidebar.js';
 
 export function startApp(){
   window.__appStarted = true;  // Signal für auth-bootstrap dass App geladen ist
@@ -152,10 +155,10 @@ export function _checkPendingAction(){
   if(!pa)return;
   localStorage.removeItem('tourplan_pending_action');
   setTimeout(()=>{
-    if(pa==='openTourBlock'&&typeof openTourBlock==='function')openTourBlock();
-    else if(pa==='openBlockRange'&&typeof openBlockRange==='function')openBlockRange();
-    else if(pa==='openAddDate'&&typeof openAddDate==='function')openAddDate();
-    else if(pa==='openCrewModal'&&typeof openCrewModal==='function')openCrewModal();
+    if(pa==='openTourBlock')openTourBlock();
+    else if(pa==='openBlockRange')openBlockRange();
+    else if(pa==='openAddDate')openAddDate();
+    else if(pa==='openCrewModal')openCrewModal();
   },400);
 }
 

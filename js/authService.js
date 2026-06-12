@@ -6,6 +6,7 @@ import { renderTable } from './render.js';
 import { showToast } from './utils.js';
 import { getActivePlanId, _pruneOrphanPlans } from './plans.js';
 import { startApp } from './init.js';
+import { checkAndOpenMySchedule } from './userView.js';
 
 // ── Auth Service (Pocketbase) ──────────────────────────────────────────────────
 window.__authGuarded = SUPABASE_ENABLED;
@@ -104,7 +105,7 @@ export async function _authCheckAndStart() {
     loadAll
       .then(() => {
         renderTable();
-        if (typeof checkAndOpenMySchedule === 'function') checkAndOpenMySchedule();
+        checkAndOpenMySchedule();
         _handleEmailAction();
         _checkPendingAction();
       })

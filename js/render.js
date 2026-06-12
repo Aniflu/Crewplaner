@@ -10,6 +10,10 @@ import { TYPE_OPTS } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { updateStats } from './stats.js';
 import { autoSave } from './persistence.js';
+import { renderBlockView } from './blockview.js';
+import { renderCrewView } from './crewview.js';
+import { getMyCrewName, _updateMeldungBar, _updateCrewUpdateBar,
+         _getMeldungSent, _meldungDraft, _queueCrewUpdate } from './userView.js';
 
 // View state
 export let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'
@@ -32,12 +36,12 @@ export function setView(v){
 export function renderTable(){
   // Always update stats
   if(CURRENT_VIEW==='table'){renderHead();renderBody();}
-  else if(CURRENT_VIEW==='blocks'){if(typeof renderBlockView==='function')renderBlockView();}
-  else if(CURRENT_VIEW==='crew'){if(typeof renderCrewView==='function')renderCrewView();}
+  else if(CURRENT_VIEW==='blocks'){renderBlockView();}
+  else if(CURRENT_VIEW==='crew'){renderCrewView();}
   updateStats();
   _updateViewMeta();
-  if(typeof _updateMeldungBar==='function')_updateMeldungBar();
-  if(typeof _updateCrewUpdateBar==='function')_updateCrewUpdateBar();
+  _updateMeldungBar();
+  _updateCrewUpdateBar();
 }
 
 function _updateViewMeta(){
@@ -84,8 +88,8 @@ export function renderHead(){
 
 export function renderBody(){
   let b='',lastBlockId=null;
-  const _meldungSentData=(typeof _getMeldungSent==='function')?_getMeldungSent():{};
-  const myName=SUPABASE_ENABLED&&typeof getMyCrewName==='function'?getMyCrewName():null;
+  const _meldungSentData=_getMeldungSent();
+  const myName=SUPABASE_ENABLED?getMyCrewName():null;
   TOUR_DATES.forEach(row=>{
     if(row.blockId&&row.blockId!==lastBlockId){lastBlockId=row.blockId;b+=`<tr class="month-sep"><td colspan="${3+POSITIONS.length+1}">${esc(row.blockName||'')}</td></tr>`;}
     const tOpt=TYPE_OPTS.find(t=>t.label===row.typeLabel);
@@ -120,7 +124,7 @@ export function renderBody(){
       else if(val===AUSSCHREIBEN){style='color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);font-weight:600;';display='📋 Ausschr.';}
       const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName;
       const isAusschreibenSlot=SUPABASE_ENABLED&&IS_CREW&&val===AUSSCHREIBEN&&!si;
-      const isDrafted=isAusschreibenSlot&&typeof _meldungDraft!=='undefined'&&!!_meldungDraft[row.date]?.has(p.id);
+      const isDrafted=isAusschreibenSlot&&!!_meldungDraft[row.date]?.has(p.id);
       const isSent=isAusschreibenSlot&&!!_meldungSentData[row.date]?.includes(p.id);
       b+=`<td class="assign-cell">`;
       if(isMyProposed){
@@ -172,7 +176,7 @@ export function startLocEdit(e,dateStr){
     if(!newLoc){renderTable();return;}
     row.loc=newLoc;
     _savePlanToLS(getActivePlanId());
-    if(newLoc!==oldLoc&&typeof _queueCrewUpdate==='function')_queueCrewUpdate(dateStr,`Ort: ${oldLoc} → ${newLoc}`);
+    if(newLoc!==oldLoc)_queueCrewUpdate(dateStr,`Ort: ${oldLoc} → ${newLoc}`);
     else renderTable();
   };
   inp.onblur=save;inp.onkeydown=ev=>{if(ev.key==='Enter')inp.blur();if(ev.key==='Escape')renderTable();ev.stopPropagation();};

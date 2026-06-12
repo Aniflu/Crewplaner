@@ -4,8 +4,9 @@ import { sortInsert, showToast, esc } from './utils.js';
 import { typeFromLabel } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { renderTable } from './render.js';
+import { _queueGlobalCrewUpdate } from './userView.js';
 
-// Global functions called: openModal, closeModal, showAlert, _queueGlobalCrewUpdate, _askBlockAssign
+// Global functions called: openModal, closeModal, showAlert, _askBlockAssign
 
 export function openAddDate(){
   if(!IS_MANAGER)return;
@@ -69,7 +70,7 @@ export async function confirmAddDate(){
       cur.setDate(cur.getDate()+1);
     }
   }
-  if(typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt');
+  _queueGlobalCrewUpdate('Neue Tage hinzugefügt');
   closeModal('sharedModal');
   if(addedDates.length>0)_askBlockAssign(addedDates);
   else{_savePlanToLS(getActivePlanId());renderTable();}
