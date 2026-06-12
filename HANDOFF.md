@@ -26,7 +26,15 @@
 
 ---
 
-## 2. Aktueller Stand (Übergabe 2026-05-18) — v0.9.6.2
+## 2. Aktueller Stand (Stand 2026-06-12) — v0.10.6
+
+> **Juni 2026:** Die ES6-Modul-Migration (v0.9.3) hatte zahlreiche bare Cross-Modul-Referenzen
+> hinterlassen, die als stille `ReferenceError`s crashten — u.a. der 5-Tage-„Bounce"
+> (admin↔login↔admin, Plan lädt nicht). In v0.10.0–v0.10.6 vollständig bereinigt: fehlende
+> ES6-Imports, 35 onclick-Handler-Registrierungen in `js/app.js`, Plan-Leichen-Leak im
+> localStorage. Details siehe CHANGELOG.md. **Merke:** `window`-Globals sind seiten-spezifisch —
+> onclick-Handler müssen vom Entry-Script der jeweiligen Seite registriert werden
+> (app.js→index.html, admin-app.js→admin.html, view-app.js→view.html).
 
 ### Was ist fertig ✅
 

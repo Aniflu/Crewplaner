@@ -1,6 +1,6 @@
 # Tour Crew Plan — Erste Schritte
 
-Stand: v0.9.6.2
+Stand: v0.10.6
 
 ---
 

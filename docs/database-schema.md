@@ -1,6 +1,6 @@
 # Datenbank-Schema — Tour Crew Plan
 
-PocketBase-Collections (SQLite). Stand: v0.9.6.2
+PocketBase-Collections (SQLite). Stand: v0.10.6
 
 ---
 

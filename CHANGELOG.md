@@ -1,5 +1,50 @@
 # Changelog
 
+## v0.10.6 — 2026-06-12
+
+### Chore: login.html aufgeräumt
+- Debug-Overlay „Auth Bootstrap Logs" (zeigte `_authBootstrapLogs` aus localStorage) entfernt — Überbleibsel der Bounce-Diagnose
+- Versionsanzeige korrigiert: bestehende `.login-version` aktualisiert (war doppelt + veraltet auf v0.9.7)
+
+---
+
+## v0.10.5 — 2026-06-12
+
+### Fix: ES6-Migrations-Audit — 35 fehlende onclick-Handler-Registrierungen
+- Seit der ES6-Modul-Migration (v0.9.3) waren ~35 onclick-Handler auf `index.html` nicht mehr als `window.X` registriert → `ReferenceError` beim Klick (verdeckt durch den Bounce, da index.html nie durchlud)
+- Betroffen u.a.: `openCrewDD`, `openDateDD`, `openDefaultDD`, `openTypeDD`, `requestAll`, `requestForPos`, `bulkCancelPos`, `openPosMenu`, `openRenamePos`, `deletePlan`, `renamePlan`, `switchPlan`, `confirmNewPlan`, `deleteType`, `openEditType`, `removeCrew`, `saveCrewLinkRow`, `sendInvite`, `sendUpdate`, `tbChangeType`, `meinesMelden`, `toggleCancellation`, `startLocEdit`
+- Alle zentral in `js/app.js` importiert + registriert; 4 interne `userView.js`-Funktionen exportiert
+- `admin.html` (inline-Handler) und `view.html` (view-app.js) waren nicht betroffen — geprüft
+
+---
+
+## v0.10.4 — 2026-06-12
+
+### Chore: Diagnose-Instrumentierung entfernt + Plan-Leichen-Leak gefixt
+- `_logAuth`-Diagnosezeilen aus `authService.js` entfernt; `auth-bootstrap.js`-Logger zurück auf Original
+- **Plan-Leichen-Leak:** Der Plan-Transfer (`authService.js`) erzeugte bei jedem „Plan bearbeiten"-Klick eine neue ID (`Date.now()`) und löschte alte `tourplan_plan_*`-Keys nie → in 5 Tagen Bounce-Testing 65 verwaiste localStorage-Keys
+- Fix: stabile ID (`pbplan_<pbid>`) + neuer `_pruneOrphanPlans()` (`plans.js`), aufgerufen beim Transfer + jedem App-Start → verwaiste Keys werden automatisch entfernt
+
+---
+
+## v0.10.3 — 2026-06-12
+
+### Fix: Alle restlichen fehlenden ES6-Imports
+- `dropdown.js` (`CREW_COLORS`, `hasPermission`, `openBlockAssign`), `pdf.js` (`OFFEN`, `DE_DAYS`, `DE_MON`, `fmt`), `crewNotify.js` (`esc`), `persistence.js` (`savePlansIndex`, `genPlanId`, `_today`), `plans.js` (`hasPermission`), `userView.js` (`sendUpdateNotice`, `pbFirst`), `crewLink.js` (`saveCrewLink`)
+
+---
+
+## v0.10.0 – v0.10.2 — 2026-06-11/12
+
+### Fix: ROOT-CAUSE des 5-Tage-„Bounce" (admin↔login↔admin, Plan lädt nicht aus PocketBase)
+- Ursache war **nie** Pfade/`getNavUrl`/`<base>` (daran wurde 5 Tage erfolglos geschraubt), sondern **fehlende ES6-Imports** nach der Modul-Migration: bare Referenzen warfen stille `ReferenceError`s, die (im `catch` von `authService.js`) als Redirect zu login.html und zurück zu admin.html erschienen
+- **v0.10.0:** `crew`/`CREW_COLORS` in `render.js`, `activePlanId` in `dataService.js`
+- **v0.10.1:** persistente Cross-Page Auth-Logs zur Diagnose (temporär, in v0.10.4 entfernt)
+- **v0.10.2:** `colorToDarkBg` in `render.js` (`renderBody`) — der eigentliche Bounce-Auslöser
+- **Erkenntnis:** `window`-Globals sind seiten-spezifisch — ein bare Aufruf crasht auf der Seite, deren Entry-Script ihn nicht registriert
+
+---
+
 ## v0.9.9.0 — 2026-05-27
 
 ### Feature: Datum einem Tourblock zuweisen
