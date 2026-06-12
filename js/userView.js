@@ -10,12 +10,12 @@ import { getActivePlanId, getPlansIndex } from './plans.js';
 import { closeModal, openModal } from './modals.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
-const _pendingCancellations = new Set();
+export const pendingCancellations = new Set();
 
 export function toggleCancellation(dateStr, posId) {
   const key = dateStr + '|' + posId;
-  if (_pendingCancellations.has(key)) _pendingCancellations.delete(key);
-  else _pendingCancellations.add(key);
+  if (pendingCancellations.has(key)) pendingCancellations.delete(key);
+  else pendingCancellations.add(key);
   _updateCancellationBar();
   renderTable();
 }
@@ -23,22 +23,22 @@ export function toggleCancellation(dateStr, posId) {
 function _updateCancellationBar() {
   const btn = document.getElementById('btnSendCancellations');
   if (!btn) return;
-  const n = _pendingCancellations.size;
+  const n = pendingCancellations.size;
   btn.style.display = IS_CREW && n > 0 ? '' : 'none';
   btn.querySelector('.sb-gl').textContent = n > 0 ? `⚠ ${n}` : '⚠';
 }
 
 export async function sendCancellations() {
-  if (!_pendingCancellations.size) return;
+  if (!pendingCancellations.size) return;
   showToast('Wird übermittelt…', '#e8c84a');
   try {
-    for (const key of Array.from(_pendingCancellations)) {
+    for (const key of Array.from(pendingCancellations)) {
       const [dateStr, posId] = key.split('|');
       await declineAssignment(dateStr, posId);
       const _si36 = assignmentStatuses[dateStr]?.[posId];
       if (_si36) setStatus(dateStr, posId, { ..._si36, status: 'declined' });
     }
-    _pendingCancellations.clear();
+    pendingCancellations.clear();
     _updateCancellationBar();
     showToast('Änderungen mitgeteilt — Manager wird benachrichtigt ✓', '#4ae8a0');
     renderTable();

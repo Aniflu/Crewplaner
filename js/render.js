@@ -9,6 +9,7 @@ import { TYPE_OPTS } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { updateStats } from './stats.js';
 import { autoSave } from './persistence.js';
+import { pendingCancellations } from './userView.js';
 
 // View state
 export let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'
@@ -136,7 +137,7 @@ export function renderBody(){
         else{b+=`<span style="font-size:.6rem;color:#e8c84a;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
       }else if(IS_CREW&&si&&si.crewName===myName){
         const _pkey=row.date+'|'+p.id;
-        const _isPending=typeof _pendingCancellations!=='undefined'&&_pendingCancellations.has(_pkey);
+        const _isPending=pendingCancellations.has(_pkey);
         if(si.status==='confirmed'){
           const _ps=_isPending?'background:rgba(232,74,74,.12);border-color:rgba(232,74,74,.4);color:#e84a4a;text-decoration:line-through;':'color:#4ae8a0;border-color:rgba(74,232,160,.35);background:rgba(74,232,160,.07);';
           b+=`<button class="assign-btn" style="${_ps}" onclick="toggleCancellation('${row.date}','${p.id}')">${_isPending?'Absagen?':'✓ '+esc(si.crewName||myName)}</button>`;
