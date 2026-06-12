@@ -20,6 +20,18 @@ export function getPlansIndex(){
 export function savePlansIndex(list){
   try{localStorage.setItem(PLANS_INDEX_KEY,JSON.stringify(list));}catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');}
 }
+// Entfernt verwaiste tourplan_plan_* / tourplan_pb_* Keys, die nicht im Index stehen (Plan-Leichen)
+export function _pruneOrphanPlans(){
+  try{
+    const ids=new Set(getPlansIndex().map(p=>p.id));
+    Object.keys(localStorage).forEach(k=>{
+      let id=null;
+      if(k.startsWith(PLAN_PREFIX)) id=k.slice(PLAN_PREFIX.length);
+      else if(k.startsWith('tourplan_pb_')) id=k.slice('tourplan_pb_'.length);
+      if(id!==null && !ids.has(id)) localStorage.removeItem(k);
+    });
+  }catch(e){console.warn('[plans] _pruneOrphanPlans:',e);}
+}
 export function genPlanId(){return 'p'+Date.now().toString(36);}
 
 export function renderPlanList(){

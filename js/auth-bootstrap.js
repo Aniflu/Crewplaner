@@ -8,17 +8,13 @@
  * MUST: window.POCKETBASE_URL muss VOR diesem Script in der Seite gesetzt sein
  */
 
-// ─ Persist logs to localStorage (for debugging redirects) — ACCUMULATE across pages
-try { window._authBootstrapLogs = JSON.parse(localStorage.getItem('_authBootstrapLogs') || '[]'); }
-catch (e) { window._authBootstrapLogs = []; }
-window._logAuth = function (msg) {
-  var pg = (window.location.pathname.split('/').pop() || 'index.html');
-  var ts = new Date().toISOString().slice(11, 23);
-  window._authBootstrapLogs.push(ts + ' [' + pg + '] ' + msg);
-  try { localStorage.setItem('_authBootstrapLogs', JSON.stringify(window._authBootstrapLogs.slice(-40))); } catch (e) {}
+// ─ Persist logs to localStorage (for debugging redirects)
+window._authBootstrapLogs = [];
+function _logAuth(msg) {
+  window._authBootstrapLogs.push(msg);
+  localStorage.setItem('_authBootstrapLogs', JSON.stringify(window._authBootstrapLogs.slice(-20))); // keep last 20
   console.log('[auth-bootstrap]', msg);
-};
-function _logAuth(msg) { window._logAuth(msg); }
+}
 
 // ─ PHASE 1: SYNC — Sofort Seite ausblenden + Token-Check
 document.documentElement.style.visibility = 'hidden';

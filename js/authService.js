@@ -4,7 +4,7 @@ import { pbPost, pbGet, pbPatch } from './pb.js';
 import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses } from './dataService.js';
 import { renderTable } from './render.js';
 import { showToast } from './utils.js';
-import { getActivePlanId } from './plans.js';
+import { getActivePlanId, _pruneOrphanPlans } from './plans.js';
 import { startApp } from './init.js';
 
 // ── Auth Service (Pocketbase) ──────────────────────────────────────────────────
@@ -16,7 +16,6 @@ export async function _authCheckAndStart() {
     const userStr = localStorage.getItem('pb_user');
 
     if (!token || !userStr) {
-      if (window._logAuth) window._logAuth('authService: KEIN Token → login');
       if (window.location.search) localStorage.setItem('pendingEmailAction', window.location.search);
       window.location.href = window.getNavUrl('login.html');
       return;
@@ -37,7 +36,6 @@ export async function _authCheckAndStart() {
         user = data.record;
       }
     } catch (e) {
-      if (window._logAuth) window._logAuth('authService: Token-Refresh FEHLGESCHLAGEN → login: ' + (e.message || e));
       // Token abgelaufen oder ungültig
       localStorage.removeItem('pb_token');
       localStorage.removeItem('pb_user');
@@ -78,7 +76,7 @@ export async function _authCheckAndStart() {
         localStorage.removeItem('_planTransfer_name');
         localStorage.removeItem('_planTransfer_pbid');
         localStorage.removeItem('_planTransfer_flag');
-        const _tid = 'p' + Date.now().toString(36);
+        const _tid = _tp ? 'pbplan_' + _tp : 'p' + Date.now().toString(36);
         localStorage.setItem('tourplan_plan_' + _tid, _transferData);
         if (_tp) { localStorage.setItem('tourplan_pb_' + _tid, _tp); localStorage.setItem('tourplan_active_pb_id', _tp); }
         const _today = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'2-digit'});
@@ -88,11 +86,12 @@ export async function _authCheckAndStart() {
       } catch(e) { console.warn('[auth] Plan-Transfer Fehler:', e); }
     }
 
+    // Verwaiste Plan-Keys aufräumen (Index ist maßgeblich) — verhindert Plan-Leichen
+    _pruneOrphanPlans();
+
     // Starte die App NACH Plan-Transfer (falls vorhanden)
-    if (window._logAuth) window._logAuth('authService: pre-startApp activePlan=' + localStorage.getItem('tourplan_active_plan') + ' planCount=' + (JSON.parse(localStorage.getItem('tourplan_plans') || '[]').length) + ' IS_MANAGER=' + IS_MANAGER + ' hadTransfer=' + !!_transferData);
     // Das garantiert dass startApp() die korrekten localStorage Keys sieht
     startApp();
-    if (window._logAuth) window._logAuth('authService: nach startApp OK');
 
     // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
     const activePlanId = getActivePlanId();
@@ -110,12 +109,10 @@ export async function _authCheckAndStart() {
         _checkPendingAction();
       })
       .catch(e => {
-        if (window._logAuth) window._logAuth('authService: loadAll FEHLER: ' + (e.message || e));
         console.error('Lade-Fehler:', e);
         renderTable();
       });
   } catch (e) {
-    if (window._logAuth) window._logAuth('authService: OUTER catch → login: ' + (e.message || e) + ' @@ ' + (e.stack || '').split('\n').slice(1,3).join(' | '));
     console.error('Auth-Fehler:', e);
     window.location.href = window.getNavUrl('login.html');
   }

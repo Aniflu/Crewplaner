@@ -10,11 +10,12 @@ import { renderBlockView } from './blockview.js';
 import { updateStats } from './stats.js';
 import { loadLogosGlobal } from './logos.js';
 import { renderCrew } from './crew.js';
-import { getPlansIndex, renderPlanList, genPlanId, savePlansIndex, PLAN_PREFIX, getActivePlanId, setActivePlanId, _today, _savePlanToLS, _loadPlanFromLS, _resetToEmpty } from './plans.js';
+import { getPlansIndex, renderPlanList, genPlanId, savePlansIndex, PLAN_PREFIX, getActivePlanId, setActivePlanId, _today, _savePlanToLS, _loadPlanFromLS, _resetToEmpty, _pruneOrphanPlans } from './plans.js';
 import { applyData } from './persistence.js';
 
 export function startApp(){
   window.__appStarted = true;  // Signal für auth-bootstrap dass App geladen ist
+  _pruneOrphanPlans();         // verwaiste Plan-Leichen aus localStorage entfernen
   loadCustomTypes();
   renderTypeList();
   loadLogosGlobal();
