@@ -3,13 +3,13 @@ import { SUPABASE_ENABLED } from './config.js';
 import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, defaultCrew,
          crew, CREW_COLORS,
          IS_MANAGER, IS_CREW, IS_BOOKER,
-         OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, CURRENT_USER_EMAIL } from './state.js';
+         OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, CURRENT_USER_EMAIL,
+         pendingCancellations } from './state.js';
 import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS, colorToDarkBg } from './utils.js';
 import { TYPE_OPTS } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { updateStats } from './stats.js';
 import { autoSave } from './persistence.js';
-import { pendingCancellations } from './userView.js';
 
 // View state
 export let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'

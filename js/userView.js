@@ -1,6 +1,7 @@
 // ── User View — Meine Einsätze / Confirm / Decline ────────────────────────────
 import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
-         IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID, setStatus } from './state.js';
+         IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID, setStatus,
+         pendingCancellations } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
 import { getVal, isPending, esc, showToast, fmtD } from './utils.js';
 import { pbPatch, pbPost, pbFirst } from './pb.js';
@@ -10,8 +11,6 @@ import { getActivePlanId, getPlansIndex } from './plans.js';
 import { closeModal, openModal } from './modals.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
-export const pendingCancellations = new Set();
-
 export function toggleCancellation(dateStr, posId) {
   const key = dateStr + '|' + posId;
   if (pendingCancellations.has(key)) pendingCancellations.delete(key);

@@ -25,6 +25,9 @@ export let logos = {booking:'', band:'', planer:''};
 export let crewMeta = {};            // { "Max Mustermann": { email, userId } }
 export let assignmentStatuses = {};  // { "2026-07-01": { "gl": { status, proposedBy, crewName } } }
 
+// Crew-Absagen-Queue (shared zwischen userView.js und render.js)
+export const pendingCancellations = new Set();
+
 // ── Role-Based Access Control ──────────────────────────────────────────
 export let USER_ROLE     = 'crew';   // superadmin | manager | booker | crew
 export let IS_SUPERADMIN = false;
