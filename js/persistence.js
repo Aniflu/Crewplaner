@@ -2,7 +2,7 @@
 import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos,
          setTourDates, setPositions, setCrew, setDefaultCrew, setLogos, loadAssignmentsData } from './state.js';
 import { showToast } from './utils.js';
-import { _savePlanToLS, getActivePlanId, renderPlanList, getPlansIndex } from './plans.js';
+import { _savePlanToLS, getActivePlanId, renderPlanList, getPlansIndex, savePlansIndex, genPlanId, _today } from './plans.js';
 import { renderCrew } from './crew.js';
 import { renderTable } from './render.js';
 import { applyAllLogos, saveLogosGlobal } from './logos.js';

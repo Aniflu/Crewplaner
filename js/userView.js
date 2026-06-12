@@ -3,8 +3,8 @@ import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
          IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID, setStatus } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
 import { getVal, isPending, esc, showToast, fmtD } from './utils.js';
-import { pbPatch, pbPost } from './pb.js';
-import { confirmAssignment, declineAssignment, loadAssignmentStatuses } from './dataService.js';
+import { pbPatch, pbPost, pbFirst } from './pb.js';
+import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice } from './dataService.js';
 import { renderTable } from './render.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
 import { closeModal, openModal } from './modals.js';

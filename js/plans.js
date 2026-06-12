@@ -4,6 +4,7 @@ import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos,
 import { SUPABASE_ENABLED } from './config.js';
 import { showToast, sortInsert } from './utils.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
+import { hasPermission } from './rbac.js';
 
 const PLANS_INDEX_KEY = 'tourplan_plans';
 export const PLAN_PREFIX = 'tourplan_plan_';

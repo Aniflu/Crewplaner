@@ -11,6 +11,8 @@ import { pbDelete } from './pb.js';
 import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses } from './dataService.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { showPrompt, showConfirm } from './dialog.js';
+import { hasPermission } from './rbac.js';
+import { openBlockAssign } from './tourblock.js';
 
 export function showDD(rect,header,items){
   const menu=document.getElementById('ddMenu');

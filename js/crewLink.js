@@ -5,6 +5,7 @@ import { pbGet, pbPatch } from './pb.js';
 import { showToast } from './utils.js';
 import { closeModal, openModal } from './modals.js';
 import { hasPermission } from './rbac.js';
+import { saveCrewLink } from './dataService.js';
 
 export function openCrewLinkModal() {
   if (!hasPermission('linkCrewEmail')) return;

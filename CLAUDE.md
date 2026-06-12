@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.10.2**
+- Aktuelle Version: **v0.10.3**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.10.3 — fix: ALLE restlichen fehlenden ES6-Imports (render updateStats/autoSave, persistence savePlansIndex/genPlanId/_today, plans+dropdown hasPermission, dropdown openBlockAssign, userView sendUpdateNotice/pbFirst, crewLink saveCrewLink). Behebt updateStats-Bounce + verhindert Feature-Crashes. Ursache: window-Globals sind seiten-spezifisch.
 v0.10.2 — fix: Bounce behoben (render.js colorToDarkBg) + 4 weitere fehlende ES6-Imports (dropdown CREW_COLORS, pdf OFFEN/DE_DAYS/DE_MON/fmt, crewNotify esc). Vollscan aller Module via Node-Analyzer.
 v0.10.1 — debug: Persistente Cross-Page Auth-Logs (auth-bootstrap ?v=11) zur Bounce-Diagnose
 v0.10.0 — fix: ROOT-CAUSE — Fehlende ES6-Imports (crew/CREW_COLORS in render.js, activePlanId in dataService.js). Behebt admin↔login↔admin-Bounce + Plan-Ladung. Pfade waren nie die Ursache.
