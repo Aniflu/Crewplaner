@@ -16,6 +16,7 @@ export async function _authCheckAndStart() {
     const userStr = localStorage.getItem('pb_user');
 
     if (!token || !userStr) {
+      if (window._logAuth) window._logAuth('authService: KEIN Token → login');
       if (window.location.search) localStorage.setItem('pendingEmailAction', window.location.search);
       window.location.href = window.getNavUrl('login.html');
       return;
@@ -36,6 +37,7 @@ export async function _authCheckAndStart() {
         user = data.record;
       }
     } catch (e) {
+      if (window._logAuth) window._logAuth('authService: Token-Refresh FEHLGESCHLAGEN → login: ' + (e.message || e));
       // Token abgelaufen oder ungültig
       localStorage.removeItem('pb_token');
       localStorage.removeItem('pb_user');
@@ -87,8 +89,10 @@ export async function _authCheckAndStart() {
     }
 
     // Starte die App NACH Plan-Transfer (falls vorhanden)
+    if (window._logAuth) window._logAuth('authService: pre-startApp activePlan=' + localStorage.getItem('tourplan_active_plan') + ' planCount=' + (JSON.parse(localStorage.getItem('tourplan_plans') || '[]').length) + ' IS_MANAGER=' + IS_MANAGER + ' hadTransfer=' + !!_transferData);
     // Das garantiert dass startApp() die korrekten localStorage Keys sieht
     startApp();
+    if (window._logAuth) window._logAuth('authService: nach startApp OK');
 
     // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
     const activePlanId = getActivePlanId();
@@ -106,10 +110,12 @@ export async function _authCheckAndStart() {
         _checkPendingAction();
       })
       .catch(e => {
+        if (window._logAuth) window._logAuth('authService: loadAll FEHLER: ' + (e.message || e));
         console.error('Lade-Fehler:', e);
         renderTable();
       });
   } catch (e) {
+    if (window._logAuth) window._logAuth('authService: OUTER catch → login: ' + (e.message || e) + ' @@ ' + (e.stack || '').split('\n').slice(1,3).join(' | '));
     console.error('Auth-Fehler:', e);
     window.location.href = window.getNavUrl('login.html');
   }
