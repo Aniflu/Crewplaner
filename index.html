@@ -51,7 +51,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.14.0</span>
+            <span class="tour-tag">Personalplan · v0.14.1</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -80,6 +80,9 @@
         <button class="primary manager-only" onclick="saveJSON()"><span class="sb-gl">▶</span>Speichern</button>
         <button class="manager-only" onclick="loadJSON()"><span class="sb-gl">▶</span>Laden</button>
         <button class="manager-only" onclick="openCrewModal()"><span class="sb-gl">👥</span>Crew &amp; Positionen</button>
+        <button class="manager-only" onclick="openAddDate()"><span class="sb-gl">+</span>Datum hinzufügen</button>
+        <button class="manager-only" onclick="openTourBlock()"><span class="sb-gl">▶</span>Tourblock einfügen</button>
+        <button class="manager-only" onclick="openBlockRange()"><span class="sb-gl">▶</span>Bereich → Block</button>
         <button id="btnUpdateQueue" class="manager-only" onclick="_openUpdateQueueModal()" style="display:none;"><span class="sb-gl">↻</span>Updates <span id="updateQueueBadge" style="background:#e84a4a;color:#fff;border-radius:50%;padding:1px 6px;font-size:.7rem;margin-left:4px;">0</span></button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
         <button id="btnKonsole" onclick="window.location.href=window.getNavUrl('admin.html')" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
@@ -379,7 +382,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=7"></script>
+<script type="module" src="js/app.js?v=8"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">

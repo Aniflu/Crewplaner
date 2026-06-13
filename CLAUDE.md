@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.14.0**
+- Aktuelle Version: **v0.14.1**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.14.1 — fix: zwei Regressionen. (1) Tage/Blöcke-Buttons („Datum hinzufügen", „Tourblock einfügen", „Bereich → Block") waren seit v0.9.9.3 (Sidebar-Cleanup) aus index.html gelöscht — wieder eingesetzt + openAddDate/openBlockRange in app.js window-registriert (Funktionen/Modals existierten noch). (2) Neue Pläne aus index.html erschienen nicht in admin.html: confirmNewPlan legte nur localStorage an, keinen PB-plans-Record. Jetzt direkt pbPost {name, owner} + Mapping cachen + stale tourplan_active_pb_id lösen (behebt auch versehentliches Überschreiben des alten Plans).
 v0.14.0 — feat: (1) Händisches Bestätigen — Zellen-Dropdown (openCrewDD) bietet bei angefragten Slots „✓ Nur diesen Tag bestätigen" + „✓ Alle angefragten Termine von {Name} bestätigen" (Status→confirmed via confirmAssignment, kein Mailversand). (2) E-Mail-Vorschau mit Freitext — admin.html: vor Einladung/Erinnerung/Update/Absage poppt eine Vorschau auf, Admin kann persönliche Nachricht ergänzen; geht via neuem Feld crew_invites.custom_message + Hook v4.6 (Notiz-Block) raus. Neuer Absage-Flow (Slot-Auswahl) in der Konsole. SCHEMA (crew_invites.custom_message) + HOOK v4.6 sind deployt — voll funktionsfähig.
 v0.13.0 — fix: Backend-Review-Fixes (Crew-Bestätigungspfad). (1) confirm/declineAssignment werfen Fehler jetzt weiter statt sie zu verschlucken → Crew-Bestätigung meldet echte Fehler + Resync statt stillem „grün" bei Netzwerkausfall; alle Bulk-Aufrufer mit try/catch. (2) Lokaler Status wird nur bei echtem PB-Record gesetzt (kein falsches „grün" für defaultCrew-Slots). (3) bulkProposeCrew setzt proposed_by:'bulk' → Hook v4.5 unterdrückt doppelte per-Slot-Anfrage-Mails bei Einladen/Update. (4) Hook v4.5: Datum aus ISO-String (TZ-sicher serverseitig). +4 fetch-gemockte Tests. HOOK-DEPLOY (v4.5) via Admin/SSH ausstehend.
 v0.12.2 — fix+test: Zeitzonen-Bug in Datumsbereich-Anlage behoben (dates.js nutzte cur.toISOString() = UTC → bei UTC+x landete der Bereich einen Tag zu früh) + headless Node-Test-Infrastruktur (tests/run.mjs, kein npm). Neues dependency-freies Leaf-Modul js/pure.js (toISODate/eachDateInRange/normCrewName/sameCrew). 17 Tests grün unter TZ=UTC und Europe/Berlin.

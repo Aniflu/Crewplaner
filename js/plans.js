@@ -1,6 +1,6 @@
 // ── Multi-Plan System ──────────────────────────────────────────────────────────
 import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos,
-         IS_MANAGER } from './state.js';
+         IS_MANAGER, CURRENT_USER_ID } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
 import { showToast, sortInsert } from './utils.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
@@ -127,7 +127,20 @@ export async function confirmNewPlan(){
   const plans=getPlansIndex();
   plans.push({id,name,created:_today(),modified:_today()});
   savePlansIndex(plans);
-  _savePlanToLS(id);
+  // Stale PB-Mapping des vorherigen Plans lösen, sonst überschreibt _savePlanToLS
+  // den alten Plan-Record mit den leeren Daten des neuen Plans.
+  localStorage.removeItem('tourplan_active_pb_id');
+  // Neuen Plan direkt in PocketBase anlegen → erscheint sofort in admin.html.
+  if(SUPABASE_ENABLED && CURRENT_USER_ID){
+    try{
+      const rec=await pbPost('/api/collections/plans/records',{name,owner:CURRENT_USER_ID});
+      if(rec?.id){
+        localStorage.setItem('tourplan_pb_'+id,rec.id);
+        localStorage.setItem('tourplan_active_pb_id',rec.id);
+      }
+    }catch(e){ console.warn('[plans] PB-Plan anlegen fehlgeschlagen:',e.message); }
+  }
+  _savePlanToLS(id); // schreibt localStorage + (mit pbId) plan_data nach PocketBase
   renderPlanList();
   showToast(`Plan „${name}" erstellt ✓`,'#2d6a3f');
 }

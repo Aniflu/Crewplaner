@@ -39,7 +39,8 @@ import { generateICS } from './calendar.js';
 import { openNewPlan } from './plans.js';
 import { openAddType } from './types.js';
 import { openAddPos } from './positions.js';
-import { openTourBlock, tbBack, tbStep2, tbSetAll, tbConfirm } from './tourblock.js';
+import { openTourBlock, tbBack, tbStep2, tbSetAll, tbConfirm, openBlockRange } from './tourblock.js';
+import { openAddDate } from './dates.js';
 import { clearAllCancellations, flushAllCancellations } from './crewNotify.js';
 import { sendCancellations, bulkConfirmAllMySlots, bulkDeclineAllMySlots,
          _openUpdateQueueModal, _closeUpdateQueueModal,
@@ -79,6 +80,8 @@ window.openNewPlan = openNewPlan;
 window.openAddType = openAddType;
 window.openAddPos = openAddPos;
 window.openTourBlock = openTourBlock;
+window.openAddDate = openAddDate;
+window.openBlockRange = openBlockRange;
 window.tbBack = tbBack;
 window.tbStep2 = tbStep2;
 window.tbSetAll = tbSetAll;
