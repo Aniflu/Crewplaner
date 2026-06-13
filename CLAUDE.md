@@ -354,7 +354,7 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Daten gehen NICHT verloren — SQLite-Tables bleiben. Nur die Collection-Definitionen fehlen.
 > `pb_schema.json` im Repo ist NICHT direkt verwendbar (enthält alte Relation-IDs `pbc_1736455494`).
 
-Aktuell deployte Hook-Version: **v4.4** · im Repo: **v4.5** (DEPLOY ausstehend — via Admin/SSH)
+Aktuell deployte Hook-Version: **v4.5**
 - v4.1: email_log-Write nach jedem Mailversand
 - v4.2: assignments CREATE-Hook entfernt (keine per-Slot-Emails mehr)
 - v4.3: Absage-Email umformuliert ("Plan geändert")
