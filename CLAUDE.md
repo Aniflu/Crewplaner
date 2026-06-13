@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.14.2**
+- Aktuelle Version: **v0.14.3**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.14.3 — fix+test: „Datum hinzufügen" tot — openAddDate nutzte TYPE_OPTS, dates.js importierte es aber nicht (nur typeFromLabel) → ReferenceError beim Klick, Modal öffnete nie. TYPE_OPTS-Import ergänzt. NEU: Import-Guard (tests/imports.test.mjs) fängt diese ES6-„Bounce"-Klasse statisch — meldet, wenn ein Modul einen Export einer anderen Datei nutzt, ohne ihn zu importieren (und es kein window-Global/Builtin ist). Robust gegen Kommentare/Strings/Template-Literale, aliasierte+mehrzeilige Imports, Parameter; bundle.js (globaler Spiegel) + *.test.js ausgeschlossen. 32 Tests grün.
 v0.14.2 — chore+test: Reachability-Audit (tests/reachability.test.mjs) — fängt die Fehlerklasse „Funktion existiert, aber kein Button löst sie aus" (Richtung JS→HTML), die reine Modulgraph-Scanner nicht sehen (so verschwanden in v0.9.9.3 die Tage/Blöcke-Buttons). Harter Test in node tests/run.mjs, beide Richtungen: (A) on*-Handler→undefinierte Funktion (Klick-Crash), (B) window-registriert→kein UI-Trigger (Orphan). Robust gegen alle on*-Attribute, zusammengesetzte Handler, JS-Template-Literale, Inline-Scripts. Dabei einen echten Orphan entfernt: bulkDeclineAllMySlots (Crew „alle absagen" ohne Button) — redundant zum verdrahteten sendCancellations-Flow. 30 Tests grün.
 v0.14.1 — fix: zwei Regressionen. (1) Tage/Blöcke-Buttons („Datum hinzufügen", „Tourblock einfügen", „Bereich → Block") waren seit v0.9.9.3 (Sidebar-Cleanup) aus index.html gelöscht — wieder eingesetzt + openAddDate/openBlockRange in app.js window-registriert (Funktionen/Modals existierten noch). (2) Neue Pläne aus index.html erschienen nicht in admin.html: confirmNewPlan legte nur localStorage an, keinen PB-plans-Record. Jetzt direkt pbPost {name, owner} + Mapping cachen + stale tourplan_active_pb_id lösen (behebt auch versehentliches Überschreiben des alten Plans).
 v0.14.0 — feat: (1) Händisches Bestätigen — Zellen-Dropdown (openCrewDD) bietet bei angefragten Slots „✓ Nur diesen Tag bestätigen" + „✓ Alle angefragten Termine von {Name} bestätigen" (Status→confirmed via confirmAssignment, kein Mailversand). (2) E-Mail-Vorschau mit Freitext — admin.html: vor Einladung/Erinnerung/Update/Absage poppt eine Vorschau auf, Admin kann persönliche Nachricht ergänzen; geht via neuem Feld crew_invites.custom_message + Hook v4.6 (Notiz-Block) raus. Neuer Absage-Flow (Slot-Auswahl) in der Konsole. SCHEMA (crew_invites.custom_message) + HOOK v4.6 sind deployt — voll funktionsfähig.

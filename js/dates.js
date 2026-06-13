@@ -1,7 +1,7 @@
 // ── Add Date Wizard ────────────────────────────────────────────────────────────
 import { TOUR_DATES, IS_MANAGER } from './state.js';
 import { sortInsert, showToast, esc } from './utils.js';
-import { typeFromLabel } from './types.js';
+import { TYPE_OPTS, typeFromLabel } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { renderTable } from './render.js';
 import { _queueGlobalCrewUpdate } from './userView.js';
