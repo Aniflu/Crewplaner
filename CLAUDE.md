@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.14.4**
+- Aktuelle Version: **v0.14.5**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.14.5 — fix+feat: Update-Queue (1) Plan-Scope — Key war 'crewplan_updates_'+activePlanId, aber loadPlanForManager setzt kein activePlanId → leerer Suffix, ALLE Pläne kippten in einen Topf (300+). Jetzt Key = tourplan_active_pb_id (stabil pro Plan) + Einmal-Migration: nur Slots des aktuellen Plans (Datum in TOUR_DATES) übernommen, Rest verworfen, Alt-Topf gelöscht. Anzeige/Count/Send zusätzlich auf aktuelle TOUR_DATES gefiltert. (2) Bulk-Auswahl — Modal jetzt nach Tourblock → Person gruppiert, je Block + je Person „alle/keine", plus globales ALLE/KEINE. _deleteSlotFromQueue liest jetzt dataset (behebt nebenbei kaputtes Quote-Escaping bei Namen). +_queueSelectAll/_queueGrpSel.
 v0.14.4 — fix+test: Dialog-System tot seit ES6-Migration (7b95d0f) → ALLE confirm/alert/prompt brachen still. Ursache: in dialog.js wurde das Top-Level-IIFE in `export function initDialogSystem(){ (function(){…}); }` verpackt, aber die invokierenden `()` fehlten → window.showConfirm/showAlert/showPrompt blieben undefined → TypeError beim Aufruf, Aktion brach ab (Symptom: „Zeile löschen" beim Datum-Klick tat nichts; betraf auch deletePlan/removeCrew/Zurückziehen). Fix: `})();`. NEU: tests/dialog.test.mjs (Node-Stubs) prüft, dass window.show* nach Import Funktionen sind. 35 Tests grün.
 v0.14.3 — fix+test: „Datum hinzufügen" tot — openAddDate nutzte TYPE_OPTS, dates.js importierte es aber nicht (nur typeFromLabel) → ReferenceError beim Klick, Modal öffnete nie. TYPE_OPTS-Import ergänzt. NEU: Import-Guard (tests/imports.test.mjs) fängt diese ES6-„Bounce"-Klasse statisch — meldet, wenn ein Modul einen Export einer anderen Datei nutzt, ohne ihn zu importieren (und es kein window-Global/Builtin ist). Robust gegen Kommentare/Strings/Template-Literale, aliasierte+mehrzeilige Imports, Parameter; bundle.js (globaler Spiegel) + *.test.js ausgeschlossen. 32 Tests grün.
 v0.14.2 — chore+test: Reachability-Audit (tests/reachability.test.mjs) — fängt die Fehlerklasse „Funktion existiert, aber kein Button löst sie aus" (Richtung JS→HTML), die reine Modulgraph-Scanner nicht sehen (so verschwanden in v0.9.9.3 die Tage/Blöcke-Buttons). Harter Test in node tests/run.mjs, beide Richtungen: (A) on*-Handler→undefinierte Funktion (Klick-Crash), (B) window-registriert→kein UI-Trigger (Orphan). Robust gegen alle on*-Attribute, zusammengesetzte Handler, JS-Template-Literale, Inline-Scripts. Dabei einen echten Orphan entfernt: bulkDeclineAllMySlots (Crew „alle absagen" ohne Button) — redundant zum verdrahteten sendCancellations-Flow. 30 Tests grün.

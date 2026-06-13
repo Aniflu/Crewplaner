@@ -60,7 +60,8 @@ import { saveCrewLinkRow } from './crewLink.js';
 import { sendCancellationSummary, sendInvite, sendUpdate } from './crewNotify.js';
 import { tbChangeLoc, tbChangeType } from './tourblock.js';
 import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
-         _bulkConfirmMySlots, _deleteSlotFromQueue, _toggleSlotSelection, meinesMelden } from './userView.js';
+         _bulkConfirmMySlots, _deleteSlotFromQueue, _toggleSlotSelection, meinesMelden,
+         _queueSelectAll, _queueGrpSel } from './userView.js';
 import { startLocEdit } from './render.js';
 
 // ── Register all onclick-handler functions as window globals ──
@@ -137,6 +138,8 @@ window.toggleCancellation = toggleCancellation;
 window._bulkConfirmMySlots = _bulkConfirmMySlots;
 window._deleteSlotFromQueue = _deleteSlotFromQueue;
 window._toggleSlotSelection = _toggleSlotSelection;
+window._queueSelectAll = _queueSelectAll;
+window._queueGrpSel = _queueGrpSel;
 window.meinesMelden = meinesMelden;
 window.startLocEdit = startLocEdit;
 window._dismissCrewUpdates = function(){ const b=document.getElementById('crewUpdateBar'); if(b) b.style.display='none'; };

@@ -269,11 +269,50 @@ export function meinesMelden(dateStr, posId) {
 }
 
 // ── Plan-Änderungs-Queue (Admin → Crew re-bestätigen) ─────────────────────────
+// Key STABIL pro Plan: PB-Plan-ID (für Manager immer gesetzt) bevorzugt, sonst lokale
+// activePlanId. Verhindert den alten Sammel-Topf mit leerem Suffix (loadPlanForManager
+// setzt kein activePlanId → früher kippten ALLE Pläne in 'crewplan_updates_').
+function _queuePlanKey() {
+  let pid = '';
+  try { pid = localStorage.getItem('tourplan_active_pb_id') || ''; } catch(_) {}
+  if (!pid) pid = getActivePlanId() || '';
+  return 'crewplan_updates_' + pid;
+}
+let _legacyQueueMigrated = false;
+function _migrateLegacyQueue() {
+  if (_legacyQueueMigrated) return;
+  const key = _queuePlanKey();
+  if (key === 'crewplan_updates_') return;   // noch keine Plan-ID — später migrieren
+  if (!TOUR_DATES.length) return;            // Plan noch nicht geladen — später
+  _legacyQueueMigrated = true;
+  let legacy = null;
+  try { legacy = JSON.parse(localStorage.getItem('crewplan_updates_') || 'null'); } catch(_) {}
+  if (legacy) {
+    // Nur Slots des AKTUELLEN Plans übernehmen (Datum in TOUR_DATES), Rest verwerfen.
+    const valid = new Set(TOUR_DATES.map(r => r.date));
+    let cur = {};
+    try { cur = JSON.parse(localStorage.getItem(key) || '{}'); } catch(_) {}
+    for (const [name, entry] of Object.entries(legacy)) {
+      const slots = (entry.slots || []).filter(s => valid.has(s.date));
+      if (!slots.length) continue;
+      if (!cur[name]) cur[name] = { email: entry.email, informational: entry.informational, slots: [] };
+      for (const s of slots)
+        if (!cur[name].slots.find(x => x.date === s.date && x.posLabel === s.posLabel)) cur[name].slots.push(s);
+    }
+    localStorage.setItem(key, JSON.stringify(cur));
+  }
+  try { localStorage.removeItem('crewplan_updates_'); } catch(_) {}
+}
 function _getCrewUpdateQueue() {
-  try { return JSON.parse(localStorage.getItem('crewplan_updates_'+(getActivePlanId()||'')) || '{}'); } catch(_) { return {}; }
+  _migrateLegacyQueue();
+  try { return JSON.parse(localStorage.getItem(_queuePlanKey()) || '{}'); } catch(_) { return {}; }
 }
 function _saveCrewUpdateQueue(q) {
-  localStorage.setItem('crewplan_updates_'+(getActivePlanId()||''), JSON.stringify(q));
+  localStorage.setItem(_queuePlanKey(), JSON.stringify(q));
+}
+function _dateBlockId(date) {
+  const r = TOUR_DATES.find(x => x.date === date);
+  return r ? (r.blockId || '') : '';
 }
 
 export function _queueCrewUpdate(dateStr, changeDesc) {
@@ -345,34 +384,94 @@ export function _updateCrewUpdateBar() {
   if (badge) badge.textContent = n;
 }
 
+const _QBTN = "background:#23233a;color:#9ad;border:1px solid #3a3a55;border-radius:3px;padding:1px 7px;font-family:inherit;font-size:.58rem;letter-spacing:.5px;cursor:pointer;";
+
 export function _openUpdateQueueModal() {
   const q = _getCrewUpdateQueue();
   const body = document.getElementById('crewUpdateModalBody');
   if (!body) return;
-  let html = '';
+
+  // Nur Slots des AKTUELLEN Plans (Datum in TOUR_DATES). Block-Reihenfolge aus TOUR_DATES.
+  const valid = new Set(TOUR_DATES.map(r => r.date));
+  const blockName = {}; const blockOrder = []; const seenB = new Set();
+  TOUR_DATES.forEach(r => {
+    const bid = r.blockId || '';
+    if (bid && r.blockName) blockName[bid] = r.blockName;
+    if (!seenB.has(bid)) { seenB.add(bid); blockOrder.push(bid); }
+  });
+
+  // gruppieren: block → crew → [slots]
+  const grouped = {}; let total = 0;
   for (const [name, entry] of Object.entries(q)) {
-    if (!entry.slots || entry.slots.length === 0) continue;
-    html += `<div style="margin-bottom:12px;">
-      <div style="color:#e8c84a;font-size:.7rem;letter-spacing:1px;margin-bottom:4px;">${esc(name)} <span style="color:#888;font-size:.65rem;">(${esc(entry.email||'')})</span></div>`;
-    (entry.slots||[]).forEach((slot) => {
-      const slotKey = `${slot.date}|${slot.posLabel}`;
-      const isChecked = slot.selected !== false;
-      html += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #333;font-size:.65rem;color:#ccc;">
-        <input type="checkbox" data-crew="${esc(name)}" data-key="${esc(slotKey)}" ${isChecked ? 'checked' : ''}
-          onchange="_toggleSlotSelection(this)"
-          style="width:14px;height:14px;accent-color:#4ae8a0;flex-shrink:0;cursor:pointer;">
-        <span style="flex:1;">${esc(slot.date)} · ${esc(slot.posLabel||'')}</span>
-        <span style="cursor:pointer;color:#e84a4a;margin-left:8px;font-size:.7rem;" onclick="_deleteSlotFromQueue(${JSON.stringify(name)},${JSON.stringify(slotKey)})">✕</span>
-      </div>`;
-    });
-    html += '</div>';
+    for (const slot of (entry.slots || [])) {
+      if (!valid.has(slot.date)) continue;
+      const bid = _dateBlockId(slot.date);
+      (grouped[bid] = grouped[bid] || {});
+      (grouped[bid][name] = grouped[bid][name] || []).push(slot);
+      total++;
+    }
   }
-  if (!html) html = '<div style="color:#888;font-size:.7rem;">Queue ist leer.</div>';
+
+  let html = '';
+  if (total === 0) {
+    html = '<div style="color:#888;font-size:.7rem;">Queue ist leer.</div>';
+  } else {
+    for (const bid of blockOrder) {
+      const g = grouped[bid]; if (!g) continue;
+      const bLabel = bid ? (blockName[bid] || 'Block') : 'Ohne Block';
+      html += `<div style="margin:14px 0 6px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #e8c84a55;padding-bottom:3px;">
+        <span style="color:#e8c84a;font-size:.72rem;letter-spacing:1px;flex:1;">▣ ${esc(bLabel)}</span>
+        <button data-block="${esc(bid)}" data-val="1" onclick="_queueGrpSel(this)" style="${_QBTN}">alle</button>
+        <button data-block="${esc(bid)}" data-val="0" onclick="_queueGrpSel(this)" style="${_QBTN}">keine</button>
+      </div>`;
+      for (const [name, slots] of Object.entries(g)) {
+        const entry = q[name] || {};
+        html += `<div style="display:flex;align-items:center;gap:6px;margin:6px 0 2px;">
+          <span style="color:#9ad;font-size:.66rem;flex:1;">${esc(name)} <span style="color:#777;">(${esc(entry.email||'')})</span></span>
+          <button data-block="${esc(bid)}" data-crew="${esc(name)}" data-val="1" onclick="_queueGrpSel(this)" style="${_QBTN}">alle</button>
+          <button data-block="${esc(bid)}" data-crew="${esc(name)}" data-val="0" onclick="_queueGrpSel(this)" style="${_QBTN}">keine</button>
+        </div>`;
+        slots.forEach(slot => {
+          const slotKey = `${slot.date}|${slot.posLabel}`;
+          const isChecked = slot.selected !== false;
+          html += `<div style="display:flex;align-items:center;gap:8px;padding:2px 0 2px 14px;border-bottom:1px solid #2a2a3a;font-size:.64rem;color:#ccc;">
+            <input type="checkbox" data-crew="${esc(name)}" data-key="${esc(slotKey)}" ${isChecked ? 'checked' : ''}
+              onchange="_toggleSlotSelection(this)"
+              style="width:14px;height:14px;accent-color:#4ae8a0;flex-shrink:0;cursor:pointer;">
+            <span style="flex:1;">${esc(slot.date)} · ${esc(slot.posLabel||'')}</span>
+            <span class="q-del" data-crew="${esc(name)}" data-key="${esc(slotKey)}" onclick="_deleteSlotFromQueue(this)" style="cursor:pointer;color:#e84a4a;margin-left:8px;font-size:.7rem;">✕</span>
+          </div>`;
+        });
+      }
+    }
+  }
   body.innerHTML = html;
   document.body.style.overflow = 'hidden';
   const modal = document.getElementById('crewUpdateModal');
   if (modal) modal.style.display = 'flex';
   _updateSendButton();
+}
+
+// Auswahl-Helfer: setzt slot.selected für alle (gefilterten) Slots, speichert, rendert neu.
+function _applyQueueSel(slotPred, value, crewFilter) {
+  const q = _getCrewUpdateQueue();
+  const valid = new Set(TOUR_DATES.map(r => r.date));
+  for (const [name, entry] of Object.entries(q)) {
+    if (crewFilter && name !== crewFilter) continue;
+    for (const slot of (entry.slots || [])) {
+      if (!valid.has(slot.date)) continue;
+      if (slotPred(slot)) slot.selected = value;
+    }
+  }
+  _saveCrewUpdateQueue(q);
+  _openUpdateQueueModal();
+}
+export function _queueSelectAll(value) { _applyQueueSel(() => true, value); }
+export function _queueGrpSel(btn) {
+  const block = btn.dataset.block;            // immer gesetzt ('' = Ohne Block)
+  const crew = btn.dataset.crew || null;      // optional
+  const value = btn.dataset.val === '1';
+  _applyQueueSel(slot => _dateBlockId(slot.date) === block, value, crew);
 }
 
 export function _closeUpdateQueueModal() {
@@ -381,7 +480,10 @@ export function _closeUpdateQueueModal() {
   document.body.style.overflow = '';
 }
 
-export function _deleteSlotFromQueue(crewName, slotKey) {
+export function _deleteSlotFromQueue(el) {
+  const crewName = el?.dataset?.crew;
+  const slotKey = el?.dataset?.key;
+  if (!crewName || !slotKey) return;
   const q = _getCrewUpdateQueue();
   if (!q[crewName]) return;
   q[crewName].slots = q[crewName].slots.filter(s => `${s.date}|${s.posLabel}` !== slotKey);
@@ -404,10 +506,11 @@ export function _toggleSlotSelection(cb) {
 
 function _updateSendButton() {
   const q = _getCrewUpdateQueue();
+  const valid = new Set(TOUR_DATES.map(r => r.date));
   let count = 0;
   for (const entry of Object.values(q)) {
     for (const slot of (entry.slots || [])) {
-      if (slot.selected !== false) count++;
+      if (valid.has(slot.date) && slot.selected !== false) count++;
     }
   }
   const btn = document.getElementById('btnSendUpdates');
@@ -416,11 +519,14 @@ function _updateSendButton() {
 
 export async function _sendSelectedUpdates() {
   const full = _getCrewUpdateQueue();
+  const valid = new Set(TOUR_DATES.map(r => r.date));
   const filtered = {};
   const remaining = {};
   for (const [name, entry] of Object.entries(full)) {
-    const selectedSlots = (entry.slots||[]).filter(s => s.selected !== false);
-    const skippedSlots  = (entry.slots||[]).filter(s => s.selected === false);
+    // Slots fremder Pläne (Datum nicht im aktuellen Plan) gar nicht erst senden.
+    const planSlots = (entry.slots||[]).filter(s => valid.has(s.date));
+    const selectedSlots = planSlots.filter(s => s.selected !== false);
+    const skippedSlots  = planSlots.filter(s => s.selected === false);
     if (selectedSlots.length) filtered[name] = { ...entry, slots: selectedSlots };
     if (skippedSlots.length)  remaining[name] = { ...entry, slots: skippedSlots };
   }

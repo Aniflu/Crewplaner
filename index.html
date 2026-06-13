@@ -51,7 +51,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.14.4</span>
+            <span class="tour-tag">Personalplan · v0.14.5</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -382,14 +382,19 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=11"></script>
+<script type="module" src="js/app.js?v=12"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
   <div style="background:#1a1a2e;border:1px solid #e8c84a;padding:24px;max-width:520px;width:90%;max-height:80vh;overflow:hidden;font-family:'IBM Plex Mono',monospace;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <span style="color:#e8c84a;letter-spacing:2px;font-size:.75rem;">AUSSTEHENDE UPDATES</span>
       <span style="cursor:pointer;color:#aaa;" onclick="_closeUpdateQueueModal()">✕</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+      <span style="color:#888;font-size:.6rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
+      <button onclick="_queueSelectAll(true)" style="background:#1f3a2a;color:#4ae8a0;border:1px solid #2f5a40;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
+      <button onclick="_queueSelectAll(false)" style="background:#3a1f1f;color:#e88;border:1px solid #5a2f2f;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
     </div>
     <div id="crewUpdateModalBody" style="max-height:60vh;overflow-y:scroll;overscroll-behavior:contain;margin-bottom:12px;padding-right:4px;"></div>
     <div style="margin-top:16px;text-align:right;">
