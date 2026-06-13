@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.4
-console.log('[hook] main.pb.js v4.4 geladen');
+// Version: 4.5
+console.log('[hook] main.pb.js v4.5 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -17,6 +17,13 @@ onRecordAfterCreateSuccess(function(e) {
 
   var esc = function(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  };
+
+  // ISO "YYYY-MM-DD" → "DD.MM.YYYY" — direkt aus String, KEINE TZ-Konvertierung
+  var fmtISO = function(s) {
+    var p = String(s || '').split('-');
+    if (p.length < 3 || p[0].length !== 4) return esc(s);
+    return (p[2] || '').substring(0,2) + '.' + p[1] + '.' + p[0];
   };
 
   var sendMail = function(to, subject, html) {
@@ -92,8 +99,7 @@ onRecordAfterCreateSuccess(function(e) {
     var rowsHtml = '';
     for (var i = 0; i < slots.length; i++) {
       var s = slots[i];
-      var d2 = new Date(s.date);
-      var fd2 = isNaN(d2.getTime()) ? esc(s.date) : (('0'+d2.getDate()).slice(-2) + '.' + ('0'+(d2.getMonth()+1)).slice(-2) + '.' + d2.getFullYear());
+      var fd2 = fmtISO(s.date);
       rowsHtml += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + esc(s.posLabel) + '</td>' +
         '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">' + fd2 + '</td></tr>';
     }
@@ -114,8 +120,7 @@ onRecordAfterCreateSuccess(function(e) {
     var avRows = '';
     for (var i = 0; i < avSlots.length; i++) {
       var s = avSlots[i];
-      var dv = new Date(s.date);
-      var fdv = isNaN(dv.getTime()) ? esc(s.date) : (('0'+dv.getDate()).slice(-2)+'.'+('0'+(dv.getMonth()+1)).slice(-2)+'.'+dv.getFullYear());
+      var fdv = fmtISO(s.date);
       avRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+esc(s.posLabel)+'</td>'+
         '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">'+fdv+'</td></tr>';
     }
@@ -137,8 +142,7 @@ onRecordAfterCreateSuccess(function(e) {
     var upRows = '';
     for (var i = 0; i < upSlots.length; i++) {
       var s = upSlots[i];
-      var dv = new Date(s.date);
-      var fdv = isNaN(dv.getTime()) ? esc(s.date) : (('0'+dv.getDate()).slice(-2)+'.'+('0'+(dv.getMonth()+1)).slice(-2)+'.'+dv.getFullYear());
+      var fdv = fmtISO(s.date);
       var chg = Array.isArray(s.changes) ? s.changes.map(function(c){return esc(c);}).join(', ') : '';
       upRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+fdv+'</td>'+
         '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">'+esc(s.posLabel)+'</td>'+
@@ -209,10 +213,14 @@ onRecordAfterUpdateSuccess(function(e) {
   var esc = function(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   };
+  var fmtISO = function(s) {
+    var p = String(s || '').split('-');
+    if (p.length < 3 || p[0].length !== 4) return esc(s);
+    return (p[2] || '').substring(0,2) + '.' + p[1] + '.' + p[0];
+  };
 
   var date     = r.get('date');
-  var d        = new Date(date);
-  var fdate    = isNaN(d) ? esc(date) : (('0'+d.getDate()).slice(-2) + '.' + ('0'+(d.getMonth()+1)).slice(-2) + '.' + d.getFullYear());
+  var fdate    = fmtISO(date);
   var posLabel = r.get('pos_label') || r.get('pos_id');
   var ePosLabel = esc(posLabel);
   var aid      = r.id;
@@ -231,9 +239,11 @@ onRecordAfterUpdateSuccess(function(e) {
       }
     } catch(_) {}
 
-    // Kein Anfrage-Mail wenn re-proposed durch Plan-Änderung — Update-Mail wird separat gesendet
-    if (r.get('proposed_by') === 'update') {
-      console.log('[hook] UPDATE re-proposed via plan-change, kein Anfrage-Mail', aid);
+    // Keine per-Slot-Anfrage-Mail bei Bulk-Operationen (Einladen/Update/Queue senden
+    // ihre eigene konsolidierte Mail). 'update' = Plan-Änderungs-Queue, 'bulk' = Invite/Update.
+    var _pb = r.get('proposed_by');
+    if (_pb === 'update' || _pb === 'bulk') {
+      console.log('[hook] UPDATE re-proposed via bulk/plan-change, kein Anfrage-Mail', aid);
       return;
     }
 

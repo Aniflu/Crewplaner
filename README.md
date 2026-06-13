@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.13.0** — fix: Crew-Bestätigung meldet jetzt echte Fehler (statt stillem „grün"), kein false-confirm ohne Record, keine doppelten Anfrage-Mails (Hook v4.5), TZ-sichere Hook-Datumsformatierung
 **v0.12.2** — fix+test: Zeitzonen-Bug bei Datumsbereichen behoben (Off-by-one bei UTC+x) + headless Node-Tests (tests/run.mjs)
 **v0.12.1** — refactor: Code-Review-Cleanups — toleranter Crew-Namensvergleich (sameCrew), benannter View-Helper, Guards
 **v0.12.0** — feat: Standard-Crew-Buttons personenbezogen — „Zurückziehen" erscheint/wirkt nur noch für die Standard-Person der Position, nicht die ganze Spalte

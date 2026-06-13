@@ -230,12 +230,12 @@ export async function confirmAssignment(dateStr, posId) {
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'confirmed', responded_at: new Date().toISOString()
       });
-    }
-    if (assignmentStatuses[dateStr]?.[posId]) {
-      assignmentStatuses[dateStr][posId].status = 'confirmed';
+      // Lokal NUR setzen wenn wirklich ein Record gepatcht wurde (sonst falsches "grün")
+      if (assignmentStatuses[dateStr]?.[posId]) assignmentStatuses[dateStr][posId].status = 'confirmed';
     }
   } catch (e) {
     console.warn('confirmAssignment Fehler:', e.message);
+    throw e; // Aufrufer muss Fehler sehen (Resync + Toast) — kein stiller Fehlschlag
   }
 }
 
@@ -254,11 +254,12 @@ export async function declineAssignment(dateStr, posId) {
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'declined', responded_at: new Date().toISOString()
       });
+      // Lokal NUR bei echtem Record. E-Mail an Admin via Pocketbase-Hook.
+      if (si) si.status = 'declined';
     }
-    if (si) si.status = 'declined';
-    // E-Mail an Admin wird via Pocketbase-Hook automatisch gesendet
   } catch (e) {
     console.warn('declineAssignment Fehler:', e.message);
+    throw e; // Aufrufer muss Fehler sehen (Resync + Toast)
   }
 }
 
@@ -316,10 +317,11 @@ export async function bulkProposeCrew(slots) {
       {
         plan_id: planId, date: s.date, pos_id: s.posId, pos_label: pos?.label || s.posId,
         crew_name: s.crewName, crew_email: s.crewEmail || '',
-        status: 'proposed'
+        status: 'proposed', proposed_by: 'bulk'
       },
+      // proposed_by:'bulk' → Hook unterdrückt per-Slot-Anfrage-Mail (Aufrufer sendet eigene Invite/Update-Mail)
       { crew_name: s.crewName, pos_label: pos?.label || s.posId, crew_email: s.crewEmail || '',
-        status: 'proposed' }
+        status: 'proposed', proposed_by: 'bulk' }
     );
   }));
 

@@ -35,9 +35,7 @@ export async function sendCancellations() {
   try {
     for (const key of Array.from(pendingCancellations)) {
       const [dateStr, posId] = key.split('|');
-      await declineAssignment(dateStr, posId);
-      const _si36 = assignmentStatuses[dateStr]?.[posId];
-      if (_si36) setStatus(dateStr, posId, { ..._si36, status: 'declined' });
+      await declineAssignment(dateStr, posId); // setzt lokalen Status bei Erfolg selbst
     }
     pendingCancellations.clear();
     _updateCancellationBar();
@@ -45,6 +43,8 @@ export async function sendCancellations() {
     renderTable();
   } catch(e) {
     showToast('Fehler: ' + e.message, '#e84a4a');
+    await loadAssignmentStatuses();
+    renderTable();
   }
 }
 
@@ -170,12 +170,7 @@ export async function _bulkConfirmMySlots() {
     return;
   }
 
-  // Lokale assignmentStatuses aktualisieren
-  decisions.forEach(d => {
-    const _si165 = assignmentStatuses[d.date]?.[d.posId];
-    if (_si165) setStatus(d.date, d.posId, { ..._si165, status: d.confirmed ? 'confirmed' : 'declined' });
-  });
-
+  // Lokaler Status wird von confirm/declineAssignment gesetzt (nur bei echtem PB-Record)
   closeModal('sharedModal');
   showToast('Einsätze bestätigt ✓', '#4ae8a0');
   renderTable();
@@ -207,12 +202,13 @@ export async function bulkConfirmAllMySlots() {
   const slots = getMyPendingSlots();
   if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
   showToast('Wird bestätigt…', '#e8c84a');
-  await Promise.all(slots.map(s => confirmAssignment(s.date, s.posId)));
-  slots.forEach(s => {
-    const _si = assignmentStatuses[s.date]?.[s.posId];
-    if (_si) setStatus(s.date, s.posId, { ..._si, status: 'confirmed' });
-  });
-  showToast('Alle Termine bestätigt ✓', '#4ae8a0');
+  try {
+    await Promise.all(slots.map(s => confirmAssignment(s.date, s.posId)));
+    showToast('Alle Termine bestätigt ✓', '#4ae8a0');
+  } catch(e) {
+    showToast('Fehler – bitte erneut versuchen: ' + e.message, '#e84a4a');
+    await loadAssignmentStatuses();
+  }
   renderTable();
 }
 
@@ -222,25 +218,36 @@ export async function bulkDeclineAllMySlots() {
   const slots = getMyPendingSlots();
   if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
   showToast('Wird abgelehnt…', '#e8c84a');
-  await Promise.all(slots.map(s => declineAssignment(s.date, s.posId)));
-  slots.forEach(s => {
-    const _si = assignmentStatuses[s.date]?.[s.posId];
-    if (_si) setStatus(s.date, s.posId, { ..._si, status: 'declined' });
-  });
-  showToast('Alle Termine abgelehnt', '#e84a4a');
+  try {
+    await Promise.all(slots.map(s => declineAssignment(s.date, s.posId)));
+    showToast('Alle Termine abgelehnt', '#e84a4a');
+  } catch(e) {
+    showToast('Fehler – bitte erneut versuchen: ' + e.message, '#e84a4a');
+    await loadAssignmentStatuses();
+  }
   renderTable();
 }
 
 // ── Einzelne Slot-Aktionen (aus Tabelle heraus) ───────────────────────────────
 export async function confirmMySlot(dateStr, posId) {
-  await confirmAssignment(dateStr, posId);
-  showToast('Bestätigt ✓', '#4ae8a0');
+  try {
+    await confirmAssignment(dateStr, posId);
+    showToast('Bestätigt ✓', '#4ae8a0');
+  } catch(e) {
+    showToast('Nicht gespeichert: ' + e.message, '#e84a4a');
+    await loadAssignmentStatuses();
+  }
   renderTable();
 }
 
 export async function declineMySlot(dateStr, posId) {
-  await declineAssignment(dateStr, posId);
-  showToast('Abgelehnt', '#e84a4a');
+  try {
+    await declineAssignment(dateStr, posId);
+    showToast('Abgelehnt', '#e84a4a');
+  } catch(e) {
+    showToast('Nicht gespeichert: ' + e.message, '#e84a4a');
+    await loadAssignmentStatuses();
+  }
   renderTable();
 }
 

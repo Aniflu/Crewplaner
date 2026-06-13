@@ -13,6 +13,7 @@ export async function loadGraph(){
     m.crewNotify= await import('../js/crewNotify.js');
     m.userView  = await import('../js/userView.js');
     m.plans     = await import('../js/plans.js');
+    m.dataService = await import('../js/dataService.js');
     _cache = m;
   }catch(e){
     console.log('      (Graph-Load fehlgeschlagen: ' + e.message + ')');
