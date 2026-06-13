@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.12.1**
+- Aktuelle Version: **v0.12.2**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.12.2 — fix+test: Zeitzonen-Bug in Datumsbereich-Anlage behoben (dates.js nutzte cur.toISOString() = UTC → bei UTC+x landete der Bereich einen Tag zu früh) + headless Node-Test-Infrastruktur (tests/run.mjs, kein npm). Neues dependency-freies Leaf-Modul js/pure.js (toISODate/eachDateInRange/normCrewName/sameCrew). 17 Tests grün unter TZ=UTC und Europe/Berlin.
 v0.12.1 — refactor: Code-Review-Cleanups — (1) sameCrew()/normCrewName() in utils.js: Crew-Namen trim/case-tolerant vergleichen (render hasOpen, dropdown bulkCancelPos, dataService bulkCancelProposals filtert jetzt in JS statt case-sensitivem PB-Filter); (2) hasTableView() statt magischer DOM-ID-Prüfung in plans.js; (3) if(!def)return Guard in bulkCancelPos. render↔userView-Zyklus bewusst belassen (ES6-spec-sicher, nur Aufrufzeit-Zugriffe).
 v0.12.0 — feat: Standard-Crew-Buttons („Zurückziehen") personenbezogen statt spaltenbezogen — hasOpen + bulkCancelPos prüfen jetzt nur Slots der Standard-Person (crew_name===def). Behebt: roter Button erschien fälschlich, wenn jemand ANDERES in der Spalte unbestätigt war, obwohl die Standard-Person voll bestätigt ist. bulkCancelProposals(posId, crewName) optional personenbezogen.
 v0.11.0 — fix: ES6-MODUL-VOLLSANIERUNG — 24 fehlende Imports/typeof-Guards behoben (via Node-Analyzer gefunden). Behebt: Crew-Namen nicht klickbar (getMyCrewName fehlte in render.js → myName immer null), Block-/Crew-Tabs tot (renderBlockView/renderCrewView nicht importiert), Update-Queue (dropdown/dates/tourblock/render → _queueCrewUpdate/_queueGlobalCrewUpdate), Verfügbarkeit melden (userView _getNewSlotsForCrew/bulkProposeCrew/sendAvailabilityNotice), pending-Action-Handler (init.js openTourBlock u.a.), Plan-Laden (plans.js renderTable/renderCrew, admin-sicher per DOM-Guard), checkAndOpenMySchedule. + Cache-Bust app.js?v=2 / admin-app.js?v=2 (Sub-Module wurden ohne Versionsquery gecached → frühere Fixes kamen verzögert an).
@@ -254,6 +255,19 @@ python3 -m http.server 8080
 Datei in `js/` oder `styles.css` bearbeiten → Browser-Tab neu laden → fertig. Kein npm, kein Build.
 
 **Cache-Bust:** Nach JS/CSS-Änderungen `?v=N` in `index.html` + `login.html` hochzählen.
+
+### Headless-Tests (kein npm)
+
+```bash
+node tests/run.mjs                      # alle Logik-Tests
+TZ=Europe/Berlin node tests/run.mjs     # Zeitzonen-Regression (Datumsbereiche)
+TZ=UTC           node tests/run.mjs
+```
+
+- `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
+- `tests/pure.test.mjs` ohne Stubs; `tests/logic.test.mjs` lädt den echten Modulgraphen via Stubs (`tests/_setup.mjs`) und prüft `getVal`/`isPending`/`sortInsert`/`typeFromLabel` (zugleich Headless-Smoke-Test für alle Module).
+- Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1 bei Fehler). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
+- **Reine, testbare Logik gehört nach `js/pure.js`** (oder ein anderes import-freies Leaf), nicht in `utils.js` — letzteres zieht über `types.js→render.js` den ganzen DOM-Graphen rein.
 
 Aktuelle Versionen (Stand 2026-05-30):
 

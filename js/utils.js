@@ -4,9 +4,8 @@ import { TYPE_OPTS } from './types.js';
 
 export { DE_DAYS, DE_MON };
 
-// Crew-Namen tolerant vergleichen (trim + case-insensitiv) — Quelle: crew[] vs assignments.crew_name
-export function normCrewName(s){return String(s==null?'':s).trim().toLowerCase();}
-export function sameCrew(a,b){return normCrewName(a)===normCrewName(b);}
+// Crew-Namensvergleich lebt im dependency-freien Leaf-Modul (testbar) — hier nur re-exportiert
+export { normCrewName, sameCrew } from './pure.js';
 
 export function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
 export function fmtD(s){const d=parseD(s);return `${DE_DAYS[d.getDay()]} ${d.getDate()}. ${DE_MON[d.getMonth()]}`;}

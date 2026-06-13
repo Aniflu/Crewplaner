@@ -5,6 +5,7 @@ import { typeFromLabel } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { renderTable } from './render.js';
 import { _queueGlobalCrewUpdate } from './userView.js';
+import { eachDateInRange } from './pure.js';
 
 // Global functions called: openModal, closeModal, showAlert, _askBlockAssign
 
@@ -62,12 +63,8 @@ export async function confirmAddDate(){
     const to=document.getElementById('adDateTo')?.value;
     if(!from||!to){await showAlert('Bitte Von/Bis Datum wählen.');return;}
     if(from>to){await showAlert('Von-Datum muss vor Bis-Datum liegen.');return;}
-    const cur=new Date(...from.split('-').map((v,i)=>i===1?+v-1:+v));
-    const end=new Date(...to.split('-').map((v,i)=>i===1?+v-1:+v));
-    while(cur<=end){
-      const ds=cur.toISOString().slice(0,10);
+    for(const ds of eachDateInRange(from,to)){
       if(!TOUR_DATES.find(r=>r.date===ds)){sortInsert({date:ds,type,typeLabel,loc:lv});addedDates.push(ds);}
-      cur.setDate(cur.getDate()+1);
     }
   }
   _queueGlobalCrewUpdate('Neue Tage hinzugefügt');
