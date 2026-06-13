@@ -4,7 +4,7 @@ import { TOUR_DATES, POSITIONS, crew, CREW_COLORS, assignments, defaultCrew,
          OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, crewMeta,
          setAssignment, clearAssignmentSlot } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
-import { getVal, isPending, esc, showToast, sortInsert, fmtD } from './utils.js';
+import { getVal, isPending, esc, showToast, sortInsert, fmtD, sameCrew } from './utils.js';
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
 import { renderTable } from './render.js';
 import { pbDelete } from './pb.js';
@@ -176,13 +176,14 @@ export async function bulkCancelPos(e,posId){
   e.stopPropagation();
   const pos=POSITIONS.find(p=>p.id===posId);
   const def=defaultCrew[posId]||'';
+  if(!def)return;
   const ok=await showConfirm(`Offene Anfragen von „${def}" für „${pos?.label}" zurückziehen?`,'Zurückziehen');
   if(!ok)return;
   try{
     await bulkCancelProposals(posId, def);
     Object.keys(assignmentStatuses).forEach(date=>{
       const si=assignmentStatuses[date]?.[posId];
-      if(si&&si.crewName===def&&isPending(si)){
+      if(si&&sameCrew(si.crewName,def)&&isPending(si)){
         delete assignmentStatuses[date][posId];
         clearAssignmentSlot(date, posId);
       }

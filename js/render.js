@@ -5,7 +5,7 @@ import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, defaultCrew,
          IS_MANAGER, IS_CREW, IS_BOOKER,
          OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, CURRENT_USER_EMAIL,
          pendingCancellations } from './state.js';
-import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS, colorToDarkBg } from './utils.js';
+import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS, colorToDarkBg, sameCrew } from './utils.js';
 import { TYPE_OPTS } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { updateStats } from './stats.js';
@@ -21,6 +21,9 @@ export const VIEW_KEY = 'tourplan_view';
 
 export function getCurrentView() { return CURRENT_VIEW; }
 export function setCurrentView(v) { CURRENT_VIEW = v; }
+
+// true nur auf Seiten mit der Zuweisungstabelle (index.html) — nicht auf admin.html
+export function hasTableView() { return !!document.getElementById('tBody'); }
 
 export function setView(v){
   if(!['table','blocks','crew'].includes(v))v='table';
@@ -70,7 +73,7 @@ export function renderHead(){
     const dot=def&&ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'transparent';
     const hasOpen=!!def&&Object.values(assignmentStatuses).some(day=>{
       const si=day[p.id];
-      return si&&si.crewName===def&&isPending(si);
+      return si&&sameCrew(si.crewName,def)&&isPending(si);
     });
     const hasAny=!!def&&TOUR_DATES.some(day=>!(day.date in assignments&&p.id in(assignments[day.date]||{})));
     if(IS_MANAGER){

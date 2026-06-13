@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.12.1** — refactor: Code-Review-Cleanups — toleranter Crew-Namensvergleich (sameCrew), benannter View-Helper, Guards
 **v0.12.0** — feat: Standard-Crew-Buttons personenbezogen — „Zurückziehen" erscheint/wirkt nur noch für die Standard-Person der Position, nicht die ganze Spalte
 **v0.11.0** — fix: ES6-Modul-Vollsanierung — 24 fehlende Imports behoben (Crew-Klick, Block/Crew-Tabs, Update-Queue, Verfügbarkeit, Plan-Laden) + Cache-Bust app.js?v=2
 **v0.10.9** — fix: zirkulärer Import render↔userView brach alle Klicks — pendingCancellations in state.js verschoben

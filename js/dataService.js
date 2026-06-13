@@ -6,7 +6,7 @@ import {
   clearStatus
 } from './state.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
-import { showToast } from './utils.js';
+import { showToast, sameCrew } from './utils.js';
 import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex } from './plans.js';
 
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
@@ -288,10 +288,11 @@ export async function bulkCancelProposals(posId, crewName) {
   if (!planId) return;
 
   try {
-    let filter = `plan_id = "${pbEscapeFilter(planId)}" && pos_id = "${pbEscapeFilter(posId)}" && (status = "proposed" || status = "declined")`;
-    if (crewName) filter += ` && crew_name = "${pbEscapeFilter(crewName)}"`;
-    const data = await pbList('assignments', filter);
-    await Promise.all((data?.items || []).map(row => {
+    const data = await pbList('assignments',
+      `plan_id = "${pbEscapeFilter(planId)}" && pos_id = "${pbEscapeFilter(posId)}" && (status = "proposed" || status = "declined")`);
+    // crewName optional + trim/case-tolerant in JS filtern (PB-Filter wäre case-sensitiv)
+    const rows = (data?.items || []).filter(row => !crewName || sameCrew(row.crew_name, crewName));
+    await Promise.all(rows.map(row => {
       clearStatus(row.date, row.pos_id);  // ← NEW: fix stale state
       return pbDelete('/api/collections/assignments/records/' + row.id);
     }));
