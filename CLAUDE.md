@@ -265,7 +265,8 @@ TZ=UTC           node tests/run.mjs
 ```
 
 - `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
-- `tests/pure.test.mjs` ohne Stubs; `tests/logic.test.mjs` lädt den echten Modulgraphen via Stubs (`tests/_setup.mjs`) und prüft `getVal`/`isPending`/`sortInsert`/`typeFromLabel` (zugleich Headless-Smoke-Test für alle Module).
+- `tests/pure.test.mjs` ohne Stubs; `tests/logic.test.mjs` + `tests/flows.test.mjs` laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`) — zugleich Headless-Smoke-Test für alle Module.
+- Abgedeckt: Datums-Bereiche (TZ-sicher), `getVal`/`isPending`/`sortInsert`/`typeFromLabel`, Crew anlegen/eintragen/löschen, Slot-Diffing (`_getNewSlotsForCrew`), `getMyCrewName` (case-insensitiv), Plan-Persistenz-Roundtrip. **Nicht** abgedeckt (braucht echtes PocketBase → Playwright): Login, E-Mail-Versand, Bestätigen/Absagen über die API.
 - Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1 bei Fehler). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
 - **Reine, testbare Logik gehört nach `js/pure.js`** (oder ein anderes import-freies Leaf), nicht in `utils.js` — letzteres zieht über `types.js→render.js` den ganzen DOM-Graphen rein.
 

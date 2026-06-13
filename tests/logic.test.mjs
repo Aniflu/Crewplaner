@@ -1,22 +1,7 @@
 // State-/Logik-Tests: laden den echten Modulgraphen headless (Stubs via _setup.mjs).
 // Best-effort: lässt sich der Graph nicht laden, werden die Tests als SKIP markiert.
 import { test, eq, ok, deepEq } from './_assert.mjs';
-import './_setup.mjs';
-
-let _g = undefined; // cache: null = Load fehlgeschlagen
-async function graph(){
-  if(_g !== undefined) return _g;
-  try{
-    const [state, utils, types] = await Promise.all([
-      import('../js/state.js'), import('../js/utils.js'), import('../js/types.js'),
-    ]);
-    _g = { state, utils, types };
-  }catch(e){
-    console.log('      (Graph-Load fehlgeschlagen: ' + e.message + ')');
-    _g = null;
-  }
-  return _g;
-}
+import { loadGraph as graph } from './_graph.mjs';
 
 test('isPending: proposed/declined → true, confirmed/assigned/null → false', async () => {
   const g = await graph(); if(!g) return 'SKIP';
