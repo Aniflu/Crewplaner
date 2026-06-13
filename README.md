@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.14.4** — fix+test: Dialog-System repariert — `confirm/alert/prompt` waren seit der ES6-Migration tot (IIFE in dialog.js nie aufgerufen → `window.show*` undefined), dadurch brach u.a. „Zeile löschen" beim Datum-Klick still ab. + Regressions-Test
 **v0.14.3** — fix+test: „Datum hinzufügen" reparieren (fehlender `TYPE_OPTS`-Import in dates.js → ReferenceError beim Klick) + Import-Guard, der fehlende Modul-Imports statisch fängt (`node tests/run.mjs`)
 **v0.14.2** — chore+test: Reachability-Audit — harter Test (`node tests/run.mjs`) fängt tote Features ohne UI-Trigger (Funktion existiert, aber kein Button) + kaputte onclick-Handler. Redundanten Orphan `bulkDeclineAllMySlots` entfernt
 **v0.14.1** — fix: Tage/Blöcke-Buttons wiederhergestellt (seit v0.9.9.3 verschwunden) + neue Pläne landen jetzt in der Admin-Ansicht (PB-Record beim Anlegen)

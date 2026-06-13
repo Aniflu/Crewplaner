@@ -84,7 +84,7 @@ export function initDialogSystem(){
   window.showPrompt=function(msg,def){
     return _show({type:'prompt',title:'Eingabe',msg,def:def||''});
   };
-});
+})();   // ← inneres IIFE MUSS aufgerufen werden, sonst werden window.show* nie gesetzt
 }
 initDialogSystem();
 
