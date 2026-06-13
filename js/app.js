@@ -42,7 +42,7 @@ import { openAddPos } from './positions.js';
 import { openTourBlock, tbBack, tbStep2, tbSetAll, tbConfirm, openBlockRange } from './tourblock.js';
 import { openAddDate } from './dates.js';
 import { clearAllCancellations, flushAllCancellations } from './crewNotify.js';
-import { sendCancellations, bulkConfirmAllMySlots, bulkDeclineAllMySlots,
+import { sendCancellations, bulkConfirmAllMySlots,
          _openUpdateQueueModal, _closeUpdateQueueModal,
          _sendPendingUpdates, _sendSelectedUpdates, _submitMeldung } from './userView.js';
 import { openModal, closeModal } from './modals.js';
@@ -90,7 +90,6 @@ window.clearAllCancellations = clearAllCancellations;
 window.flushAllCancellations = flushAllCancellations;
 window.sendCancellations = sendCancellations;
 window.bulkConfirmAllMySlots = bulkConfirmAllMySlots;
-window.bulkDeclineAllMySlots = bulkDeclineAllMySlots;
 window._openUpdateQueueModal = _openUpdateQueueModal;
 window._closeUpdateQueueModal = _closeUpdateQueueModal;
 window._sendPendingUpdates = _sendPendingUpdates;

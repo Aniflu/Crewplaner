@@ -212,22 +212,6 @@ export async function bulkConfirmAllMySlots() {
   renderTable();
 }
 
-// ── Alle angefragten Termine auf einmal absagen ───────────────────────────────
-export async function bulkDeclineAllMySlots() {
-  if (!getMyCrewName()) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return; }
-  const slots = getMyPendingSlots();
-  if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
-  showToast('Wird abgelehnt…', '#e8c84a');
-  try {
-    await Promise.all(slots.map(s => declineAssignment(s.date, s.posId)));
-    showToast('Alle Termine abgelehnt', '#e84a4a');
-  } catch(e) {
-    showToast('Fehler – bitte erneut versuchen: ' + e.message, '#e84a4a');
-    await loadAssignmentStatuses();
-  }
-  renderTable();
-}
-
 // ── Einzelne Slot-Aktionen (aus Tabelle heraus) ───────────────────────────────
 export async function confirmMySlot(dateStr, posId) {
   try {
