@@ -8,7 +8,7 @@ import { getVal, isPending, esc, showToast, sortInsert, fmtD, sameCrew } from '.
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
 import { renderTable } from './render.js';
 import { pbDelete } from './pb.js';
-import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses } from './dataService.js';
+import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses, confirmAssignment } from './dataService.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { showPrompt, showConfirm } from './dialog.js';
 import { hasPermission } from './rbac.js';
@@ -98,6 +98,39 @@ export function openCrewDD(e,dateStr,posId){
   const current=assignments[dateStr]?.[posId];
   const items=[];
   const si=assignmentStatuses[dateStr]?.[posId];
+  // Händisch bestätigen — nur für angefragte (proposed) Slots: setzt Status confirmed,
+  // als hätte das Crew-Mitglied selbst zugesagt (kein E-Mail-Versand bei confirmed).
+  if(si && si.status==='proposed' && si.crewName){
+    items.push({label:'✓ Nur diesen Tag bestätigen',color:'#4ae8a0',action:async()=>{
+      closeDD();
+      try{
+        await confirmAssignment(dateStr,posId);
+        showToast('Bestätigt ✓','#4ae8a0');
+      }catch(err){
+        showToast('Fehler – nicht gespeichert: '+err.message,'#e84a4a');
+        await loadAssignmentStatuses();
+      }
+      renderTable();
+    }});
+    items.push({label:`✓ Alle angefragten Termine von ${si.crewName} bestätigen`,color:'#4ae8a0',action:async()=>{
+      closeDD();
+      const targets=[];
+      Object.entries(assignmentStatuses).forEach(([d,positions])=>{
+        Object.entries(positions).forEach(([p,s])=>{
+          if(s && s.status==='proposed' && sameCrew(s.crewName,si.crewName)) targets.push([d,p]);
+        });
+      });
+      showToast('Wird bestätigt…','#e8c84a');
+      try{
+        await Promise.all(targets.map(([d,p])=>confirmAssignment(d,p)));
+        showToast(`${targets.length} Termin(e) bestätigt ✓`,'#4ae8a0');
+      }catch(err){
+        showToast('Fehler – bitte erneut versuchen: '+err.message,'#e84a4a');
+        await loadAssignmentStatuses();
+      }
+      renderTable();
+    }});
+  }
   if(isPending(si)){
     items.push({label:'✕ Anfrage zurückziehen',cls:'danger',action:async()=>{
       closeDD();

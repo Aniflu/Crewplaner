@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Konsole — Tour/Crew</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script type="module" src="js/admin-app.js?v=2"></script>
+<script type="module" src="js/admin-app.js?v=3"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -509,7 +509,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.13.0</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.14.0</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -886,6 +886,34 @@ body {
     <div class="mactions">
       <button class="mbtn" onclick="closeModal('calModal')">Abbrechen</button>
       <button class="mbtn primary" onclick="adminGenerateICS()">⬇ .ics herunterladen</button>
+    </div>
+  </div>
+</div>
+
+<!-- E-Mail-Vorschau (vor dem Senden) -->
+<div class="modal-bg" id="emailPreviewModal">
+  <div class="modal-box" style="width:520px;max-width:94vw;">
+    <div class="modal-title">📧 E-Mail-Vorschau</div>
+    <div id="emailPreviewBody" style="font-size:.7rem;color:#c8cdd5;line-height:1.6;"></div>
+    <div class="mf" style="margin-top:14px;">
+      <label class="ml">Persönliche Nachricht (optional)</label>
+      <textarea id="emailPreviewText" rows="4" class="mi" placeholder="Text, der in der E-Mail oben hervorgehoben wird…" style="resize:vertical;width:100%;font-family:'IBM Plex Mono',monospace;"></textarea>
+    </div>
+    <div class="mactions">
+      <button class="mbtn" onclick="closeModal('emailPreviewModal')">Abbrechen</button>
+      <button class="mbtn primary" onclick="confirmEmailSend()">Senden →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Absage: Slot-Auswahl -->
+<div class="modal-bg" id="cancelSelectModal">
+  <div class="modal-box" style="width:480px;max-width:94vw;">
+    <div class="modal-title">✕ Einsätze absagen</div>
+    <div id="cancelSelectBody" style="font-size:.7rem;color:#c8cdd5;line-height:1.6;max-height:50vh;overflow-y:auto;"></div>
+    <div class="mactions">
+      <button class="mbtn" onclick="closeModal('cancelSelectModal')">Abbrechen</button>
+      <button class="mbtn primary" onclick="cancelSelectNext()">Weiter zur Vorschau →</button>
     </div>
   </div>
 </div>
@@ -1462,29 +1490,67 @@ function renderAdminNotify() {
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminEmail(this.dataset.crew,'invite')">Einladung</button>
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminEmail(this.dataset.crew,'reminder')">Erinnerung</button>
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminUpdate(this.dataset.crew)">Update</button>
+      <button class="btn btn-ghost btn-sm" ${(!email||(proposed+confirmed)===0)?'disabled':''} data-crew="${esc(name)}" onclick="openAdminCancellation(this.dataset.crew)" style="color:#e8907a;">Absage</button>
     </div>`;
   }).join('');
 }
 
-async function sendAdminEmail(crewName, type) {
-  const meta = _wrkCrewMeta[crewName];
-  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
-  try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id:    _wrkPbPlanId,
-      crew_name:  crewName,
-      crew_email: meta.email,
-      type,
-      plan_name:  _wrkPlanName,
-      app_url:    'https://crewplanner.nyxlightwork.de'
-    });
-    adminToast(`${type === 'invite' ? 'Einladung' : 'Erinnerung'} gesendet an ${crewName} ✓`, '#4ae8a0');
-  } catch(e) {
-    adminToast('Fehler: ' + e.message, '#e84a4a');
-  }
+// ── E-Mail-Vorschau (Freitext vor dem Senden) ─────────────────────────────────
+let _emailSender = null; // Closure: (customText) => Promise
+
+function _fmtDateDE(iso){ const p=String(iso||'').split('-'); return (p.length===3&&p[0].length===4)?(p[2].substring(0,2)+'.'+p[1]+'.'+p[0]):iso; }
+
+function _slotTableHtml(slots){
+  if (!slots.length) return '';
+  const rows = slots.map(s => `<tr><td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${_fmtDateDE(s.date)}</td><td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(s.posLabel)}</td></tr>`).join('');
+  return `<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:.62rem;color:#9aa0aa;">${rows}</table>`;
 }
 
-async function sendAdminUpdate(crewName) {
+// opts: { type, crewName, email, subject, intro, slots, sender }
+function openEmailPreview(opts) {
+  _emailSender = opts.sender;
+  document.getElementById('emailPreviewBody').innerHTML =
+    `<div><strong style="color:#9aa0aa;">An:</strong> ${esc(opts.email)}</div>
+     <div><strong style="color:#9aa0aa;">Betreff:</strong> ${esc(opts.subject)}</div>
+     <div style="margin-top:8px;color:#9aa0aa;">${opts.intro}</div>
+     ${_slotTableHtml(opts.slots || [])}`;
+  document.getElementById('emailPreviewText').value = '';
+  openModal('emailPreviewModal');
+  setTimeout(() => document.getElementById('emailPreviewText')?.focus(), 50);
+}
+
+async function confirmEmailSend() {
+  if (!_emailSender) { closeModal('emailPreviewModal'); return; }
+  const customText = document.getElementById('emailPreviewText').value.trim();
+  const sender = _emailSender;
+  _emailSender = null;
+  closeModal('emailPreviewModal');
+  try { await sender(customText); }
+  catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+}
+
+function sendAdminEmail(crewName, type) {
+  const meta = _wrkCrewMeta[crewName];
+  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
+  const label = type === 'invite' ? 'Einladung' : 'Erinnerung';
+  openEmailPreview({
+    type, crewName, email: meta.email,
+    subject: (type === 'invite' ? 'CREW INVITE · ' : 'REMINDER · ') + _wrkPlanName,
+    intro: type === 'invite'
+      ? `Einladung zu <strong>${esc(_wrkPlanName)}</strong> — Crew bestätigt ihre Einsätze in der App.`
+      : `Erinnerung, ausstehende Einsätze für <strong>${esc(_wrkPlanName)}</strong> zu bestätigen.`,
+    sender: async (customText) => {
+      await pbPost('/api/collections/crew_invites/records', {
+        plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: meta.email,
+        type, plan_name: _wrkPlanName, app_url: 'https://crewplanner.nyxlightwork.de',
+        ...(customText ? { custom_message: customText } : {})
+      });
+      adminToast(`${label} gesendet an ${crewName} ✓`, '#4ae8a0');
+    }
+  });
+}
+
+function sendAdminUpdate(crewName) {
   const meta = _wrkCrewMeta[crewName];
   if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
   const slots = [];
@@ -1496,15 +1562,83 @@ async function sendAdminUpdate(crewName) {
     });
   });
   if (!slots.length) { adminToast(`${crewName}: Keine bestätigten Einsätze`, '#e8c84a'); return; }
-  try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: meta.email,
-      type: 'update', plan_name: _wrkPlanName, app_url: JSON.stringify(slots)
+  openEmailPreview({
+    type: 'update', crewName, email: meta.email,
+    subject: 'ÄNDERUNG · ' + _wrkPlanName,
+    intro: `${slots.length} aktualisierte Einsätze — Crew bestätigt erneut.`,
+    slots,
+    sender: async (customText) => {
+      await pbPost('/api/collections/crew_invites/records', {
+        plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: meta.email,
+        type: 'update', plan_name: _wrkPlanName, app_url: JSON.stringify(slots),
+        ...(customText ? { custom_message: customText } : {})
+      });
+      adminToast(`Update gesendet an ${crewName} ✓`, '#4ae8a0');
+    }
+  });
+}
+
+// ── Absage: Slot-Auswahl → Vorschau → Senden + Status-Records löschen ─────────
+function openAdminCancellation(crewName) {
+  const meta = _wrkCrewMeta[crewName];
+  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
+  const slots = [];
+  Object.entries(_wrkAssignmentStatuses).forEach(([date, positions]) => {
+    Object.entries(positions).forEach(([posId, si]) => {
+      if (si.crewName !== crewName) return;
+      if (si.status !== 'confirmed' && si.status !== 'proposed') return;
+      const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
+      slots.push({ date, posId, posLabel: pos?.label || posId, status: si.status });
     });
-    adminToast(`Update gesendet an ${crewName} ✓`, '#4ae8a0');
-  } catch(e) {
-    adminToast('Fehler: ' + e.message, '#e84a4a');
-  }
+  });
+  if (!slots.length) { adminToast(`${crewName}: Keine Einsätze zum Absagen`, '#e8c84a'); return; }
+  slots.sort((a, b) => a.date.localeCompare(b.date));
+  document.getElementById('cancelSelectBody').innerHTML =
+    `<div style="margin-bottom:10px;color:#9aa0aa;">Welche Einsätze von <strong>${esc(crewName)}</strong> absagen?</div>` +
+    slots.map((s, i) => `<label style="display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid #2a2f3a;cursor:pointer;">
+      <input type="checkbox" id="cxl_${i}" data-date="${s.date}" data-pos="${s.posId}" data-label="${esc(s.posLabel)}" checked style="width:15px;height:15px;accent-color:#e84a4a;">
+      <span style="flex:1;">${_fmtDateDE(s.date)} · ${esc(s.posLabel)} <span style="color:#5a6070;">${s.status === 'confirmed' ? '✓' : '⏳'}</span></span>
+    </label>`).join('');
+  _cancelCrewName = crewName; _cancelEmail = meta.email;
+  openModal('cancelSelectModal');
+}
+let _cancelCrewName = '', _cancelEmail = '';
+
+function cancelSelectNext() {
+  const chosen = Array.from(document.querySelectorAll('#cancelSelectBody input[type=checkbox]'))
+    .filter(cb => cb.checked)
+    .map(cb => ({ date: cb.dataset.date, posId: cb.dataset.pos, posLabel: cb.dataset.label }));
+  if (!chosen.length) { adminToast('Nichts ausgewählt', '#5a6070'); return; }
+  closeModal('cancelSelectModal');
+  const crewName = _cancelCrewName, email = _cancelEmail;
+  openEmailPreview({
+    type: 'cancellation', crewName, email,
+    subject: 'PLAN UPDATE · ' + _wrkPlanName,
+    intro: `${chosen.length} Einsätze werden aus dem Plan entfernt und ${esc(crewName)} per E-Mail informiert.`,
+    slots: chosen,
+    sender: async (customText) => {
+      // 1) Status-Records der gewählten Slots löschen
+      for (const s of chosen) {
+        try {
+          const data = await pbList('assignments',
+            `plan_id = "${_wrkPbPlanId}" && date = "${s.date}" && pos_id = "${s.posId}"`);
+          for (const row of (data?.items || [])) {
+            await pbDelete('/api/collections/assignments/records/' + row.id);
+          }
+          if (_wrkAssignmentStatuses[s.date]) delete _wrkAssignmentStatuses[s.date][s.posId];
+        } catch(e) { console.warn('[absage] Slot-Löschung:', e.message); }
+      }
+      // 2) Absage-Mail (mit Freitext)
+      await pbPost('/api/collections/crew_invites/records', {
+        plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: email,
+        type: 'cancellation', plan_name: _wrkPlanName,
+        app_url: JSON.stringify(chosen.map(s => ({ date: s.date, posLabel: s.posLabel }))),
+        ...(customText ? { custom_message: customText } : {})
+      });
+      adminToast(`Absage gesendet an ${crewName} ✓`, '#4ae8a0');
+      renderAdminNotify();
+    }
+  });
 }
 
 // ── Werkzeuge: JSON Export / Import ───────────────────────────────────────────

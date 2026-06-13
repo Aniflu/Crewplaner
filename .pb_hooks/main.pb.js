@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.5
-console.log('[hook] main.pb.js v4.5 geladen');
+// Version: 4.6
+console.log('[hook] main.pb.js v4.6 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -74,6 +74,15 @@ onRecordAfterCreateSuccess(function(e) {
 
   var _crewGuide = 'https://aniflu.github.io/Crewplaner/docs/guide-crew.html';
 
+  // Optionaler Freitext des Admins (Feld custom_message auf crew_invites) als Notiz-Block
+  var noteBlock = function(msg) {
+    if (!msg) return '';
+    var safe = esc(msg).replace(/\n/g, '<br>');
+    return '<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;background:#fffdf5;border-left:3px solid #e8c84a;border-radius:2px;">' +
+      '<tr><td style="padding:14px 18px;font-size:13px;color:#555570;line-height:1.7;">' + safe + '</td></tr></table>';
+  };
+  var customMsg = r.get('custom_message') || '';
+
   var eName = esc(name);
   var ePlan = esc(plan);
 
@@ -82,6 +91,7 @@ onRecordAfterCreateSuccess(function(e) {
       '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Du bist dabei.</h1>' +
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">CREW INVITE · ' + ePlan + '</p>' +
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Hey ' + eName + ',<br><br>du wurdest f&uuml;r <strong style="color:#1a1a2e;">' + ePlan + '</strong> eingeladen.</p>' +
+      noteBlock(customMsg) +
       mkBtn(appUrl, 'EINST&Auml;TZE BEST&Auml;TIGEN &rarr;') +
       mkBtn(_crewGuide, 'ANLEITUNG &rarr;', '#f8f9fb', '#555570')
     ));
@@ -90,6 +100,7 @@ onRecordAfterCreateSuccess(function(e) {
       '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Noch ausstehend.</h1>' +
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">REMINDER · ' + ePlan + '</p>' +
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Hey ' + eName + ',<br><br>bitte bestätige oder lehne deine Einsätze für <strong style="color:#1a1a2e;">' + ePlan + '</strong> ab.</p>' +
+      noteBlock(customMsg) +
       mkBtn(appUrl, 'JETZT BESTÄTIGEN →')
     ));
   } else if (type === 'cancellation') {
@@ -107,6 +118,7 @@ onRecordAfterCreateSuccess(function(e) {
       '<h1 style="font-size:36px;font-weight:bold;color:#e84a4a;margin:0 0 6px 0;">Plan ge&auml;ndert.</h1>' +
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">PLAN UPDATE · ' + ePlan + '</p>' +
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey ' + eName + ',<br><br>folgende Eins&auml;tze wurden aus deinem Plan entfernt:</p>' +
+      noteBlock(customMsg) +
       '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
       '<tr style="background:#f8f9fb;"><td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td>' +
       '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td></tr>' +
@@ -152,6 +164,7 @@ onRecordAfterCreateSuccess(function(e) {
       '<h1 style="font-size:36px;font-weight:bold;color:#e84a4a;margin:0 0 6px 0;">Achtung.</h1>'+
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">PLAN GEÄNDERT · '+ePlan+'</p>'+
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey '+eName+',<br><br>folgende Einss&auml;tze haben sich ge&auml;ndert. Bitte logge dich ein und best&auml;tige erneut:</p>'+
+      noteBlock(customMsg)+
       '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">'+
       '<tr style="background:#f8f9fb;">'+
       '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td>'+
