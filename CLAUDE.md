@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
-v0.14.0 — feat: (1) Händisches Bestätigen — Zellen-Dropdown (openCrewDD) bietet bei angefragten Slots „✓ Nur diesen Tag bestätigen" + „✓ Alle angefragten Termine von {Name} bestätigen" (Status→confirmed via confirmAssignment, kein Mailversand). (2) E-Mail-Vorschau mit Freitext — admin.html: vor Einladung/Erinnerung/Update/Absage poppt eine Vorschau auf, Admin kann persönliche Nachricht ergänzen; geht via neuem Feld crew_invites.custom_message + Hook v4.6 (Notiz-Block) raus. Neuer Absage-Flow (Slot-Auswahl) in der Konsole. SCHEMA (custom_message) + HOOK v4.6 DEPLOY via Admin ausstehend.
+v0.14.0 — feat: (1) Händisches Bestätigen — Zellen-Dropdown (openCrewDD) bietet bei angefragten Slots „✓ Nur diesen Tag bestätigen" + „✓ Alle angefragten Termine von {Name} bestätigen" (Status→confirmed via confirmAssignment, kein Mailversand). (2) E-Mail-Vorschau mit Freitext — admin.html: vor Einladung/Erinnerung/Update/Absage poppt eine Vorschau auf, Admin kann persönliche Nachricht ergänzen; geht via neuem Feld crew_invites.custom_message + Hook v4.6 (Notiz-Block) raus. Neuer Absage-Flow (Slot-Auswahl) in der Konsole. SCHEMA (crew_invites.custom_message) + HOOK v4.6 sind deployt — voll funktionsfähig.
 v0.13.0 — fix: Backend-Review-Fixes (Crew-Bestätigungspfad). (1) confirm/declineAssignment werfen Fehler jetzt weiter statt sie zu verschlucken → Crew-Bestätigung meldet echte Fehler + Resync statt stillem „grün" bei Netzwerkausfall; alle Bulk-Aufrufer mit try/catch. (2) Lokaler Status wird nur bei echtem PB-Record gesetzt (kein falsches „grün" für defaultCrew-Slots). (3) bulkProposeCrew setzt proposed_by:'bulk' → Hook v4.5 unterdrückt doppelte per-Slot-Anfrage-Mails bei Einladen/Update. (4) Hook v4.5: Datum aus ISO-String (TZ-sicher serverseitig). +4 fetch-gemockte Tests. HOOK-DEPLOY (v4.5) via Admin/SSH ausstehend.
 v0.12.2 — fix+test: Zeitzonen-Bug in Datumsbereich-Anlage behoben (dates.js nutzte cur.toISOString() = UTC → bei UTC+x landete der Bereich einen Tag zu früh) + headless Node-Test-Infrastruktur (tests/run.mjs, kein npm). Neues dependency-freies Leaf-Modul js/pure.js (toISODate/eachDateInRange/normCrewName/sameCrew). 17 Tests grün unter TZ=UTC und Europe/Berlin.
 v0.12.1 — refactor: Code-Review-Cleanups — (1) sameCrew()/normCrewName() in utils.js: Crew-Namen trim/case-tolerant vergleichen (render hasOpen, dropdown bulkCancelPos, dataService bulkCancelProposals filtert jetzt in JS statt case-sensitivem PB-Filter); (2) hasTableView() statt magischer DOM-ID-Prüfung in plans.js; (3) if(!def)return Guard in bulkCancelPos. render↔userView-Zyklus bewusst belassen (ES6-spec-sicher, nur Aufrufzeit-Zugriffe).
@@ -355,7 +355,7 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Daten gehen NICHT verloren — SQLite-Tables bleiben. Nur die Collection-Definitionen fehlen.
 > `pb_schema.json` im Repo ist NICHT direkt verwendbar (enthält alte Relation-IDs `pbc_1736455494`).
 
-Aktuell deployte Hook-Version: **v4.5** · im Repo: **v4.6** (DEPLOY ausstehend — via Admin/SSH)
+Aktuell deployte Hook-Version: **v4.6**
 - v4.1: email_log-Write nach jedem Mailversand
 - v4.2: assignments CREATE-Hook entfernt (keine per-Slot-Emails mehr)
 - v4.3: Absage-Email umformuliert ("Plan geändert")
