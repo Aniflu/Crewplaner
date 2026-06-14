@@ -143,8 +143,16 @@ export async function loadPlanForCrew() {
 export async function loadPlanForManager() {
   if (!SUPABASE_ENABLED || !IS_MANAGER) return;
   try {
-    // Direkt nach owner suchen — unabhängig von activePlanId / localStorage
-    const plan = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
+    // GEZIELT den aktuell gewählten Plan laden (tourplan_active_pb_id), nicht blind
+    // den ersten by owner — sonst überschreibt ein Reload bei mehreren Plänen den
+    // angezeigten Plan mit einem fremden (v0.14.6 Datenverlust-Symptom).
+    const pinned = localStorage.getItem('tourplan_active_pb_id');
+    let plan = null;
+    if (pinned) {
+      try { plan = await pbGet('/api/collections/plans/records/' + pinned); } catch(_) { plan = null; }
+    }
+    // Fallback: nur wenn kein Zeiger gesetzt ist → erster Plan des Owners.
+    if (!plan) plan = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
     if (!plan) { console.warn('loadPlanForManager: kein Plan für owner gefunden'); return; }
     if (!plan.plan_data) {
       console.warn('loadPlanForManager: plan_data ist leer');

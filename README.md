@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.14.6** — fix (kritisch, Datenverlust): Mehr-Plan-Cross-Write — ein Plan ohne eigene PB-Zuordnung überschrieb den Record eines anderen Plans. `_savePlanToLS` schreibt jetzt nur in den eigenen Record (legt sonst einen an), `loadPlanForManager` lädt den gewählten statt „ersten" Plan. + Cross-Write-Test
 **v0.14.5** — fix+feat: Update-Queue — pro Plan scopen (Key auf stabile PB-Plan-ID, behebt „300 Einträge über alle Pläne") + Bulk-Auswahl im Modal: nach Tourblock & Person gruppiert mit „alle/keine"-Schaltern + globalem ALLE/KEINE
 **v0.14.4** — fix+test: Dialog-System repariert — `confirm/alert/prompt` waren seit der ES6-Migration tot (IIFE in dialog.js nie aufgerufen → `window.show*` undefined), dadurch brach u.a. „Zeile löschen" beim Datum-Klick still ab. + Regressions-Test
 **v0.14.3** — fix+test: „Datum hinzufügen" reparieren (fehlender `TYPE_OPTS`-Import in dates.js → ReferenceError beim Klick) + Import-Guard, der fehlende Modul-Imports statisch fängt (`node tests/run.mjs`)

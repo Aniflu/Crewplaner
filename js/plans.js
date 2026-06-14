@@ -56,6 +56,11 @@ export function switchPlan(id){
   if(id===activePlanId)return;
   _savePlanToLS(activePlanId);
   activePlanId=id;
+  // Globalen PB-Zeiger auf den Ziel-Plan setzen (oder löschen, wenn keiner) —
+  // hält tourplan_active_pb_id konsistent mit dem aktiven Plan.
+  const pb=localStorage.getItem('tourplan_pb_'+id);
+  if(pb)localStorage.setItem('tourplan_active_pb_id',pb);
+  else localStorage.removeItem('tourplan_active_pb_id');
   _loadPlanFromLS(id);
   renderPlanList();
   showToast('Plan geladen ✓','#4f81bd');
@@ -138,7 +143,12 @@ export async function confirmNewPlan(){
         localStorage.setItem('tourplan_pb_'+id,rec.id);
         localStorage.setItem('tourplan_active_pb_id',rec.id);
       }
-    }catch(e){ console.warn('[plans] PB-Plan anlegen fehlgeschlagen:',e.message); }
+    }catch(e){
+      // Sichtbar machen — ohne eigenen Record taucht der Plan nicht in der Admin-
+      // Konsole auf; früher wurde der Fehler still verschluckt.
+      console.warn('[plans] PB-Plan anlegen fehlgeschlagen:',e.message);
+      showToast('Plan lokal erstellt, aber NICHT in PocketBase gespeichert — bitte erneut versuchen','#e84a4a');
+    }
   }
   _savePlanToLS(id); // schreibt localStorage + (mit pbId) plan_data nach PocketBase
   renderPlanList();
@@ -169,11 +179,29 @@ export function _savePlanToLS(id){
     const plans=getPlansIndex();
     const p=plans.find(x=>x.id===id);
     if(p){p.modified=_today();savePlansIndex(plans);}
-    // Sync plan_data to PocketBase
+    // Sync plan_data to PocketBase — STRIKT in den EIGENEN Record dieses Plans.
+    // NIE auf tourplan_active_pb_id zurückfallen: das ist ein globaler Zeiger und
+    // hat in v0.14.6 dazu geführt, dass ein Plan den Record eines ANDEREN Plans
+    // überschrieb (Cross-Write → Datenverlust). Ohne eigene Zuordnung: neuen Record
+    // anlegen, statt einen fremden zu patchen.
     if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED){
-      const pbId=localStorage.getItem('tourplan_pb_'+id)||localStorage.getItem('tourplan_active_pb_id');
-      if(pbId){pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)}).catch(e=>console.warn('[plans] PB-Sync fehlgeschlagen:',e));}
-      else{console.warn('[plans] PB-Sync: kein pbId gefunden für',id);}
+      const pbId=localStorage.getItem('tourplan_pb_'+id);
+      if(pbId){
+        pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)}).catch(e=>console.warn('[plans] PB-Sync fehlgeschlagen:',e));
+      } else if(CURRENT_USER_ID){
+        const planName=(p&&p.name)||'Plan';
+        (async()=>{
+          try{
+            const rec=await pbPost('/api/collections/plans/records',{name:planName,owner:CURRENT_USER_ID,plan_data:JSON.stringify(data)});
+            if(rec&&rec.id){
+              localStorage.setItem('tourplan_pb_'+id,rec.id);
+              localStorage.setItem('tourplan_active_pb_id',rec.id);
+            }
+          }catch(e){console.warn('[plans] PB-Record-Anlage fehlgeschlagen:',e);}
+        })();
+      } else {
+        console.warn('[plans] PB-Sync: kein pbId und kein User für',id);
+      }
     }
   }catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');}
 }
