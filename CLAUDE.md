@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.14.7**
+- Aktuelle Version: **v0.14.8**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.14.8 — fix(Sync-Feedback): savePlan meldete optimistisch „gespeichert", obwohl der PB-Patch fire-and-forget war → bei stillem PB-Fehler (z.B. abgelaufener Token) blieb PB unverändert ohne Hinweis. Jetzt: _savePlanToLS gibt die PB-Promise zurück; savePlan awaitet sie und zeigt EHRLICH „Gespeichert ✓ (lokal + PocketBase)" ODER „PocketBase-Sync FEHLGESCHLAGEN: <Grund> (evtl. neu einloggen)". Diagnose-Tool für den realen Sync-Fehler.
 v0.14.7 — fix(Sync): „Speichern"-Button rief nur saveJSON() (JSON-Datei-Download) und schrieb NICHTS nach PocketBase → PB lief aus dem Takt (Manager dachte, der Plan wird gespeichert, war aber nur lokal/Datei). Neuer savePlan() (persistence.js) macht echtes _savePlanToLS(activePlanId) = localStorage + PB-Patch in den eigenen Record. Sidebar: „▶ Speichern"→savePlan(), JSON-Download auf eigenen „⤓ Export JSON"-Button verschoben. (Tagesberechnung war übrigens KORREKT — dw nutzt Label-Gewicht, Nachbereitung=1.0; ein Stale-PB-Snapshot hatte nur frühere Eindrücke verfälscht.)
 v0.14.6 — fix(KRITISCH/Datenverlust): Mehr-Plan Cross-Write. _savePlanToLS nutzte `tourplan_pb_<id> || tourplan_active_pb_id` — ohne plan-eigene Zuordnung wurde der GLOBALE active_pb_id-Record gepatcht → „Provinz 2027" überschrieb den „AMK 2026"-Record (Datenverlust). Behoben: (B1) _savePlanToLS schreibt NUR in tourplan_pb_<id>; fehlt der → neuen Record anlegen (pbPost), nie fremden patchen. (B2) loadPlanForManager lädt gezielt tourplan_active_pb_id statt „erster by owner" (Reload überschrieb sonst den angezeigten Plan). (B3) confirmNewPlan zeigt PB-Fehler sichtbar. (B4) switchPlan setzt/löscht tourplan_active_pb_id konsistent. (B5) tests/plans.test.mjs Cross-Write-Guard. RETTUNG: AMK-Record (03fs6r1o8cqeyt2, 59 Tage/8 Crew/356 assignments) wiederhergestellt, „Provinz 2027" in eigenen Record 9z9f5o61goo1nvz ausgelagert. 37 Tests grün.
 v0.14.5 — fix+feat: Update-Queue (1) Plan-Scope — Key war 'crewplan_updates_'+activePlanId, aber loadPlanForManager setzt kein activePlanId → leerer Suffix, ALLE Pläne kippten in einen Topf (300+). Jetzt Key = tourplan_active_pb_id (stabil pro Plan) + Einmal-Migration: nur Slots des aktuellen Plans (Datum in TOUR_DATES) übernommen, Rest verworfen, Alt-Topf gelöscht. Anzeige/Count/Send zusätzlich auf aktuelle TOUR_DATES gefiltert. (2) Bulk-Auswahl — Modal jetzt nach Tourblock → Person gruppiert, je Block + je Person „alle/keine", plus globales ALLE/KEINE. _deleteSlotFromQueue liest jetzt dataset (behebt nebenbei kaputtes Quote-Escaping bei Namen). +_queueSelectAll/_queueGrpSel.

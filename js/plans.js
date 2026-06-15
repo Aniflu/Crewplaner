@@ -184,26 +184,30 @@ export function _savePlanToLS(id){
     // hat in v0.14.6 dazu geführt, dass ein Plan den Record eines ANDEREN Plans
     // überschrieb (Cross-Write → Datenverlust). Ohne eigene Zuordnung: neuen Record
     // anlegen, statt einen fremden zu patchen.
+    // Gibt die PB-Sync-Promise zurück, damit bewusstes Speichern (savePlan) sie
+    // awaiten und echten Erfolg/Fehler anzeigen kann. Auto-Save ignoriert den Rückgabewert.
+    let pbPromise=Promise.resolve();
     if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED){
       const pbId=localStorage.getItem('tourplan_pb_'+id);
       if(pbId){
-        pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)}).catch(e=>console.warn('[plans] PB-Sync fehlgeschlagen:',e));
+        pbPromise=pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)});
       } else if(CURRENT_USER_ID){
         const planName=(p&&p.name)||'Plan';
-        (async()=>{
-          try{
-            const rec=await pbPost('/api/collections/plans/records',{name:planName,owner:CURRENT_USER_ID,plan_data:JSON.stringify(data)});
-            if(rec&&rec.id){
-              localStorage.setItem('tourplan_pb_'+id,rec.id);
-              localStorage.setItem('tourplan_active_pb_id',rec.id);
-            }
-          }catch(e){console.warn('[plans] PB-Record-Anlage fehlgeschlagen:',e);}
+        pbPromise=(async()=>{
+          const rec=await pbPost('/api/collections/plans/records',{name:planName,owner:CURRENT_USER_ID,plan_data:JSON.stringify(data)});
+          if(rec&&rec.id){
+            localStorage.setItem('tourplan_pb_'+id,rec.id);
+            localStorage.setItem('tourplan_active_pb_id',rec.id);
+          }
         })();
       } else {
         console.warn('[plans] PB-Sync: kein pbId und kein User für',id);
       }
     }
-  }catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');}
+    // verhindert "unhandled rejection" für Fire-and-forget-Aufrufer (Auto-Save)
+    pbPromise.catch(e=>console.warn('[plans] PB-Sync fehlgeschlagen:',e));
+    return pbPromise;
+  }catch(e){if(typeof showToast==='function')showToast('Speichern fehlgeschlagen (Speicher voll?)','#e84a4a');return Promise.reject(e);}
 }
 
 export function _loadPlanFromLS(id){

@@ -36,8 +36,16 @@ export function autoSave(){
 export async function savePlan(){
   const id=getActivePlanId();
   if(!id){showToast('Kein aktiver Plan zum Speichern','#e84a4a');return;}
-  _savePlanToLS(id); // schreibt localStorage + patcht den eigenen PB-Record
-  showToast('Plan gespeichert ✓ (lokal + PocketBase)','#2d6a3f');
+  showToast('Speichere…','#e8c84a');
+  try{
+    await _savePlanToLS(id); // localStorage (synchron) + PB-Patch (awaited)
+    showToast('Gespeichert ✓ (lokal + PocketBase)','#2d6a3f');
+  }catch(e){
+    // Ehrlich: lokal ist gespeichert, aber der PocketBase-Sync ist fehlgeschlagen.
+    const msg=(e&&e.message)||'unbekannt';
+    showToast('Lokal gespeichert — PocketBase-Sync FEHLGESCHLAGEN: '+msg+' (evtl. neu einloggen)','#e84a4a');
+    console.error('[savePlan] PB-Sync fehlgeschlagen:',e);
+  }
 }
 
 export async function saveJSON(){

@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.14.8** — fix: „Speichern" wartet jetzt auf den PocketBase-Sync und meldet ehrlich Erfolg oder den echten Fehler (z. B. abgelaufener Login) — statt fälschlich „gespeichert" anzuzeigen
 **v0.14.7** — fix: „Speichern"-Button speichert jetzt wirklich nach PocketBase (rief vorher nur den JSON-Datei-Download auf) — JSON-Export ist jetzt ein eigener Button
 **v0.14.6** — fix (kritisch, Datenverlust): Mehr-Plan-Cross-Write — ein Plan ohne eigene PB-Zuordnung überschrieb den Record eines anderen Plans. `_savePlanToLS` schreibt jetzt nur in den eigenen Record (legt sonst einen an), `loadPlanForManager` lädt den gewählten statt „ersten" Plan. + Cross-Write-Test
 **v0.14.5** — fix+feat: Update-Queue — pro Plan scopen (Key auf stabile PB-Plan-ID, behebt „300 Einträge über alle Pläne") + Bulk-Auswahl im Modal: nach Tourblock & Person gruppiert mit „alle/keine"-Schaltern + globalem ALLE/KEINE
