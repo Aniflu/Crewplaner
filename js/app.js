@@ -29,7 +29,7 @@ import './userView.js';
 import './dialog.js';
 
 // ── Explicit imports for window.* registrations (onclick handlers) ──
-import { saveJSON, loadJSON, onFileLoad } from './persistence.js';
+import { saveJSON, savePlan, loadJSON, onFileLoad } from './persistence.js';
 import { openCrewModal, toggleSidebar } from './sidebar.js';
 import { addCrew } from './crew.js';
 import { closeDD } from './dropdown.js';
@@ -67,6 +67,7 @@ import { startLocEdit } from './render.js';
 // ── Register all onclick-handler functions as window globals ──
 window.logout = logout;
 window.saveJSON = saveJSON;
+window.savePlan = savePlan;
 window.loadJSON = loadJSON;
 window.onFileLoad = onFileLoad;
 window.openCrewModal = openCrewModal;

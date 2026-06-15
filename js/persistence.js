@@ -30,6 +30,16 @@ export function autoSave(){
   },30000);
 }
 
+// Plan bewusst speichern: localStorage + PocketBase-Sync (über _savePlanToLS).
+// Der „Speichern"-Button rief früher nur saveJSON() (= JSON-Datei-Download) auf und
+// schrieb NICHTS nach PocketBase — daher lief PB aus dem Takt. (v0.14.7)
+export async function savePlan(){
+  const id=getActivePlanId();
+  if(!id){showToast('Kein aktiver Plan zum Speichern','#e84a4a');return;}
+  _savePlanToLS(id); // schreibt localStorage + patcht den eigenen PB-Record
+  showToast('Plan gespeichert ✓ (lokal + PocketBase)','#2d6a3f');
+}
+
 export async function saveJSON(){
   const json=JSON.stringify(collectData(),null,2);
   const plans=getPlansIndex();
