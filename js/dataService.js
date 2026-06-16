@@ -461,3 +461,33 @@ export async function saveCrewLink(crewName, email) {
   if (!crewMeta[crewName]) crewMeta[crewName] = {};
   crewMeta[crewName].email = email;
 }
+
+// ── Crew-Mitglied umbenennen — KEINE Dublette: bestehende Records umbenennen ────
+export async function renameCrewMember(oldName, newName) {
+  if (!SUPABASE_ENABLED) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  // crew_members-Record(s) umbenennen (statt neu anlegen)
+  const members = await pbList('crew_members', `plan_id = "${pbEscapeFilter(planId)}" && name = "${pbEscapeFilter(oldName)}"`);
+  for (const m of (members?.items || [])) {
+    await pbPatch('/api/collections/crew_members/records/' + m.id, { name: newName });
+  }
+  // Bestätigungs-Records (assignments) mit umbenennen, damit Status/Anzeige passt
+  const assigns = await pbListAll('assignments', `plan_id = "${pbEscapeFilter(planId)}" && crew_name = "${pbEscapeFilter(oldName)}"`);
+  for (const a of (assigns?.items || [])) {
+    await pbPatch('/api/collections/assignments/records/' + a.id, { crew_name: newName });
+  }
+}
+
+// ── Crew-Mitglied entfernen — auch den PB-crew_members-Record löschen (keine Leiche) ──
+export async function deleteCrewMember(name) {
+  if (!SUPABASE_ENABLED) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  try {
+    const members = await pbList('crew_members', `plan_id = "${pbEscapeFilter(planId)}" && name = "${pbEscapeFilter(name)}"`);
+    for (const m of (members?.items || [])) {
+      await pbDelete('/api/collections/crew_members/records/' + m.id);
+    }
+  } catch(e) { console.warn('deleteCrewMember Fehler:', e.message); }
+}

@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.14.11**
+- Aktuelle Version: **v0.14.12**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.14.12 — feat+fix: Crew umbenennen ohne Dublette. Es gab keine Rename-Funktion → Umbenennen via entfernen+neu anlegen, und removeCrew löschte den PB-crew_members-Record NICHT → alte Namens-Leiche blieb + saveCrewLink upsertet per Name → neuer Name = neuer Record = Dublette (z.B. Thomas Heine/Haine, Marco Hoch 4×). Neu: renameCrew (crew.js, ✏-Button je Mitglied) ersetzt den Namen lokal (crew/defaultCrew/assignments/crewMeta) UND in PB (renameCrewMember patcht crew_members + assignments-Collection, keine Dublette). removeCrew löscht jetzt den PB-Record mit (deleteCrewMember). PB-Bereinigung: 3 Dubletten gelöscht (Thomas Heine + 2 Marco), „Marco Hoch" bleibt 2× (madmaxmail=Admin + marco@hoch-online.com=GL-Crew, vom User so gewollt).
 v0.14.11 — fix: (1) Passwort-Reset-Link „file not found" — PB resetPasswordTemplate war Default (`{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}` → mit APP_URL=…/login.html ergab das …/login.html/_/… = 404). Auf `{APP_URL}?token={TOKEN}` geändert (passt zu login.html `?token=`-Handler). (2) Logout: zusätzlichen, immer sichtbaren „Abmelden"-Button oben in die Aktionen-Sidebar gesetzt (bestehender userBadge-Logout unten bleibt). HINWEIS Wolf „kein Plan + kein Logout": DB-Lookup (crew_members email=livlights@gmx.de → plan_id) funktioniert; wahrscheinlich stale gecachtes Sub-Modul (laden ohne ?v=) → app.js-Modulgraph bricht → kein Init. Lösung: voller Hard-Reload/Cache-Clear.
 v0.14.10 — fix(Self-Register): Selbst-Registrierung (login.html) setzte weder `role` noch `emailVisibility` → registrierte Crew hatte LEERE Rolle (IS_CREW=false → loadPlanForCrew lief nie → KEIN Plan, z.B. Wolf/LivLights@gmx.de) UND unsichtbare E-Mail („Keine E-Mail" in Admin-Liste). Fix: Payload um `role:'crew', emailVisibility:true` ergänzt. admin.html renderUsers: rollenlose User zeigen jetzt „— keine Rolle —" statt sich als „Crew" zu tarnen (Default-Option verschleierte das; erneutes Wählen von „Crew" feuerte kein onchange → wurde nie gespeichert). PB-Einmalfix: 4 self-registrierte User (Wolf/Philine/Kerrin/Pascal) auf role=crew + emailVisibility=true gepatcht.
 v0.14.9 — fix(Bestätigen): geplante Crew OHNE Bestätigungs-Record war nicht bestätigbar (z.B. nachträglich eingetragene Tage) — das Zellen-Menü zeigte „Bestätigen" nur bei status==='proposed', und confirmAssignment patchte nur vorhandene Records. Jetzt: (1) openCrewDD bietet „Bestätigen" für JEDE geplante, noch nicht bestätigte Person (Override ODER Standard-Crew); „Alle Termine von X bestätigen" geht über alle geplanten, nicht-confirmten Slots (TOUR_DATES×POSITIONS). (2) confirmAssignment legt einen confirmed-Record an (pbPost, proposed_by:'manual'), wenn keiner existiert. +Test. dropdown.js-Mirror in bundle.js nicht nötig (wird zur Laufzeit überschrieben).
