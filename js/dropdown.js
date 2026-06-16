@@ -98,9 +98,14 @@ export function openCrewDD(e,dateStr,posId){
   const current=assignments[dateStr]?.[posId];
   const items=[];
   const si=assignmentStatuses[dateStr]?.[posId];
-  // Händisch bestätigen — nur für angefragte (proposed) Slots: setzt Status confirmed,
-  // als hätte das Crew-Mitglied selbst zugesagt (kein E-Mail-Versand bei confirmed).
-  if(si && si.status==='proposed' && si.crewName){
+  // Händisch bestätigen — für jede GEPLANTE Person (Override oder Standard), die noch
+  // nicht bestätigt ist. Deckt sowohl angefragte (proposed) Slots als auch nachträglich
+  // eingetragene Slots OHNE Record ab — confirmAssignment legt dort einen bestätigten
+  // Record an. Kein E-Mail-Versand bei confirmed.
+  const planned=getVal(dateStr,posId);
+  const alreadyConfirmed=si && si.status==='confirmed';
+  if(planned && planned!==OFFEN && !alreadyConfirmed){
+    const who=(si && si.crewName) || planned;
     items.push({label:'✓ Nur diesen Tag bestätigen',color:'#4ae8a0',action:async()=>{
       closeDD();
       try{
@@ -112,12 +117,16 @@ export function openCrewDD(e,dateStr,posId){
       }
       renderTable();
     }});
-    items.push({label:`✓ Alle angefragten Termine von ${si.crewName} bestätigen`,color:'#4ae8a0',action:async()=>{
+    items.push({label:`✓ Alle Termine von ${who} bestätigen`,color:'#4ae8a0',action:async()=>{
       closeDD();
+      // Alle geplanten Slots dieser Person, die noch nicht bestätigt sind.
       const targets=[];
-      Object.entries(assignmentStatuses).forEach(([d,positions])=>{
-        Object.entries(positions).forEach(([p,s])=>{
-          if(s && s.status==='proposed' && sameCrew(s.crewName,si.crewName)) targets.push([d,p]);
+      TOUR_DATES.forEach(r=>{
+        POSITIONS.forEach(p=>{
+          if(sameCrew(getVal(r.date,p.id),who)){
+            const s=assignmentStatuses[r.date]?.[p.id];
+            if(!(s && s.status==='confirmed')) targets.push([r.date,p.id]);
+          }
         });
       });
       showToast('Wird bestätigt…','#e8c84a');

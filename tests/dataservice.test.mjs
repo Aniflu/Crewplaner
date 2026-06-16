@@ -49,6 +49,23 @@ test('confirmAssignment: setzt lokal confirmed bei Erfolg', async () => {
   eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'confirmed', 'lokal confirmed');
 });
 
+test('confirmAssignment: legt bestätigten Record an für geplante Crew OHNE Record', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primePlan(g);
+  g.state.defaultCrew.gl = 'Wolf Geffenius';                       // geplant via Standard-Crew
+  g.state.crewMeta['Wolf Geffenius'] = { email: 'wolf@x.de' };
+  let posted = false;
+  mockFetch((url, method) => {
+    if (method === 'GET'  && url.includes('/assignments/records')) return res({ items: [] }); // kein Record
+    if (method === 'POST' && url.includes('/assignments/records')) { posted = true; return res({ id: 'new1' }); }
+    return res({});
+  });
+  await g.dataService.confirmAssignment('2026-07-01', 'gl');
+  ok(posted, 'POST (Record-Anlage) ausgeführt');
+  eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'confirmed', 'lokal confirmed');
+  eq(g.state.assignmentStatuses['2026-07-01'].gl.crewName, 'Wolf Geffenius', 'crewName gesetzt');
+});
+
 test('declineAssignment: wirft bei PATCH-Fehler', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   resetState(g); primePlan(g);

@@ -2,11 +2,11 @@ import { POCKETBASE_URL, SUPABASE_ENABLED } from './config.js';
 import {
   POSITIONS, crew, defaultCrew, assignments, crewMeta,
   assignmentStatuses, TOUR_DATES, IS_CREW, IS_MANAGER,
-  CURRENT_USER_EMAIL, USER_ROLE, CURRENT_USER_ID,
+  CURRENT_USER_EMAIL, USER_ROLE, CURRENT_USER_ID, OFFEN,
   clearStatus
 } from './state.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
-import { showToast, sameCrew } from './utils.js';
+import { showToast, sameCrew, getVal } from './utils.js';
 import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex } from './plans.js';
 
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
@@ -240,6 +240,23 @@ export async function confirmAssignment(dateStr, posId) {
       });
       // Lokal NUR setzen wenn wirklich ein Record gepatcht wurde (sonst falsches "grün")
       if (assignmentStatuses[dateStr]?.[posId]) assignmentStatuses[dateStr][posId].status = 'confirmed';
+    } else {
+      // KEIN Record vorhanden → geplante Crew direkt als bestätigt anlegen (Manager
+      // bestätigt einen nachträglich eingetragenen Slot, der nie „angefragt" wurde).
+      const crewName = getVal(dateStr, posId);
+      if (!crewName || crewName === OFFEN) return; // nichts Geplantes zu bestätigen
+      const pos = (POSITIONS || []).find(p => p.id === posId);
+      const meta = crewMeta[crewName] || {};
+      await pbPost('/api/collections/assignments/records', {
+        plan_id: planId, date: dateStr, pos_id: posId,
+        pos_label: pos?.label || posId,
+        crew_name: crewName, crew_email: meta.email || '',
+        status: 'confirmed', proposed_by: 'manual',
+        responded_at: new Date().toISOString()
+      });
+      // lokalen Status-Cache setzen (gleiche Form wie loadAssignmentStatuses) → sofort grün
+      if (!assignmentStatuses[dateStr]) assignmentStatuses[dateStr] = {};
+      assignmentStatuses[dateStr][posId] = { status: 'confirmed', proposedBy: 'manual', crewName };
     }
   } catch (e) {
     console.warn('confirmAssignment Fehler:', e.message);
