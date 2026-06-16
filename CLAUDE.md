@@ -364,6 +364,17 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Daten gehen NICHT verloren — SQLite-Tables bleiben. Nur die Collection-Definitionen fehlen.
 > `pb_schema.json` im Repo ist NICHT direkt verwendbar (enthält alte Relation-IDs `pbc_1736455494`).
 
+> ⚠️ **Feldtyp-Falle nach Reimport (v0.14.9):** Beim Wiederherstellen wurden `assignments.proposed_by`
+> UND `assignments.plan_id` als **`relation`** statt **`text`** angelegt. Die App schreibt dort aber
+> Strings (`proposed_by`='bulk'/'update'/'manual', `plan_id`=Plan-ID) → bei `proposed_by` wirft PB
+> dann **„Failed to create record" (validation_missing_rel_records)** → **Einladen/Update/Bestätigen
+> legen keine Slot-Records an**. `plan_id`=relation geht zufällig durch (echte Plan-ID löst auf).
+> **Fix:** `assignments.proposed_by` muss **Text** sein. PB erlaubt KEINE Typ-Änderung am selben Feld
+> („Field type cannot be changed") → Feld löschen + als Text neu anlegen (alte `proposed_by`-Werte =
+> unkritische Metadaten). Per API: Collection-`fields` patchen (altes Feld raus, neues Text-Feld rein),
+> oder PB-Admin-UI → assignments → proposed_by löschen → neu als „Plain text". Beim Schema-Import IMMER
+> alle Felder als `text` (nie relation) anlegen.
+
 Aktuell deployte Hook-Version: **v4.6**
 - v4.1: email_log-Write nach jedem Mailversand
 - v4.2: assignments CREATE-Hook entfernt (keine per-Slot-Emails mehr)
