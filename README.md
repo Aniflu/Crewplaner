@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.14.10** — fix: Selbst-Registrierung setzt jetzt `role:crew` + `emailVisibility:true` — behebt „Crew sieht keinen Plan" (leere Rolle) und „Keine E-Mail" in der Admin-Liste; Rollen-Dropdown markiert rollenlose User
 **v0.14.9** — fix: Crew, die im Plan steht aber nie „angefragt" wurde (z. B. nachträglich eingetragene Tage), lässt sich jetzt im Zellen-Menü direkt bestätigen — „Bestätigen" legt nötigenfalls den fehlenden Eintrag selbst an
 **v0.14.8** — fix: „Speichern" wartet jetzt auf den PocketBase-Sync und meldet ehrlich Erfolg oder den echten Fehler (z. B. abgelaufener Login) — statt fälschlich „gespeichert" anzuzeigen
 **v0.14.7** — fix: „Speichern"-Button speichert jetzt wirklich nach PocketBase (rief vorher nur den JSON-Datei-Download auf) — JSON-Export ist jetzt ein eigener Button

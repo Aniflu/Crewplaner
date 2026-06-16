@@ -509,7 +509,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.14.9</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.14.10</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -1081,7 +1081,7 @@ function renderUsers(users) {
   const roleLabels = { superadmin: 'role-superadmin', manager: 'role-manager', booker: 'role-booker', crew: 'role-crew' };
   tbody.innerHTML = users.map(u => {
     const roleCls = roleLabels[u.role] || 'role-crew';
-    const roleVal = u.role || 'crew';
+    const noRole = !u.role; // rollenlos (z.B. Alt-Self-Register) sichtbar machen, nicht als „Crew" tarnen
     const created = u.created ? new Date(u.created).toLocaleDateString('de-DE') : '–';
     const verified = u.verified
       ? '<span class="verified-badge">✓ Verifiziert</span>'
@@ -1093,10 +1093,11 @@ function renderUsers(users) {
       </td>
       <td>
         <select class="role-select" onchange="updateRole('${u.id}', this.value)">
-          <option value="superadmin" ${roleVal==='superadmin'?'selected':''}>Superadmin</option>
-          <option value="manager" ${roleVal==='manager'?'selected':''}>Manager</option>
-          <option value="booker" ${roleVal==='booker'?'selected':''}>Booker</option>
-          <option value="crew" ${roleVal==='crew'||!u.role?'selected':''}>Crew</option>
+          ${noRole ? '<option value="" selected disabled>— keine Rolle —</option>' : ''}
+          <option value="superadmin" ${u.role==='superadmin'?'selected':''}>Superadmin</option>
+          <option value="manager" ${u.role==='manager'?'selected':''}>Manager</option>
+          <option value="booker" ${u.role==='booker'?'selected':''}>Booker</option>
+          <option value="crew" ${u.role==='crew'?'selected':''}>Crew</option>
         </select>
       </td>
       <td>${verified}</td>

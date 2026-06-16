@@ -190,7 +190,7 @@
   <div class="login-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <p>Personalplan · Anmelden</p>
-    <div class="login-version">v0.14.9</div>
+    <div class="login-version">v0.14.10</div>
   </div>
 
   <div class="login-card">
@@ -348,7 +348,9 @@
     btn.disabled = true;
     btn.textContent = 'Konto wird erstellt…';
     try {
-      await pbPost('/api/collections/users/records', { email, password, passwordConfirm });
+      // role:'crew' → sonst leere Rolle = IS_CREW false = kein Plan; emailVisibility:true →
+      // sonst „Keine E-Mail" in der Admin-Liste. (Admin-Anlage-Pfade setzen beides schon.)
+      await pbPost('/api/collections/users/records', { email, password, passwordConfirm, role: 'crew', emailVisibility: true });
       const auth = await pbPost('/api/collections/users/auth-with-password', { identity: email, password });
       localStorage.setItem('pb_token', auth.token);
       localStorage.setItem('pb_user', JSON.stringify(auth.record));
