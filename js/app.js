@@ -1,6 +1,6 @@
 // Entry point for index.html
 import { SUPABASE_ENABLED } from './config.js';
-import { _authCheckAndStart, logout } from './authService.js';
+import { _authCheckAndStart } from './authService.js';
 
 // Import all modules to ensure they are loaded and registered
 import './state.js';
@@ -65,7 +65,8 @@ import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
 import { startLocEdit } from './render.js';
 
 // ── Register all onclick-handler functions as window globals ──
-window.logout = logout;
+// (Logout läuft inline im Button — token löschen + relativ zu login.html — damit
+//  Abmelden auch funktioniert, falls der App-Init hängt. Kein window.logout nötig.)
 window.saveJSON = saveJSON;
 window.savePlan = savePlan;
 window.loadJSON = loadJSON;

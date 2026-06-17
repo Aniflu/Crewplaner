@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.14.13** — fix: Abmelden-Button im Crew-View funktioniert jetzt — läuft selbstständig inline (Token löschen + zurück zu login.html), unabhängig vom App-Init
 **v0.14.12** — feat+fix: Crew-Mitglied umbenennen (✏) ohne Dublette — aktualisiert Name überall + in PocketBase; `removeCrew` löscht jetzt auch den PB-Record (keine Namens-Leichen mehr)
 **v0.14.11** — fix: Passwort-Reset-Link reparieren (PB-Mail-Template zeigte auf eine 404-Route statt `login.html?token=`) + zusätzlicher, immer sichtbarer „Abmelden"-Button in der Sidebar
 **v0.14.10** — fix: Selbst-Registrierung setzt jetzt `role:crew` + `emailVisibility:true` — behebt „Crew sieht keinen Plan" (leere Rolle) und „Keine E-Mail" in der Admin-Liste; Rollen-Dropdown markiert rollenlose User

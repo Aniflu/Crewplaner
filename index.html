@@ -51,7 +51,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.14.12</span>
+            <span class="tour-tag">Personalplan · v0.14.13</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -86,7 +86,7 @@
         <button class="manager-only" onclick="openBlockRange()"><span class="sb-gl">▶</span>Bereich → Block</button>
         <button id="btnUpdateQueue" class="manager-only" onclick="_openUpdateQueueModal()" style="display:none;"><span class="sb-gl">↻</span>Updates <span id="updateQueueBadge" style="background:#e84a4a;color:#fff;border-radius:50%;padding:1px 6px;font-size:.7rem;margin-left:4px;">0</span></button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
-        <button onclick="logout()" style="border-color:rgba(232,74,74,.35);color:#e8a0a0;"><span class="sb-gl">⎋</span>Abmelden</button>
+        <button onclick="try{localStorage.removeItem('pb_token');localStorage.removeItem('pb_user');}catch(e){};location.href='login.html'" style="border-color:rgba(232,74,74,.35);color:#e8a0a0;"><span class="sb-gl">⎋</span>Abmelden</button>
         <button id="btnKonsole" onclick="window.location.href=window.getNavUrl('admin.html')" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
         <button class="crew-only primary" onclick="bulkConfirmAllMySlots()" style="display:none;"><span class="sb-gl">✓</span>Termine bestätigen</button>
         <button class="crew-only" id="btnSendCancellations" onclick="sendCancellations()" style="display:none;background:rgba(232,74,74,.15);border-color:rgba(232,74,74,.4);color:#e84a4a;"><span class="sb-gl">⚠</span>Änderungen mitteilen</button>
@@ -109,7 +109,7 @@
     </div>
     <div id="userBadge" style="display:none;flex-direction:column;gap:4px;padding:10px 12px;margin-top:auto;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;">
       <span class="user-email" style="font-size:.6rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-      <button onclick="logout()" style="font-size:.6rem;padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;text-align:left;">Abmelden</button>
+      <button onclick="try{localStorage.removeItem('pb_token');localStorage.removeItem('pb_user');}catch(e){};location.href='login.html'" style="font-size:.6rem;padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;text-align:left;">Abmelden</button>
     </div>
   </div>
 
@@ -384,7 +384,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=17"></script>
+<script type="module" src="js/app.js?v=18"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
