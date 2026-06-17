@@ -26,15 +26,26 @@
 
 ---
 
-## 2. Aktueller Stand (Stand 2026-06-12) — v0.10.6
+## 2. Aktueller Stand (Stand 2026-06-17) — v0.14.13
 
-> **Juni 2026:** Die ES6-Modul-Migration (v0.9.3) hatte zahlreiche bare Cross-Modul-Referenzen
-> hinterlassen, die als stille `ReferenceError`s crashten — u.a. der 5-Tage-„Bounce"
-> (admin↔login↔admin, Plan lädt nicht). In v0.10.0–v0.10.6 vollständig bereinigt: fehlende
-> ES6-Imports, 35 onclick-Handler-Registrierungen in `js/app.js`, Plan-Leichen-Leak im
-> localStorage. Details siehe CHANGELOG.md. **Merke:** `window`-Globals sind seiten-spezifisch —
-> onclick-Handler müssen vom Entry-Script der jeweiligen Seite registriert werden
-> (app.js→index.html, admin-app.js→admin.html, view-app.js→view.html).
+> **Juni 2026 (v0.10):** Die ES6-Modul-Migration (v0.9.3) hatte bare Cross-Modul-Referenzen
+> hinterlassen → stille `ReferenceError`s (5-Tage-„Bounce"). In v0.10.0–v0.10.6 bereinigt.
+> **Merke:** `window`-Globals sind seiten-spezifisch — onclick-Handler müssen vom Entry-Script
+> der Seite registriert werden (app.js→index.html, admin-app.js→admin.html).
+
+> **v0.11–v0.14 (bis 17.06.):** breite Stabilisierung. Wichtigste Punkte (Details: CHANGELOG.md / CLAUDE.md):
+> - **Test-Guards** statt Raten: `node tests/run.mjs` (38 grün). `imports.test.mjs` fängt fehlende
+>   ES6-Imports, `reachability.test.mjs` tote Buttons/onclick→undefined, `dialog.test.mjs` das
+>   Dialog-System, `plans.test.mjs` Cross-Write. **Bei „X tut nichts/lädt nicht" ZUERST die Tests laufen lassen.**
+> - **KRITISCH gefixt — Mehr-Plan Cross-Write (v0.14.6):** ein Plan ohne eigene PB-Zuordnung
+>   überschrieb den Record eines ANDEREN Plans (Datenverlust). `_savePlanToLS` schreibt jetzt nur
+>   in `tourplan_pb_<id>`. Es gibt jetzt **2 Pläne**: AMK 2026 (`03fs6r1o8cqeyt2`) + Provinz 2027 (`9z9f5o61goo1nvz`).
+> - **„Speichern" schrieb gar nicht nach PB** (rief nur JSON-Download) — gefixt; awaitet jetzt mit ehrlichem Toast (v0.14.7/8).
+> - **Dialog-System** (confirm/alert/prompt) war seit ES6-Migration tot (IIFE nie aufgerufen) — gefixt (v0.14.4).
+> - **Self-Register** setzte weder Rolle noch emailVisibility → „Crew sieht keinen Plan" + „Keine E-Mail"; gefixt (v0.14.10).
+> - **PB-Schema-Falle:** `assignments.proposed_by` war nach Wipe als **relation** statt **text** → „Failed to create record"; auf text gefixt.
+> - **Reset-Link** (PB-Mail-Template) zeigte auf 404 → auf `{APP_URL}?token={TOKEN}` gefixt (v0.14.11).
+> - Hook ist jetzt **v4.6** (nicht mehr v3.4). Crew umbenennen ohne Dublette (v0.14.12). Logout läuft inline (v0.14.13).
 
 ### Was ist fertig ✅
 
@@ -89,7 +100,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
 ```
 
 Danach prüfen: `ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 20"`
-Erwartete Ausgabe: `[hook] main.pb.js v3.4 geladen`
+Erwartete Ausgabe: `[hook] main.pb.js v4.6 geladen`
 
 ---
 
@@ -128,7 +139,7 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 ├── view.html             ← Öffentliche Read-only-Ansicht (Token-basiert)
 ├── styles.css
 ├── .pb_hooks/
-│   └── main.pb.js        ← E-Mail-Hooks (Goja, v3.4) — via Resend HTTP API
+│   └── main.pb.js        ← E-Mail-Hooks (Goja, v4.6) — via Resend HTTP API
 └── js/
     ├── config.js         ← POCKETBASE_URL, ADMIN_EMAIL
     ├── pb.js             ← PocketBase REST-Client (pbGet/Post/Patch/Delete/List/First/Upsert)
@@ -161,12 +172,18 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 users           { id, email, role(superadmin/manager/booker/crew), verified }
 plans           { id, name, owner(→users), plan_data(JSON), view_token }
 plan_members    { plan_id(→plans), user_id(→users), role }
-crew_members    { plan_id(→plans), name, email, sort_order, user_id(→users) }
+crew_members    { plan_id, name, email, sort_order, user_id }
 assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
-crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url }
+crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url, custom_message }
 ```
 
 Assignment-Status-Werte: `proposed` → `confirmed` | `declined`
+
+> ⚠️ **Schema-Falle (nach Coolify-Wipe/Reimport):** `assignments.proposed_by` MUSS Feldtyp **text**
+> sein (die App schreibt `'bulk'`/`'update'`/`'manual'`). Wird es als **relation** angelegt → jeder
+> Slot-Create wirft „Failed to create record" → Einladen/Update/Bestätigen kaputt. Fix: Feld löschen +
+> als Text neu anlegen (PB erlaubt keine Typ-Änderung am selben Feld). `crew_invites.custom_message`
+> (text, optional) muss existieren (Hook v4.6 Freitext-Block).
 
 ---
 

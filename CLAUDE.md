@@ -116,7 +116,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
-## Aktueller Stand (Stand: 2026-06-02)
+## Aktueller Stand (Stand: 2026-06-17)
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase
@@ -124,7 +124,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 - Manager-Konsole (`admin.html`): Werkzeuge, E-Mail-Log Tab, Benutzer, Rollen, Pläne
 - **Manager + Crew laden Plan direkt aus PocketBase** — localStorage optional
 - Plan-Transfer admin→index via sessionStorage ("Aktuellen Plan bearbeiten"-Button)
-- E-Mail-Log: Hook v4.4 schreibt nach jedem Mailversand in `email_log` Collection
+- E-Mail-Log: Hook v4.6 schreibt nach jedem Mailversand in `email_log` Collection
 - E-Mail-Flow: Einladung (1 Mail/Person), Erinnerung, Update (neue Termine), Absage
 - Einladen = setzt alle Slots auf `proposed` + sendet 1 Invite-Mail (kein per-Slot-Hook mehr)
 - Update-Button erscheint wenn neue Slots ohne PB-Record vorhanden (inkl. defaultCrew-Slots)
@@ -140,23 +140,38 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 - tourplan_active_pb_id als stabiler Fallback-Key für PB-Sync (Datum-Hinzufügen zuverlässig)
 - Code-Review: _findAssignment-Bug gefixt (→ pbFirst), ISO-Datum in mailSlots
 
+### Neu seit v0.14 (Stand 2026-06-17)
+- **Mehr-Plan sauber**: jeder Plan schreibt nur in seinen eigenen PB-Record, kein Cross-Write mehr (v0.14.6). 2 aktive Pläne (AMK + Provinz 2027).
+- **„Speichern" schreibt wirklich nach PB** mit ehrlichem Erfolg/Fehler-Toast (v0.14.7/v0.14.8). JSON-Export ist eigener Button.
+- **Manager bestätigt geplante Crew direkt** im Zellen-Menü — auch ohne Vorab-Anfrage; confirmAssignment legt den Record an (v0.14.9).
+- **Crew umbenennen (✏) ohne Dublette**; Entfernen löscht den PB-crew_members-Record mit (v0.14.12).
+- **Self-Register** setzt `role:'crew'` + `emailVisibility:true` (v0.14.10); rollenlose User zeigt die Admin-Liste als „— keine Rolle —".
+- **Passwort-Reset-Link** repariert (PB-Template → `?token=`); **Logout** läuft inline (geht auch bei hängendem App-Init) (v0.14.11/v0.14.13).
+- **Test-Guards** (38 grün, `node tests/run.mjs`): Reachability (tote Buttons/orphans), Import-Guard (fehlende ES6-Imports), Dialog (window.show* gesetzt), Plans (Cross-Write).
+- **PB-Schema**: `assignments.proposed_by` muss **text** sein (war nach Wipe relation → „Failed to create record"; gefixt, siehe Gotcha unten).
+
 ### Bekannte Einschränkung
 - Slots die NUR über `defaultCrew` (nicht explizit in `assignments`) befüllt sind,
-  bekommen KEINEN PB-Record beim Einladen-Klick — Workaround: Records manuell via API erstellen
-  oder Admin trägt Crew explizit via Dropdown ein
+  bekommen beim **Einladen**-Klick keinen proposed-Record. Mitigiert: der Manager kann sie
+  jetzt direkt über das Zellen-Menü bestätigen (v0.14.9 legt den Record an).
+- `crewMeta` schlüsselt nach **Name** → zwei gleichnamige crew_members (z.B. „Marco Hoch" 2×)
+  können `getMyCrewName` ambig machen. Aktuell bewusst so (Marco = Admin + GL-Crew).
 
-### PocketBase — Benutzer (Stand 2026-06-01)
-| E-Mail | Rolle | Hat Account |
+### PocketBase — Benutzer (Stand 2026-06-17)
+Alle 9 registriert, alle `emailVisibility=true`, alle mit Rolle gesetzt.
+| E-Mail | Rolle | Anmerkung |
 |---|---|---|
-| madmaxmail@web.de | superadmin | ✓ |
-| marco@hoch-online.com | manager | ✓ |
-| thomas.haine@gmx.de | crew | ✓ |
-| thomasoliver@gmx.de | crew | ✓ |
-| peter-weist@gmx.de | crew | ✓ |
-| w.greffenius@gmx.de | crew | ✓ |
-| fliegendekiwi@live.de | crew | — noch nicht registriert |
-| pascalsmirat@web.de | crew | — noch nicht registriert |
-| kerrin.gall@outlook.de | crew | — noch nicht registriert |
+| madmaxmail@web.de | superadmin | Owner aller Pläne (id 4lrx6gnh6k8hl2e); macht Manager-Tasks |
+| marco@hoch-online.com | crew | Marcos GL-Crew-Testaccount (um Crew-Sicht zu sehen) |
+| LivLights@gmx.de | crew | **Wolf Geffenius** (nicht mehr w.greffenius@gmx.de!) |
+| fliegendekiwi@live.de | crew | Philine Behnke |
+| pascalsmirat@web.de | crew | Pascal Smirat |
+| kerrin.gall@outlook.de | crew | Kerrin Gall |
+| peter-weist@gmx.de | crew | Peter Weist |
+| thomas.haine@gmx.de | crew | Thomas Haine |
+| thomasoliver@gmx.de | crew | Oliver Thomas |
+
+> Kein User mit Rolle `manager` aktuell — Manager-Aufgaben laufen über den superadmin (madmaxmail).
 
 ### Update-Mail-Flow (v0.9.9.22+)
 - Banner "UPDATE-MAILS SENDEN →" erscheint wenn Datum hinzugefügt wird
@@ -165,7 +180,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 - Informational-Pfad: `_getNewSlotsForCrew` liefert Slots ohne PB-Record → `bulkProposeCrew` → Mail
 - Nicht-Informational-Pfad (Slot-Änderung): `pbFirst` sucht Record → auf proposed setzen → Mail
 
-### E-Mail-Typen (Hook v4.4)
+### E-Mail-Typen (Hook v4.6)
 | Typ | Wann | Empfänger |
 |---|---|---|
 | `invite` | Admin klickt "Einladen" | Crew — "Du bist dabei." |
@@ -174,9 +189,11 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 | `cancellation` | Admin klickt "Absagen senden" | Crew — "Plan geändert. Einsätze entfernt." |
 | UPDATE-Hook | Crew lehnt Slot ab | Admin — "Abgelehnt." |
 
-### PocketBase — aktuell aktive Pläne
-- **Einziger Plan:** `03fs6r1o8cqeyt2` → "AMK Tour 2026_V3" (12 crew_members, 300+ assignments)
-- Alle anderen Pläne wurden bereinigt (2026-05-29)
+### PocketBase — aktuell aktive Pläne (Stand 2026-06-17)
+- `03fs6r1o8cqeyt2` → **"AMK Tour 2026_V3"** (59 Tage 23.06.–29.09.2026, 9 crew_members nach Dedup, 356 assignments). Owner madmaxmail.
+- `9z9f5o61goo1nvz` → **"Provinz 2027"** (27 Tage Mai–Aug 2027, noch keine Crew). Owner madmaxmail.
+- localStorage-Mapping: lokale Plan-ID → PB-ID via `tourplan_pb_<localId>`; AMK lokal = `pbplan_03fs6r1o8cqeyt2`, Provinz lokal = `pmqc7fre5`.
+- ⚠️ Bei „Plan weg / falscher Plan" → an Mehr-Plan-Sync denken (v0.14.6), nicht an Caching. assignments hängen an `plan_id` — Record-IDs nie umbenennen/löschen.
 
 ### Rollen-System
 | Rolle | Landing | Rechte |
@@ -280,32 +297,19 @@ TZ=UTC           node tests/run.mjs
 ```
 
 - `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
-- `tests/pure.test.mjs` ohne Stubs; `tests/logic.test.mjs` + `tests/flows.test.mjs` laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`) — zugleich Headless-Smoke-Test für alle Module.
-- Abgedeckt: Datums-Bereiche (TZ-sicher), `getVal`/`isPending`/`sortInsert`/`typeFromLabel`, Crew anlegen/eintragen/löschen, Slot-Diffing (`_getNewSlotsForCrew`), `getMyCrewName` (case-insensitiv), Plan-Persistenz-Roundtrip. **Nicht** abgedeckt (braucht echtes PocketBase → Playwright): Login, E-Mail-Versand, Bestätigen/Absagen über die API.
-- Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1 bei Fehler). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
-- **Reine, testbare Logik gehört nach `js/pure.js`** (oder ein anderes import-freies Leaf), nicht in `utils.js` — letzteres zieht über `types.js→render.js` den ganzen DOM-Graphen rein.
+- **38 Tests grün** (Stand v0.14.13). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
+  - `pure.test.mjs` — reine Logik ohne Stubs (Datums-Bereiche TZ-sicher, Namens-Helfer).
+  - `logic.test.mjs` + `flows.test.mjs` + `dataservice.test.mjs` — laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`); decken getVal/isPending/sortInsert, Crew-CRUD, Slot-Diffing, getMyCrewName, Plan-Roundtrip, confirm/decline (fetch-gemockt) ab.
+  - **Guards** (fangen ganze Fehlerklassen statisch):
+    - `reachability.test.mjs` — tote Buttons (Funktion ohne onclick) + onclick→undefinierte Funktion.
+    - `imports.test.mjs` — Modul nutzt Fremd-Export ohne Import (ES6-„Bounce").
+    - `dialog.test.mjs` — `window.showConfirm/showAlert/showPrompt` werden nach Import gesetzt.
+    - `plans.test.mjs` — `_savePlanToLS` patcht nie einen fremden Record (Cross-Write).
+- **Nicht** abgedeckt (braucht echtes PocketBase): Login, E-Mail-Versand, echte PB-Schreibpfade.
+- Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
+- **Reine, testbare Logik gehört nach `js/pure.js`** (import-freies Leaf), nicht in `utils.js`.
 
-Aktuelle Versionen (Stand 2026-05-30):
-
-| Datei | Version | Anmerkung |
-|---|---|---|
-| `config.js` | v29 | |
-| `pb.js` | v33 | |
-| `dataService.js` | v38 | loadPlanForCrew(), loadPlanForManager(), _getActivePlanId() mit Crew/Manager-Fallback |
-| `authService.js` | v34 | loadPlanForManager() für IS_MANAGER, loadPlanForCrew() für IS_CREW |
-| `rbac.js` | v1 | |
-| `state.js` | v25 | |
-| `render.js` | v27 | Crew: Namen mit Statusfarbe, nur eigene Slots editierbar |
-| `dropdown.js` | v28 | "📧 anfragen"-Button entfernt |
-| `bundle.js` | v30 | "📧 anfragen"-Button entfernt (gespiegelt) |
-| `crewNotify.js` | v29 | sendInvite=bulkPropose+Mail, sendUpdate, _getNewSlotsForCrew |
-| `crewLink.js` | v24 | |
-| `userView.js` | v27 | openSlotConfirmModal, bulkConfirmAllMySlots, bulkDeclineAllMySlots |
-| `emailLog.js` | v1 | renderEmailLog() für admin.html |
-| `plans.js` | v26 | |
-| `init.js` | v30 | |
-| `tourblock.js` | v25 | |
-| alle anderen | v23 | |
+**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=18`. Sub-Module laden OHNE `?v=` → bei „Crew/Wolf sieht nichts" zuerst Hard-Reload/Cache-Clear (stale Sub-Modul bricht den Graphen). Per-Modul-Versionsnummern werden nicht mehr gepflegt.
 
 ---
 

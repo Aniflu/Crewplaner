@@ -75,12 +75,16 @@ PocketBase-Collections (SQLite). Stand: v0.10.6
 | `crew_name` | Text | Name der zugewiesenen Crew |
 | `crew_email` | Email | E-Mail für Hook-Benachrichtigung |
 | `status` | Select | `proposed` → `confirmed` / `declined` |
-| `proposed_by` | Text | E-Mail des Admins der die Anfrage gestellt hat |
+| `proposed_by` | **Text** | Quelle der Anfrage: `'bulk'` / `'update'` / `'manual'` (NICHT E-Mail) |
 | `responded_at` | DateTime | Zeitstempel der Antwort |
 
-**Hook-Trigger:**
-- CREATE → sendet Einladungs-Mail an `crew_email`
-- UPDATE (status=declined) → sendet Absage-Mail an `proposed_by`
+> ⚠️ `proposed_by` MUSS **Text** sein. Nach einem Coolify-Wipe/Reimport wurde es schon als `relation`
+> angelegt → jeder Slot-Create wirft „Failed to create record" (Einladen/Update/Bestätigen kaputt).
+> PB erlaubt keine Typ-Änderung am Feld → löschen + als Text neu anlegen.
+
+**Hook-Trigger (Stand Hook v4.6):**
+- assignments-CREATE-Hook **entfernt** (v4.2) — keine per-Slot-Mails mehr. Mails laufen über `crew_invites` (Einladung/Erinnerung/Update/Absage, konsolidiert).
+- UPDATE (status=declined) → Hook informiert den Admin („Abgelehnt").
 
 ---
 

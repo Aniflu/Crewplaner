@@ -1,5 +1,43 @@
 # Changelog
 
+> **v0.10.7 – v0.14.13 (Juni 2026)** — kondensiert. Vollständige, ausführliche Einträge: `CLAUDE.md` → Abschnitt „Versionierung".
+
+## v0.14.13 — 2026-06-17
+- **fix:** Logout im Crew-View tat nichts (`onclick="logout()"` hing an `window.logout`, das bei hängendem App-Init fehlt). Beide Abmelden-Buttons jetzt selbstständig inline (Token löschen + `location.href='login.html'`). `window.logout` entfernt (war orphan).
+
+## v0.14.12 — 2026-06-17
+- **feat+fix:** Crew umbenennen (✏) ohne Dublette — Name wird lokal + in PB (`crew_members` + `assignments`) ersetzt; `removeCrew` löscht den PB-Record mit. PB-Dubletten bereinigt (Thomas Heine, 2× Marco).
+
+## v0.14.11 — 2026-06-16
+- **fix:** Passwort-Reset-Link „file not found" → PB-`resetPasswordTemplate` auf `{APP_URL}?token={TOKEN}` (passt zu login.html). Zusätzlicher sichtbarer Logout-Button in der Sidebar.
+
+## v0.14.10 — 2026-06-16
+- **fix:** Self-Register setzte weder `role` noch `emailVisibility` → „Crew sieht keinen Plan" + „Keine E-Mail". Payload um `role:'crew', emailVisibility:true` ergänzt; Admin-Liste zeigt rollenlose User. 4 Bestands-User gepatcht.
+
+## v0.14.9 — 2026-06-16
+- **fix:** Geplante Crew ohne Bestätigungs-Record war nicht bestätigbar → `confirmAssignment` legt jetzt einen confirmed-Record an; Zellen-Menü bietet „Bestätigen" für jede geplante Person.
+- **PB-Schema-Fix:** `assignments.proposed_by` von relation auf text (war Ursache von „Failed to create record").
+
+## v0.14.6–v0.14.8 — 2026-06-14/15
+- **fix(KRITISCH, Datenverlust):** Mehr-Plan Cross-Write — `_savePlanToLS` patchte ohne eigene Zuordnung den globalen `active_pb_id`-Record → „Provinz 2027" überschrieb „AMK 2026". Jetzt nur eigener Record. AMK wiederhergestellt, Provinz in eigenen Record ausgelagert. + Cross-Write-Test.
+- **fix:** „Speichern" schrieb gar nicht nach PB (rief nur JSON-Download); jetzt echtes `savePlan()` mit awaited PB-Sync + ehrlichem Erfolg/Fehler-Toast.
+
+## v0.14.4–v0.14.5 — 2026-06-13
+- **fix:** Dialog-System (confirm/alert/prompt) seit ES6-Migration tot (IIFE nie aufgerufen → `window.show*` undefined). + `dialog.test.mjs`.
+- **fix+feat:** Update-Queue pro Plan scopen (war global, 300+ Einträge) + Bulk-/Block-Auswahl im Modal.
+
+## v0.14.1–v0.14.3 — 2026-06-12/13
+- **fix:** Tage/Blöcke-Buttons wiederhergestellt; neue Pläne landen in admin.html; „Datum hinzufügen" (fehlender `TYPE_OPTS`-Import) gefixt.
+- **chore+test:** Reachability-Audit + Import-Guard (`tests/reachability.test.mjs`, `tests/imports.test.mjs`) — fangen tote Buttons + fehlende ES6-Imports statisch.
+
+## v0.11.0–v0.13.0 — 2026-06
+- **fix:** ES6-Modul-Vollsanierung (24 fehlende Imports), Backend-Review (echte Fehler statt stillem „grün"), personenbezogene „Zurückziehen"-Buttons, TZ-sichere Datumsbereiche, `sameCrew`/`normCrewName`.
+
+## v0.10.7 — 2026-06-12
+- **fix:** `getNavUrl`-Bug (`/Crewplaner/` ohne Dateiname wurde als Produktivserver erkannt → Admin-Konsole/Login-Redirect 404).
+
+---
+
 ## v0.10.6 — 2026-06-12
 
 ### Chore: login.html aufgeräumt
