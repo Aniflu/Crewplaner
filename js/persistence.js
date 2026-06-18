@@ -2,7 +2,7 @@
 import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos,
          setTourDates, setPositions, setCrew, setDefaultCrew, setLogos, loadAssignmentsData } from './state.js';
 import { showToast } from './utils.js';
-import { _savePlanToLS, getActivePlanId, renderPlanList, getPlansIndex, savePlansIndex, genPlanId, _today } from './plans.js';
+import { _savePlanToLS, getActivePlanId, setActivePlanId, renderPlanList, getPlansIndex, savePlansIndex, genPlanId, _today } from './plans.js';
 import { renderCrew } from './crew.js';
 import { renderTable } from './render.js';
 import { applyAllLogos, saveLogosGlobal } from './logos.js';
@@ -69,7 +69,7 @@ export function onFileLoad(e){
       const name=file.name.replace(/\.json$/i,'')||'Importierter Plan';
       _savePlanToLS(getActivePlanId());
       const id=genPlanId();
-      getActivePlanId()=id;
+      setActivePlanId(id);
       applyData(data);
       const plans=getPlansIndex();
       plans.push({id,name,created:_today(),modified:_today()});

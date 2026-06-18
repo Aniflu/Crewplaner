@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.16.0** — fix: Crew-Mitglieder, die **Firefox** nutzen, sahen nie einen Plan (leere Tabelle). Ursache: eine ungültige Zuweisung (`getActivePlanId()=id`) in `persistence.js`, die Chrome tolerant durchparst, Firefox aber als `SyntaxError` ablehnt — dadurch brach der gesamte JavaScript-Modulgraph in Firefox. Korrigiert zu `setActivePlanId(id)` + neuer Test-Guard, der solche Firefox-brechende Syntax automatisch fängt.
 **v0.15.0** — fix: Crew mit groß/klein gemischter E-Mail (z.B. `LivLights@gmx.de`) sah keinen Plan — leere Tabelle trotz korrekter Daten. Ursache: der `crew_members`-Lookup nutzt einen case-sensitiven PocketBase-Filter, und die Self-Registrierung speicherte die E-Mail ohne Kleinschreibung. Jetzt normalisiert `login.html` E-Mails bei Login + Registrierung auf Kleinschreibung; Wolfs bestehender `users.email`-Record wurde in PocketBase auf `livlights@gmx.de` korrigiert.
 **v0.14.13** — fix: Abmelden-Button im Crew-View funktioniert jetzt — läuft selbstständig inline (Token löschen + zurück zu login.html), unabhängig vom App-Init
 **v0.14.12** — feat+fix: Crew-Mitglied umbenennen (✏) ohne Dublette — aktualisiert Name überall + in PocketBase; `removeCrew` löscht jetzt auch den PB-Record (keine Namens-Leichen mehr)
