@@ -186,8 +186,12 @@ export function _savePlanToLS(id){
     // anlegen, statt einen fremden zu patchen.
     // Gibt die PB-Sync-Promise zurück, damit bewusstes Speichern (savePlan) sie
     // awaiten und echten Erfolg/Fehler anzeigen kann. Auto-Save ignoriert den Rückgabewert.
+    // NUR Manager/Superadmin schreiben Plan-Records. Crew/Booker/rollenlose User dürfen
+    // NIE einen plans-Record anlegen oder patchen — sonst legte autoSave im Crew-Browser
+    // (bei lokalem Plan ohne pbId-Mapping) Duplikate „Tour 2026" owned vom Crew-User an
+    // (Phantom-Pläne, entstanden durch den v0.14.10-Roleless-Bug).
     let pbPromise=Promise.resolve();
-    if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED){
+    if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED&&IS_MANAGER){
       const pbId=localStorage.getItem('tourplan_pb_'+id);
       if(pbId){
         pbPromise=pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)});

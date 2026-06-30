@@ -61,54 +61,41 @@ async function _getActivePlanId() {
   return _planIdPromise;
 }
 
+// Löst die PB-Plan-ID NUR auf — legt NIE einen neuen Plan an. Das frühere Auto-Anlegen
+// mit Default-Namen 'Tour Plan' erzeugte bei activePlanId=null + fehlgeschlagener Suche
+// (z.B. direkt nach einem Coolify-Wipe) leere Phantom-Plan-Leichen. Echte Plananlage
+// läuft ausschließlich über confirmNewPlan (plans.js, explizite User-Aktion).
 async function _createOrFetchPlanId(key) {
   const plans = getPlansIndex();
   const activePlanId = getActivePlanId();
-  const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
 
-  try {
-    const existing = await pbFirst('plans',
-      `name = "${pbEscapeFilter(planName)}" && owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
-    if (existing) {
-      localStorage.setItem(key, existing.id);
-      return existing.id;
+  // 1) Gepinnter Plan ist die verlässliche Quelle (von loadPlanForManager/switchPlan gepflegt).
+  let pinned = '';
+  try { pinned = localStorage.getItem('tourplan_active_pb_id') || ''; } catch(_) {}
+  if (pinned) { localStorage.setItem(key, pinned); return pinned; }
+
+  // 2) Nur mit echtem lokalen Plan-Namen per Name suchen (kein 'Tour Plan'-Default mehr).
+  const planName = plans.find(p => p.id === activePlanId)?.name || '';
+  if (planName) {
+    try {
+      const existing = await pbFirst('plans',
+        `name = "${pbEscapeFilter(planName)}" && owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
+      if (existing) { localStorage.setItem(key, existing.id); return existing.id; }
+    } catch (e) {
+      console.warn('Plan-Sync: Namens-Suche fehlgeschlagen:', e.message);
     }
-  } catch (e) {
-    console.warn('Plan-Sync: Suche fehlgeschlagen, versuche Anlegen...', e.message);
   }
 
-  // Fallback: Plan per owner suchen (falls name-Feld leer/verloren) und Namen reparieren
+  // 3) Owner-Fallback: ersten vorhandenen Plan des Owners nutzen — aber NICHT anlegen.
   try {
     const fallback = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
-    if (fallback) {
-      if (!fallback.name) {
-        await pbPatch('/api/collections/plans/records/' + fallback.id, { name: planName });
-      }
-      localStorage.setItem(key, fallback.id);
-      return fallback.id;
-    }
+    if (fallback) { localStorage.setItem(key, fallback.id); return fallback.id; }
   } catch (e) {
-    console.warn('Plan-Sync: Fallback-Suche fehlgeschlagen:', e.message);
+    console.warn('Plan-Sync: Owner-Suche fehlgeschlagen:', e.message);
   }
 
-  try {
-    const created = await pbPost('/api/collections/plans/records', {
-      name: planName, owner: CURRENT_USER_ID
-    });
-    if (created?.id) {
-      localStorage.setItem(key, created.id);
-      try {
-        await pbPost('/api/collections/plan_members/records', {
-          plan_id: created.id, user_id: CURRENT_USER_ID, role: 'owner'
-        });
-      } catch (e) {
-        console.warn('Plan-Member-Fehler:', e.message);
-      }
-      return created.id;
-    }
-  } catch (e) {
-    console.warn('Plan-Anlegen-Fehler:', e.message);
-  }
+  // Kein Plan gefunden → null. Bewusst KEIN pbPost (verhindert Phantom-Leichen).
+  console.warn('Plan-Sync: kein Plan auflösbar — lege bewusst keinen an (kein Phantom).');
   return null;
 }
 

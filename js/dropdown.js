@@ -148,11 +148,12 @@ export function openCrewDD(e,dateStr,posId){
         const _email=crewMeta?.[si.crewName]?.email;
         if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
-        clearAssignmentSlot(dateStr, posId);
+        setAssign(dateStr,posId,'');
         showToast('Anfrage zurückgezogen ✓','#4ae8a0');
       }catch(err){
         console.error('cancelProposal failed:',err);
-        showToast('Fehler: Anfrage konnte nicht zurückgezogen werden','#e84a4a');
+        showToast('Fehler: '+(err&&err.message||'Anfrage nicht zurückgezogen'),'#e84a4a');
+        await loadAssignmentStatuses();
       }
       renderTable();
     }});
@@ -165,10 +166,11 @@ export function openCrewDD(e,dateStr,posId){
         const _email=crewMeta?.[si.crewName]?.email;
         if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
-        clearAssignmentSlot(dateStr, posId);
+        setAssign(dateStr,posId,'');
         showToast('Besetzung aufgehoben ✓','#4ae8a0');
       }catch(err){
-        showToast('Fehler: '+err.message,'#e84a4a');
+        showToast('Fehler: '+(err&&err.message||'nicht aufgehoben'),'#e84a4a');
+        await loadAssignmentStatuses();
       }
       renderTable();
     }});

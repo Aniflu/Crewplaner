@@ -363,24 +363,25 @@ export function _queueGlobalCrewUpdate(changeDesc) {
 
 export function _updateCrewUpdateBar() {
   const q = _getCrewUpdateQueue();
-  // Queue mit fehlenden proposed-Mitgliedern ergänzen (Migration alter Queues)
-  if (Object.keys(q).length > 0) {
-    let changed = false;
-    Object.entries(assignmentStatuses || {}).forEach(([dateStr, positions]) => {
-      Object.entries(positions).forEach(([posId, si]) => {
-        if (si.status !== 'proposed' || q[si.crewName]) return;
-        const meta = crewMeta[si.crewName] || {};
-        if (!meta.email) return;
-        q[si.crewName] = { email: meta.email, informational: true, slots: [] };
-        changed = true;
-      });
-    });
-    if (changed) _saveCrewUpdateQueue(q);
+  // Queue bereinigen: nur Slots im AKTUELLEN Plan (Datum in TOUR_DATES) behalten,
+  // Mitglieder ohne gültige Slots entfernen. Zählt EXAKT wie das Modal rendert —
+  // verhindert „Badge zeigt N, Modal ist leer" (früher fügte ein Auto-Add proposed-
+  // Mitglieder mit leeren slots:[] hinzu → Badge +1, Modal zeigte nichts).
+  const valid = new Set(TOUR_DATES.map(r => r.date));
+  let changed = false, slotCount = 0;
+  for (const name of Object.keys(q)) {
+    const entry = q[name] || {};
+    const orig = entry.slots || [];
+    const slots = orig.filter(s => valid.has(s.date));
+    if (slots.length !== orig.length) { entry.slots = slots; changed = true; }
+    if (!slots.length) { delete q[name]; changed = true; continue; }
+    slotCount += slots.length;
   }
+  if (changed) _saveCrewUpdateQueue(q);
   const n = Object.keys(q).length;
   const btn = document.getElementById('btnUpdateQueue');
   const badge = document.getElementById('updateQueueBadge');
-  if (btn) btn.style.display = (IS_MANAGER && n > 0) ? '' : 'none';
+  if (btn) btn.style.display = (IS_MANAGER && slotCount > 0) ? '' : 'none';
   if (badge) badge.textContent = n;
 }
 

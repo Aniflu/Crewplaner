@@ -8,9 +8,20 @@ export function calcByPos(){
   return res;
 }
 
+// Tage zählen ausschließlich BESTÄTIGTE Slots (assignmentStatuses[date][pos].status==='confirmed').
+// Manager/Admin händisch bestätigt ODER Crew bestätigt → confirmed. Standard-/nur-platzierte
+// Felder ohne Bestätigung fließen NICHT in total, werden aber als `proposed` separat geführt.
 export function calcByPers(filterDates){
   const dates=filterDates||TOUR_DATES,res={};
-  dates.forEach(r=>{const w=dw(r);POSITIONS.forEach(p=>{const v=getVal(r.date,p.id);if(!v||v===OFFEN)return;if(!res[v])res[v]={total:0,show:0,other:0};if(r.type==='show'){res[v].total+=w;res[v].show+=w;}else{res[v].total+=w;res[v].other+=w;}});});
+  dates.forEach(r=>{const w=dw(r);POSITIONS.forEach(p=>{
+    const v=getVal(r.date,p.id);
+    if(!v||v===OFFEN)return;
+    if(!res[v])res[v]={total:0,show:0,other:0,proposed:0};
+    const si=assignmentStatuses[r.date]?.[p.id];
+    if(!(si&&si.status==='confirmed')){res[v].proposed+=w;return;}
+    if(r.type==='show'){res[v].total+=w;res[v].show+=w;}
+    else{res[v].total+=w;res[v].other+=w;}
+  });});
   return res;
 }
 
@@ -42,7 +53,7 @@ export function updateStats(){
   let html=`<span class="stat-show"><strong>${shows}</strong> Shows</span><span class="stat-reise"><strong>${reise}</strong> Reise</span><span class="stat-prep"><strong>${preps}</strong> Aufbau</span><span style="color:var(--rule)">│</span>`;
   POSITIONS.forEach(p=>{const{filled,open}=byPos[p.id]||{filled:0,open:0};html+=`<span title="${p.label}${open>0?' · ⚠ '+fmt(open)+' offen':''}"><span style="color:var(--muted)">${p.short}:</span><strong style="color:${filled>0?'var(--ink)':'var(--muted)'}">${fmt(filled)}T</strong>${open>0?`<strong style="color:var(--warn);font-size:10px;"> ⚠${fmt(open)}</strong>`:''}</span>`;});
   if(totalOpen>0)html+=`<span style="color:var(--rule)">│</span><span style="color:var(--warn);font-weight:600;">⚠ ${fmt(totalOpen)} Tage offen</span>`;
-  const names=Object.keys(byPers).sort((a,b)=>byPers[b].total-byPers[a].total);
-  if(names.length){html+=`<span style="color:var(--rule)">│</span>`;names.forEach(name=>{const d=byPers[name].total,ci=crew.indexOf(name),col=ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'#888';html+=`<span title="${name}: ${fmt(d)} Tage"><span style="display:inline-block;width:5px;height:5px;border-radius:0;background:${col};margin-right:3px;vertical-align:middle;"></span><span style="color:var(--muted)">${name.split(' ')[0]}:</span><strong style="color:${col}">${fmt(d)}T</strong></span>`;});}
+  const names=Object.keys(byPers).sort((a,b)=>(byPers[b].total-byPers[a].total)||(byPers[b].proposed-byPers[a].proposed));
+  if(names.length){html+=`<span style="color:var(--rule)">│</span>`;names.forEach(name=>{const d=byPers[name].total,pend=byPers[name].proposed||0,ci=crew.indexOf(name),col=ci>=0?CREW_COLORS[ci%CREW_COLORS.length]:'#888';const tip=`${name}: ${fmt(d)} Tage bestätigt${pend>0?` · ${fmt(pend)} angefragt`:''}`;html+=`<span title="${tip}"><span style="display:inline-block;width:5px;height:5px;border-radius:0;background:${col};margin-right:3px;vertical-align:middle;"></span><span style="color:var(--muted)">${name.split(' ')[0]}:</span><strong style="color:${col}">${fmt(d)}T</strong>${pend>0?`<span style="color:var(--muted);font-size:10px;"> +${fmt(pend)}</span>`:''}</span>`;});}
   document.getElementById('statsBar').innerHTML=html;
 }
