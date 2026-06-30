@@ -53,7 +53,7 @@ export function tbChangeLoc(i,val){tbDays[i].loc=val.trim()||'–';}
 
 export function tbSetAll(t,tl){tbDays.forEach(d=>{d.type=t;d.typeLabel=tl;});tbRenderDays();}
 
-export function tbConfirm(){let n=0;tbDays.forEach(day=>{if(TOUR_DATES.find(r=>r.date===day.date))return;sortInsert({date:day.date,type:day.type,typeLabel:day.typeLabel,loc:day.loc,blockName:day.blockName,blockId:day.blockId});n++;});if(n>0)_queueGlobalCrewUpdate('Neue Tage hinzugefügt');closeModal('tbModal');renderTable();showToast(`${n} Tage eingefügt ✓`,'#2d6a3f');}
+export function tbConfirm(){const added=[];tbDays.forEach(day=>{if(TOUR_DATES.find(r=>r.date===day.date))return;sortInsert({date:day.date,type:day.type,typeLabel:day.typeLabel,loc:day.loc,blockName:day.blockName,blockId:day.blockId});added.push(day.date);});if(added.length>0)_queueGlobalCrewUpdate('Neue Tage hinzugefügt', added);closeModal('tbModal');renderTable();showToast(`${added.length} Tage eingefügt ✓`,'#2d6a3f');}
 
 // ── Einzelnes Datum einem Block zuweisen ──────────────────────────────────────
 export function openBlockAssign(dateStr){

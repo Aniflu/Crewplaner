@@ -339,10 +339,15 @@ export function _queueCrewUpdate(dateStr, changeDesc) {
   renderTable();
 }
 
-export function _queueGlobalCrewUpdate(changeDesc) {
+export function _queueGlobalCrewUpdate(changeDesc, dates) {
+  // dates = Liste der TATSÄCHLICH betroffenen Datumswerte (z.B. neu hinzugefügte Tage).
+  // Ohne dates fällt es auf das alte „ganzer Plan"-Verhalten zurück (Rückwärts-Kompat),
+  // aber alle Aufrufer übergeben die Liste → es wird NICHT mehr der Altbestand geflutet.
+  const only = Array.isArray(dates) ? new Set(dates) : null;
   const q = _getCrewUpdateQueue();
   let affected = 0;
   Object.entries(assignmentStatuses || {}).forEach(([dateStr, positions]) => {
+    if (only && !only.has(dateStr)) return;
     Object.entries(positions).forEach(([posId, si]) => {
       if (si.status !== 'confirmed' && si.status !== 'proposed') return;
       const meta = crewMeta[si.crewName] || {};
@@ -479,6 +484,17 @@ export function _closeUpdateQueueModal() {
   const modal = document.getElementById('crewUpdateModal');
   if (modal) modal.style.display = 'none';
   document.body.style.overflow = '';
+}
+
+// Komplette Queue leeren (z.B. um einen früher gefluteten Bestand loszuwerden).
+export async function _clearUpdateQueue() {
+  const ok = typeof showConfirm === 'function'
+    ? await showConfirm('Update-Queue komplett leeren? Es werden KEINE Mails versendet.')
+    : true;
+  if (!ok) return;
+  _saveCrewUpdateQueue({});
+  _updateCrewUpdateBar();
+  _openUpdateQueueModal();
 }
 
 export function _deleteSlotFromQueue(el) {

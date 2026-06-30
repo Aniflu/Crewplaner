@@ -356,7 +356,7 @@ async function confirmAddDate(){if(!IS_MANAGER)return;
       cur.setDate(cur.getDate()+1);
     }
   }
-  if(typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt');
+  if(addedDates.length>0&&typeof _queueGlobalCrewUpdate==='function')_queueGlobalCrewUpdate('Neue Tage hinzugefügt', addedDates);
   closeModal('sharedModal');
   if(addedDates.length>0)_askBlockAssign(addedDates);
   else{_savePlanToLS(activePlanId);renderTable();}

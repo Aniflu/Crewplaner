@@ -51,7 +51,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.17.0</span>
+            <span class="tour-tag">Personalplan · v0.17.1</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -384,7 +384,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=20"></script>
+<script type="module" src="js/app.js?v=21"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
@@ -397,6 +397,7 @@
       <span style="color:#888;font-size:.6rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
       <button onclick="_queueSelectAll(true)" style="background:#1f3a2a;color:#4ae8a0;border:1px solid #2f5a40;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
       <button onclick="_queueSelectAll(false)" style="background:#3a1f1f;color:#e88;border:1px solid #5a2f2f;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
+      <button onclick="_clearUpdateQueue()" style="background:#3a1f1f;color:#e84a4a;border:1px solid #5a2f2f;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">QUEUE LEEREN</button>
     </div>
     <div id="crewUpdateModalBody" style="max-height:60vh;overflow-y:scroll;overscroll-behavior:contain;margin-bottom:12px;padding-right:4px;"></div>
     <div style="margin-top:16px;text-align:right;">

@@ -67,7 +67,7 @@ export async function confirmAddDate(){
       if(!TOUR_DATES.find(r=>r.date===ds)){sortInsert({date:ds,type,typeLabel,loc:lv});addedDates.push(ds);}
     }
   }
-  _queueGlobalCrewUpdate('Neue Tage hinzugefügt');
+  if(addedDates.length>0)_queueGlobalCrewUpdate('Neue Tage hinzugefügt', addedDates);
   closeModal('sharedModal');
   if(addedDates.length>0)_askBlockAssign(addedDates);
   else{_savePlanToLS(getActivePlanId());renderTable();}
