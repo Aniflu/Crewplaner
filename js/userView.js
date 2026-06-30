@@ -340,23 +340,24 @@ export function _queueCrewUpdate(dateStr, changeDesc) {
 }
 
 export function _queueGlobalCrewUpdate(changeDesc, dates) {
-  // dates = Liste der TATSÄCHLICH betroffenen Datumswerte (z.B. neu hinzugefügte Tage).
-  // Ohne dates fällt es auf das alte „ganzer Plan"-Verhalten zurück (Rückwärts-Kompat),
-  // aber alle Aufrufer übergeben die Liste → es wird NICHT mehr der Altbestand geflutet.
-  const only = Array.isArray(dates) ? new Set(dates) : null;
+  // dates = Liste der NEU hinzugefügten Datumswerte. OHNE dates passiert nichts (kein
+  // Plan-Flut). Die Belegung neuer Tage kommt aus defaultCrew/getVal — NICHT aus
+  // assignmentStatuses (dort hat ein frischer Tag noch keine Records). Deshalb hier
+  // über getVal befüllen, sonst bleibt die Queue leer und die „Updates"-Bar erscheint nie.
+  if (!Array.isArray(dates) || !dates.length) return;
   const q = _getCrewUpdateQueue();
   let affected = 0;
-  Object.entries(assignmentStatuses || {}).forEach(([dateStr, positions]) => {
-    if (only && !only.has(dateStr)) return;
-    Object.entries(positions).forEach(([posId, si]) => {
-      if (si.status !== 'confirmed' && si.status !== 'proposed') return;
-      const meta = crewMeta[si.crewName] || {};
+  dates.forEach(dateStr => {
+    if (!TOUR_DATES.find(r => r.date === dateStr)) return;
+    POSITIONS.forEach(pos => {
+      const name = getVal(dateStr, pos.id);
+      if (!name) return;
+      const meta = crewMeta[name] || {};
       if (!meta.email) return;
-      if (!q[si.crewName]) q[si.crewName] = { email: meta.email, informational: true, slots: [] };
-      const pos = POSITIONS.find(p => p.id === posId);
-      const posLabel = pos?.label || posId;
-      let slot = q[si.crewName].slots.find(s => s.date === dateStr && s.posLabel === posLabel);
-      if (!slot) { slot = { date: dateStr, posLabel, changes: [] }; q[si.crewName].slots.push(slot); }
+      if (!q[name]) q[name] = { email: meta.email, informational: true, slots: [] };
+      const posLabel = pos.label || pos.id;
+      let slot = q[name].slots.find(s => s.date === dateStr && s.posId === pos.id);
+      if (!slot) { slot = { date: dateStr, posId: pos.id, posLabel, changes: [] }; q[name].slots.push(slot); }
       if (!slot.changes.includes(changeDesc)) slot.changes.push(changeDesc);
       affected++;
     });
@@ -377,7 +378,15 @@ export function _updateCrewUpdateBar() {
   for (const name of Object.keys(q)) {
     const entry = q[name] || {};
     const orig = entry.slots || [];
-    const slots = orig.filter(s => valid.has(s.date));
+    const slots = orig.filter(s => {
+      if (!valid.has(s.date)) return false;
+      // Self-Heal: ein auto-gequeuter (informational) Slot ist nur gültig, solange die
+      // Person dort noch eingeplant ist. Entfernt der Manager den Namen wieder
+      // (getVal → ''), fällt der Slot raus → Bar/Badge stimmen live. posId nötig
+      // (Legacy-Slots ohne posId bleiben unangetastet).
+      if (entry.informational && s.posId) return getVal(s.date, s.posId) === name;
+      return true;
+    });
     if (slots.length !== orig.length) { entry.slots = slots; changed = true; }
     if (!slots.length) { delete q[name]; changed = true; continue; }
     slotCount += slots.length;
@@ -534,70 +543,147 @@ function _updateSendButton() {
   if (btn) btn.textContent = `AUSWAHL SENDEN (${count}) →`;
 }
 
+function _activePlanName() {
+  try {
+    const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
+    return (plans.find(p => p.id === getActivePlanId())?.name) || 'Tour Plan';
+  } catch { return 'Tour Plan'; }
+}
+function _fmtPrevDate(iso) {
+  const p = String(iso || '').split('-');
+  return (p.length === 3 && p[0].length === 4) ? `${p[2]}.${p[1]}.${p[0]}` : iso;
+}
+
+// ── E-Mail-Vorschau (pro Person, vor dem Senden) ──────────────────────────────
+let _updatePreviewResolve = null;
+function _openUpdatePreview(opts) {
+  return new Promise(resolve => {
+    _updatePreviewResolve = resolve;
+    const body = document.getElementById('updatePreviewBody');
+    if (body) {
+      const rows = (opts.slots || []).map(s =>
+        `<tr><td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(_fmtPrevDate(s.date))}</td>` +
+        `<td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(s.posLabel || '')}</td></tr>`).join('');
+      body.innerHTML =
+        `<div><strong style="color:#9aa0aa;">An:</strong> ${esc(opts.email || '')}</div>
+         <div><strong style="color:#9aa0aa;">Betreff:</strong> ${esc(opts.subject || '')}</div>
+         <div style="margin-top:8px;color:#9aa0aa;">${opts.intro || ''}</div>
+         ${rows ? `<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:.62rem;color:#9aa0aa;">${rows}</table>` : ''}`;
+    }
+    const ta = document.getElementById('updatePreviewText'); if (ta) ta.value = '';
+    const m = document.getElementById('updatePreviewModal'); if (m) m.style.display = 'flex';
+    setTimeout(() => document.getElementById('updatePreviewText')?.focus(), 50);
+  });
+}
+function _resolveUpdatePreview(action) {
+  const ta = document.getElementById('updatePreviewText');
+  const customText = (ta?.value || '').trim();
+  const r = _updatePreviewResolve; _updatePreviewResolve = null;
+  const m = document.getElementById('updatePreviewModal'); if (m) m.style.display = 'none';
+  if (r) r(action === 'send' ? { action, customText } : { action });
+}
+export function _updatePreviewSend()   { _resolveUpdatePreview('send'); }
+export function _updatePreviewSkip()   { _resolveUpdatePreview('skip'); }
+export function _updatePreviewCancel() { _resolveUpdatePreview('cancel'); }
+
+// Sendet das Update für EINE Person (legt fehlende PB-Records an, mailt). customText
+// optional → wird als Freitext-Notiz (custom_message) mitgeschickt.
+async function _sendUpdateForEntry(name, entry, customText) {
+  if (entry.informational) {
+    // Nur die ausgewählten neuen Slots anfragen + mailen (nicht den ganzen Plan).
+    const allNew = _getNewSlotsForCrew(name, entry.email);
+    const wanted = new Set((entry.slots || []).map(s => s.date + '|' + (s.posId || '')));
+    let newSlots = allNew.filter(s => wanted.has(s.date + '|' + s.posId));
+    if (!newSlots.length) newSlots = allNew;   // Fallback (Legacy-Slots ohne posId)
+    if (newSlots.length) await bulkProposeCrew(newSlots);
+    const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, changes: ['Neuer Termin'] }));
+    if (mailSlots.length) await sendUpdateNotice(name, entry.email, mailSlots, customText);
+    return;
+  }
+  // Änderung an bestehenden Einsätzen: vorhandene Records auf proposed setzen + mailen.
+  const newSlots = _getNewSlotsForCrew(name, entry.email);
+  if (newSlots.length) await bulkProposeCrew(newSlots);
+  const planId = localStorage.getItem('tourplan_active_pb_id');
+  for (const slot of entry.slots) {
+    const day = assignmentStatuses[slot.date];
+    const posId = day ? Object.keys(day).find(p => {
+      const pos = POSITIONS.find(pp => pp.id === p);
+      return (pos?.label || p) === slot.posLabel && day[p].crewName === name;
+    }) : null;
+    if (posId && planId) {
+      const existing = await pbFirst('assignments',
+        `plan_id = "${planId}" && date = "${slot.date}" && pos_id = "${posId}"`);
+      if (existing) await pbPatch('/api/collections/assignments/records/'+existing.id,
+        { status: 'proposed', proposed_by: 'update' });
+    }
+  }
+  await sendUpdateNotice(name, entry.email, entry.slots, customText);
+}
+
 export async function _sendSelectedUpdates() {
   const full = _getCrewUpdateQueue();
   const valid = new Set(TOUR_DATES.map(r => r.date));
-  const filtered = {};
-  const remaining = {};
+  const recipients = [];
   for (const [name, entry] of Object.entries(full)) {
-    // Slots fremder Pläne (Datum nicht im aktuellen Plan) gar nicht erst senden.
-    const planSlots = (entry.slots||[]).filter(s => valid.has(s.date));
+    const planSlots = (entry.slots || []).filter(s => valid.has(s.date));
     const selectedSlots = planSlots.filter(s => s.selected !== false);
-    const skippedSlots  = planSlots.filter(s => s.selected === false);
-    if (selectedSlots.length) filtered[name] = { ...entry, slots: selectedSlots };
-    if (skippedSlots.length)  remaining[name] = { ...entry, slots: skippedSlots };
+    if (selectedSlots.length) recipients.push({ name, entry, slots: selectedSlots });
   }
-  const success = await _sendQueueEntries(filtered);
-  if (success) _saveCrewUpdateQueue(remaining);
+  if (!recipients.length) { showToast('Nichts ausgewählt', '#5a6070'); return; }
+
+  const planName = _activePlanName();
+  const sentKeys = {};   // name → Set('date|posLabel') erfolgreich gesendet
+  for (const r of recipients) {
+    const res = await _openUpdatePreview({
+      email: r.entry.email,
+      subject: 'ÄNDERUNG · ' + planName,
+      intro: `${r.slots.length} aktualisierte/neue Einsätze für <strong>${esc(planName)}</strong> — bitte erneut bestätigen.`,
+      slots: r.slots,
+    });
+    if (res.action === 'cancel') break;
+    if (res.action === 'skip') continue;
+    try {
+      await _sendUpdateForEntry(r.name, { ...r.entry, slots: r.slots }, res.customText);
+      sentKeys[r.name] = new Set(r.slots.map(s => s.date + '|' + s.posLabel));
+    } catch(e) {
+      showToast('Fehler bei ' + r.name + ': ' + e.message, '#e84a4a');
+    }
+  }
+
+  const sentNames = Object.keys(sentKeys);
+  if (sentNames.length) {
+    const q = _getCrewUpdateQueue();
+    for (const name of sentNames) {
+      const entry = q[name]; if (!entry) continue;
+      entry.slots = (entry.slots || []).filter(s => !sentKeys[name].has(s.date + '|' + s.posLabel));
+      if (!entry.slots.length) delete q[name];
+    }
+    _saveCrewUpdateQueue(q);
+    showToast('Update-Mails gesendet ✓', '#4ae8a0');
+    await loadAssignmentStatuses();
+    renderTable();
+  }
+  _updateCrewUpdateBar();
+  if (Object.keys(_getCrewUpdateQueue()).length) _openUpdateQueueModal();
+  else _closeUpdateQueueModal();
 }
 
-async function _sendQueueEntries(q) {
+export async function _sendPendingUpdates() {
+  const q = _getCrewUpdateQueue();
   const names = Object.keys(q);
-  if (!names.length) { showToast('Nichts ausgewählt', '#5a6070'); return false; }
+  if (!names.length) { showToast('Nichts ausgewählt', '#5a6070'); return; }
   showToast('Update-Mails werden gesendet…', '#e8c84a');
   try {
-    for (const name of names) {
-      const entry = q[name];
-      let newSlots = _getNewSlotsForCrew(name, entry.email);
-      if (newSlots.length) await bulkProposeCrew(newSlots);
-      if (!entry.informational) {
-        const planId = localStorage.getItem('tourplan_active_pb_id');
-        for (const slot of entry.slots) {
-          const day = assignmentStatuses[slot.date];
-          const posId = day ? Object.keys(day).find(p => {
-            const pos = POSITIONS.find(pp => pp.id === p);
-            return (pos?.label || p) === slot.posLabel && day[p].crewName === name;
-          }) : null;
-          if (posId && planId) {
-            const existing = await pbFirst('assignments',
-              `plan_id = "${planId}" && date = "${slot.date}" && pos_id = "${posId}"`);
-            if (existing) await pbPatch('/api/collections/assignments/records/'+existing.id,
-              { status: 'proposed', proposed_by: 'update' });
-          }
-        }
-        await sendUpdateNotice(name, entry.email, entry.slots);
-      } else {
-        if (newSlots.length) {
-          const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, changes: ['Neuer Termin'] }));
-          await sendUpdateNotice(name, entry.email, mailSlots);
-        }
-      }
-    }
+    for (const name of names) await _sendUpdateForEntry(name, q[name]);
+    _saveCrewUpdateQueue({});
     _updateCrewUpdateBar();
     _closeUpdateQueueModal();
     showToast('Update-Mails gesendet ✓', '#4ae8a0');
     await loadAssignmentStatuses();
     renderTable();
-    return true;
   } catch(e) {
-    showToast('Fehler: '+e.message, '#e84a4a');
-    return false;
+    showToast('Fehler: ' + e.message, '#e84a4a');
   }
-}
-
-export async function _sendPendingUpdates() {
-  const q = _getCrewUpdateQueue();
-  await _sendQueueEntries(q);
 }
 
 export async function _submitMeldung() {

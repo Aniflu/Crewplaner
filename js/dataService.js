@@ -384,7 +384,7 @@ export async function sendAvailabilityNotice(crewName, crewEmail, slots) {
   }
 }
 
-export async function sendUpdateNotice(crewName, crewEmail, slots) {
+export async function sendUpdateNotice(crewName, crewEmail, slots, customMessage) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -394,7 +394,8 @@ export async function sendUpdateNotice(crewName, crewEmail, slots) {
     await pbPost('/api/collections/crew_invites/records', {
       plan_id: planId, crew_name: crewName, crew_email: crewEmail,
       type: 'update', plan_name: planName,
-      app_url: JSON.stringify(slots)
+      app_url: JSON.stringify(slots),
+      ...(customMessage ? { custom_message: customMessage } : {})
     });
   } catch(e) {
     console.warn('sendUpdateNotice Fehler:', e.message);

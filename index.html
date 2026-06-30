@@ -51,7 +51,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.17.1</span>
+            <span class="tour-tag">Personalplan · v0.17.2</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -384,7 +384,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=21"></script>
+<script type="module" src="js/app.js?v=22"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
@@ -402,6 +402,26 @@
     <div id="crewUpdateModalBody" style="max-height:60vh;overflow-y:scroll;overscroll-behavior:contain;margin-bottom:12px;padding-right:4px;"></div>
     <div style="margin-top:16px;text-align:right;">
       <button id="btnSendUpdates" onclick="_sendSelectedUpdates()" style="background:#e8c84a;color:#0d0d1a;border:none;padding:8px 16px;cursor:pointer;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;font-size:.7rem;">AUSWAHL SENDEN (0) →</button>
+    </div>
+  </div>
+</div>
+
+<!-- E-Mail-Vorschau (pro Person, vor dem Senden) -->
+<div id="updatePreviewModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
+  <div style="background:#1a1a2e;border:1px solid #e8c84a;padding:24px;max-width:520px;width:90%;font-family:'IBM Plex Mono',monospace;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="color:#e8c84a;letter-spacing:2px;font-size:.75rem;">📧 E-MAIL-VORSCHAU</span>
+      <span style="cursor:pointer;color:#aaa;" onclick="_updatePreviewCancel()">✕</span>
+    </div>
+    <div id="updatePreviewBody" style="font-size:.7rem;color:#c8cdd5;line-height:1.6;"></div>
+    <div style="margin-top:12px;">
+      <label style="display:block;font-size:.58rem;color:#888;letter-spacing:1px;margin-bottom:4px;">PERSÖNLICHE NACHRICHT (optional)</label>
+      <textarea id="updatePreviewText" rows="3" placeholder="Text, der in der E-Mail oben hervorgehoben wird…" style="resize:vertical;width:100%;background:#0d0d1a;border:1px solid #3a3a55;border-radius:3px;color:#e8e8f0;padding:8px;font-family:'IBM Plex Mono',monospace;font-size:.66rem;box-sizing:border-box;"></textarea>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="_updatePreviewCancel()" style="background:#23233a;color:#9ad;border:1px solid #3a3a55;border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Abbrechen</button>
+      <button onclick="_updatePreviewSkip()" style="background:#3a2f1f;color:#e8c84a;border:1px solid #5a4a2f;border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Überspringen</button>
+      <button onclick="_updatePreviewSend()" style="background:#e8c84a;color:#0d0d1a;border:none;border-radius:3px;padding:7px 16px;font-family:inherit;font-size:.66rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">Senden →</button>
     </div>
   </div>
 </div>

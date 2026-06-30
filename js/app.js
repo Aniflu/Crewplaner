@@ -61,7 +61,8 @@ import { sendCancellationSummary, sendInvite, sendUpdate } from './crewNotify.js
 import { tbChangeLoc, tbChangeType } from './tourblock.js';
 import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
          _bulkConfirmMySlots, _deleteSlotFromQueue, _toggleSlotSelection, meinesMelden,
-         _queueSelectAll, _queueGrpSel, _clearUpdateQueue } from './userView.js';
+         _queueSelectAll, _queueGrpSel, _clearUpdateQueue,
+         _updatePreviewSend, _updatePreviewSkip, _updatePreviewCancel } from './userView.js';
 import { startLocEdit } from './render.js';
 
 // ── Register all onclick-handler functions as window globals ──
@@ -144,6 +145,9 @@ window._toggleSlotSelection = _toggleSlotSelection;
 window._queueSelectAll = _queueSelectAll;
 window._queueGrpSel = _queueGrpSel;
 window._clearUpdateQueue = _clearUpdateQueue;
+window._updatePreviewSend = _updatePreviewSend;
+window._updatePreviewSkip = _updatePreviewSkip;
+window._updatePreviewCancel = _updatePreviewCancel;
 window.meinesMelden = meinesMelden;
 window.startLocEdit = startLocEdit;
 window._dismissCrewUpdates = function(){ const b=document.getElementById('crewUpdateBar'); if(b) b.style.display='none'; };
