@@ -33,10 +33,21 @@ async function _getActivePlanId() {
   if (IS_CREW) {
     try {
       const email = (CURRENT_USER_EMAIL || '').toLowerCase();
-      const found = await pbFirst('crew_members', `email = "${pbEscapeFilter(email)}"`);
-      if (found?.plan_id) {
-        localStorage.setItem('tourplan_active_pb_id', found.plan_id);
-        return found.plan_id;
+      const res = await pbList('crew_members', `email = "${pbEscapeFilter(email)}"`);
+      const planIds = [...new Set((res?.items || []).map(m => m.plan_id).filter(Boolean))];
+      let chosen = planIds[0] || null;
+      // Crew in MEHREREN Plänen → den mit offenen Anfragen (proposed) bevorzugen, damit die
+      // Crew dort landet, wo eine Antwort ansteht (statt zufällig). Sonst erster Treffer.
+      if (planIds.length > 1) {
+        for (const pid of planIds) {
+          const pending = await pbFirst('assignments',
+            `plan_id = "${pbEscapeFilter(pid)}" && crew_email = "${pbEscapeFilter(email)}" && status = "proposed"`);
+          if (pending) { chosen = pid; break; }
+        }
+      }
+      if (chosen) {
+        localStorage.setItem('tourplan_active_pb_id', chosen);
+        return chosen;
       }
     } catch(e) {
       console.warn('Crew plan-lookup fehlgeschlagen:', e.message);

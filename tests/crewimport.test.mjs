@@ -1,29 +1,37 @@
-// dedupKnownCrew (pure): tour-übergreifende Crew-Liste zusammenführen (für „Bekannte
-// Crew übernehmen"). Doppelte Namen (case/trim) verschmelzen, Eintrag mit E-Mail
-// bevorzugen, alphabetisch.
-import { test, eq, deepEq } from './_assert.mjs';
+// dedupKnownCrew (pure): tour-übergreifende Crew-Liste für „Aus Crew-Pool wählen".
+// Identität = E-Mail (nicht Name!) → zwei gleichnamige Personen mit verschiedenen Mails
+// bleiben getrennt (Wurzel des v0.19.1-Bugs: „Marco Hoch" Admin vs. GL-Crew wurden über
+// den Namen verschmolzen → falsche Mail importiert).
+import { test, eq, deepEq, ok } from './_assert.mjs';
 import { dedupKnownCrew } from '../js/pure.js';
 
-test('dedupKnownCrew: doppelte Namen zusammenführen, E-Mail bevorzugen', () => {
+test('dedupKnownCrew: gleiche Namen, VERSCHIEDENE Mails bleiben getrennt', () => {
   const out = dedupKnownCrew([
-    { name: 'Wolf Geffenius', email: '' },
-    { name: ' wolf geffenius ', email: 'wolf@x.de' },   // gleiche Person, hat E-Mail
-    { name: 'Oliver Thomas', email: 'oli@x.de' },
-    { name: 'Oliver Thomas', email: 'anders@x.de' },     // erste E-Mail bleibt
+    { name: 'Marco Hoch', email: 'madmaxmail@web.de' },   // Admin
+    { name: 'Marco Hoch', email: 'marco@hoch-online.com' }, // GL-Crew — andere Person
+    { name: 'Marco Hoch', email: 'marco@hoch-online.com' }, // Duplikat gleicher Mail → merge
   ]);
-  eq(out.length, 2, 'zwei eindeutige Personen');
-  deepEq(out.map(x => x.name), ['Oliver Thomas', 'Wolf Geffenius'], 'alphabetisch');
-  eq(out.find(x => x.name === 'Wolf Geffenius').email, 'wolf@x.de', 'E-Mail vom Eintrag mit Mail übernommen');
-  eq(out.find(x => x.name === 'Oliver Thomas').email, 'oli@x.de', 'erste vorhandene E-Mail bleibt');
+  eq(out.length, 2, 'zwei verschiedene Personen (per Mail unterschieden)');
+  const mails = out.map(x => x.email).sort();
+  deepEq(mails, ['madmaxmail@web.de', 'marco@hoch-online.com'], 'beide Mails erhalten');
 });
 
-test('dedupKnownCrew: leere/namelose Einträge ignorieren', () => {
+test('dedupKnownCrew: gleiche Mail (abweichende Schreibweise) → ein Eintrag', () => {
   const out = dedupKnownCrew([
-    { name: '', email: 'x@y.de' },
-    { name: '   ', email: '' },
+    { name: 'Wolf Geffenius', email: 'Wolf@x.de' },
+    { name: ' wolf geffenius ', email: 'wolf@x.de' },   // gleiche Mail (case) → merge
+  ]);
+  eq(out.length, 1, 'eine Person');
+  eq(out[0].email, 'Wolf@x.de', 'erste Mail-Schreibweise bleibt');
+});
+
+test('dedupKnownCrew: ohne E-Mail nach Name; leere/namelose ignorieren', () => {
+  const out = dedupKnownCrew([
     { name: 'Kerrin Gall', email: '' },
+    { name: 'kerrin gall', email: '' },   // gleicher Name ohne Mail → merge
+    { name: '', email: 'x@y.de' },          // namenlos → ignorieren
     null,
   ]);
-  deepEq(out.map(x => x.name), ['Kerrin Gall'], 'nur gültige Namen');
+  deepEq(out.map(x => x.name), ['Kerrin Gall'], 'nur gültige, per Name zusammengeführt');
   eq(out[0].email, '', 'ohne E-Mail bleibt leer');
 });

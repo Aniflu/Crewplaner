@@ -18,7 +18,10 @@ import { openModal, closeModal } from './modals.js';
 import { renderEmailLog } from './emailLog.js';
 import { loadAssignmentStatuses, loadCrewMeta } from './dataService.js';
 import { generatePDF, openPDFFilter, pdfSetView, pdfToggleAll } from './pdf.js';
-import { generateICS as adminGenerateICS } from './calendar.js';
+// HINWEIS: KEIN Import von calendar.js generateICS mehr — admin.html hat eine eigene
+// Inline-`adminGenerateICS`, die den GELADENEN Plan (_wrk*/TOUR_DATES) exportiert.
+// Der frühere `window.adminGenerateICS = generateICS` überschrieb sie und las `state.js`
+// (im Admin veraltet/falscher Plan) → ICS enthielt den falschen Plan (v0.19.1).
 
 // Admin.html has its own inline bootstrap script for auth.
 // This entry point ensures all modules are loaded and their functions are available.
@@ -39,4 +42,3 @@ window.generatePDF = generatePDF;
 window.openPDFFilter = openPDFFilter;
 window.pdfSetView = pdfSetView;
 window.pdfToggleAll = pdfToggleAll;
-window.adminGenerateICS = adminGenerateICS;

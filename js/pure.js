@@ -29,20 +29,20 @@ export function eachDateInRange(fromISO, toISO){
 export function normCrewName(s){ return String(s==null?'':s).trim().toLowerCase(); }
 export function sameCrew(a,b){ return normCrewName(a)===normCrewName(b); }
 
-// Rohe crew_members (aus allen Plänen) zu einer tour-übergreifenden Liste zusammenführen:
-// gleiche Namen (normCrewName) verschmelzen, dabei einen Eintrag MIT nicht-leerer E-Mail
-// bevorzugen. Rückgabe: [{name, email}] alphabetisch (locale-unabhängig case-insensitiv).
+// Rohe crew_members (aus allen Plänen) zu einer tour-übergreifenden Liste zusammenführen.
+// Identität = E-MAIL (lowercase), wenn vorhanden — sonst normalisierter Name. So bleiben
+// zwei GLEICHNAMIGE mit VERSCHIEDENEN Mails getrennt (z.B. „Marco Hoch" Admin vs. GL-Crew);
+// früher wurden sie über den Namen verschmolzen und die falsche Mail übernommen (v0.19.1).
+// Gleiche Mail (auch bei abweichender Schreibweise) → ein Eintrag. Rückgabe: [{name, email}]
+// alphabetisch.
 export function dedupKnownCrew(records){
   const byKey = new Map();
   for(const r of (records||[])){
     const name=String(r&&r.name!=null?r.name:'').trim();
     if(!name) continue;
     const email=String(r&&r.email!=null?r.email:'').trim();
-    const key=normCrewName(name);
-    const prev=byKey.get(key);
-    if(!prev){ byKey.set(key,{name,email}); continue; }
-    // Ersten mit E-Mail behalten; sonst ersten Namen behalten.
-    if(!prev.email && email){ prev.email=email; }
+    const key = email ? ('e:'+email.toLowerCase()) : ('n:'+normCrewName(name));
+    if(!byKey.has(key)) byKey.set(key,{name,email});   // erster Treffer bleibt
   }
   return [...byKey.values()].sort((a,b)=>normCrewName(a.name)<normCrewName(b.name)?-1:normCrewName(a.name)>normCrewName(b.name)?1:0);
 }
