@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.18.1**
+- Aktuelle Version: **v0.18.2**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.18.2 — fix(Admin-„Einladung" öffnete kein Fenster) + feat(Einladung mit allen Terminen): ROOT CAUSE „gar nichts": admin.html bringt EIGENES inline-CSS mit (lädt NICHT styles.css); `.modal-bg{display:none}` war da, aber die Aufdeck-Regel `.modal-bg.open{display:flex}` FEHLTE → `openModal` (setzt nur `.open`) machte KEIN Admin-Modal sichtbar (Einladung/Update/Absage-Vorschau, PDF, Kalender). FIX: `.modal-bg.open{display:flex}` in admin.html ergänzt. FEATURE: neue `sendAdminInvite(crewName)` (ersetzt Invite-Zweig von sendAdminEmail) baut alle eingeplanten Slots der Person (TOUR_DATES×POSITIONS, assignments-Override ?? defaultCrew; confirmed übersprungen), zeigt Vorschau mit Termintabelle, legt beim Senden proposed-Records an (`proposed_by:'bulk'` → Hook unterdrückt per-Slot-Mail, main.pb.js:258) und schickt EINE crew_invites-invite mit `app_url=JSON(slots)`. HOOK v4.7: `type==='invite'` rendert Terminliste, wenn app_url ein JSON-Slot-Array ist (sonst generisch/rückwärtskompatibel). +tests/adminmodal.test.mjs (Guard für die Aufdeck-Regel); 51 grün. admin-app.js?v=4→5. HOOK-DEPLOY (v4.7) via Admin/SSH nötig, sonst Mail ohne Terminliste.
 v0.18.1 — fix(Crew-Pool-Button öffnete nichts): der v0.18.0-Button „＋ Bekannte Crew übernehmen" tat nichts. Ursache: `crewImportModal` war mit inline `style="display:none"` gebaut, `openModal` fügt aber nur die Klasse `.open` hinzu — sichtbar wird dadurch NUR ein `.modal-bg` (styles.css: `.modal-bg.open{display:flex}`). → Modal blieb versteckt (Funktion lief, Anzeige nicht). FIX: `crewImportModal` als echtes `.modal-bg`/`.modal-box` (z-index:520 über crewModal) → `openModal/closeModal` greifen. Button umbenannt „＋ Aus Crew-Pool wählen" + Hinweistext (Pool = alle je angelegten Crew-Mitglieder, Anhaken → in diese Tour). Keine Logikänderung (Picker/loadAllKnownCrew/dedupKnownCrew unverändert). app.js?v=24→25. 49 Tests grün. HINWEIS: Sub-Module ohne `?v=` → nach Deploy Hard-Reload nötig.
 v0.18.0 — feat(Bekannte Crew aus früheren Touren übernehmen): `crew_members` sind pro Plan (plan_id) → Crew einer alten Tour war mit einem neuen Plan (z.B. „Provinz 2027") nicht verknüpft; man musste jeden Namen einzeln eintippen (addCrew, nur Name, keine E-Mail). NEU: im *Crew & Positionen*-Dialog Button „＋ Bekannte Crew übernehmen" → `openImportCrewModal` (crew.js) lädt via `loadAllKnownCrew` (dataService.js → `pbListAll('crew_members','')` ohne plan_id-Filter, Single-Owner-Setup) eine TOUR-ÜBERGREIFENDE, per `dedupKnownCrew` (pure.js) zusammengeführte Liste (doppelte Namen verschmolzen, Eintrag mit E-Mail bevorzugt, alphabetisch). Bereits im Plan vorhandene Namen werden ausgeblendet. Angehakte → `confirmImportCrew`: `crew.push(name)` + `saveCrewLink(name,email)` (legt crew_members-Record im AKTUELLEN Plan an + setzt crewMeta) → sofort einplan-/einladbar. Modal `crewImportModal` (index.html) mit ALLE/KEINE. `dedupKnownCrew` als reine, testbare Leaf-Funktion (pure.js). +tests/crewimport.test.mjs; 49 grün. app.js?v=23→24.
 v0.17.3 — fix(Updates-Bar nur beim Hinzufügen, nicht für bestehende Tage): v0.17.2 füllte die Queue NUR im Moment des Datum-Hinzufügens (`confirmAddDate`). Ein Tag, der vor dem Code / vor Reload hinzugefügt wurde (z.B. 07.07 „VORBEREITUNG"), tauchte NIE in der Queue auf → „Updates"-Button fehlte, obwohl eingeplante, unbestätigte Personen (kursiv/grau) sichtbar waren. FIX: LIVE-Erkennung — `_liveNewSlotsByCrew()` (userView.js) sammelt über `_getNewSlotsForCrew` je Crew alle eingeplanten (getVal), aber noch nicht bestätigten/angefragten Slots (kein aktiver PB-Record). `_updateCrewUpdateBar` zählt diese read-only mit → Button/Badge erscheinen für JEDEN solchen Tag (bestätigte Slots haben Records → kein Flut bestehender Tage). `_openUpdateQueueModal` mergt die Live-Slots fest in die Queue (`_mergeLiveNewSlots`, idempotent) → auswähl-/sendbar inkl. Vorschau. +queue.test.mjs Live-Erkennung; 47 grün. app.js?v=22→23.
@@ -305,7 +306,7 @@ TZ=UTC           node tests/run.mjs
 ```
 
 - `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
-- **49 Tests grün** (Stand v0.18.1). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
+- **51 Tests grün** (Stand v0.18.2). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
   - `pure.test.mjs` — reine Logik ohne Stubs (Datums-Bereiche TZ-sicher, Namens-Helfer).
   - `crewimport.test.mjs` — `dedupKnownCrew` führt tour-übergreifende Crew zusammen (doppelte Namen, E-Mail-Bevorzugung, Sortierung).
   - `logic.test.mjs` + `flows.test.mjs` + `dataservice.test.mjs` — laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`); decken getVal/isPending/sortInsert, Crew-CRUD, Slot-Diffing, getMyCrewName, Plan-Roundtrip, confirm/decline (fetch-gemockt) ab.
@@ -317,11 +318,12 @@ TZ=UTC           node tests/run.mjs
     - `stats.test.mjs` — `calcByPers` zählt nur `confirmed` in `total` (proposed/declined separat/nicht).
     - `phantomplan.test.mjs` — `_getActivePlanId` legt nie einen Plan an, wenn keiner auflösbar ist (kein Phantom).
     - `queue.test.mjs` — `_queueGlobalCrewUpdate(desc, dates)` befüllt die Queue aus `getVal` nur für die übergebenen (neuen) Tage; `_updateCrewUpdateBar` Self-Heal entfernt nicht-mehr-eingeplante Slots.
+    - `adminmodal.test.mjs` — admin.html hat die Aufdeck-Regel `.modal-bg.open{display:flex}` (sonst öffnet KEIN Admin-Modal; eigenes inline-CSS, kein styles.css).
 - **Nicht** abgedeckt (braucht echtes PocketBase): Login, E-Mail-Versand, echte PB-Schreibpfade.
 - Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
 - **Reine, testbare Logik gehört nach `js/pure.js`** (import-freies Leaf), nicht in `utils.js`.
 
-**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=25`, `admin.html` lädt `js/admin-app.js?v=4`. Sub-Module laden OHNE `?v=` → bei „Crew/Wolf sieht nichts" zuerst Hard-Reload/Cache-Clear (stale Sub-Modul bricht den Graphen). Per-Modul-Versionsnummern werden nicht mehr gepflegt.
+**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=25`, `admin.html` lädt `js/admin-app.js?v=5`. Sub-Module laden OHNE `?v=` → bei „Crew/Wolf sieht nichts" zuerst Hard-Reload/Cache-Clear (stale Sub-Modul bricht den Graphen). Per-Modul-Versionsnummern werden nicht mehr gepflegt.
 
 ---
 
@@ -395,13 +397,14 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > oder PB-Admin-UI → assignments → proposed_by löschen → neu als „Plain text". Beim Schema-Import IMMER
 > alle Felder als `text` (nie relation) anlegen.
 
-Aktuell deployte Hook-Version: **v4.6**
+Aktuell deployte Hook-Version: **v4.6** (Repo: **v4.7** — Deploy via Admin/SSH ausstehend)
 - v4.1: email_log-Write nach jedem Mailversand
 - v4.2: assignments CREATE-Hook entfernt (keine per-Slot-Emails mehr)
 - v4.3: Absage-Email umformuliert ("Plan geändert")
 - v4.4: Short-URL via is.gd bei plans view_token Update (serverseitig, kein CORS-Problem)
 - v4.5: (a) Datum aus ISO-String formatiert statt new Date() → keine TZ-Verschiebung bei nicht-UTC-Container. (b) Anfrage-Mail-Guard erweitert: proposed_by `'bulk'` ODER `'update'` → keine doppelte per-Slot-Anfrage-Mail mehr bei Einladen/Update (die senden eigene konsolidierte Mail).
 - v4.6: Optionaler Admin-Freitext — Feld `crew_invites.custom_message` wird als hervorgehobener Notiz-Block in invite/reminder/update/cancellation gerendert (`noteBlock`). Leer/fehlend = unverändert. **VORAUSSETZUNG:** Feld `custom_message` (text, optional) muss auf der crew_invites-Collection existieren (PB Admin → crew_invites → New field).
+- v4.7: `type==='invite'` rendert eine Terminliste (DATUM/POSITION-Tabelle), wenn `app_url` ein JSON-Slot-Array ist (`sendAdminInvite` schickt das). Ist `app_url` eine reine URL → unverändert generisch (rückwärtskompatibel). Ermöglicht EINE Einladungsmail mit allen Terminen der Person.
 Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.5 geladen`
 
 ### Docker-Logs live beobachten

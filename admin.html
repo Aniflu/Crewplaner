@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Konsole — Tour/Crew</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script type="module" src="js/admin-app.js?v=4"></script>
+<script type="module" src="js/admin-app.js?v=5"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -441,6 +441,7 @@ body {
   align-items: center;
   justify-content: center;
 }
+.modal-bg.open { display: flex; }
 .modal-box {
   background: #12121f;
   border: 1px solid #2a2a40;
@@ -509,7 +510,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.18.1</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.18.2</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -1488,7 +1489,7 @@ function renderAdminNotify() {
         ${emailInfo}
       </div>
       <span style="font-size:.58rem;color:#5a6070;white-space:nowrap;">${proposed}⏳ ${confirmed}✓</span>
-      <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminEmail(this.dataset.crew,'invite')">Einladung</button>
+      <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminInvite(this.dataset.crew)">Einladung</button>
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminEmail(this.dataset.crew,'reminder')">Erinnerung</button>
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminUpdate(this.dataset.crew)">Update</button>
       <button class="btn btn-ghost btn-sm" ${(!email||(proposed+confirmed)===0)?'disabled':''} data-crew="${esc(name)}" onclick="openAdminCancellation(this.dataset.crew)" style="color:#e8907a;">Absage</button>
@@ -1547,6 +1548,52 @@ function sendAdminEmail(crewName, type) {
         ...(customText ? { custom_message: customText } : {})
       });
       adminToast(`${label} gesendet an ${crewName} ✓`, '#4ae8a0');
+    }
+  });
+}
+
+// Einladung: EINE Mail mit ALLEN eingeplanten Terminen der Person + legt proposed-Records an.
+function sendAdminInvite(crewName) {
+  const meta = _wrkCrewMeta[crewName];
+  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
+  const _pos    = (typeof POSITIONS   !== 'undefined' ? POSITIONS   : []);
+  const _dates  = (typeof TOUR_DATES  !== 'undefined' ? TOUR_DATES  : []);
+  const _assign = (typeof assignments !== 'undefined' ? assignments : {});
+  const _def    = (typeof defaultCrew !== 'undefined' ? defaultCrew : {});
+  // Alle eingeplanten Slots (assignments-Override ODER defaultCrew), ohne bereits bestätigte.
+  const slots = [];
+  _dates.forEach(d => {
+    _pos.forEach(p => {
+      const ov  = (_assign[d.date] || {})[p.id];
+      const eff = (ov === '' || ov === null || ov === undefined) ? (_def[p.id] || '') : ov;
+      if (eff !== crewName) return;
+      const si = (_wrkAssignmentStatuses[d.date] || {})[p.id];
+      if (si && si.status === 'confirmed') return;   // schon bestätigt → nicht erneut anfragen
+      slots.push({ date: d.date, posId: p.id, posLabel: p.label || p.id, hasRecord: !!si });
+    });
+  });
+  if (!slots.length) { adminToast(`${crewName}: Keine eingeplanten Termine`, '#e8c84a'); return; }
+  openEmailPreview({
+    type: 'invite', crewName, email: meta.email,
+    subject: 'CREW INVITE · ' + _wrkPlanName,
+    intro: `Einladung zu <strong>${esc(_wrkPlanName)}</strong> — bitte bestätige deine ${slots.length} Einsätze:`,
+    slots,
+    sender: async (customText) => {
+      // proposed-Records für neue Slots (proposed_by:'bulk' → Hook unterdrückt per-Slot-Mail)
+      for (const s of slots) {
+        if (s.hasRecord) continue;
+        await pbPost('/api/collections/assignments/records', {
+          plan_id: _wrkPbPlanId, date: s.date, pos_id: s.posId, pos_label: s.posLabel,
+          crew_name: crewName, crew_email: meta.email, status: 'proposed', proposed_by: 'bulk'
+        });
+      }
+      await pbPost('/api/collections/crew_invites/records', {
+        plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: meta.email,
+        type: 'invite', plan_name: _wrkPlanName,
+        app_url: JSON.stringify(slots.map(s => ({ date: s.date, posLabel: s.posLabel }))),
+        ...(customText ? { custom_message: customText } : {})
+      });
+      adminToast(`Einladung gesendet an ${crewName} ✓ (${slots.length} Termine)`, '#4ae8a0');
     }
   });
 }

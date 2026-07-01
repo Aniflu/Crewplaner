@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
 // Version: 4.6
-console.log('[hook] main.pb.js v4.6 geladen');
+console.log('[hook] main.pb.js v4.7 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -87,12 +87,32 @@ onRecordAfterCreateSuccess(function(e) {
   var ePlan = esc(plan);
 
   if (type === 'invite') {
+    // app_url kann eine reine URL ODER (neu) ein JSON-Slot-Array sein → dann Terminliste rendern.
+    var invSlots = [];
+    if (appUrl && appUrl.charAt(0) === '[') { try { invSlots = JSON.parse(appUrl); } catch (_) { invSlots = []; } }
+    var invBtnUrl = (invSlots && invSlots.length) ? 'https://crewplanner.nyxlightwork.de' : appUrl;
+    var invTable = '';
+    if (invSlots && invSlots.length) {
+      var invRows = '';
+      for (var iv = 0; iv < invSlots.length; iv++) {
+        var isv = invSlots[iv];
+        invRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + fmtISO(isv.date) + '</td>' +
+          '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">' + esc(isv.posLabel) + '</td></tr>';
+      }
+      invTable =
+        '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
+        '<tr style="background:#f8f9fb;"><td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td>' +
+        '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td></tr>' +
+        invRows + '</table>';
+    }
     sendMail(email, 'CREW INVITE · ' + plan, wrap(
       '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Du bist dabei.</h1>' +
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">CREW INVITE · ' + ePlan + '</p>' +
-      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 24px 0;">Hey ' + eName + ',<br><br>du wurdest f&uuml;r <strong style="color:#1a1a2e;">' + ePlan + '</strong> eingeladen.</p>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey ' + eName + ',<br><br>du wurdest f&uuml;r <strong style="color:#1a1a2e;">' + ePlan + '</strong> eingeladen.' +
+      (invTable ? ' Bitte best&auml;tige deine Eins&auml;tze:' : '') + '</p>' +
+      invTable +
       noteBlock(customMsg) +
-      mkBtn(appUrl, 'EINST&Auml;TZE BEST&Auml;TIGEN &rarr;') +
+      mkBtn(invBtnUrl, 'EINS&Auml;TZE BEST&Auml;TIGEN &rarr;') +
       mkBtn(_crewGuide, 'ANLEITUNG &rarr;', '#f8f9fb', '#555570')
     ));
   } else if (type === 'reminder') {
