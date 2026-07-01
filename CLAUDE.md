@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.18.0**
+- Aktuelle Version: **v0.18.1**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.18.1 — fix(Crew-Pool-Button öffnete nichts): der v0.18.0-Button „＋ Bekannte Crew übernehmen" tat nichts. Ursache: `crewImportModal` war mit inline `style="display:none"` gebaut, `openModal` fügt aber nur die Klasse `.open` hinzu — sichtbar wird dadurch NUR ein `.modal-bg` (styles.css: `.modal-bg.open{display:flex}`). → Modal blieb versteckt (Funktion lief, Anzeige nicht). FIX: `crewImportModal` als echtes `.modal-bg`/`.modal-box` (z-index:520 über crewModal) → `openModal/closeModal` greifen. Button umbenannt „＋ Aus Crew-Pool wählen" + Hinweistext (Pool = alle je angelegten Crew-Mitglieder, Anhaken → in diese Tour). Keine Logikänderung (Picker/loadAllKnownCrew/dedupKnownCrew unverändert). app.js?v=24→25. 49 Tests grün. HINWEIS: Sub-Module ohne `?v=` → nach Deploy Hard-Reload nötig.
 v0.18.0 — feat(Bekannte Crew aus früheren Touren übernehmen): `crew_members` sind pro Plan (plan_id) → Crew einer alten Tour war mit einem neuen Plan (z.B. „Provinz 2027") nicht verknüpft; man musste jeden Namen einzeln eintippen (addCrew, nur Name, keine E-Mail). NEU: im *Crew & Positionen*-Dialog Button „＋ Bekannte Crew übernehmen" → `openImportCrewModal` (crew.js) lädt via `loadAllKnownCrew` (dataService.js → `pbListAll('crew_members','')` ohne plan_id-Filter, Single-Owner-Setup) eine TOUR-ÜBERGREIFENDE, per `dedupKnownCrew` (pure.js) zusammengeführte Liste (doppelte Namen verschmolzen, Eintrag mit E-Mail bevorzugt, alphabetisch). Bereits im Plan vorhandene Namen werden ausgeblendet. Angehakte → `confirmImportCrew`: `crew.push(name)` + `saveCrewLink(name,email)` (legt crew_members-Record im AKTUELLEN Plan an + setzt crewMeta) → sofort einplan-/einladbar. Modal `crewImportModal` (index.html) mit ALLE/KEINE. `dedupKnownCrew` als reine, testbare Leaf-Funktion (pure.js). +tests/crewimport.test.mjs; 49 grün. app.js?v=23→24.
 v0.17.3 — fix(Updates-Bar nur beim Hinzufügen, nicht für bestehende Tage): v0.17.2 füllte die Queue NUR im Moment des Datum-Hinzufügens (`confirmAddDate`). Ein Tag, der vor dem Code / vor Reload hinzugefügt wurde (z.B. 07.07 „VORBEREITUNG"), tauchte NIE in der Queue auf → „Updates"-Button fehlte, obwohl eingeplante, unbestätigte Personen (kursiv/grau) sichtbar waren. FIX: LIVE-Erkennung — `_liveNewSlotsByCrew()` (userView.js) sammelt über `_getNewSlotsForCrew` je Crew alle eingeplanten (getVal), aber noch nicht bestätigten/angefragten Slots (kein aktiver PB-Record). `_updateCrewUpdateBar` zählt diese read-only mit → Button/Badge erscheinen für JEDEN solchen Tag (bestätigte Slots haben Records → kein Flut bestehender Tage). `_openUpdateQueueModal` mergt die Live-Slots fest in die Queue (`_mergeLiveNewSlots`, idempotent) → auswähl-/sendbar inkl. Vorschau. +queue.test.mjs Live-Erkennung; 47 grün. app.js?v=22→23.
 v0.17.2 — fix(Folge-Regression v0.17.1) + feat(E-Mail-Vorschau): (1) REGRESSION: Nach „Tag hinzufügen" erschien die Sidebar-„Updates"-Bar nicht mehr. Ursache: `_queueGlobalCrewUpdate(desc, dates)` (userView.js) las die zu queuenden Slots aus `assignmentStatuses` (PB-Cache) — ein FRISCH hinzugefügter Tag hat dort aber keine Records; seine Belegung kommt aus `defaultCrew`/`getVal`. → Queue blieb leer → `_updateCrewUpdateBar` blendete `btnUpdateQueue` aus. FIX: `_queueGlobalCrewUpdate` befüllt jetzt über `getVal(date, pos.id)` (defaultCrew+Overrides) für die übergebenen Tage; Slots speichern zusätzlich `posId`; Eintrag bleibt `informational:true`. (2) SELF-HEAL: `_updateCrewUpdateBar` verwirft `informational`-Slots, deren `getVal(date,posId)` nicht mehr dem gequeueten Namen entspricht — entfernt der Manager nach dem Hinzufügen Namen, sinkt die Anzahl live (läuft bei jedem renderTable). (3) E-MAIL-VORSCHAU: Beim „AUSWAHL SENDEN" poppt pro Person ein Vorschau-Popup (`updatePreviewModal`, An/Betreff/Einleitung/Termin-Tabelle) mit optionalem Freitext (Buttons Abbrechen/Überspringen/Senden); Sendelogik aus `_sendQueueEntries` in Helper `_sendUpdateForEntry(name, entry, customText)` extrahiert (von Vorschau-Pfad + `_sendPendingUpdates` genutzt). `sendUpdateNotice` nimmt 4. Param `customMessage` → `custom_message` an Hook v4.6 (Notiz-Block). app.js?v=21→22. queue.test.mjs an getVal-Verhalten + Self-Heal angepasst; 46 grün.
@@ -304,7 +305,7 @@ TZ=UTC           node tests/run.mjs
 ```
 
 - `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
-- **49 Tests grün** (Stand v0.18.0). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
+- **49 Tests grün** (Stand v0.18.1). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
   - `pure.test.mjs` — reine Logik ohne Stubs (Datums-Bereiche TZ-sicher, Namens-Helfer).
   - `crewimport.test.mjs` — `dedupKnownCrew` führt tour-übergreifende Crew zusammen (doppelte Namen, E-Mail-Bevorzugung, Sortierung).
   - `logic.test.mjs` + `flows.test.mjs` + `dataservice.test.mjs` — laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`); decken getVal/isPending/sortInsert, Crew-CRUD, Slot-Diffing, getMyCrewName, Plan-Roundtrip, confirm/decline (fetch-gemockt) ab.
@@ -320,7 +321,7 @@ TZ=UTC           node tests/run.mjs
 - Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
 - **Reine, testbare Logik gehört nach `js/pure.js`** (import-freies Leaf), nicht in `utils.js`.
 
-**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=24`, `admin.html` lädt `js/admin-app.js?v=4`. Sub-Module laden OHNE `?v=` → bei „Crew/Wolf sieht nichts" zuerst Hard-Reload/Cache-Clear (stale Sub-Modul bricht den Graphen). Per-Modul-Versionsnummern werden nicht mehr gepflegt.
+**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=25`, `admin.html` lädt `js/admin-app.js?v=4`. Sub-Module laden OHNE `?v=` → bei „Crew/Wolf sieht nichts" zuerst Hard-Reload/Cache-Clear (stale Sub-Modul bricht den Graphen). Per-Modul-Versionsnummern werden nicht mehr gepflegt.
 
 ---
 

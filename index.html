@@ -51,7 +51,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.18.0</span>
+            <span class="tour-tag">Personalplan · v0.18.1</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -353,7 +353,7 @@
           <button class="primary sm" onclick="addCrew()">+</button>
         </div>
         <div class="sb-actions manager-only" style="margin-top:8px;">
-          <button class="sm manager-only" onclick="openImportCrewModal()"><span class="sb-gl">＋</span>Bekannte Crew übernehmen</button>
+          <button class="sm manager-only" onclick="openImportCrewModal()"><span class="sb-gl">＋</span>Aus Crew-Pool wählen</button>
         </div>
       </div>
       <div>
@@ -370,22 +370,22 @@
   </div>
 </div>
 
-<!-- Bekannte Crew übernehmen (tour-übergreifend) -->
-<div id="crewImportModal" style="display:none;position:fixed;inset:0;z-index:520;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
-  <div style="background:#1a1a2e;border:1px solid #e8c84a;padding:24px;max-width:460px;width:90%;max-height:82vh;display:flex;flex-direction:column;font-family:'IBM Plex Mono',monospace;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <span style="color:#e8c84a;letter-spacing:1px;font-size:.75rem;">＋ BEKANNTE CREW ÜBERNEHMEN</span>
-      <span style="cursor:pointer;color:#aaa;" onclick="_closeImportCrew()">✕</span>
+<!-- Crew-Pool: Personen tour-übergreifend anhaken → in diese Tour übernehmen -->
+<div class="modal-bg" id="crewImportModal" style="z-index:520;">
+  <div class="modal-box" style="width:460px;display:flex;flex-direction:column;max-height:82vh;">
+    <div class="modal-title">Crew-Pool</div>
+    <div style="font-size:.62rem;color:var(--muted);line-height:1.5;margin-bottom:10px;">
+      Anhaken → in diese Tour übernehmen (inkl. E-Mail). Der Pool = alle je in einer Tour angelegten Crew-Mitglieder.
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-      <span style="color:#888;font-size:.58rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
+      <span style="color:var(--muted);font-size:.58rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
       <button onclick="_importSelectAll(true)" style="background:#1f3a2a;color:#4ae8a0;border:1px solid #2f5a40;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
       <button onclick="_importSelectAll(false)" style="background:#3a1f1f;color:#e88;border:1px solid #5a2f2f;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
     </div>
     <div id="crewImportBody" style="overflow-y:auto;flex:1;margin-bottom:12px;padding-right:4px;"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button onclick="_closeImportCrew()" style="background:#23233a;color:#9ad;border:1px solid #3a3a55;border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Abbrechen</button>
-      <button onclick="confirmImportCrew()" style="background:#e8c84a;color:#0d0d1a;border:none;border-radius:3px;padding:7px 16px;font-family:inherit;font-size:.66rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">Übernehmen</button>
+    <div class="mactions">
+      <button class="mbtn" onclick="_closeImportCrew()">Abbrechen</button>
+      <button class="mbtn primary" onclick="confirmImportCrew()">Übernehmen</button>
     </div>
   </div>
 </div>
@@ -407,7 +407,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=24"></script>
+<script type="module" src="js/app.js?v=25"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
