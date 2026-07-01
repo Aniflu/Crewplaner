@@ -28,3 +28,21 @@ export function eachDateInRange(fromISO, toISO){
 // — Quelle: crew[] vs assignments.crew_name.
 export function normCrewName(s){ return String(s==null?'':s).trim().toLowerCase(); }
 export function sameCrew(a,b){ return normCrewName(a)===normCrewName(b); }
+
+// Rohe crew_members (aus allen Plänen) zu einer tour-übergreifenden Liste zusammenführen:
+// gleiche Namen (normCrewName) verschmelzen, dabei einen Eintrag MIT nicht-leerer E-Mail
+// bevorzugen. Rückgabe: [{name, email}] alphabetisch (locale-unabhängig case-insensitiv).
+export function dedupKnownCrew(records){
+  const byKey = new Map();
+  for(const r of (records||[])){
+    const name=String(r&&r.name!=null?r.name:'').trim();
+    if(!name) continue;
+    const email=String(r&&r.email!=null?r.email:'').trim();
+    const key=normCrewName(name);
+    const prev=byKey.get(key);
+    if(!prev){ byKey.set(key,{name,email}); continue; }
+    // Ersten mit E-Mail behalten; sonst ersten Namen behalten.
+    if(!prev.email && email){ prev.email=email; }
+  }
+  return [...byKey.values()].sort((a,b)=>normCrewName(a.name)<normCrewName(b.name)?-1:normCrewName(a.name)>normCrewName(b.name)?1:0);
+}

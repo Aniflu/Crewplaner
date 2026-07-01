@@ -1,10 +1,11 @@
 // ── Crew Management ────────────────────────────────────────────────────────────
 import { crew, TOUR_DATES, POSITIONS, assignments, defaultCrew, crewMeta, IS_MANAGER, CREW_COLORS } from './state.js';
-import { showToast, esc, getVal } from './utils.js';
+import { showToast, esc, getVal, normCrewName } from './utils.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { renderTable } from './render.js';
 import { showPrompt } from './dialog.js';
-import { renameCrewMember, deleteCrewMember } from './dataService.js';
+import { renameCrewMember, deleteCrewMember, loadAllKnownCrew, saveCrewLink } from './dataService.js';
+import { openModal, closeModal } from './modals.js';
 
 // Global functions called: _savePlanToLS, renderCrew, renderTable
 
@@ -88,4 +89,69 @@ export async function renameCrew(i){
   }catch(e){
     showToast('Lokal umbenannt, PB-Sync fehlgeschlagen: '+e.message,'#e84a4a');
   }
+}
+
+// ── Bekannte Crew aus früheren Touren übernehmen ──────────────────────────────
+// Zeigt eine tour-übergreifende Liste (alle je angelegten Crew-Mitglieder, doppelte
+// Namen zusammengefasst) zum Anhaken. Angehakte landen MIT E-Mail im aktuellen Plan.
+let _importCandidates = [];   // [{name,email}] — die aktuell anzeigbaren (noch nicht im Plan)
+
+export async function openImportCrewModal(){
+  if(!IS_MANAGER)return;
+  const body=document.getElementById('crewImportBody');
+  if(body)body.innerHTML='<div style="font-size:.7rem;color:#888;">Lade bekannte Crew…</div>';
+  openModal('crewImportModal');
+  let known=[];
+  try{ known=await loadAllKnownCrew(); }
+  catch(e){ if(body)body.innerHTML=`<div style="font-size:.7rem;color:#e84a4a;">Fehler: ${esc(e.message)}</div>`; return; }
+  // Bereits im Plan vorhandene Namen ausblenden.
+  const have=new Set(crew.map(n=>normCrewName(n)));
+  _importCandidates=known.filter(k=>!have.has(normCrewName(k.name)));
+  _renderImportCrewList();
+}
+
+function _renderImportCrewList(){
+  const body=document.getElementById('crewImportBody');
+  if(!body)return;
+  if(!_importCandidates.length){
+    body.innerHTML='<div style="font-size:.7rem;color:#888;">Keine weiteren bekannten Crew-Mitglieder (alle schon im Plan).</div>';
+    return;
+  }
+  body.innerHTML=_importCandidates.map((k,i)=>`
+    <label style="display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid #2a2a3a;font-size:.66rem;color:#ddd;cursor:pointer;">
+      <input type="checkbox" data-i="${i}" checked style="width:14px;height:14px;accent-color:#4ae8a0;flex-shrink:0;">
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(k.name)}</span>
+      <span style="color:#777;font-size:.6rem;">${k.email?esc(k.email):'keine E-Mail'}</span>
+    </label>`).join('');
+}
+
+export function _importSelectAll(val){
+  document.querySelectorAll('#crewImportBody input[type=checkbox]').forEach(cb=>{cb.checked=val;});
+}
+
+export function _closeImportCrew(){ closeModal('crewImportModal'); }
+
+export async function confirmImportCrew(){
+  if(!IS_MANAGER)return;
+  const boxes=[...document.querySelectorAll('#crewImportBody input[type=checkbox]')];
+  const chosen=boxes.filter(cb=>cb.checked).map(cb=>_importCandidates[+cb.dataset.i]).filter(Boolean);
+  if(!chosen.length){ showToast('Nichts ausgewählt','#5a6070'); return; }
+  let added=0;
+  for(const k of chosen){
+    if(!crew.some(n=>normCrewName(n)===normCrewName(k.name))){ crew.push(k.name); added++; }
+  }
+  _savePlanToLS(getActivePlanId());
+  renderCrew();
+  renderTable();
+  closeModal('crewImportModal');
+  showToast(`${added} übernommen — E-Mails werden verknüpft…`,'#e8c84a');
+  // E-Mails im aktuellen Plan verknüpfen (crew_members-Record + crewMeta).
+  let linked=0, failed=0;
+  for(const k of chosen){
+    if(!k.email)continue;
+    try{ await saveCrewLink(k.name,k.email); linked++; }
+    catch(e){ failed++; console.warn('Crew-Import Link fehlgeschlagen:',k.name,e.message); }
+  }
+  renderCrew();
+  showToast(failed?`${added} übernommen, ${linked} verknüpft, ${failed} E-Mail-Fehler`:`${added} übernommen · ${linked} E-Mails verknüpft ✓`, failed?'#e8c84a':'#4ae8a0');
 }

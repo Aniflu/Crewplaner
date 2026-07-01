@@ -6,7 +6,7 @@ import {
   clearStatus
 } from './state.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
-import { showToast, sameCrew, getVal } from './utils.js';
+import { showToast, sameCrew, getVal, dedupKnownCrew } from './utils.js';
 import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex } from './plans.js';
 
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
@@ -429,6 +429,15 @@ export async function sendCrewInvite(crewName, crewEmail, type) {
 }
 
 // ── Crew-Mitglied mit E-Mail verknüpfen (Admin) ───────────────────────────────
+// ── Alle je angelegten Crew-Mitglieder tour-übergreifend laden (für Import) ──────
+// Kein plan_id-Filter: genau die planübergreifende Liste ist gewünscht. Single-Owner-
+// Setup (listRule = auth). De-Dup + E-Mail-Bevorzugung in dedupKnownCrew (pure).
+export async function loadAllKnownCrew() {
+  if (!SUPABASE_ENABLED) return [];
+  const data = await pbListAll('crew_members', '');
+  return dedupKnownCrew((data?.items || []).map(m => ({ name: m.name, email: m.email || '' })));
+}
+
 export async function saveCrewLink(crewName, email) {
   if (!SUPABASE_ENABLED) return;
   const planId = await _getActivePlanId();
