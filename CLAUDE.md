@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.18.3**
+- Aktuelle Version: **v0.19.0**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.19.0 — feat(DAUERHAFTE Cache-Lösung via Service Worker): behebt das wiederkehrende „stale Sub-Modul"-Problem (js/*.js luden ohne ?v= → Browser-Cache → Fixes kamen erst nach manuellem Hard-Reload). NEU: `sw.js` (Repo-Root) — Service Worker, der gleich-Origin JS/CSS/HTML **network-first mit `cache:'no-cache'`** (Revalidierung) ausliefert → immer aktueller Stand. Cached NICHTS selbst (kein `caches.put`) → kann NIE eine alte Version „einsperren"; bei Netzfehler Fallback auf normalen Fetch. PB-API (andere Origin) unangetastet. Registrierung in index/admin/login/view.html (`<head>`), mit einmaligem Auto-Reload bei `controllerchange` (guarded). Ab jetzt: Deploy → einmal noch Hard-Reload (SW installiert sich), danach kommen Updates OHNE manuelles Cache-Leeren an. Kill-Switch in sw.js dokumentiert. +tests/serviceworker.test.mjs (SW existiert, no-cache, kein eigenes Caching; alle Seiten registrieren ihn). 57 grün. app.js?v=26→27, admin-app.js?v=5→6.
 v0.18.3 — fix(Crew „Termine bestätigen" → „keine offenen Termine" trotz sichtbarer Tage): `getMyPendingSlots` (userView.js) sammelte NUR `assignmentStatuses`-Records mit `status==='proposed'` + exaktem `crewName===myName`. Die Crew SIEHT ihre Tage aber via `getVal` (assignments/defaultCrew) — unabhängig von Records. → sichtbar, aber „nichts offen" (z.B. Einladung ohne Record-Anlage / reine defaultCrew-Slots). FIX: `getMyPendingSlots` iteriert TOUR_DATES×POSITIONS, nimmt Slots wo `sameCrew(getVal(date,pos), myName)` und `status!=='confirmed'` (tolerant, inkl. Slots ohne Record; confirmAssignment legt den Record beim Bestätigen an, dataService.js:230). Sidebar-Button `bulkConfirmAllMySlots` öffnet jetzt die AUSWAHL-Liste (`openMyScheduleModal`: alles angehakt → abwählen was nicht geht → „Bestätigen ✓" bestätigt Rest, lehnt Abgewählte ab) statt blind alle zu bestätigen. Abgewählte ohne Record = No-op (keine Absage-Mail-Flut); mit Record → declined. +Test (flows.test.mjs getMyPendingSlots getVal-basiert). 52 grün. app.js?v=25→26.
 v0.18.2 — fix(Admin-„Einladung" öffnete kein Fenster) + feat(Einladung mit allen Terminen): ROOT CAUSE „gar nichts": admin.html bringt EIGENES inline-CSS mit (lädt NICHT styles.css); `.modal-bg{display:none}` war da, aber die Aufdeck-Regel `.modal-bg.open{display:flex}` FEHLTE → `openModal` (setzt nur `.open`) machte KEIN Admin-Modal sichtbar (Einladung/Update/Absage-Vorschau, PDF, Kalender). FIX: `.modal-bg.open{display:flex}` in admin.html ergänzt. FEATURE: neue `sendAdminInvite(crewName)` (ersetzt Invite-Zweig von sendAdminEmail) baut alle eingeplanten Slots der Person (TOUR_DATES×POSITIONS, assignments-Override ?? defaultCrew; confirmed übersprungen), zeigt Vorschau mit Termintabelle, legt beim Senden proposed-Records an (`proposed_by:'bulk'` → Hook unterdrückt per-Slot-Mail, main.pb.js:258) und schickt EINE crew_invites-invite mit `app_url=JSON(slots)`. HOOK v4.7: `type==='invite'` rendert Terminliste, wenn app_url ein JSON-Slot-Array ist (sonst generisch/rückwärtskompatibel). +tests/adminmodal.test.mjs (Guard für die Aufdeck-Regel); 51 grün. admin-app.js?v=4→5. HOOK-DEPLOY (v4.7) via Admin/SSH nötig, sonst Mail ohne Terminliste.
 v0.18.1 — fix(Crew-Pool-Button öffnete nichts): der v0.18.0-Button „＋ Bekannte Crew übernehmen" tat nichts. Ursache: `crewImportModal` war mit inline `style="display:none"` gebaut, `openModal` fügt aber nur die Klasse `.open` hinzu — sichtbar wird dadurch NUR ein `.modal-bg` (styles.css: `.modal-bg.open{display:flex}`). → Modal blieb versteckt (Funktion lief, Anzeige nicht). FIX: `crewImportModal` als echtes `.modal-bg`/`.modal-box` (z-index:520 über crewModal) → `openModal/closeModal` greifen. Button umbenannt „＋ Aus Crew-Pool wählen" + Hinweistext (Pool = alle je angelegten Crew-Mitglieder, Anhaken → in diese Tour). Keine Logikänderung (Picker/loadAllKnownCrew/dedupKnownCrew unverändert). app.js?v=24→25. 49 Tests grün. HINWEIS: Sub-Module ohne `?v=` → nach Deploy Hard-Reload nötig.
@@ -307,7 +308,7 @@ TZ=UTC           node tests/run.mjs
 ```
 
 - `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
-- **52 Tests grün** (Stand v0.18.3). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
+- **57 Tests grün** (Stand v0.19.0). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
   - `pure.test.mjs` — reine Logik ohne Stubs (Datums-Bereiche TZ-sicher, Namens-Helfer).
   - `crewimport.test.mjs` — `dedupKnownCrew` führt tour-übergreifende Crew zusammen (doppelte Namen, E-Mail-Bevorzugung, Sortierung).
   - `logic.test.mjs` + `flows.test.mjs` + `dataservice.test.mjs` — laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`); decken getVal/isPending/sortInsert, Crew-CRUD, Slot-Diffing, getMyCrewName, Plan-Roundtrip, confirm/decline (fetch-gemockt) ab.
@@ -320,11 +321,12 @@ TZ=UTC           node tests/run.mjs
     - `phantomplan.test.mjs` — `_getActivePlanId` legt nie einen Plan an, wenn keiner auflösbar ist (kein Phantom).
     - `queue.test.mjs` — `_queueGlobalCrewUpdate(desc, dates)` befüllt die Queue aus `getVal` nur für die übergebenen (neuen) Tage; `_updateCrewUpdateBar` Self-Heal entfernt nicht-mehr-eingeplante Slots.
     - `adminmodal.test.mjs` — admin.html hat die Aufdeck-Regel `.modal-bg.open{display:flex}` (sonst öffnet KEIN Admin-Modal; eigenes inline-CSS, kein styles.css).
+    - `serviceworker.test.mjs` — `sw.js` existiert, revalidiert (no-cache) & cached nichts stale; index/admin/login/view.html registrieren ihn (dauerhafte Cache-Lösung).
 - **Nicht** abgedeckt (braucht echtes PocketBase): Login, E-Mail-Versand, echte PB-Schreibpfade.
 - Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
 - **Reine, testbare Logik gehört nach `js/pure.js`** (import-freies Leaf), nicht in `utils.js`.
 
-**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=26`, `admin.html` lädt `js/admin-app.js?v=5`. Sub-Module laden OHNE `?v=` → bei „Crew/Wolf sieht nichts" zuerst Hard-Reload/Cache-Clear (stale Sub-Modul bricht den Graphen). Per-Modul-Versionsnummern werden nicht mehr gepflegt.
+**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=27`, `admin.html` lädt `js/admin-app.js?v=6`. **Seit v0.19.0 hält der Service Worker (`sw.js`) alle Module dauerhaft frisch** (network-first/`no-cache`) → normalerweise KEIN Hard-Reload mehr nötig. Beim ERSTEN Laden nach dem v0.19.0-Deploy installiert sich der SW (einmaliger Auto-Reload via `controllerchange`, sonst 1× Hard-Reload). Danach kommen Updates automatisch an. Fällt der SW aus (kein SW-Support/deregistriert): Sub-Module laden ohne `?v=` → dann wie früher Hard-Reload. Kill-Switch: Kommentar in `sw.js`.
 
 ---
 

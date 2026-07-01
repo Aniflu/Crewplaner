@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.19.0** — feat: **Automatische Aktualisierung (kein „Cache leeren" mehr).** Ein Service Worker sorgt dafür, dass die App immer die neueste Version lädt. Nach diesem Update ist **einmal** noch ein harter Reload nötig — danach kommen künftige Änderungen von selbst an, ohne manuelles Cache-Leeren.
 **v0.18.3** — fix: Als Crew meldete **„Termine bestätigen"** „keine offenen Termine", obwohl die eigenen Tage in der Tabelle standen. Jetzt öffnet der Knopf eine **Auswahl-Liste mit allen eingeplanten Tagen** (alle angehakt) — du entfernst die Haken bei Tagen, die du nicht kannst, und **„Bestätigen ✓"** bestätigt den Rest (abgewählte werden, falls angefragt, abgesagt).
 **v0.18.2** — fix + feat: In der **Admin-Konsole** öffnete der **„Einladung"**-Knopf (und die anderen Vorschau-Fenster) gar nichts — der Konsole fehlte die CSS-Regel, die solche Fenster sichtbar macht. Jetzt gehen sie auf. Zusätzlich: die **Einladungs-E-Mail listet alle Termine** des Crew-Mitglieds auf (EINE Mail pro Person) und legt die Anfrage-Einträge an, damit die Crew direkt bestätigen kann. *(Hinweis: Die Terminliste in der Mail erscheint erst, nachdem der Server-Hook v4.7 vom Admin deployt wurde.)*
 **v0.18.1** — fix: Der Button für den **Crew-Pool** öffnete kein Fenster (das Auswahl-Modal wurde nie sichtbar). Jetzt öffnet **„＋ Aus Crew-Pool wählen"** (im Dialog *Crew & Positionen*) korrekt die Liste, in der du einzelne Personen anhaken und in die aktuelle Tour übernehmen kannst.

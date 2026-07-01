@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tour Plan — Ansicht</title>
+<script>
+  // Service Worker: hält Module/Seiten dauerhaft aktuell (siehe sw.js).
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+    var _swReloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (_swReloaded) return; _swReloaded = true; location.reload();
+    });
+  }
+</script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=23">
 <style>
