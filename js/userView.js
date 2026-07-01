@@ -310,6 +310,39 @@ function _getCrewUpdateQueue() {
 function _saveCrewUpdateQueue(q) {
   localStorage.setItem(_queuePlanKey(), JSON.stringify(q));
 }
+
+// Live-Erkennung: jede eingeplante (getVal), aber noch nicht angefragte/bestätigte
+// Person (kein aktiver PB-Record) ist ein „neuer Termin". So erscheint die Update-Bar
+// auch für Tage, die schon im Plan stehen (z.B. nach Reload oder vor diesem Code
+// hinzugefügt) — nicht nur im Moment des Hinzufügens. Bestätigte Slots haben Records
+// und fallen NICHT rein (kein Flut bestehender Tage).
+function _liveNewSlotsByCrew() {
+  const out = {};
+  if (!IS_MANAGER) return out;
+  for (const name of Object.keys(crewMeta || {})) {
+    const meta = crewMeta[name] || {};
+    if (!meta.email) continue;
+    let ns = [];
+    try { ns = _getNewSlotsForCrew(name, meta.email) || []; } catch(_) { ns = []; }
+    if (ns.length) out[name] = { email: meta.email, slots: ns };
+  }
+  return out;
+}
+// Live-Slots in die (persistente) Queue mischen — als informational. Idempotent.
+function _mergeLiveNewSlots(q) {
+  const live = _liveNewSlotsByCrew();
+  let changed = false;
+  for (const [name, { email, slots }] of Object.entries(live)) {
+    for (const s of slots) {
+      if (!q[name]) { q[name] = { email, informational: true, slots: [] }; changed = true; }
+      if (!q[name].slots.find(x => x.date === s.date && x.posId === s.posId)) {
+        q[name].slots.push({ date: s.date, posId: s.posId, posLabel: s.posLabel, changes: ['Neuer Termin'] });
+        changed = true;
+      }
+    }
+  }
+  return changed;
+}
 function _dateBlockId(date) {
   const r = TOUR_DATES.find(x => x.date === date);
   return r ? (r.blockId || '') : '';
@@ -392,17 +425,25 @@ export function _updateCrewUpdateBar() {
     slotCount += slots.length;
   }
   if (changed) _saveCrewUpdateQueue(q);
-  const n = Object.keys(q).length;
+  // Live: zusätzlich eingeplante, aber noch nicht angefragte Personen (read-only zählen,
+  // ohne zu persistieren — gemergt wird erst beim Öffnen des Modals).
+  const live = _liveNewSlotsByCrew();
+  let liveSlotCount = 0;
+  for (const e of Object.values(live)) liveSlotCount += e.slots.length;
+  const people = new Set([...Object.keys(q), ...Object.keys(live)]);
   const btn = document.getElementById('btnUpdateQueue');
   const badge = document.getElementById('updateQueueBadge');
-  if (btn) btn.style.display = (IS_MANAGER && slotCount > 0) ? '' : 'none';
-  if (badge) badge.textContent = n;
+  if (btn) btn.style.display = (IS_MANAGER && (slotCount + liveSlotCount) > 0) ? '' : 'none';
+  if (badge) badge.textContent = people.size;
 }
 
 const _QBTN = "background:#23233a;color:#9ad;border:1px solid #3a3a55;border-radius:3px;padding:1px 7px;font-family:inherit;font-size:.58rem;letter-spacing:.5px;cursor:pointer;";
 
 export function _openUpdateQueueModal() {
   const q = _getCrewUpdateQueue();
+  // Live erkannte neue Termine fest in die Queue übernehmen (damit sie auswähl-/sendbar
+  // sind), dann normal rendern.
+  if (_mergeLiveNewSlots(q)) _saveCrewUpdateQueue(q);
   const body = document.getElementById('crewUpdateModalBody');
   if (!body) return;
 

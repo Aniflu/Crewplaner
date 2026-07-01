@@ -53,6 +53,24 @@ test('_queueGlobalCrewUpdate: leere Datumsliste queued nichts', async () => {
   eq(Object.keys(readQueue()).length, 0, 'Queue bleibt leer bei leerer Datumsliste');
 });
 
+test('Live-Erkennung: eingeplanter, unbestätigter Tag erscheint OHNE vorheriges Queueing', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  setup(g);
+  const { TOUR_DATES, POSITIONS, crewMeta, setAssignment } = g.state;
+  POSITIONS.push({ id:'gl', label:'GL', short:'GL' });
+  crewMeta['Wolf'] = { email:'w@x.de' };
+  TOUR_DATES.push({ date:'2026-07-01', loc:'X' });
+  setAssignment('2026-07-01', 'gl', 'Wolf');   // eingeplant, aber kein PB-Record (unbestätigt)
+
+  // KEIN _queueGlobalCrewUpdate — das Modal-Öffnen muss den Live-Slot selbst erkennen.
+  g.userView._openUpdateQueueModal();
+
+  const q = readQueue();
+  ok(q['Wolf'], 'Wolf live erkannt');
+  eq(q['Wolf'].slots[0].date, '2026-07-01', 'der eingeplante Tag');
+  ok(q['Wolf'].informational === true, 'als informational gemergt');
+});
+
 test('_updateCrewUpdateBar: Self-Heal — entfernter Name fällt aus der Queue', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   setup(g);
