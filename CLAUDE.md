@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.18.2**
+- Aktuelle Version: **v0.18.3**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.18.3 — fix(Crew „Termine bestätigen" → „keine offenen Termine" trotz sichtbarer Tage): `getMyPendingSlots` (userView.js) sammelte NUR `assignmentStatuses`-Records mit `status==='proposed'` + exaktem `crewName===myName`. Die Crew SIEHT ihre Tage aber via `getVal` (assignments/defaultCrew) — unabhängig von Records. → sichtbar, aber „nichts offen" (z.B. Einladung ohne Record-Anlage / reine defaultCrew-Slots). FIX: `getMyPendingSlots` iteriert TOUR_DATES×POSITIONS, nimmt Slots wo `sameCrew(getVal(date,pos), myName)` und `status!=='confirmed'` (tolerant, inkl. Slots ohne Record; confirmAssignment legt den Record beim Bestätigen an, dataService.js:230). Sidebar-Button `bulkConfirmAllMySlots` öffnet jetzt die AUSWAHL-Liste (`openMyScheduleModal`: alles angehakt → abwählen was nicht geht → „Bestätigen ✓" bestätigt Rest, lehnt Abgewählte ab) statt blind alle zu bestätigen. Abgewählte ohne Record = No-op (keine Absage-Mail-Flut); mit Record → declined. +Test (flows.test.mjs getMyPendingSlots getVal-basiert). 52 grün. app.js?v=25→26.
 v0.18.2 — fix(Admin-„Einladung" öffnete kein Fenster) + feat(Einladung mit allen Terminen): ROOT CAUSE „gar nichts": admin.html bringt EIGENES inline-CSS mit (lädt NICHT styles.css); `.modal-bg{display:none}` war da, aber die Aufdeck-Regel `.modal-bg.open{display:flex}` FEHLTE → `openModal` (setzt nur `.open`) machte KEIN Admin-Modal sichtbar (Einladung/Update/Absage-Vorschau, PDF, Kalender). FIX: `.modal-bg.open{display:flex}` in admin.html ergänzt. FEATURE: neue `sendAdminInvite(crewName)` (ersetzt Invite-Zweig von sendAdminEmail) baut alle eingeplanten Slots der Person (TOUR_DATES×POSITIONS, assignments-Override ?? defaultCrew; confirmed übersprungen), zeigt Vorschau mit Termintabelle, legt beim Senden proposed-Records an (`proposed_by:'bulk'` → Hook unterdrückt per-Slot-Mail, main.pb.js:258) und schickt EINE crew_invites-invite mit `app_url=JSON(slots)`. HOOK v4.7: `type==='invite'` rendert Terminliste, wenn app_url ein JSON-Slot-Array ist (sonst generisch/rückwärtskompatibel). +tests/adminmodal.test.mjs (Guard für die Aufdeck-Regel); 51 grün. admin-app.js?v=4→5. HOOK-DEPLOY (v4.7) via Admin/SSH nötig, sonst Mail ohne Terminliste.
 v0.18.1 — fix(Crew-Pool-Button öffnete nichts): der v0.18.0-Button „＋ Bekannte Crew übernehmen" tat nichts. Ursache: `crewImportModal` war mit inline `style="display:none"` gebaut, `openModal` fügt aber nur die Klasse `.open` hinzu — sichtbar wird dadurch NUR ein `.modal-bg` (styles.css: `.modal-bg.open{display:flex}`). → Modal blieb versteckt (Funktion lief, Anzeige nicht). FIX: `crewImportModal` als echtes `.modal-bg`/`.modal-box` (z-index:520 über crewModal) → `openModal/closeModal` greifen. Button umbenannt „＋ Aus Crew-Pool wählen" + Hinweistext (Pool = alle je angelegten Crew-Mitglieder, Anhaken → in diese Tour). Keine Logikänderung (Picker/loadAllKnownCrew/dedupKnownCrew unverändert). app.js?v=24→25. 49 Tests grün. HINWEIS: Sub-Module ohne `?v=` → nach Deploy Hard-Reload nötig.
 v0.18.0 — feat(Bekannte Crew aus früheren Touren übernehmen): `crew_members` sind pro Plan (plan_id) → Crew einer alten Tour war mit einem neuen Plan (z.B. „Provinz 2027") nicht verknüpft; man musste jeden Namen einzeln eintippen (addCrew, nur Name, keine E-Mail). NEU: im *Crew & Positionen*-Dialog Button „＋ Bekannte Crew übernehmen" → `openImportCrewModal` (crew.js) lädt via `loadAllKnownCrew` (dataService.js → `pbListAll('crew_members','')` ohne plan_id-Filter, Single-Owner-Setup) eine TOUR-ÜBERGREIFENDE, per `dedupKnownCrew` (pure.js) zusammengeführte Liste (doppelte Namen verschmolzen, Eintrag mit E-Mail bevorzugt, alphabetisch). Bereits im Plan vorhandene Namen werden ausgeblendet. Angehakte → `confirmImportCrew`: `crew.push(name)` + `saveCrewLink(name,email)` (legt crew_members-Record im AKTUELLEN Plan an + setzt crewMeta) → sofort einplan-/einladbar. Modal `crewImportModal` (index.html) mit ALLE/KEINE. `dedupKnownCrew` als reine, testbare Leaf-Funktion (pure.js). +tests/crewimport.test.mjs; 49 grün. app.js?v=23→24.
@@ -306,7 +307,7 @@ TZ=UTC           node tests/run.mjs
 ```
 
 - `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
-- **51 Tests grün** (Stand v0.18.2). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
+- **52 Tests grün** (Stand v0.18.3). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
   - `pure.test.mjs` — reine Logik ohne Stubs (Datums-Bereiche TZ-sicher, Namens-Helfer).
   - `crewimport.test.mjs` — `dedupKnownCrew` führt tour-übergreifende Crew zusammen (doppelte Namen, E-Mail-Bevorzugung, Sortierung).
   - `logic.test.mjs` + `flows.test.mjs` + `dataservice.test.mjs` — laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`); decken getVal/isPending/sortInsert, Crew-CRUD, Slot-Diffing, getMyCrewName, Plan-Roundtrip, confirm/decline (fetch-gemockt) ab.
@@ -323,7 +324,7 @@ TZ=UTC           node tests/run.mjs
 - Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
 - **Reine, testbare Logik gehört nach `js/pure.js`** (import-freies Leaf), nicht in `utils.js`.
 
-**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=25`, `admin.html` lädt `js/admin-app.js?v=5`. Sub-Module laden OHNE `?v=` → bei „Crew/Wolf sieht nichts" zuerst Hard-Reload/Cache-Clear (stale Sub-Modul bricht den Graphen). Per-Modul-Versionsnummern werden nicht mehr gepflegt.
+**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=26`, `admin.html` lädt `js/admin-app.js?v=5`. Sub-Module laden OHNE `?v=` → bei „Crew/Wolf sieht nichts" zuerst Hard-Reload/Cache-Clear (stale Sub-Modul bricht den Graphen). Per-Modul-Versionsnummern werden nicht mehr gepflegt.
 
 ---
 

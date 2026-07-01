@@ -3,7 +3,7 @@ import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
          IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID, setStatus,
          pendingCancellations } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
-import { getVal, isPending, esc, showToast, fmtD } from './utils.js';
+import { getVal, isPending, esc, showToast, fmtD, sameCrew } from './utils.js';
 import { pbPatch, pbPost, pbFirst } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
          bulkProposeCrew, sendAvailabilityNotice } from './dataService.js';
@@ -58,15 +58,21 @@ export function getMyCrewName() {
 }
 
 // ── Meine offenen Slots sammeln ───────────────────────────────────────────────
+// Basis = was die Crew in der Tabelle SIEHT (getVal: assignments/defaultCrew), NICHT nur
+// vorab angelegte proposed-Records. So sind auch defaultCrew-Slots ohne Record bestätigbar
+// (confirmAssignment legt den Record bei Bedarf an). Bereits bestätigte fallen raus.
 export function getMyPendingSlots() {
   const myName = getMyCrewName();
   if (!myName) return [];
+  const _dates = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []);
+  const _pos   = (typeof POSITIONS  !== 'undefined' ? POSITIONS  : []);
   const slots = [];
-  Object.entries(assignmentStatuses || {}).forEach(([date, positions]) => {
-    Object.entries(positions).forEach(([posId, info]) => {
-      if (info.crewName === myName && info.status === 'proposed') {
-        slots.push({ date, posId });
-      }
+  _dates.forEach(day => {
+    _pos.forEach(pos => {
+      if (!sameCrew(getVal(day.date, pos.id), myName)) return;
+      const si = (assignmentStatuses[day.date] || {})[pos.id];
+      if (si && si.status === 'confirmed') return;   // schon bestätigt → nicht mehr offen
+      slots.push({ date: day.date, posId: pos.id });
     });
   });
   slots.sort((a, b) => a.date.localeCompare(b.date));
@@ -197,19 +203,12 @@ export function openSlotConfirmModal(dateStr, posId) {
 }
 
 // ── Alle angefragten Termine auf einmal bestätigen ────────────────────────────
-export async function bulkConfirmAllMySlots() {
+export function bulkConfirmAllMySlots() {
   if (!getMyCrewName()) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return; }
-  const slots = getMyPendingSlots();
-  if (!slots.length) { showToast('Keine offenen Termine', '#5a6070'); return; }
-  showToast('Wird bestätigt…', '#e8c84a');
-  try {
-    await Promise.all(slots.map(s => confirmAssignment(s.date, s.posId)));
-    showToast('Alle Termine bestätigt ✓', '#4ae8a0');
-  } catch(e) {
-    showToast('Fehler – bitte erneut versuchen: ' + e.message, '#e84a4a');
-    await loadAssignmentStatuses();
-  }
-  renderTable();
+  if (!getMyPendingSlots().length) { showToast('Keine offenen Termine — alles bestätigt ✓', '#5a6070'); return; }
+  // Auswahl-Liste öffnen: abwählen was nicht geht → „Bestätigen ✓" bestätigt den Rest
+  // (angehakt) und lehnt die abgewählten ab (_bulkConfirmMySlots).
+  openMyScheduleModal();
 }
 
 // ── Einzelne Slot-Aktionen (aus Tabelle heraus) ───────────────────────────────

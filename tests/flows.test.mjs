@@ -68,6 +68,22 @@ test('_getNewSlotsForCrew: neu = ohne Status ODER declined', async () => {
   deepEq(neu, ['2026-07-03','2026-07-04'], 'nur declined + ohne Status');
 });
 
+// ── Crew-Bestätigung: offene Slots = was ich SEHE (getVal), nicht nur proposed-Records ─
+test('getMyPendingSlots: getVal-geplant, nicht-confirmed (inkl. defaultCrew ohne Record)', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g);
+  const { TOUR_DATES, POSITIONS, crewMeta, defaultCrew, setStatus, setAuthState } = g.state;
+  POSITIONS.push({ id:'gl', label:'GL', short:'GL' });
+  crewMeta['Wolf'] = { email:'w@x.de' };
+  setAuthState('uid-w', 'w@x.de', 'crew');
+  ['2026-07-01','2026-07-02','2026-07-03'].forEach(d => TOUR_DATES.push({ date:d, loc:'X' }));
+  defaultCrew['gl'] = 'Wolf';                                  // an ALLEN Tagen eingeplant (kein Record)
+  setStatus('2026-07-02','gl', { status:'confirmed', crewName:'Wolf' }); // dieser fällt raus
+
+  const dates = g.userView.getMyPendingSlots().map(s => s.date).sort();
+  deepEq(dates, ['2026-07-01','2026-07-03'], 'nur offene, defaultCrew-Slots ohne Record inklusive; confirmed raus');
+});
+
 // ── Crew-Verknüpfung: getMyCrewName (case-insensitiv + per userId) ───────────
 test('getMyCrewName: matcht per E-Mail (case-insensitiv) und userId', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
