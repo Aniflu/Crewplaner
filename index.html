@@ -62,7 +62,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.20.0</span>
+            <span class="tour-tag">Personalplan · v0.20.1</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -100,6 +100,8 @@
         <button onclick="try{localStorage.removeItem('pb_token');localStorage.removeItem('pb_user');}catch(e){};location.href='login.html'" style="border-color:rgba(232,74,74,.35);color:#e8a0a0;"><span class="sb-gl">⎋</span>Abmelden</button>
         <button id="btnKonsole" onclick="window.location.href=window.getNavUrl('admin.html')" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
         <button class="crew-only primary" onclick="bulkConfirmAllMySlots()" style="display:none;"><span class="sb-gl">✓</span>Termine bestätigen</button>
+        <button class="crew-only" onclick="downloadMyICS()" style="display:none;"><span class="sb-gl">📅</span>Meine Termine (.ics)</button>
+        <button class="crew-only" onclick="printMySchedule()" style="display:none;"><span class="sb-gl">📄</span>Meine Termine (PDF)</button>
         <button class="crew-only" id="btnSendCancellations" onclick="sendCancellations()" style="display:none;background:rgba(232,74,74,.15);border-color:rgba(232,74,74,.4);color:#e84a4a;"><span class="sb-gl">⚠</span>Änderungen mitteilen</button>
       </div>
     </div>
@@ -418,7 +420,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=29"></script>
+<script type="module" src="js/app.js?v=30"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">

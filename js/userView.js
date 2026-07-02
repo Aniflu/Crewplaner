@@ -11,6 +11,7 @@ import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable } from './render.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
 import { closeModal, openModal } from './modals.js';
+import { confirmedIcsRows, crewIcsContent } from './pure.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
 export function toggleCancellation(dateStr, posId) {
@@ -586,12 +587,68 @@ function _updateSendButton() {
 function _activePlanName() {
   try {
     const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
-    return (plans.find(p => p.id === getActivePlanId())?.name) || 'Tour Plan';
+    const byIndex = plans.find(p => p.id === getActivePlanId())?.name;
+    if (byIndex) return byIndex;
+    // Crew: getPlansIndex ist leer → Name aus loadPlanForCrew (localStorage).
+    const stored = localStorage.getItem('tourplan_active_plan_name');
+    return stored || 'Tour Plan';
   } catch { return 'Tour Plan'; }
 }
 function _fmtPrevDate(iso) {
   const p = String(iso || '').split('-');
   return (p.length === 3 && p[0].length === 4) ? `${p[2]}.${p[1]}.${p[0]}` : iso;
+}
+
+// ── Crew: eigener Export (nur EIGENE bestätigten Termine) ─────────────────────
+// Liefert die bestätigten Tage der eingeloggten Crew + Bandname + Datum-Metadaten.
+function _myConfirmedExport() {
+  const myName = getMyCrewName();
+  if (!myName) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return null; }
+  const rows = confirmedIcsRows(TOUR_DATES, POSITIONS, assignmentStatuses, { onlyCrew: true, myName });
+  if (!rows.length) { showToast('Keine bestätigten Termine', '#5a6070'); return null; }
+  const dateMeta = {}; TOUR_DATES.forEach(r => { dateMeta[r.date] = r; });
+  return { rows, dateMeta, band: _activePlanName(), myName };
+}
+
+// .ics: pro Eintrag NUR Band (Titel) + Ort + Art — keine anderen Namen/Positionen.
+export function downloadMyICS() {
+  const x = _myConfirmedExport(); if (!x) return;
+  const content = crewIcsContent(x.band, x.rows, x.dateMeta);
+  const safe = (x.band || 'tour').replace(/[^\wäöüÄÖÜ.-]+/g, '_');
+  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${safe}_meine-termine.ics`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast(`${x.rows.length} bestätigte Termine exportiert ✓`, '#2d6a3f');
+}
+
+// PDF: druckfertige Liste (Datum · Art · Ort), Titel = Band → „Als PDF speichern".
+export function printMySchedule() {
+  const x = _myConfirmedExport(); if (!x) return;
+  const rowsHtml = x.rows.map(r => {
+    const m = x.dateMeta[r.date] || {};
+    return `<tr><td>${esc(_fmtPrevDate(r.date))}</td><td>${esc(m.typeLabel || m.type || '')}</td><td>${esc(m.loc || '')}</td></tr>`;
+  }).join('');
+  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>${esc(x.band)} — Meine Termine</title>
+    <style>
+      body{font-family:'Courier New',monospace;color:#1a1a2e;margin:32px;}
+      h1{font-size:20px;letter-spacing:1px;margin:0 0 2px;}
+      .sub{font-size:11px;color:#777;margin:0 0 20px;text-transform:uppercase;letter-spacing:2px;}
+      table{width:100%;border-collapse:collapse;font-size:13px;}
+      th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #ddd;}
+      th{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#999;border-bottom:2px solid #e8c84a;}
+      @media print{body{margin:12mm;}}
+    </style></head><body>
+    <h1>${esc(x.band)}</h1>
+    <p class="sub">Meine bestätigten Termine · ${esc(x.myName)} · ${x.rows.length}</p>
+    <table><thead><tr><th>Datum</th><th>Art</th><th>Ort</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+    <script>window.onload=function(){window.print();};<\/script>
+  </body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { showToast('Pop-up blockiert — bitte erlauben', '#e84a4a'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }
 
 // ── E-Mail-Vorschau (pro Person, vor dem Senden) ──────────────────────────────

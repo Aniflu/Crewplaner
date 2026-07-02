@@ -72,3 +72,33 @@ export function confirmedIcsRows(tourDates, positions, statuses, opts){
   }
   return out;
 }
+
+// Persönlicher Crew-ICS: pro Tag NUR Band (SUMMARY) + Ort (LOCATION) + Art (DESCRIPTION).
+// KEINE Positions-/Crew-Namen. rows = confirmedIcsRows-Ausgabe (nur Datum genutzt),
+// dateMeta = { date: {loc, typeLabel, type} }. Rückgabe: kompletter .ics-Text.
+export function crewIcsContent(band, rows, dateMeta){
+  const esc = s => String(s==null?'':s).replace(/([,;\\])/g,'\\$1').replace(/\n/g,'\\n');
+  const bandName = String(band||'Tour').trim() || 'Tour';
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Tour Crew Plan//v2.0//DE','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  for(const r of (rows||[])){
+    const meta = (dateMeta||{})[r.date] || {};
+    const loc = meta.loc || '';
+    const art = meta.typeLabel || meta.type || '';
+    const dtStart = String(r.date).replace(/-/g,'');
+    const [y,m,d] = String(r.date).split('-').map(Number);
+    const nx = new Date(y, (m||1)-1, (d||1)+1);
+    const dtEnd = `${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
+    lines.push(
+      'BEGIN:VEVENT',
+      `DTSTART;VALUE=DATE:${dtStart}`,
+      `DTEND;VALUE=DATE:${dtEnd}`,
+      `SUMMARY:${esc(bandName)}`,
+      `LOCATION:${esc(loc)}`,
+      `DESCRIPTION:${esc('Ort: '+loc+'\nArt: '+art)}`,
+      `UID:${r.date}-${Math.random().toString(36).slice(2)}@tourcrewplan`,
+      'END:VEVENT'
+    );
+  }
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}

@@ -1,6 +1,6 @@
 // Tests für js/pure.js — keine Browser-Stubs nötig (dependency-frei).
 import { test, eq, deepEq, ok } from './_assert.mjs';
-import { toISODate, eachDateInRange, normCrewName, sameCrew, confirmedIcsRows } from '../js/pure.js';
+import { toISODate, eachDateInRange, normCrewName, sameCrew, confirmedIcsRows, crewIcsContent } from '../js/pure.js';
 
 // ── eachDateInRange ───────────────────────────────────────────────────────────
 test('eachDateInRange: Einzeltag', () =>
@@ -74,4 +74,16 @@ test('confirmedIcsRows: onlyCrew filtert auf eigenen Namen', () => {
 test('confirmedIcsRows: allowTypes filtert Tagestypen', () => {
   const rows = confirmedIcsRows(_dates, _pos, _st, { allowTypes:new Set(['show']) });
   deepEq(rows.map(r=>r.date), ['2026-07-01'], 'reise-Tag 07-03 durch Typ-Filter raus');
+});
+
+// ── crewIcsContent: persönlicher Eintrag NUR Band/Ort/Art ─────────────────────
+test('crewIcsContent: Eintrag = Band(SUMMARY)/Ort(LOCATION)/Art — keine Crew-Namen', () => {
+  const rows = [{date:'2026-07-01', confirmed:[{posLabel:'Gewerkeleitung',crewName:'Wolf'}]}];
+  const meta = { '2026-07-01': { loc:'Berlin – Arena', typeLabel:'Show' } };
+  const ics = crewIcsContent('Provinz 2027', rows, meta);
+  ok(ics.includes('SUMMARY:Provinz 2027'), 'Band als Titel');
+  ok(ics.includes('LOCATION:Berlin'), 'Ort als LOCATION');
+  ok(/DESCRIPTION:.*Art: Show/.test(ics), 'Art in Beschreibung');
+  ok(ics.includes('DTSTART;VALUE=DATE:20260701'), 'Ganztags-Datum');
+  ok(!ics.includes('Wolf') && !ics.includes('Gewerkeleitung'), 'KEINE Crew-/Positionsnamen');
 });

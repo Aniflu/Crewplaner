@@ -122,6 +122,13 @@ export async function loadPlanForCrew() {
       if (typeof showToast === 'function') showToast('Plan noch nicht gespeichert — Admin kontaktieren', '#e84a4a');
       return;
     }
+    // Bandname (Plan-Name) für Crew merken (Header + persönlicher Export) — getPlansIndex
+    // ist bei Crew leer, daher hier aus dem PB-Plan.
+    try {
+      localStorage.setItem('tourplan_active_plan_name', plan.name || '');
+      const nameEl = document.getElementById('activePlanName');
+      if (nameEl) nameEl.textContent = plan.name || '';
+    } catch(_) {}
     const data = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
     if (!data?.tourDates) return;
     crew.length = 0; (data.crew || []).forEach(c => crew.push(c));
