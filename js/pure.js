@@ -46,3 +46,29 @@ export function dedupKnownCrew(records){
   }
   return [...byKey.values()].sort((a,b)=>normCrewName(a.name)<normCrewName(b.name)?-1:normCrewName(a.name)>normCrewName(b.name)?1:0);
 }
+
+// Welche Tage kommen in den ICS-Export? NUR Tage mit mindestens einem BESTÄTIGTEN Einsatz.
+// tourDates: [{date,...}] (Reihenfolge bleibt), positions: [{id,label,short}],
+// statuses: assignmentStatuses = { date: { posId: {status, crewName} } }.
+// opts.onlyCrew + opts.myName → nur eigene bestätigte Slots (sameCrew). opts.allowTypes
+// (optional Set von r.type) → zusätzlicher Typ-Filter.
+// Rückgabe: [{date, confirmed:[{posLabel, crewName}]}] — Tage ohne bestätigte Slots fallen raus.
+export function confirmedIcsRows(tourDates, positions, statuses, opts){
+  const o = opts || {};
+  const posLabel = {};
+  for(const p of (positions||[])) posLabel[p.id] = p.label || p.short || p.id;
+  const out = [];
+  for(const row of (tourDates||[])){
+    if(o.allowTypes && !o.allowTypes.has(row.type)) continue;
+    const day = (statuses||{})[row.date] || {};
+    const confirmed = [];
+    for(const posId of Object.keys(day)){
+      const si = day[posId];
+      if(!si || si.status !== 'confirmed') continue;
+      if(o.onlyCrew && !sameCrew(si.crewName, o.myName)) continue;
+      confirmed.push({ posLabel: posLabel[posId] || posId, crewName: si.crewName || '' });
+    }
+    if(confirmed.length) out.push({ date: row.date, confirmed });
+  }
+  return out;
+}

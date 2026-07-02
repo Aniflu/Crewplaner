@@ -229,10 +229,14 @@ export async function confirmAssignment(dateStr, posId) {
   const planId = await _getActivePlanId();
   if (!planId) return;
 
+  const _myEmail = (CURRENT_USER_EMAIL || '').toLowerCase();
   try {
     const existing = await pbFirst('assignments',
       `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
     if (existing) {
+      // Crew darf nur EIGENE Einsätze bestätigen (Manager verwaltet den ganzen Plan).
+      if (IS_CREW && !IS_MANAGER && (existing.crew_email || '').toLowerCase() !== _myEmail)
+        throw new Error('Zugriff verweigert – nicht dein Einsatz');
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'confirmed', responded_at: new Date().toISOString()
       });
@@ -245,6 +249,9 @@ export async function confirmAssignment(dateStr, posId) {
       if (!crewName || crewName === OFFEN) return; // nichts Geplantes zu bestätigen
       const pos = (POSITIONS || []).find(p => p.id === posId);
       const meta = crewMeta[crewName] || {};
+      // Crew darf nur den eigenen geplanten Slot anlegen/bestätigen.
+      if (IS_CREW && !IS_MANAGER && (meta.email || '').toLowerCase() !== _myEmail)
+        throw new Error('Zugriff verweigert – nicht dein Einsatz');
       await pbPost('/api/collections/assignments/records', {
         plan_id: planId, date: dateStr, pos_id: posId,
         pos_label: pos?.label || posId,
@@ -269,11 +276,15 @@ export async function declineAssignment(dateStr, posId) {
   if (!planId) return;
 
   const si = assignmentStatuses[dateStr]?.[posId];
+  const _myEmail = (CURRENT_USER_EMAIL || '').toLowerCase();
 
   try {
     const existing = await pbFirst('assignments',
       `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
     if (existing) {
+      // Crew darf nur EIGENE Einsätze absagen (Manager verwaltet den ganzen Plan).
+      if (IS_CREW && !IS_MANAGER && (existing.crew_email || '').toLowerCase() !== _myEmail)
+        throw new Error('Zugriff verweigert – nicht dein Einsatz');
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'declined', responded_at: new Date().toISOString()
       });

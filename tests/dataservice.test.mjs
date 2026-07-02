@@ -66,6 +66,45 @@ test('confirmAssignment: legt bestätigten Record an für geplante Crew OHNE Rec
   eq(g.state.assignmentStatuses['2026-07-01'].gl.crewName, 'Wolf Geffenius', 'crewName gesetzt');
 });
 
+// ── Eigentümer-Prüfung (v0.20.0): Crew nur eigene Einsätze ───────────────────
+function primeCrew(g, email){
+  g.state.setAuthState('uid-crew', email, 'crew');
+  globalThis.localStorage.setItem('pb_token', 't');
+  globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+}
+
+test('confirmAssignment: Crew darf FREMDEN Slot NICHT bestätigen', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeCrew(g, 'marco@hoch-online.com');
+  let patched = false;
+  mockFetch((url, method) => {
+    if (method === 'GET' && url.includes('/crew_members/records')) return res({ items: [{ plan_id: 'PLAN1' }] });
+    if (method === 'GET' && url.includes('/assignments/records')) return res({ items: [{ id: 'rec1', crew_email: 'someone@else.de' }] });
+    if (method === 'PATCH') { patched = true; return res({}); }
+    return res({});
+  });
+  let threw = false;
+  try { await g.dataService.confirmAssignment('2026-07-01', 'gl'); } catch(_) { threw = true; }
+  ok(threw, 'Fremd-Bestätigung wirft „Zugriff verweigert"');
+  ok(!patched, 'kein PATCH auf fremden Record');
+});
+
+test('confirmAssignment: Crew darf EIGENEN Slot bestätigen', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeCrew(g, 'marco@hoch-online.com');
+  g.state.setStatus('2026-07-01', 'gl', { status: 'proposed', crewName: 'Marco Hoch' });
+  let patched = false;
+  mockFetch((url, method) => {
+    if (method === 'GET' && url.includes('/crew_members/records')) return res({ items: [{ plan_id: 'PLAN1' }] });
+    if (method === 'GET' && url.includes('/assignments/records')) return res({ items: [{ id: 'rec1', crew_email: 'marco@hoch-online.com' }] });
+    if (method === 'PATCH') { patched = true; return res({ id: 'rec1', status: 'confirmed' }); }
+    return res({});
+  });
+  await g.dataService.confirmAssignment('2026-07-01', 'gl');
+  ok(patched, 'eigener Slot wird bestätigt');
+  eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'confirmed', 'lokal confirmed');
+});
+
 test('declineAssignment: wirft bei PATCH-Fehler', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   resetState(g); primePlan(g);

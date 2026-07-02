@@ -15,7 +15,7 @@
   }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script type="module" src="js/admin-app.js?v=7"></script>
+<script type="module" src="js/admin-app.js?v=8"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -520,7 +520,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.19.1</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.20.0</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -1757,8 +1757,18 @@ function adminGenerateICS() {
     prep:  document.getElementById('calPrep').checked,
     off:   document.getElementById('calOff').checked,
   };
-  const rows = TOUR_DATES.filter(r => inclTypes[r.type]);
-  if (!rows.length) { adminToast('Keine Tage ausgewählt', '#e84a4a'); return; }
+  // NUR bestätigte Einsätze (aus _wrkAssignmentStatuses). Tage ohne bestätigte Crew raus.
+  const posLabel = {}; (POSITIONS || []).forEach(p => { posLabel[p.id] = p.label || p.short || p.id; });
+  const rows = [];
+  TOUR_DATES.forEach(r => {
+    if (!inclTypes[r.type]) return;
+    const day = _wrkAssignmentStatuses[r.date] || {};
+    const confirmed = Object.keys(day)
+      .filter(pid => day[pid] && day[pid].status === 'confirmed')
+      .map(pid => ({ posLabel: posLabel[pid] || pid, crewName: day[pid].crewName || '' }));
+    if (confirmed.length) rows.push({ row: r, confirmed });
+  });
+  if (!rows.length) { adminToast('Keine bestätigten Termine', '#e84a4a'); return; }
 
   const lines = [
     'BEGIN:VCALENDAR', 'VERSION:2.0',
@@ -1766,13 +1776,14 @@ function adminGenerateICS() {
     'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
   ];
 
-  rows.forEach(row => {
+  rows.forEach(({ row, confirmed }) => {
     const dtStart = row.date.replace(/-/g, '');
     const [y, m, d] = row.date.split('-').map(Number);
     const nx = new Date(y, m - 1, d + 1);
     const dtEnd = `${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
     const summary = `${row.typeLabel || row.type} – ${row.loc || ''}`;
     let desc = `Art: ${row.typeLabel || row.type}\\nOrt: ${row.loc || ''}`;
+    desc += '\\n' + confirmed.map(c => `${c.posLabel}: ${c.crewName}`).join('\\n');
     const uid = `${row.date}-${Math.random().toString(36).slice(2)}@tourcrewplan`;
     lines.push(
       'BEGIN:VEVENT',
@@ -1793,7 +1804,7 @@ function adminGenerateICS() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
   closeModal('calModal');
-  adminToast(`${rows.length} Termine exportiert ✓`, '#4ae8a0');
+  adminToast(`${rows.length} bestätigte Termine exportiert ✓`, '#4ae8a0');
 }
 
 // ── Werkzeuge: Logos ───────────────────────────────────────────────────────────

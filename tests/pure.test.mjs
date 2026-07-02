@@ -1,6 +1,6 @@
 // Tests für js/pure.js — keine Browser-Stubs nötig (dependency-frei).
 import { test, eq, deepEq, ok } from './_assert.mjs';
-import { toISODate, eachDateInRange, normCrewName, sameCrew } from '../js/pure.js';
+import { toISODate, eachDateInRange, normCrewName, sameCrew, confirmedIcsRows } from '../js/pure.js';
 
 // ── eachDateInRange ───────────────────────────────────────────────────────────
 test('eachDateInRange: Einzeltag', () =>
@@ -49,4 +49,29 @@ test('normCrewName: null/leer/whitespace', () => {
   eq(normCrewName(null), '');
   eq(normCrewName(undefined), '');
   eq(normCrewName('  Wolf Geffenius '), 'wolf geffenius');
+});
+
+// ── confirmedIcsRows (ICS nur bestätigt) ──────────────────────────────────────
+const _dates = [{date:'2026-07-01',type:'show'},{date:'2026-07-02',type:'show'},{date:'2026-07-03',type:'reise'}];
+const _pos = [{id:'gl',label:'Gewerkeleitung'},{id:'st',label:'Stage'}];
+const _st = {
+  '2026-07-01': { gl:{status:'confirmed',crewName:'Wolf'}, st:{status:'proposed',crewName:'Oliver'} },
+  '2026-07-02': { gl:{status:'proposed',crewName:'Wolf'} },                     // nichts confirmed
+  '2026-07-03': { st:{status:'confirmed',crewName:'Oliver'} },
+};
+
+test('confirmedIcsRows: nur Tage mit bestätigten Einsätzen', () => {
+  const rows = confirmedIcsRows(_dates, _pos, _st, {});
+  deepEq(rows.map(r=>r.date), ['2026-07-01','2026-07-03'], '07-02 (nur proposed) fällt raus');
+  deepEq(rows[0].confirmed, [{posLabel:'Gewerkeleitung',crewName:'Wolf'}], 'nur confirmed-Slot, proposed nicht');
+});
+
+test('confirmedIcsRows: onlyCrew filtert auf eigenen Namen', () => {
+  const rows = confirmedIcsRows(_dates, _pos, _st, { onlyCrew:true, myName:'wolf' });
+  deepEq(rows.map(r=>r.date), ['2026-07-01'], 'nur Wolfs bestätigter Tag (Olivers 07-03 raus)');
+});
+
+test('confirmedIcsRows: allowTypes filtert Tagestypen', () => {
+  const rows = confirmedIcsRows(_dates, _pos, _st, { allowTypes:new Set(['show']) });
+  deepEq(rows.map(r=>r.date), ['2026-07-01'], 'reise-Tag 07-03 durch Typ-Filter raus');
 });
