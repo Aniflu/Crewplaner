@@ -77,12 +77,14 @@ test('confirmedIcsRows: allowTypes filtert Tagestypen', () => {
 });
 
 // ── crewIcsContent: persönlicher Eintrag NUR Band/Ort/Art ─────────────────────
-test('crewIcsContent: Eintrag = Band(SUMMARY)/Ort(LOCATION)/Art — keine Crew-Namen', () => {
+test('crewIcsContent: Titel = Art: Ort, Band in Details, keine Crew-Namen', () => {
   const rows = [{date:'2026-07-01', confirmed:[{posLabel:'Gewerkeleitung',crewName:'Wolf'}]}];
   const meta = { '2026-07-01': { loc:'Berlin – Arena', typeLabel:'Show' } };
   const ics = crewIcsContent('Provinz 2027', rows, meta);
-  ok(ics.includes('SUMMARY:Provinz 2027'), 'Band als Titel');
+  ok(ics.includes('SUMMARY:Show: Berlin'), 'Titel = Art: Ort');
+  ok(!ics.includes('SUMMARY:Provinz 2027'), 'Band NICHT im Titel');
   ok(ics.includes('LOCATION:Berlin'), 'Ort als LOCATION');
+  ok(/DESCRIPTION:Band: Provinz 2027/.test(ics), 'Band in Beschreibung');
   ok(/DESCRIPTION:.*Art: Show/.test(ics), 'Art in Beschreibung');
   ok(ics.includes('DTSTART;VALUE=DATE:20260701'), 'Ganztags-Datum');
   ok(!ics.includes('Wolf') && !ics.includes('Gewerkeleitung'), 'KEINE Crew-/Positionsnamen');

@@ -88,13 +88,15 @@ export function crewIcsContent(band, rows, dateMeta){
     const [y,m,d] = String(r.date).split('-').map(Number);
     const nx = new Date(y, (m||1)-1, (d||1)+1);
     const dtEnd = `${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
+    // Sichtbarer Kalender-Titel = „Art: Ort" (Bandname wandert in die Beschreibung).
+    const title = [art, loc].filter(Boolean).join(': ') || bandName;
     lines.push(
       'BEGIN:VEVENT',
       `DTSTART;VALUE=DATE:${dtStart}`,
       `DTEND;VALUE=DATE:${dtEnd}`,
-      `SUMMARY:${esc(bandName)}`,
+      `SUMMARY:${esc(title)}`,
       `LOCATION:${esc(loc)}`,
-      `DESCRIPTION:${esc('Ort: '+loc+'\nArt: '+art)}`,
+      `DESCRIPTION:${esc('Band: '+bandName+'\nArt: '+art+'\nOrt: '+loc)}`,
       `UID:${r.date}-${Math.random().toString(36).slice(2)}@tourcrewplan`,
       'END:VEVENT'
     );

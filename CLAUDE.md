@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version & Live-URLs
 
-- Aktuelle Version: **v0.20.1**
+- Aktuelle Version: **v0.20.2**
 - Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
 - Frontend (Produktiv): https://crewplanner.nyxlightwork.de
 - Pocketbase API: https://api.crewplanner.nyxlightwork.de
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Versionierung
 
 ```
+v0.20.2 — fix(Crew-ICS-Titel): `crewIcsContent` (pure.js) setzte `SUMMARY` = Bandname → jeder Tag sah im Kalender gleich aus. Jetzt `SUMMARY = "Art: Ort"` (z.B. „Show: Nürnberg – PSD Bank Arena"), Bandname wandert in die `DESCRIPTION` (`Band:/Art:/Ort:`), `LOCATION` = Ort. Test angepasst. 64 grün. app.js?v=30→31.
 v0.20.1 — feat(Crew: eigener .ics + PDF, nur eigene bestätigten Termine): zwei crew-only Sidebar-Buttons „📅 Meine Termine (.ics)" (`downloadMyICS`) + „📄 Meine Termine (PDF)" (`printMySchedule`) in userView.js. Beide über `_myConfirmedExport` (getMyCrewName + `confirmedIcsRows({onlyCrew,myName})`). ICS-Eintrag bewusst NUR **Band** (SUMMARY = Plan-/Tourname), **Ort** (LOCATION), **Art** (DESCRIPTION) — KEINE anderen Namen/Positionen; reine `crewIcsContent(band, rows, dateMeta)` (pure.js, getestet). PDF = Druckfenster (Datum · Art · Ort, Titel = Band) → „Als PDF speichern". Bandname für Crew: `loadPlanForCrew` (dataService.js) merkt `plan.name` in `tourplan_active_plan_name` + Header `#activePlanName`; `_activePlanName` liest den Key als Fallback (getPlansIndex ist bei Crew leer). Leer → Toast „Keine bestätigten Termine". +tests/pure.test.mjs (crewIcsContent Format-Guard). 64 grün. app.js?v=29→30.
 v0.20.0 — feat(Scoping-Hardening: Aktionen auf Person+Plan; ICS nur bestätigt): (1) EIGENTÜMER-PRÜFUNG: `confirmAssignment`/`declineAssignment` (dataService.js) prüfen bei `IS_CREW && !IS_MANAGER`, dass der Ziel-Record `crew_email===CURRENT_USER_EMAIL` (bzw. beim Anlage-Zweig `crewMeta[getVal].email===` eigene Mail) — sonst `throw 'Zugriff verweigert'`. Crew kann also nur EIGENE Einsätze bestätigen/absagen; Manager unverändert (verwaltet den Plan). Plan-Scope war schon über `_getActivePlanId` gegeben. (2) ICS NUR BESTÄTIGT: neue reine `confirmedIcsRows(tourDates, positions, statuses, {onlyCrew,myName,allowTypes})` (pure.js) liefert nur Tage mit ≥1 confirmed-Slot. `calendar.js generateICS` (index.html, Crew+Manager) nutzt sie → Crew exportiert nur EIGENE bestätigte Tage, Manager alle bestätigten (Beschreibung listet „Position: Name"); leer → „Keine bestätigten Termine". Admin-Inline-`adminGenerateICS` (admin.html) analog über `_wrkAssignmentStatuses`. (vorher: ganzer Plan nach Tagestyp, unabhängig von Bestätigung). Server-seitige PB-Regeln bewusst NICHT Teil (App-seitig). +Tests: dataservice (Crew fremd→verweigert, eigen→ok), pure (confirmedIcsRows). 63 grün. app.js?v=28→29, admin-app.js?v=7→8.
 v0.19.1 — fix(Crew-Pool-Import verschmolz verschiedene Personen + Mehr-Plan-Crew + Admin-ICS): PB-Superuser-Diagnose ergab: der Pool-Import (v0.18.0) führte zwei VERSCHIEDENE „Marco Hoch" (Admin madmaxmail@web.de + GL-Crew marco@hoch-online.com, beide AMK) über den NAMEN zusammen und übernahm die falsche Mail nach Provinz. Folge: Provinz-„Marco" = madmaxmail (59 proposed unter falscher Mail); Marcos App (marco@hoch-online.com) resolvte nur auf AMK → er bestätigte AMK (56); Admin sah in Provinz nichts. FIXES: (1) `dedupKnownCrew` (pure.js) schlüsselt jetzt nach E-MAIL (lowercase), sonst Name → gleichnamige mit verschiedenen Mails bleiben getrennt. (2) `_getActivePlanId` Crew-Zweig (dataService.js): `pbList` statt `pbFirst`; bei Crew in MEHREREN Plänen den mit `proposed`-Anfragen bevorzugen (sonst zufällig) → Crew landet dort, wo Antwort ansteht. (3) Admin-ICS: `window.adminGenerateICS`-Override aus admin-app.js entfernt → die Inline-`adminGenerateICS` (admin.html, liest GELADENEN Plan) bedient den Button wieder (vorher las calendar.js `state.js` = falscher/veralteter Plan → AMK-ICS in Provinz). DATEN-REPARATUR (PB, nur Provinz): „Marco Hoch"→marco@hoch-online.com + 59 assignments crew_email umgestellt (AMK unangetastet). crewimport.test.mjs an Mail-Keying angepasst; 58 grün. app.js?v=27→28, admin-app.js?v=6→7. NB: Marco hat versehentlich AMK (56) bestätigt — bewusst nicht angefasst.
@@ -311,7 +312,7 @@ TZ=UTC           node tests/run.mjs
 ```
 
 - `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
-- **64 Tests grün** (Stand v0.20.1). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
+- **64 Tests grün** (Stand v0.20.2). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
   - `pure.test.mjs` — reine Logik ohne Stubs (Datums-Bereiche TZ-sicher, Namens-Helfer).
   - `crewimport.test.mjs` — `dedupKnownCrew` führt tour-übergreifende Crew zusammen (doppelte Namen, E-Mail-Bevorzugung, Sortierung).
   - `logic.test.mjs` + `flows.test.mjs` + `dataservice.test.mjs` — laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`); decken getVal/isPending/sortInsert, Crew-CRUD, Slot-Diffing, getMyCrewName, Plan-Roundtrip, confirm/decline (fetch-gemockt) ab.
@@ -329,7 +330,7 @@ TZ=UTC           node tests/run.mjs
 - Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
 - **Reine, testbare Logik gehört nach `js/pure.js`** (import-freies Leaf), nicht in `utils.js`.
 
-**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=30`, `admin.html` lädt `js/admin-app.js?v=8`. **Seit v0.19.0 hält der Service Worker (`sw.js`) alle Module dauerhaft frisch** (network-first/`no-cache`) → normalerweise KEIN Hard-Reload mehr nötig. Beim ERSTEN Laden nach dem v0.19.0-Deploy installiert sich der SW (einmaliger Auto-Reload via `controllerchange`, sonst 1× Hard-Reload). Danach kommen Updates automatisch an. Fällt der SW aus (kein SW-Support/deregistriert): Sub-Module laden ohne `?v=` → dann wie früher Hard-Reload. Kill-Switch: Kommentar in `sw.js`.
+**Cache-Bust-Stand:** `index.html` lädt `js/app.js?v=31`, `admin.html` lädt `js/admin-app.js?v=8`. **Seit v0.19.0 hält der Service Worker (`sw.js`) alle Module dauerhaft frisch** (network-first/`no-cache`) → normalerweise KEIN Hard-Reload mehr nötig. Beim ERSTEN Laden nach dem v0.19.0-Deploy installiert sich der SW (einmaliger Auto-Reload via `controllerchange`, sonst 1× Hard-Reload). Danach kommen Updates automatisch an. Fällt der SW aus (kein SW-Support/deregistriert): Sub-Module laden ohne `?v=` → dann wie früher Hard-Reload. Kill-Switch: Kommentar in `sw.js`.
 
 ---
 
