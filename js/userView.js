@@ -6,7 +6,8 @@ import { SUPABASE_ENABLED } from './config.js';
 import { getVal, isPending, esc, showToast, fmtD, sameCrew } from './utils.js';
 import { pbPatch, pbPost, pbFirst } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
-         bulkProposeCrew, sendAvailabilityNotice } from './dataService.js';
+         bulkProposeCrew, sendAvailabilityNotice, loadPlanForCrew, loadCrewMeta,
+         loadCrewPlans } from './dataService.js';
 import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable } from './render.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
@@ -46,6 +47,43 @@ export async function sendCancellations() {
     showToast('Fehler: ' + e.message, '#e84a4a');
     await loadAssignmentStatuses();
     renderTable();
+  }
+}
+
+// ── Crew: Plan-Umschalter in der Seitenleiste ─────────────────────────────────
+// Crew kann in mehreren Touren stecken (z.B. AMK + Provinz). Der Manager-Plan-Index
+// (getPlansIndex/localStorage) ist für Crew leer → eigene Liste aus PB (loadCrewPlans),
+// gerendert ins gleiche #planList-Element wie beim Manager.
+export function renderCrewPlanList(plans, activeId) {
+  const el = document.getElementById('planList');
+  if (!el) return;
+  const list = plans || [];
+  if (!list.length) {
+    el.innerHTML = '<div style="font-size:.65rem;color:var(--muted);padding:4px 0;">Keine Tour zugeordnet.</div>';
+    return;
+  }
+  el.innerHTML = list.map(p => `
+    <div class="plan-item${p.id === activeId ? ' active' : ''}">
+      <span class="plan-item-name" onclick="switchCrewPlan('${p.id}')" style="cursor:pointer;">${esc(p.name)}</span>
+    </div>`).join('');
+}
+
+export async function switchCrewPlan(pbId) {
+  if (!pbId) return;
+  const current = localStorage.getItem('tourplan_active_pb_id');
+  if (pbId === current) return;
+  try { localStorage.setItem('tourplan_crew_selected_pb_id', pbId); } catch(_) {}
+  showToast('Tour wird geladen…', '#e8c84a');
+  try {
+    await loadPlanForCrew();
+    await Promise.all([loadCrewMeta(), loadAssignmentStatuses()]);
+    renderTable();
+    const plans = await loadCrewPlans();
+    renderCrewPlanList(plans, localStorage.getItem('tourplan_active_pb_id'));
+    checkAndOpenMySchedule();
+    showToast('Tour geladen ✓', '#4ae8a0');
+  } catch(e) {
+    showToast('Fehler beim Laden: ' + e.message, '#e84a4a');
   }
 }
 

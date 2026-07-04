@@ -105,6 +105,38 @@ test('confirmAssignment: Crew darf EIGENEN Slot bestätigen', async () => {
   eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'confirmed', 'lokal confirmed');
 });
 
+// ── Crew-Plan-Umschalter (v0.21.0): loadCrewPlans ────────────────────────────
+test('loadCrewPlans: Crew in mehreren Plänen → alphabetische Namensliste', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeCrew(g, 'oliver@x.de');
+  mockFetch((url, method) => {
+    if (method === 'GET' && url.includes('/crew_members/records'))
+      return res({ items: [{ plan_id: 'P_PROV' }, { plan_id: 'P_AMK' }, { plan_id: 'P_PROV' }] });
+    if (method === 'GET' && url.includes('/plans/records/P_AMK'))  return res({ id: 'P_AMK',  name: 'AMK Tour 2026' });
+    if (method === 'GET' && url.includes('/plans/records/P_PROV')) return res({ id: 'P_PROV', name: 'Provinz 2027' });
+    return res({});
+  });
+  const plans = await g.dataService.loadCrewPlans();
+  eq(plans.length, 2, 'zwei eindeutige Pläne (Duplikat entfernt)');
+  eq(plans[0].name, 'AMK Tour 2026', 'alphabetisch: AMK zuerst');
+  eq(plans[1].name, 'Provinz 2027', 'dann Provinz');
+});
+
+test('loadCrewPlans: gelöschter Plan wird übersprungen', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeCrew(g, 'oliver@x.de');
+  mockFetch((url, method) => {
+    if (method === 'GET' && url.includes('/crew_members/records'))
+      return res({ items: [{ plan_id: 'P_OK' }, { plan_id: 'P_GONE' }] });
+    if (method === 'GET' && url.includes('/plans/records/P_OK'))   return res({ id: 'P_OK', name: 'AMK Tour 2026' });
+    if (method === 'GET' && url.includes('/plans/records/P_GONE')) return res({ message: 'not found' }, 404);
+    return res({});
+  });
+  const plans = await g.dataService.loadCrewPlans();
+  eq(plans.length, 1, 'nur der erreichbare Plan');
+  eq(plans[0].id, 'P_OK', 'gelöschter Plan übersprungen');
+});
+
 test('declineAssignment: wirft bei PATCH-Fehler', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   resetState(g); primePlan(g);

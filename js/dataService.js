@@ -36,6 +36,15 @@ async function _getActivePlanId() {
       const res = await pbList('crew_members', `email = "${pbEscapeFilter(email)}"`);
       const planIds = [...new Set((res?.items || []).map(m => m.plan_id).filter(Boolean))];
       let chosen = planIds[0] || null;
+      // Von der Crew bewusst gewählter Plan (Sidebar-Umschalter switchCrewPlan) hat Vorrang —
+      // aber nur, wenn er noch zu den Plänen der Crew gehört (sonst stale → verwerfen).
+      let picked = null;
+      try { picked = localStorage.getItem('tourplan_crew_selected_pb_id'); } catch(_) {}
+      if (picked && planIds.includes(picked)) {
+        localStorage.setItem('tourplan_active_pb_id', picked);
+        return picked;
+      }
+      if (picked) { try { localStorage.removeItem('tourplan_crew_selected_pb_id'); } catch(_) {} }
       // Crew in MEHREREN Plänen → den mit offenen Anfragen (proposed) bevorzugen, damit die
       // Crew dort landet, wo eine Antwort ansteht (statt zufällig). Sonst erster Treffer.
       if (planIds.length > 1) {
@@ -141,6 +150,30 @@ export async function loadPlanForCrew() {
     localStorage.setItem('tourplan_active_pb_id', planId);
   } catch(e) {
     console.warn('loadPlanForCrew Fehler:', e.message);
+  }
+}
+
+// ── Alle Pläne, in denen die eingeloggte Crew steckt ──────────────────────────
+// Für den Sidebar-Umschalter: crew_members per Email → eindeutige plan_ids → Plan-Namen.
+// Liefert [{ id, name }] alphabetisch. Fehlerhafte/gelöschte Pläne werden übersprungen.
+export async function loadCrewPlans() {
+  if (!SUPABASE_ENABLED || !IS_CREW || !CURRENT_USER_ID) return [];
+  try {
+    const email = (CURRENT_USER_EMAIL || '').toLowerCase();
+    const res = await pbList('crew_members', `email = "${pbEscapeFilter(email)}"`);
+    const planIds = [...new Set((res?.items || []).map(m => m.plan_id).filter(Boolean))];
+    const plans = [];
+    for (const id of planIds) {
+      try {
+        const plan = await pbGet('/api/collections/plans/records/' + id);
+        if (plan?.id) plans.push({ id: plan.id, name: plan.name || 'Tour Plan' });
+      } catch(_) { /* gelöschter/unzugänglicher Plan → überspringen */ }
+    }
+    plans.sort((a, b) => a.name.localeCompare(b.name));
+    return plans;
+  } catch(e) {
+    console.warn('loadCrewPlans Fehler:', e.message);
+    return [];
   }
 }
 

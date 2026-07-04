@@ -1,12 +1,12 @@
 import { SUPABASE_ENABLED } from './config.js';
 import { setAuthState, IS_MANAGER, IS_CREW, CURRENT_USER_EMAIL } from './state.js';
 import { pbPost, pbGet, pbPatch } from './pb.js';
-import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses } from './dataService.js';
+import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses, loadCrewPlans } from './dataService.js';
 import { renderTable } from './render.js';
 import { showToast } from './utils.js';
 import { getActivePlanId, _pruneOrphanPlans } from './plans.js';
 import { startApp } from './init.js';
-import { checkAndOpenMySchedule } from './userView.js';
+import { checkAndOpenMySchedule, renderCrewPlanList } from './userView.js';
 
 // ── Auth Service (Pocketbase) ──────────────────────────────────────────────────
 window.__authGuarded = SUPABASE_ENABLED;
@@ -108,6 +108,12 @@ export async function _authCheckAndStart() {
         checkAndOpenMySchedule();
         _handleEmailAction();
         _checkPendingAction();
+        // Crew-Plan-Umschalter befüllen (Crew kann in mehreren Touren stecken).
+        if (IS_CREW) {
+          loadCrewPlans()
+            .then(plans => renderCrewPlanList(plans, localStorage.getItem('tourplan_active_pb_id')))
+            .catch(e => console.warn('Crew-Pläne laden fehlgeschlagen:', e.message));
+        }
       })
       .catch(e => {
         console.error('Lade-Fehler:', e);

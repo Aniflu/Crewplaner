@@ -7,6 +7,7 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.21.0** — feat: **Crew kann zwischen mehreren Touren wechseln.** Wer in mehr als einer Tour eingeplant ist (z.B. AMK + Provinz), sieht jetzt in der Seitenleiste unter „Pläne" alle eigenen Touren und wechselt per Klick zwischen ihnen. Die zuletzt gewählte Tour bleibt auch nach dem Neuladen erhalten. (Vorher landete die Crew nach dem Bestätigen aller Termine nur noch auf einer Tour ohne Umschaltmöglichkeit.)
 **v0.20.2** — fix: Im Crew-Kalender-Export (.ics) zeigt jeder Termin jetzt als Titel **„Art: Ort"** (z.B. „Show: Nürnberg – PSD Bank Arena") statt überall nur den Bandnamen; der Bandname steht in den Termin-Details.
 **v0.20.1** — feat: **Crew-Mitglieder können ihre eigenen bestätigten Termine exportieren** — zwei neue Buttons „📅 Meine Termine (.ics)" und „📄 Meine Termine (PDF)". Der Kalender-Eintrag enthält bewusst nur **Band** (Tourname), **Ort** und **Art** — keine anderen Namen. Es werden ausschließlich die **eigenen bestätigten** Tage exportiert.
 **v0.20.0** — feat/security: Aktionen sind jetzt strikt auf **Person und aktiven Plan** begrenzt — Crew kann nur die **eigenen** Einsätze bestätigen/absagen (nicht fremde). Und der **Kalender-Export (.ics)** enthält jetzt **nur bestätigte Termine**: als Crew deine eigenen bestätigten Tage, als Manager/Admin die bestätigten Einsätze des Plans (mit Namensliste). Unbestätigte/angefragte Tage sind nicht mehr im Export.
