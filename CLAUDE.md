@@ -537,13 +537,23 @@ nicht ankommen. Nichts kaputt — User muss Spam-Ordner prüfen.
 ## Pocketbase Collections
 
 ```
-plans           { id, name, owner(→users), plan_data(JSON) }
+plans           { id, name, owner(→users), plan_data(JSON), view_token }
 plan_members    { plan_id(→plans), user_id(→users), role }
 crew_members    { plan_id(→plans), name, email, sort_order, user_id(→users) }
 assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
 crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url, custom_message }
 email_log       { plan_id, crew_name, crew_email, email_type, sent_at, success }
 ```
+
+> ⚠️ **`plans`-Zugriffsregel (LIVE, wichtig!):** Die echte list/viewRule ist
+> `@request.auth.id = owner || @request.auth.role = "superadmin" || view_token != ""`
+> — NICHT das permissive `@request.auth.id != ""` aus dem Schema-Import-JSON oben im Deploy-Abschnitt.
+> **Folge:** Crew (weder Owner noch superadmin) kann einen Plan-Record NUR lesen, wenn er einen
+> nicht-leeren `view_token` hat. Fehlt der → `GET plans/records/<id>` gibt **404** → `loadPlanForCrew`
+> bricht ab (leere Tour) und der v0.21.0-Crew-Umschalter (`loadCrewPlans`) blendet die Tour aus.
+> **Jede Tour, die Crew sehen soll, braucht einen `view_token`** (entsteht über „Öffentlicher
+> Booker-Link" in der Konsole, oder per PATCH). Gefunden 2026-07-04: Provinz 2027 hatte keinen →
+> Oliver Thomas sah sie nicht; per Superuser gesetzt.
 
 Assignment-Status-Werte: `proposed` → `confirmed` | `declined`
 
