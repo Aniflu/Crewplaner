@@ -15,7 +15,19 @@ async function _pbFetch(method, path, body) {
   const json = await res.json();
   if (!res.ok) {
     if (json.data) console.error('[pb] Validierungsfehler:', JSON.stringify(json.data));
-    throw new Error(json.message || 'Pocketbase Fehler ' + res.status);
+    // Echten Feld-Grund an den Error hängen (PB-`message` ist generisch, z.B.
+    // „Failed to create record." — der eigentliche Grund steckt in `data`).
+    const fields = json.data && typeof json.data === 'object'
+      ? Object.entries(json.data).map(([f, v]) => `${f}: ${(v && v.message) || v}`)
+      : [];
+    const err = new Error(
+      fields.length
+        ? (json.message || 'Pocketbase Fehler ' + res.status) + ' (' + fields.join('; ') + ')'
+        : (json.message || 'Pocketbase Fehler ' + res.status)
+    );
+    err.data = json.data || null;
+    err.status = res.status;
+    throw err;
   }
   return json;
 }

@@ -2,6 +2,54 @@
 
 > **v0.10.7 – v0.14.13 (Juni 2026)** — kondensiert. Vollständige, ausführliche Einträge: `CLAUDE.md` → Abschnitt „Versionierung".
 
+## v0.21.0 — 2026-07-04
+- **feat:** Crew-Plan-Umschalter in der Seitenleiste. Crew in mehreren Touren (z.B. Oliver Thomas: AMK + Provinz) sah nach dem Bestätigen aller Termine nur noch eine Tour ohne Wechselmöglichkeit. Neue „Pläne"-Sektion füllt für Crew dasselbe `#planList` wie beim Manager (`loadCrewPlans` → `renderCrewPlanList`/`switchCrewPlan`); gewählte Tour bleibt über Reload erhalten (localStorage `tourplan_crew_selected_pb_id`), `_getActivePlanId` prüft ihn zuerst. +tests (loadCrewPlans Dedup+Sortierung). 66 grün. app.js?v=31→32.
+
+## v0.20.2 — 2026-07-02
+- **fix:** Crew-ICS-Titel — `crewIcsContent` (pure.js) setzte `SUMMARY` = Bandname (jeder Tag gleich). Jetzt `SUMMARY = "Art: Ort"`, Bandname in `DESCRIPTION`, `LOCATION` = Ort. 64 grün. app.js?v=30→31.
+
+## v0.20.1 — 2026-07-02
+- **feat:** Crew exportiert eigene bestätigte Termine — zwei Buttons „📅 Meine Termine (.ics)" + „📄 Meine Termine (PDF)". ICS-Eintrag bewusst nur Band (SUMMARY) / Ort (LOCATION) / Art (DESCRIPTION), keine anderen Namen. Bandname für Crew via `tourplan_active_plan_name`. +tests (crewIcsContent Format-Guard). 64 grün. app.js?v=29→30.
+
+## v0.20.0 — 2026-07-02
+- **feat/security:** Scoping-Hardening. `confirmAssignment`/`declineAssignment` prüfen bei Crew, dass der Ziel-Record die eigene E-Mail trägt → Crew kann nur eigene Einsätze bestätigen/absagen. ICS enthält nur bestätigte Termine (neue reine `confirmedIcsRows`, Crew+Manager+Admin). Server-seitige PB-Regeln bewusst nicht Teil (app-seitig). +tests. 63 grün. app.js?v=28→29, admin-app.js?v=7→8.
+
+## v0.19.1 — 2026-07-01
+- **fix:** Crew-Pool-Import verschmolz zwei verschiedene „Marco Hoch" (Admin- vs. GL-Crew-Konto) über den Namen und übernahm die falsche Mail nach Provinz. `dedupKnownCrew` schlüsselt jetzt nach E-Mail (lowercase), sonst Name. `_getActivePlanId` Crew-Zweig nutzt `pbList` und bevorzugt bei Mehr-Plan-Crew den Plan mit offenen Anfragen. Admin-ICS liest wieder den geladenen Plan. Provinz-Daten repariert. 58 grün. app.js?v=27→28, admin-app.js?v=6→7.
+
+## v0.19.0 — 2026-07-01
+- **feat:** Dauerhafte Cache-Lösung via Service Worker (`sw.js`) — liefert gleich-Origin JS/CSS/HTML network-first (`no-cache`, revalidierend) aus, cached nichts stale. Behebt das wiederkehrende „stale Sub-Modul"-Problem (Fixes kamen erst nach Hard-Reload). Registriert in index/admin/login/view.html mit einmaligem Auto-Reload. +tests. 57 grün. app.js?v=26→27, admin-app.js?v=5→6.
+
+## v0.18.3 — 2026-07-01
+- **fix:** Crew „Termine bestätigen" meldete „keine offenen Termine" trotz sichtbarer Tage (`getMyPendingSlots` sammelte nur proposed-Records, nicht die via `getVal`/defaultCrew sichtbaren Slots). Jetzt iteriert es TOUR_DATES×POSITIONS über `getVal` und öffnet eine Auswahl-Liste (alles angehakt → abwählen was nicht geht). 52 grün. app.js?v=25→26.
+
+## v0.18.2 — 2026-07-01
+- **fix+feat:** Admin-„Einladung" öffnete kein Fenster — admin.html fehlte die Aufdeck-Regel `.modal-bg.open{display:flex}` (eigenes inline-CSS, kein styles.css). Ergänzt. Neu: `sendAdminInvite` schickt EINE Mail mit allen Terminen der Person + legt proposed-Records an. Hook v4.7 rendert die Terminliste. +tests. 51 grün. admin-app.js?v=4→5.
+
+## v0.18.1 — 2026-07-01
+- **fix:** Crew-Pool-Button öffnete nichts — `crewImportModal` war mit inline `display:none` gebaut, `openModal` deckt aber nur `.modal-bg.open` auf. Als echtes `.modal-bg`/`.modal-box` neu gebaut. Button umbenannt „＋ Aus Crew-Pool wählen". 49 grün. app.js?v=24→25.
+
+## v0.18.0 — 2026-07-01
+- **feat:** Bekannte Crew aus früheren Touren übernehmen. Neuer Button „＋ Bekannte Crew übernehmen" im Crew-Dialog → tour-übergreifende Liste (`loadAllKnownCrew` + `dedupKnownCrew`, doppelte Namen zusammengeführt, E-Mail bevorzugt) zum Anhaken; ausgewählte landen mit E-Mail im aktuellen Plan. +tests. 49 grün. app.js?v=23→24.
+
+## v0.17.3 — 2026-07-01
+- **fix:** „Updates"-Button erscheint jetzt auch für Tage, die schon länger im Plan stehen (nicht nur beim Hinzufügen). `_liveNewSlotsByCrew` erkennt eingeplante, noch nicht bestätigte/angefragte Slots read-only und mergt sie beim Öffnen in die Queue. +tests. 47 grün. app.js?v=22→23.
+
+## v0.17.2 — 2026-06-30
+- **fix+feat:** (1) Folge-Regression v0.17.1 — Update-Bar erschien nach „Tag hinzufügen" nicht mehr (Queue las aus `assignmentStatuses`; frischer Tag hat dort keine Records). Befüllt jetzt über `getVal`. (2) Self-Heal entfernt nicht-mehr-eingeplante Slots. (3) E-Mail-Vorschau pro Person beim Update-Senden mit optionalem Freitext (Hook v4.6 `custom_message`). app.js?v=21→22. 46 grün.
+
+## v0.17.1 — 2026-06-30
+- **fix:** Beim Hinzufügen von Tagen/Tourblöcken wanderten alle Einsätze des ganzen Plans in die Update-Queue statt nur der neuen. `_queueGlobalCrewUpdate(desc, dates)` queued jetzt nur die übergebenen (neuen) Tage. Neuer „QUEUE LEEREN"-Button. +tests. 45 grün. app.js?v=20→21.
+
+## v0.17.0 — 2026-06-30
+- **fix (4 Themen):** (1) Tage-Berechnung zählt nur bestätigte Slots (`calcByPers` prüft `assignmentStatuses`). (2) Unbesetzen leert die Zelle wirklich (setAssign auf '' statt defaultCrew-Fallback). (3) Update-Badge zählt gefilterte Slots statt Personen (kein Badge bei leerem Modal). (4) Phantom-Pläne unterbunden — PB-Plan-Write auf `IS_MANAGER` gegated; 6 „Tour 2026"-Duplikate entfernt. +tests. 43 grün. app.js?v=19→20, admin-app.js?v=3→4.
+
+## v0.16.0 — 2026-06-18
+- **fix:** Crew mit **Firefox** sah nie einen Plan (leere Tabelle). Ursache: ungültige Zuweisung `getActivePlanId()=id;` in persistence.js — V8/Chrome parst tolerant durch, SpiderMonkey/Firefox wirft `SyntaxError` und reißt den ganzen Modulgraphen mit → kein App-Init. Fix: `setActivePlanId(id);`. Neuer Test-Guard `syntax.test.mjs`. app.js?v=18→19. 39 grün.
+
+## v0.15.0 — 2026-06-18
+- **fix:** Crew mit groß/klein gemischter E-Mail (z.B. `LivLights@gmx.de`) sah keinen Plan — der case-sensitive PocketBase-`=`-Filter im `crew_members`-Lookup fand 0 Treffer. login.html normalisiert E-Mails jetzt bei Login + Registrierung auf Kleinschreibung; Wolfs `users.email` per Superuser auf `livlights@gmx.de` korrigiert.
+
 ## v0.14.13 — 2026-06-17
 - **fix:** Logout im Crew-View tat nichts (`onclick="logout()"` hing an `window.logout`, das bei hängendem App-Init fehlt). Beide Abmelden-Buttons jetzt selbstständig inline (Token löschen + `location.href='login.html'`). `window.logout` entfernt (war orphan).
 

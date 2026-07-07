@@ -15,7 +15,7 @@
   }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script type="module" src="js/admin-app.js?v=8"></script>
+<script type="module" src="js/admin-app.js?v=9"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -520,7 +520,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.21.0</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.22.0</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -669,7 +669,6 @@ body {
             <input id="inviteName" class="tool-input" placeholder="Name" style="max-width:180px;">
             <input id="inviteEmail" class="tool-input" placeholder="E-Mail" style="max-width:220px;">
             <button class="btn btn-gold btn-sm" onclick="sendStaffInvite()">Einladung senden</button>
-            <button class="btn btn-ghost btn-sm" onclick="sendLoveInvite()" style="color:#e84a4a;">♥ Liebeseinladung</button>
           </div>
         </div>
 
@@ -701,18 +700,23 @@ body {
 
   <!-- BENUTZER -->
   <div class="section" id="tabUsers">
-    <div class="section-title">Benutzer verwalten</div>
-    <div class="section-sub">Rollen zuweisen und Accounts verwalten</div>
+    <div class="section-title">Crew &amp; Benutzer</div>
+    <div class="section-sub">Neue Crew-Mitglieder global anlegen (Pool, alle Touren) · Konten &amp; Rollen verwalten</div>
 
     <div class="search-bar">
       <input type="text" id="userFilter" placeholder="Filter nach Name oder E-Mail…" oninput="filterUsers()">
       <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↺ Neu laden</button>
-      <button class="btn btn-primary btn-sm" onclick="toggleNewUserForm(true)">+ Neuer Benutzer</button>
+      <button class="btn btn-primary btn-sm" onclick="toggleNewUserForm(true)">+ Neues Crew-Mitglied</button>
     </div>
 
     <div id="newUserForm" style="display:none;background:#12121f;border:1px solid #2a2a40;border-radius:6px;padding:16px;margin-bottom:16px;">
-      <div style="font-size:.7rem;font-weight:600;color:#fff;margin-bottom:12px;">Neuen Benutzer anlegen</div>
+      <div style="font-size:.7rem;font-weight:600;color:#fff;margin-bottom:4px;">Neues Crew-Mitglied anlegen</div>
+      <div style="font-size:.6rem;color:#5a6070;margin-bottom:12px;line-height:1.5;">Landet im globalen Crew-Pool (alle Touren können es übernehmen). <strong>Kein Login-Konto</strong> — das entsteht erst, wenn die Person zu einer Tour eingeladen wird und sich über den Link einloggt.</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div>
+          <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Name</label>
+          <input type="text" id="newUserName" placeholder="Vor- und Nachname" style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:4px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#c8cdd5;outline:none;width:200px;">
+        </div>
         <div>
           <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">E-Mail</label>
           <input type="email" id="newUserEmail" placeholder="name@beispiel.de" style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:4px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#c8cdd5;outline:none;width:220px;">
@@ -727,12 +731,18 @@ body {
           </select>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-primary btn-sm" onclick="createUser()">Erstellen</button>
-          <button class="btn btn-ghost btn-sm" onclick="createUserWithLove()" style="color:#e84a4a;">♥ Liebeseinladung</button>
+          <button class="btn btn-primary btn-sm" onclick="createPoolMember()">Erstellen</button>
           <button class="btn btn-ghost btn-sm" onclick="toggleNewUserForm(false)">Abbrechen</button>
         </div>
       </div>
       <div id="newUserError" style="font-size:.65rem;color:#e84a4a;margin-top:8px;display:none;"></div>
+    </div>
+
+    <!-- Globaler Crew-Pool -->
+    <div style="background:#12121f;border:1px solid #2a2a40;border-radius:6px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:.68rem;font-weight:600;color:#fff;margin-bottom:2px;">Crew-Pool <span style="font-weight:400;color:#5a6070;">— global, tour-übergreifend</span></div>
+      <div style="font-size:.6rem;color:#5a6070;margin-bottom:10px;">Diese Personen kannst du in jeder Tour über „Aus Crew-Pool wählen" übernehmen.</div>
+      <div id="crewPoolList"><div style="font-size:.65rem;color:#5a6070;">Lädt…</div></div>
     </div>
 
     <table class="data-table">
@@ -1000,59 +1010,98 @@ function adminLogout() {
   window.location.href = window.getNavUrl('login.html');
 }
 
-// ── New User Form ──────────────────────────────────────────────────────────────
+// ── Crew-Pool: neues Mitglied anlegen (global, kein Login-Konto) ─────────────────
+// Pool-Mitglieder = crew_members-Records mit Sentinel plan_id="__pool__". Sie sind
+// tour-übergreifend („Aus Crew-Pool wählen"). Ein Login-Konto (users) entsteht ERST,
+// wenn die Person zu einer Tour eingeladen wird und sich über den Link einloggt
+// (login.html doRegister übernimmt dann die hier gesetzte Rolle).
+const POOL_PLAN_ID = '__pool__';
+let _crewPool = [];
+
 function toggleNewUserForm(show) {
   document.getElementById('newUserForm').style.display = show ? 'block' : 'none';
   if (show) {
+    document.getElementById('newUserName').value = '';
     document.getElementById('newUserEmail').value = '';
     document.getElementById('newUserRole').value = 'crew';
     document.getElementById('newUserError').style.display = 'none';
-    setTimeout(() => document.getElementById('newUserEmail').focus(), 50);
+    setTimeout(() => document.getElementById('newUserName').focus(), 50);
   }
 }
 
-async function createUser() {
-  const email = (document.getElementById('newUserEmail').value || '').trim();
-  const role  = document.getElementById('newUserRole').value || 'crew';
+function _showFormError(msg) {
   const errEl = document.getElementById('newUserError');
-  errEl.style.display = 'none';
-  if (!email) { errEl.textContent = 'Bitte E-Mail eingeben.'; errEl.style.display = 'block'; return; }
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+}
 
-  const tempPw = crypto.randomUUID().replace(/-/g, '') + 'Aa1!';
+async function createPoolMember() {
+  const name  = (document.getElementById('newUserName').value || '').trim();
+  const email = window.normEmail(document.getElementById('newUserEmail').value);
+  const role  = document.getElementById('newUserRole').value || 'crew';
+  document.getElementById('newUserError').style.display = 'none';
+  if (!name)  { _showFormError('Bitte Namen eingeben.'); return; }
+  if (!email) { _showFormError('Bitte E-Mail eingeben.'); return; }
+  const emailFilter = email.replace(/["\\]/g, ''); // Mails haben keine Quotes; Filter-Guard
   try {
-    await pbPost('/api/collections/users/records', { email, password: tempPw, passwordConfirm: tempPw, role, emailVisibility: true });
-    await pbPost('/api/collections/users/request-password-reset', { email });
-    adminToast('Benutzer angelegt — Reset-Link gesendet ✓', '#4ae8a0');
+    // Dublettencheck: E-Mail schon irgendwo als crew_member (Pool oder Tour) vergeben?
+    const existing = await pbGet('/api/collections/crew_members/records?perPage=1&filter=' + encodeURIComponent(`email="${emailFilter}"`));
+    if ((existing.items || []).length) { _showFormError('E-Mail bereits vergeben.'); return; }
+    await pbPost('/api/collections/crew_members/records', { plan_id: POOL_PLAN_ID, name, email, role });
+    adminToast(`${name} zum Crew-Pool hinzugefügt ✓`, '#4ae8a0');
     toggleNewUserForm(false);
-    loadUsers();
+    renderCrewPool();
   } catch(e) {
-    errEl.textContent = 'Fehler: ' + (e.message || 'Unbekannter Fehler');
-    errEl.style.display = 'block';
+    _showFormError('Fehler: ' + (e.message || 'Unbekannter Fehler'));
   }
 }
 
-async function createUserWithLove() {
-  const email = (document.getElementById('newUserEmail').value || '').trim();
-  const role  = document.getElementById('newUserRole').value || 'crew';
-  const errEl = document.getElementById('newUserError');
-  errEl.style.display = 'none';
-  if (!email) { errEl.textContent = 'Bitte E-Mail eingeben.'; errEl.style.display = 'block'; return; }
-  const name = prompt('Name (für die Anrede in der E-Mail):') || email;
-  const tempPw = crypto.randomUUID().replace(/-/g, '') + 'Aa1!';
+// ── Crew-Pool: Liste anzeigen / verwalten ───────────────────────────────────────
+async function renderCrewPool() {
+  const el = document.getElementById('crewPoolList');
+  if (!el) return;
+  el.innerHTML = '<div style="font-size:.65rem;color:#5a6070;">Lädt…</div>';
   try {
-    await pbPost('/api/collections/users/records', { email, password: tempPw, passwordConfirm: tempPw, role, emailVisibility: true });
-    await pbPost('/api/collections/crew_invites/records', {
-      crew_name: name, crew_email: email,
-      type: 'love_invite', plan_name: 'Tour Crew Plan',
-      app_url: window.location.origin + '/login.html'
-    });
-    adminToast('♥ Liebeseinladung gesendet!', '#e84a4a');
-    toggleNewUserForm(false);
-    loadUsers();
+    const data = await pbGet('/api/collections/crew_members/records?perPage=200&sort=name&filter=' + encodeURIComponent(`plan_id="${POOL_PLAN_ID}"`));
+    _crewPool = data.items || [];
+    if (!_crewPool.length) {
+      el.innerHTML = '<div style="font-size:.65rem;color:#5a6070;">Noch niemand im Pool. Oben „+ Neues Crew-Mitglied" anlegen.</div>';
+      return;
+    }
+    el.innerHTML = _crewPool.map(m => `
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #1e1e30;">
+        <span style="flex:1;min-width:90px;font-size:.66rem;color:#c8cdd5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(m.name)}</span>
+        <span style="flex:2;min-width:120px;font-size:.6rem;color:#5a6070;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(m.email || '—')}</span>
+        <span style="font-size:.55rem;color:#8a90a0;text-transform:uppercase;letter-spacing:.06em;">${esc(m.role || 'crew')}</span>
+        <button class="btn btn-ghost btn-sm" title="Umbenennen" onclick="renamePoolMember('${esc(m.id)}')">✏</button>
+        <button class="btn btn-ghost btn-sm" title="Aus Pool entfernen" style="color:#e84a4a;" onclick="removePoolMember('${esc(m.id)}')">×</button>
+      </div>`).join('');
   } catch(e) {
-    errEl.textContent = 'Fehler: ' + (e.message || 'Unbekannter Fehler');
-    errEl.style.display = 'block';
+    el.innerHTML = `<div style="font-size:.65rem;color:#e84a4a;">Fehler: ${esc(e.message || 'Unbekannt')}</div>`;
   }
+}
+
+async function renamePoolMember(id) {
+  const m = _crewPool.find(x => x.id === id);
+  if (!m) return;
+  const neu = (prompt('Neuer Name:', m.name) || '').trim();
+  if (!neu || neu === m.name) return;
+  try {
+    await pbPatch('/api/collections/crew_members/records/' + id, { name: neu });
+    adminToast('Umbenannt ✓', '#4ae8a0');
+    renderCrewPool();
+  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+}
+
+async function removePoolMember(id) {
+  const m = _crewPool.find(x => x.id === id);
+  if (!m) return;
+  if (!confirm(`„${m.name}" aus dem Crew-Pool entfernen?\n\n(Bereits in Touren übernommene Einträge bleiben unberührt.)`)) return;
+  try {
+    await pbDelete('/api/collections/crew_members/records/' + id);
+    adminToast('Aus Pool entfernt ✓', '#4ae8a0');
+    renderCrewPool();
+  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
 }
 
 async function resetUserPassword(email) {
@@ -1073,6 +1122,7 @@ async function loadUsers() {
     _allUsers = data.items || [];
     renderUsers(_allUsers);
     loadRoleCounts();
+    renderCrewPool();
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="5" class="error-text">Fehler: ${e.message}</td></tr>`;
   }
@@ -1257,23 +1307,6 @@ async function sendStaffInvite() {
       type: 'staff_invite', plan_name: planName, app_url: appUrl
     });
     adminToast('Einladung gesendet ✓', '#4ae8a0');
-    document.getElementById('inviteName').value  = '';
-    document.getElementById('inviteEmail').value = '';
-  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
-}
-
-async function sendLoveInvite() {
-  const name  = (document.getElementById('inviteName').value  || '').trim();
-  const email = (document.getElementById('inviteEmail').value || '').trim();
-  if (!name || !email) { adminToast('Name und E-Mail erforderlich', '#e84a4a'); return; }
-  const planName = _wrkPlanName || 'Tour Plan';
-  const appUrl   = window.location.origin + '/login.html';
-  try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id: _wrkPbPlanId, crew_name: name, crew_email: email,
-      type: 'love_invite', plan_name: planName, app_url: appUrl
-    });
-    adminToast('♥ Gesendet!', '#e84a4a');
     document.getElementById('inviteName').value  = '';
     document.getElementById('inviteEmail').value = '';
   } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }

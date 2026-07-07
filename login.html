@@ -200,7 +200,7 @@
   <div class="login-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <p>Personalplan · Anmelden</p>
-    <div class="login-version">v0.20.2</div>
+    <div class="login-version">v0.22.0</div>
   </div>
 
   <div class="login-card">
@@ -358,8 +358,11 @@
     btn.disabled = true;
     btn.textContent = 'Konto wird erstellt…';
     try {
-      // role:'crew' → sonst leere Rolle = IS_CREW false = kein Plan; emailVisibility:true →
-      // sonst „Keine E-Mail" in der Admin-Liste. (Admin-Anlage-Pfade setzen beides schon.)
+      // role:'crew' als DEFAULT → sonst leere Rolle = IS_CREW false = kein Plan; emailVisibility:true
+      // → sonst „Keine E-Mail" in der Admin-Liste. Hat der Admin die Person im globalen Crew-Pool
+      // (crew_members plan_id="__pool__") mit einer anderen Rolle angelegt, überschreibt der
+      // users-Create-Hook (main.pb.js v4.8) die Rolle serverseitig. Client kann users.role nicht
+      // selbst setzen (updateRule = superadmin).
       await pbPost('/api/collections/users/records', { email, password, passwordConfirm, role: 'crew', emailVisibility: true });
       const auth = await pbPost('/api/collections/users/auth-with-password', { identity: email, password });
       localStorage.setItem('pb_token', auth.token);

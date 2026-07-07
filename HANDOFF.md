@@ -26,7 +26,7 @@
 
 ---
 
-## 2. Aktueller Stand (Stand 2026-06-17) — v0.14.13
+## 2. Aktueller Stand (Stand 2026-07-04) — v0.21.0
 
 > **Juni 2026 (v0.10):** Die ES6-Modul-Migration (v0.9.3) hatte bare Cross-Modul-Referenzen
 > hinterlassen → stille `ReferenceError`s (5-Tage-„Bounce"). In v0.10.0–v0.10.6 bereinigt.
@@ -47,6 +47,14 @@
 > - **Reset-Link** (PB-Mail-Template) zeigte auf 404 → auf `{APP_URL}?token={TOKEN}` gefixt (v0.14.11).
 > - Hook ist jetzt **v4.6** (nicht mehr v3.4). Crew umbenennen ohne Dublette (v0.14.12). Logout läuft inline (v0.14.13).
 
+> **v0.15–v0.21 (bis 04.07.):** Stabilisierung „Crew sieht keinen Plan" + Crew-Features. Wichtigste Punkte (Details: CHANGELOG.md / CLAUDE.md):
+> - **Test-Guards jetzt 66 grün** (`node tests/run.mjs`). Neu u.a. `syntax.test.mjs` (Firefox-brechende Syntax), `serviceworker.test.mjs`, `stats.test.mjs`, `queue.test.mjs`, `adminmodal.test.mjs`.
+> - **„Crew sieht keinen Plan" endgültig eingekreist:** case-sensitiver Mail-Filter (v0.15.0) UND eine ungültige Zuweisung `getActivePlanId()=id;`, die nur **Firefox** beim Parsen abwarf → ganzer Modulgraph tot (v0.16.0). **Bei „sieht nichts in EINEM Browser" zuerst echte Konsole + Engine erfragen.**
+> - **Dauerhafte Cache-Lösung (v0.19.0):** Service Worker `sw.js` liefert JS/CSS/HTML network-first (`no-cache`) → kein „stale Sub-Modul"/Hard-Reload mehr.
+> - **Crew-Features:** bekannte Crew aus früheren Touren übernehmen (v0.18.0), eigene bestätigte Termine als .ics/PDF exportieren (v0.20.1), zwischen mehreren Touren wechseln (v0.21.0).
+> - **Scoping (v0.20.0):** Crew kann nur eigene Einsätze bestätigen/absagen; ICS nur bestätigte Termine. **App-seitig** — server-seitige PB-Regeln stehen noch aus (Backlog).
+> - **Wichtig (plans-viewRule):** Crew kann einen Plan-Record nur lesen, wenn er einen nicht-leeren `view_token` hat (sonst 404 → leere Tour). Jede Tour, die Crew sehen soll, braucht einen view_token („Öffentlicher Booker-Link").
+
 ### Was ist fertig ✅
 
 - Multi-Rollen-System: `superadmin`, `manager`, `booker`, `crew`
@@ -57,10 +65,10 @@
 - Plan-Sync: localStorage ↔ PocketBase (`plans`, `plan_data`, `crew_members`)
 - E-Mail-Flow: Proposal → Crew bekommt Mail → Bestätigen/Ablehnen per Button → Admin bekommt Rückmeldung
 - Einladungs-System: Admin schickt Crew-Einladung oder ♥ Liebeseinladung per E-Mail
-- Alle Custom-Mails via Resend HTTP API (Hook v3.4)
+- Alle Custom-Mails via Resend HTTP API (Hook v4.7 im Repo / v4.6 deployt)
 - System-Mails (Passwort-Reset) via PB SMTP → Resend SMTP-Gateway
 - Passwortloses User-Anlegen: Admin gibt E-Mail + Rolle ein → Account angelegt → Reset-Link per Mail
-- Auto-Verify: Neuer Hook (v3.4) setzt `verified=true` serverseitig bei User-Create
+- Auto-Verify: Hook setzt `verified=true` serverseitig bei User-Create
 
 ### Rollen-System
 
@@ -100,7 +108,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
 ```
 
 Danach prüfen: `ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 20"`
-Erwartete Ausgabe: `[hook] main.pb.js v4.6 geladen`
+Erwartete Ausgabe: `[hook] main.pb.js v4.7 geladen` (Repo-Stand v4.7; deployt ist noch v4.6 → Deploy ausstehend)
 
 ---
 
@@ -139,7 +147,7 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 ├── view.html             ← Öffentliche Read-only-Ansicht (Token-basiert)
 ├── styles.css
 ├── .pb_hooks/
-│   └── main.pb.js        ← E-Mail-Hooks (Goja, v4.6) — via Resend HTTP API
+│   └── main.pb.js        ← E-Mail-Hooks (Goja, v4.7 im Repo / v4.6 deployt) — via Resend HTTP API
 └── js/
     ├── config.js         ← POCKETBASE_URL, ADMIN_EMAIL
     ├── pb.js             ← PocketBase REST-Client (pbGet/Post/Patch/Delete/List/First/Upsert)

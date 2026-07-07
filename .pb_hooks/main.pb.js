@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.6
-console.log('[hook] main.pb.js v4.7 geladen');
+// Version: 4.8
+console.log('[hook] main.pb.js v4.8 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -341,17 +341,37 @@ onRecordAfterUpdateSuccess(function(e) {
   );
 }, 'assignments');
 
-// ── 3. Auto-Verify bei neuen Users ────────────────────────────────────────────
+// ── 3. Auto-Verify + Pool-Rolle bei neuen Users ───────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
   e.next();
   var record = e.record;
-  if (record.getBool('verified')) return;
-  record.set('verified', true);
+  var changed = false;
+
+  if (!record.getBool('verified')) { record.set('verified', true); changed = true; }
+
+  // Rolle aus dem globalen Crew-Pool übernehmen (crew_members mit plan_id="__pool__"):
+  // Ein Konto entsteht erst beim ersten Login über den Einladungslink (Default-Rolle 'crew').
+  // Hat der Admin die Person im Pool mit einer ANDEREN Rolle angelegt, greift sie genau hier.
   try {
-    $app.save(record);
-    console.log('[hook] User auto-verified: ' + record.getString('email'));
+    var email = (record.getString('email') || '').toLowerCase();
+    if (email && record.getString('role') === 'crew') {
+      var pool = $app.findFirstRecordByFilter('crew_members', 'plan_id = "__pool__" && email = {:email}', { email: email });
+      if (pool) {
+        var poolRole = pool.getString('role');
+        if (poolRole && poolRole !== 'crew') { record.set('role', poolRole); changed = true; }
+      }
+    }
   } catch(err) {
-    console.error('[hook] Auto-verify Fehler:', err.message);
+    // kein Pool-Treffer oder Query-Fehler → Default-Rolle behalten (kein harter Fehler)
+  }
+
+  if (changed) {
+    try {
+      $app.save(record);
+      console.log('[hook] User post-create gesetzt (verify/role): ' + record.getString('email') + ' → ' + record.getString('role'));
+    } catch(err) {
+      console.error('[hook] User post-create Fehler:', err.message);
+    }
   }
 }, 'users');
 

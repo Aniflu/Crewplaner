@@ -29,6 +29,11 @@ export function eachDateInRange(fromISO, toISO){
 export function normCrewName(s){ return String(s==null?'':s).trim().toLowerCase(); }
 export function sameCrew(a,b){ return normCrewName(a)===normCrewName(b); }
 
+// E-Mail normalisieren (trim + lowercase) — PocketBase-Filter `=` ist case-sensitiv (SQLite
+// BINARY), Mails werden daher überall klein gespeichert (v0.15.0). Genutzt beim Pool-Anlegen
+// (createPoolMember) vor dem server-seitigen Dublettencheck.
+export function normEmail(s){ return String(s==null?'':s).trim().toLowerCase(); }
+
 // Rohe crew_members (aus allen Plänen) zu einer tour-übergreifenden Liste zusammenführen.
 // Identität = E-MAIL (lowercase), wenn vorhanden — sonst normalisierter Name. So bleiben
 // zwei GLEICHNAMIGE mit VERSCHIEDENEN Mails getrennt (z.B. „Marco Hoch" Admin vs. GL-Crew);

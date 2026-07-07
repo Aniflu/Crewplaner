@@ -1,6 +1,6 @@
 # Tour Crew Plan — Erste Schritte
 
-Stand: v0.10.6
+Stand: v0.21.0
 
 ---
 
@@ -25,6 +25,14 @@ Du kannst auch direkt in der App auf deine Einsätze klicken und dort reagieren.
 ### 4. Passwort vergessen
 
 Login-Seite → "Passwort vergessen" → E-Mail eingeben → Link kommt per E-Mail → neues Passwort setzen.
+
+### 5. Mehrere Touren
+
+Stehst du in mehr als einer Tour (z.B. AMK + Provinz), erscheinen in der Seitenleiste unter „Pläne" alle deine Touren — per Klick wechselst du zwischen ihnen. Die zuletzt gewählte Tour bleibt auch nach dem Neuladen erhalten.
+
+### 6. Eigene Termine exportieren
+
+In der Seitenleiste: **„📅 Meine Termine (.ics)"** (für den Kalender) und **„📄 Meine Termine (PDF)"**. Exportiert werden ausschließlich deine **eigenen bestätigten** Tage.
 
 ---
 

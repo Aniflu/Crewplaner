@@ -1,6 +1,6 @@
 # Sicherheitsrichtlinie — Tour Crew Plan
 
-Stand: v0.10.6
+Stand: v0.21.0
 
 ---
 
@@ -32,7 +32,7 @@ Stand: v0.10.6
 
 ### verified-Feld
 
-Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js v3.4).
+Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js, aktuell v4.7 im Repo / v4.6 deployt).
 
 ---
 
@@ -63,9 +63,17 @@ Interaktive Elemente nutzen `data-*` Attribute + `dataset.*` Zugriff — kein `o
 
 Der Hook in `.pb_hooks/main.pb.js` sendet E-Mails via Resend HTTP API.
 
-- API-Key wird via `$getEnv('RESEND_KEY')` geladen (nie hardcoded)
+- API-Key wird via `$os.getenv('RESEND_KEY')` geladen (nie hardcoded — `$getEnv` existiert in PB v0.38 nicht)
 - Alle Werte in Callback-Funktionen hardcoded (Goja-Isolation — keine äußeren Scope-Variablen)
 - Fehler werden geloggt aber werfen keine Ausnahmen die den Request blockieren
+
+---
+
+## Aktions-Scoping (Crew)
+
+Seit v0.20.0 prüfen `confirmAssignment`/`declineAssignment` (dataService.js), dass der Ziel-Record die **eigene** E-Mail trägt → Crew kann nur eigene Einsätze bestätigen/absagen. Der Plan-Scope kommt zusätzlich über `_getActivePlanId` + die `view_token`-basierte plans-viewRule.
+
+> ⚠️ Diese Prüfung ist **app-seitig**. Eine echte server-seitige Sperre (PocketBase-API-Rules, die Crew nur eigene `assignments` schreiben lässt) steht noch aus (Backlog). Bis dahin ist die Trennung durch das Frontend erzwungen, nicht durch die Datenbank.
 
 ---
 
