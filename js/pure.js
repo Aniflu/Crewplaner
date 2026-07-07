@@ -52,6 +52,88 @@ export function dedupKnownCrew(records){
   return [...byKey.values()].sort((a,b)=>normCrewName(a.name)<normCrewName(b.name)?-1:normCrewName(a.name)>normCrewName(b.name)?1:0);
 }
 
+// Vereintes Crew-Verzeichnis (v0.23.0): users ∪ crew_members per E-Mail zusammenführen.
+// Schlüssel = normEmail(email), sonst 'n:'+normCrewName(name). plans = [{id,name}] löst Tour-Namen
+// auf; crew_members mit plan_id="__pool__" = globaler Pool, sonst Tour-Zugehörigkeit.
+// Rückgabe je Person: {key,name,email,role,account:{id,verified}|null,pool:{id}|null,
+//   tours:[{crewMemberId,planId,planName,name}]} — alphabetisch nach Name.
+export function mergeCrewDirectory(users, crewMembers, plans){
+  const planName = {};
+  for(const p of (plans||[])) if(p && p.id!=null) planName[p.id] = p.name || p.id;
+
+  const byKey = new Map();
+  const ensure = (key) => {
+    if(!byKey.has(key)) byKey.set(key, {
+      key, name:'', email:'', role:'',
+      account:null, pool:null, tours:[],
+      _nameUser:'', _namePool:'', _nameTour:'', _roleUser:'', _rolePool:'',
+    });
+    return byKey.get(key);
+  };
+
+  for(const u of (users||[])){
+    if(!u) continue;
+    const email = String(u.email==null?'':u.email).trim();
+    if(!email) continue;                       // Konto ohne Mail nicht sinnvoll mergebar
+    const e = ensure('e:'+normEmail(email));
+    if(!e.email) e.email = email;
+    e.account = { id: u.id, verified: !!u.verified };
+    e._nameUser = String(u.name==null?'':u.name).trim();
+    e._roleUser = String(u.role==null?'':u.role).trim();
+  }
+
+  for(const m of (crewMembers||[])){
+    if(!m) continue;
+    const name  = String(m.name==null?'':m.name).trim();
+    const email = String(m.email==null?'':m.email).trim();
+    if(!name && !email) continue;
+    const key = email ? ('e:'+normEmail(email)) : ('n:'+normCrewName(name));
+    const e = ensure(key);
+    if(!e.email && email) e.email = email;
+    if(m.plan_id === '__pool__'){
+      e.pool = { id: m.id };
+      if(name) e._namePool = name;
+      const r = String(m.role==null?'':m.role).trim();
+      if(r) e._rolePool = r;
+    } else {
+      e.tours.push({ crewMemberId: m.id, planId: m.plan_id, planName: planName[m.plan_id] || m.plan_id, name });
+      if(name && !e._nameTour) e._nameTour = name;
+    }
+  }
+
+  const out = [];
+  for(const e of byKey.values()){
+    e.name = e._namePool || e._nameTour || e._nameUser || '';
+    e.role = e._roleUser || e._rolePool || 'crew';
+    delete e._nameUser; delete e._namePool; delete e._nameTour; delete e._roleUser; delete e._rolePool;
+    out.push(e);
+  }
+  return out.sort((a,b)=>{
+    const an=normCrewName(a.name||a.email), bn=normCrewName(b.name||b.email);
+    return an<bn?-1:an>bn?1:0;
+  });
+}
+
+// Einen Crew-Namen in einem plan_data-Objekt ersetzen (crew[]/defaultCrew{}/assignments{}) —
+// immutabel (gibt neues Objekt zurück, mutiert die Eingabe nicht). Andere Felder bleiben.
+// Spiegelt die App-Mutationen aus crew.js renameCrew.
+export function renameInPlanData(planData, oldName, newName){
+  const pd = planData || {};
+  const crew = (pd.crew||[]).map(n => n===oldName ? newName : n);
+  const defaultCrew = {};
+  for(const k of Object.keys(pd.defaultCrew||{})){
+    defaultCrew[k] = pd.defaultCrew[k]===oldName ? newName : pd.defaultCrew[k];
+  }
+  const assignments = {};
+  for(const d of Object.keys(pd.assignments||{})){
+    const day = pd.assignments[d] || {};
+    const nd = {};
+    for(const p of Object.keys(day)) nd[p] = day[p]===oldName ? newName : day[p];
+    assignments[d] = nd;
+  }
+  return Object.assign({}, pd, { crew, defaultCrew, assignments });
+}
+
 // Welche Tage kommen in den ICS-Export? NUR Tage mit mindestens einem BESTÄTIGTEN Einsatz.
 // tourDates: [{date,...}] (Reihenfolge bleibt), positions: [{id,label,short}],
 // statuses: assignmentStatuses = { date: { posId: {status, crewName} } }.
