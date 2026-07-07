@@ -15,7 +15,7 @@
   }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script type="module" src="js/admin-app.js?v=10"></script>
+<script type="module" src="js/admin-app.js?v=11"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -519,7 +519,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.23.0</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.23.1</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -1115,7 +1115,8 @@ async function saveDirectoryEntry(i) {
 
   try {
     if (nameChanged) {
-      if (e.account) await pbPatch('/api/collections/users/records/' + e.account.id, { name: newName });
+      // Hinweis: die users-Collection hat KEIN name-Feld (PB-v0.23+-Auth-Schema) — ein PATCH auf
+      // users.name wird still ignoriert. Der Name lebt daher in crew_members (dort existiert das Feld).
       if (e.pool)    await pbPatch('/api/collections/crew_members/records/' + e.pool.id, { name: newName });
       for (const t of e.tours) {
         // Plan FRISCH laden (gegen Stale/Cross-Write, vgl. v0.14.6), nur den einen Namen ersetzen
@@ -1128,6 +1129,13 @@ async function saveDirectoryEntry(i) {
         await pbPatch('/api/collections/crew_members/records/' + t.crewMemberId, { name: newName });
         const asg = await pbGet('/api/collections/assignments/records?perPage=500&filter=' + encodeURIComponent(`plan_id="${q(t.planId)}" && crew_name="${q(oldName)}"`));
         for (const a of (asg.items || [])) await pbPatch('/api/collections/assignments/records/' + a.id, { crew_name: newName });
+      }
+      // Reines Konto ohne Crew-Eintrag (z.B. „vorher angelegtes" Konto): Name im Pool ablegen,
+      // damit er persistiert und die Person tour-übergreifend verfügbar ist.
+      if (!e.pool && e.tours.length === 0) {
+        await pbPost('/api/collections/crew_members/records', {
+          plan_id: POOL_PLAN_ID, name: newName, email: (newEmail || window.normEmail(e.email)), role: newRole
+        });
       }
     }
     if (emailChanged) {
