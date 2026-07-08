@@ -13,6 +13,15 @@ test('isPending: proposed/declined → true, confirmed/assigned/null → false',
   ok(!isPending(null), 'null');
 });
 
+test('esc: maskiert " und \' (Attribut-sicher) — Name mit Anführungszeichen bricht value="..." nicht mehr', async () => {
+  const g = await graph(); if(!g) return 'SKIP';
+  const { esc } = g.utils;
+  eq(esc('Robert "Woody" Steinmetz'), 'Robert &quot;Woody&quot; Steinmetz', 'doppelte Quotes escaped');
+  eq(esc("O'Brien"), 'O&#39;Brien', 'einfache Quotes escaped');
+  eq(esc('<b> & "x"'), '&lt;b&gt; &amp; &quot;x&quot;', '<, >, &, " zusammen');
+  eq(esc(null), '', 'null → leer');
+});
+
 test('getVal: assignments-Override hat Vorrang vor defaultCrew', async () => {
   const g = await graph(); if(!g) return 'SKIP';
   const { assignments, defaultCrew } = g.state;

@@ -43,4 +43,6 @@ export function colorToDarkBg(hex){
 }
 export function isPending(si){return!!(si&&(si.status==='proposed'||si.status==='declined'));}
 export function showToast(msg,color='#4f81bd'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=color;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.opacity='0';},2200);}
-export function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+// Escaped auch " und ' — der textContent/innerHTML-Trick maskierte die NICHT, wodurch ein Wert
+// mit " (z.B. Name „Robert \"Woody\" Steinmetz") in value="${esc(...)}"-Attributen abbrach (v0.23.3).
+export function esc(s){return s==null?'':String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
