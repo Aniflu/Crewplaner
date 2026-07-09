@@ -200,7 +200,7 @@
   <div class="login-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <p>Personalplan · Anmelden</p>
-    <div class="login-version">v0.23.4</div>
+    <div class="login-version">v0.23.5</div>
   </div>
 
   <div class="login-card">
@@ -372,8 +372,26 @@
     } catch (e) {
       btn.disabled = false;
       btn.textContent = 'Konto erstellen';
+      // E-Mail schon vergeben (z.B. vom Admin vorab angelegtes Konto) → KEIN neues Konto,
+      // sondern in den Login umschalten. Sonst sieht der User nur „Failed to create record".
+      const emailTaken = (e && e.data && e.data.email && e.data.email.code === 'validation_not_unique')
+                      || /already in use|must be unique|not_unique/i.test((e && e.message) || '');
+      if (emailTaken) {
+        _switchToLogin(email);
+        showError('Konto mit dieser E-Mail-Adresse schon vorhanden. Bitte melde dich unten an — oder klicke „Passwort vergessen?", falls du noch kein Passwort hast.');
+        return;
+      }
       showError('Registrierung fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler'));
     }
+  }
+
+  // In den Login-Bereich wechseln + E-Mail vorbefüllen (nach „E-Mail bereits vergeben").
+  function _switchToLogin(prefillEmail) {
+    document.getElementById('registerWrap').style.display = 'none';
+    document.getElementById('loginWrap').style.display    = 'block';
+    document.getElementById('toggleRegisterLink').textContent = 'Noch kein Konto? Registrieren';
+    if (prefillEmail) document.getElementById('email').value = prefillEmail;
+    document.getElementById('successMsg').style.display = 'none';
   }
 
   async function doPasswordReset() {
