@@ -519,7 +519,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.23.3</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.23.4</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
@@ -1320,7 +1320,9 @@ async function sendStaffInvite() {
   const email = (document.getElementById('inviteEmail').value || '').trim();
   if (!name || !email) { adminToast('Name und E-Mail erforderlich', '#e84a4a'); return; }
   const planName = _wrkPlanName || 'Tour Plan';
-  const appUrl   = window.location.origin + '/login.html';
+  // Empfänger landen IMMER auf der Produktiv-Seite — nie auf der GitHub-Pages-Testseite
+  // (dort fehlt das /Crewplaner/-Präfix → window.location.origin+'/login.html' = 404).
+  const appUrl   = 'https://crewplanner.nyxlightwork.de/login.html';
   try {
     await pbPost('/api/collections/crew_invites/records', {
       plan_id: _wrkPbPlanId, crew_name: name, crew_email: email,
