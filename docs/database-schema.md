@@ -1,6 +1,6 @@
 # Datenbank-Schema — Tour Crew Plan
 
-PocketBase-Collections (SQLite). Stand: v0.21.0
+PocketBase-Collections (SQLite). Stand: v0.23.5
 
 ---
 
@@ -69,6 +69,11 @@ PocketBase-Collections (SQLite). Stand: v0.21.0
 > Beim Übernehmen in eine Tour entsteht ein zweiter Record mit der echten `plan_id`.
 > Das Login-Konto entsteht erst beim ersten Login über den Einladungslink; der `users`-Create-Hook
 > (main.pb.js v4.8) übernimmt dann die im Pool gesetzte `role`.
+
+> ⚠️ **`plan_id` MUSS Text sein (v0.23.2):** Nach einem Coolify-Wipe/Reimport war `crew_members.plan_id`
+> (und `assignments.plan_id`) als **`relation → plans`** angelegt. Der Sentinel `"__pool__"` ist kein
+> echter plans-Record → `Failed to find all relation records` → Pool-Anlegen scheiterte. Dieselbe Falle
+> wie bei `proposed_by`. Fix: Feld auf **Text** umbauen (Werte sichern, Feld ersetzen, zurückschreiben).
 
 ---
 

@@ -1,6 +1,6 @@
 # Sicherheitsrichtlinie — Tour Crew Plan
 
-Stand: v0.21.0
+Stand: v0.23.5
 
 ---
 

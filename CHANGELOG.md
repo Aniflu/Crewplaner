@@ -2,6 +2,27 @@
 
 > **v0.10.7 – v0.14.13 (Juni 2026)** — kondensiert. Vollständige, ausführliche Einträge: `CLAUDE.md` → Abschnitt „Versionierung".
 
+## v0.23.5 — 2026-07-09
+- **fix:** „Konto erstellen" bei bereits vergebener E-Mail zeigte nur „Failed to create record". Wer vorab in der Konsole angelegt wurde, hat schon ein `users`-Konto → PB lehnt die E-Mail als vergeben ab. `doRegister` (login.html) erkennt jetzt `validation_not_unique` → Meldung „Konto mit dieser E-Mail-Adresse schon vorhanden", schaltet auf den Login um und füllt die E-Mail vor (neuer Helfer `_switchToLogin`). Roberts blockierender Leer-Account wurde per PB-Superuser entfernt (Crew-Einträge blieben). Kein Hook/Schema, Tests unverändert (74 grün).
+
+## v0.23.4 — 2026-07-09
+- **fix:** „KONTO ERSTELLEN"-Link der Staff-Einladung führte auf eine GitHub-404-Seite. `sendStaffInvite` (admin.html) baute `app_url` aus `window.location.origin + '/login.html'` → von der GitHub-Pages-Testseite fehlte das `/Crewplaner/`-Präfix. Link jetzt fest auf `https://crewplanner.nyxlightwork.de/login.html`. 74 grün.
+
+## v0.23.3 — 2026-07-08
+- **fix:** Namen mit Anführungszeichen wurden in der Anzeige abgeschnitten (`Robert "Woody" Steinmetz` → nur „Robert"). `esc()` (utils.js) maskierte über den `textContent→innerHTML`-Trick nur `<`,`>`,`&`, nicht `"`/`'` → in `value="${esc(...)}"` brach der Wert am inneren `"` ab. `esc()` maskiert jetzt zusätzlich `"`→`&quot;` und `'`→`&#39;` (DOM-frei, Text- und Attributkontext). +logic.test.mjs. 74 grün. app.js?v=34→35, admin-app.js?v=11→12.
+
+## v0.23.2 — 2026-07-08
+- **fix (Backend/Schema, kein App-Code):** „Namen speichern" brach mit `plan_id: Failed to find all relation records` ab. `crew_members.plan_id` war als **relation** statt **text** angelegt → der Pool-Sentinel `plan_id="__pool__"` ist kein echter plans-Record → Validierung schlug fehl (Pool-Records entstanden nie). `crew_members.plan_id` UND `assignments.plan_id` von relation→text umgebaut (14 bzw. 709 Records, kein Datenverlust). Keine Code-/Teständerung (73 grün).
+
+## v0.23.1 — 2026-07-08
+- **fix:** Namen im Verzeichnis speichern persistierte nicht (grünes „Gespeichert ✓", nach Reload leer). `users` hat kein `name`-Feld → PB verwarf den PATCH still. Namen leben in `crew_members`; `saveDirectoryEntry` legt bei reinem Konto einen Pool-Eintrag `{plan_id:"__pool__", name, email, role}` an. 73 grün. admin-app.js?v=10→11.
+
+## v0.23.0 — 2026-07-08
+- **feat:** Vereintes Crew-Verzeichnis in der Konsole. Der „Benutzer"-Tab zeigt jetzt ALLE Personen in EINER Liste, per E-Mail zusammengeführt (`mergeCrewDirectory`), mit editierbarem Name·E-Mail·Rolle + Badges (Konto/Pool/Touren). Namensänderung propagiert nach users, Pool-crew_members und pro Tour ins Plan-JSON (`renameInPlanData`) + assignments. +tests/directory.test.mjs. 73 grün. app.js?v=33→34, admin-app.js?v=9→10.
+
+## v0.22.0 — 2026-07-08
+- **feat:** Globaler Crew-Pool — neue Mitglieder an EINER Stelle in der Admin-Konsole anlegen („+ Neues Crew-Mitglied": Name·E-Mail·Rolle → `createPoolMember`, Sentinel `plan_id="__pool__"`, server-seitiger Dublettencheck). Kein Login-Konto/Reset-Mail; Konto entsteht erst beim Erst-Login über den Einladungslink, Rolle wird vom users-Create-Hook (v4.8) aus dem Pool übernommen. „♥ Liebeseinladung" entfernt. **Schema:** neues Textfeld `crew_members.role`. +tests/crewpool.test.mjs. 68 grün. app.js?v=32→33, admin-app.js?v=8→9.
+
 ## v0.21.0 — 2026-07-04
 - **feat:** Crew-Plan-Umschalter in der Seitenleiste. Crew in mehreren Touren (z.B. Oliver Thomas: AMK + Provinz) sah nach dem Bestätigen aller Termine nur noch eine Tour ohne Wechselmöglichkeit. Neue „Pläne"-Sektion füllt für Crew dasselbe `#planList` wie beim Manager (`loadCrewPlans` → `renderCrewPlanList`/`switchCrewPlan`); gewählte Tour bleibt über Reload erhalten (localStorage `tourplan_crew_selected_pb_id`), `_getActivePlanId` prüft ihn zuerst. +tests (loadCrewPlans Dedup+Sortierung). 66 grün. app.js?v=31→32.
 

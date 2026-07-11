@@ -26,7 +26,7 @@
 
 ---
 
-## 2. Aktueller Stand (Stand 2026-07-04) — v0.21.0
+## 2. Aktueller Stand (Stand 2026-07-09) — v0.23.5
 
 > **Juni 2026 (v0.10):** Die ES6-Modul-Migration (v0.9.3) hatte bare Cross-Modul-Referenzen
 > hinterlassen → stille `ReferenceError`s (5-Tage-„Bounce"). In v0.10.0–v0.10.6 bereinigt.
@@ -55,6 +55,14 @@
 > - **Scoping (v0.20.0):** Crew kann nur eigene Einsätze bestätigen/absagen; ICS nur bestätigte Termine. **App-seitig** — server-seitige PB-Regeln stehen noch aus (Backlog).
 > - **Wichtig (plans-viewRule):** Crew kann einen Plan-Record nur lesen, wenn er einen nicht-leeren `view_token` hat (sonst 404 → leere Tour). Jede Tour, die Crew sehen soll, braucht einen view_token („Öffentlicher Booker-Link").
 
+> **v0.22–v0.23.5 (08.–09.07.):** Crew-Verwaltung & Registrierung. Wichtigste Punkte (Details: CHANGELOG.md / CLAUDE.md):
+> - **Test-Guards jetzt 74 grün** (`node tests/run.mjs`). Neu u.a. `crewpool.test.mjs`, `directory.test.mjs`, `logic.test.mjs` (esc escaped `"`/`'`).
+> - **Globaler Crew-Pool (v0.22.0):** neue Mitglieder an EINER Stelle in der Konsole anlegen — Sentinel `plan_id="__pool__"`; **kein** Login-Konto, das entsteht erst beim Erst-Login über den Einladungslink. **Schema:** Feld `crew_members.role`. „♥ Liebeseinladung" entfernt.
+> - **Vereintes Crew-Verzeichnis (v0.23.0):** der „Benutzer"-Tab zeigt alle Personen in EINER per E-Mail zusammengeführten Liste, Name·E-Mail·Rolle editierbar (propagiert in Konto/Pool/alle Touren).
+> - **PB-Schema-Falle erneut (v0.23.2):** `crew_members.plan_id` (und `assignments.plan_id`) war **relation** statt **text** → der Pool-Sentinel `"__pool__"` schlug die Validierung durch; auf **text** umgebaut. **Merke: `"__pool__"` ⇒ plan_id MUSS text sein.**
+> - **`esc()`-Attribut-Bug (v0.23.3):** Namen mit `"` (z.B. `Robert "Woody" Steinmetz`) brachen in `value="…"` ab — `esc()` maskiert jetzt auch `"`/`'`.
+> - **Einladung/Registrierung (v0.23.4/5):** Staff-Invite-Link zeigte von der GitHub-Testseite auf 404 (jetzt fest Produktiv-Login); „Konto erstellen" bei bereits vergebener E-Mail zeigt jetzt „Konto mit dieser E-Mail-Adresse schon vorhanden" + schaltet auf Login. **Merke:** vom Admin vorab angelegte Personen haben schon ein `users`-Konto → sie müssen sich anmelden / Passwort zurücksetzen, nicht neu registrieren.
+
 ### Was ist fertig ✅
 
 - Multi-Rollen-System: `superadmin`, `manager`, `booker`, `crew`
@@ -64,8 +72,9 @@
 - `login.html` — Login + Registrierung + Passwort-Reset-Flow (token-basiert)
 - Plan-Sync: localStorage ↔ PocketBase (`plans`, `plan_data`, `crew_members`)
 - E-Mail-Flow: Proposal → Crew bekommt Mail → Bestätigen/Ablehnen per Button → Admin bekommt Rückmeldung
-- Einladungs-System: Admin schickt Crew-Einladung oder ♥ Liebeseinladung per E-Mail
-- Alle Custom-Mails via Resend HTTP API (Hook v4.7 im Repo / v4.6 deployt)
+- Einladungs-System: Admin schickt Crew-Einladung / Staff-Einladung per E-Mail (♥ Liebeseinladung in v0.22.0 entfernt)
+- Globaler Crew-Pool + vereintes Crew-Verzeichnis in der Konsole (v0.22.0/v0.23.0)
+- Alle Custom-Mails via Resend HTTP API (Hook v4.8 im Repo / v4.6 deployt — Deploy ausstehend)
 - System-Mails (Passwort-Reset) via PB SMTP → Resend SMTP-Gateway
 - Passwortloses User-Anlegen: Admin gibt E-Mail + Rolle ein → Account angelegt → Reset-Link per Mail
 - Auto-Verify: Hook setzt `verified=true` serverseitig bei User-Create

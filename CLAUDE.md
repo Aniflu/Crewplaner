@@ -320,7 +320,7 @@ TZ=UTC           node tests/run.mjs
 ```
 
 - `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
-- **74 Tests grün** (Stand v0.23.3). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
+- **74 Tests grün** (Stand v0.23.5). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
   - `pure.test.mjs` — reine Logik ohne Stubs (Datums-Bereiche TZ-sicher, Namens-Helfer).
   - `crewimport.test.mjs` — `dedupKnownCrew` führt tour-übergreifende Crew zusammen (doppelte Namen, E-Mail-Bevorzugung, Sortierung).
   - `logic.test.mjs` + `flows.test.mjs` + `dataservice.test.mjs` — laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`); decken getVal/isPending/sortInsert, Crew-CRUD, Slot-Diffing, getMyCrewName, Plan-Roundtrip, confirm/decline (fetch-gemockt) ab.
