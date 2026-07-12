@@ -52,6 +52,7 @@
 <!-- HEADER -->
 <div class="header">
   <div class="header-rail"></div>
+  <button id="btnMenu" class="mobile-only" onclick="toggleDrawer()" aria-label="Menü">☰</button>
   <div class="header-body">
     <!-- LEFT: Planer Logo -->
     <div class="hleft" id="areaPlaner"></div>
@@ -62,7 +63,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.23.5</span>
+            <span class="tour-tag">Personalplan · v0.24.0</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -420,7 +421,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=35"></script>
+<script type="module" src="js/app.js?v=36"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
@@ -461,6 +462,9 @@
     </div>
   </div>
 </div>
+
+<!-- Backdrop für den mobilen Sidebar-Drawer -->
+<div class="drawer-backdrop" id="drawerBackdrop" onclick="toggleDrawer()"></div>
 
 </body>
 </html>

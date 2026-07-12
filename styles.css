@@ -645,3 +645,60 @@ tbody td.date-cell{padding:8px 12px 8px 18px;color:var(--ink);white-space:nowrap
 .slot-decline{background:rgba(232,74,74,.12);border:1px solid rgba(232,74,74,.35);color:#e84a4a;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:.65rem;flex-shrink:0;}
 .slot-confirm:hover{background:rgba(74,232,160,.3);}
 .slot-decline:hover{background:rgba(232,74,74,.25);}
+
+/* ========== Mobile / Responsive ========== */
+/* Sichtbarkeits-Utilities + Drawer-Backdrop (Basis: Desktop = versteckt) */
+.mobile-only{display:none;}
+.drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:290;display:none;}
+.drawer-backdrop.open{display:block;}
+#btnMenu{
+  align-self:center;flex-shrink:0;margin-left:10px;
+  align-items:center;justify-content:center;
+  width:38px;height:38px;
+  background:transparent;border:1px solid var(--rule);color:var(--ink);
+  font-size:18px;line-height:1;cursor:pointer;border-radius:2px;padding:0;
+}
+#btnMenu:hover{border-color:var(--accent);color:var(--accent);}
+
+@media (max-width:768px){
+  /* --- Scroll-Trap lösen: Seite scrollt vertikal, Tabelle horizontal --- */
+  .layout{grid-template-columns:1fr;height:auto;}
+  .table-wrap{overflow:visible;}
+  .view-pane{overflow:visible;flex:none;}
+  .table-area{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;}
+
+  /* --- Sidebar → Off-Canvas-Drawer (Klassentoggle wie .modal-bg.open) --- */
+  .sidebar{
+    position:fixed;top:0;left:0;bottom:0;
+    width:min(84vw,300px);
+    transform:translateX(-100%);
+    transition:transform .22s ease;
+    z-index:300;
+    border-right:1px solid var(--rule);
+    box-shadow:4px 0 24px rgba(0,0,0,.5);
+  }
+  .sidebar.open{transform:translateX(0);}
+  /* Desktop-Toggle + FAB am Handy aus (der Drawer ersetzt sie) */
+  #btnSidebar,#fabSidebar{display:none !important;}
+
+  .mobile-only{display:flex;}
+  .desktop-only{display:none;}
+
+  /* --- Header schlank: Hamburger + Titel, Seiten-Logos aus --- */
+  .header-body{grid-template-columns:1fr;gap:0;padding:8px 12px;min-height:0;}
+  .hleft,.hright{display:none;}
+  h1{font-size:20px;}
+  .subtitle-row{margin-top:3px;font-size:8px;gap:6px;}
+  .logo-band{max-height:34px;max-width:90px;}
+
+  /* --- KPI-Strip: 3 statt 6 Spalten --- */
+  .kpi-strip{grid-template-columns:repeat(3,1fr);}
+  .kpi-cell{padding:7px 10px;}
+  .kpi-val{font-size:16px;}
+
+  /* --- View-Toggle + Blöcke/Crew-Ansicht einspaltig --- */
+  .view-toggle-bar{flex-wrap:wrap;gap:8px;padding:8px 10px;}
+  .blocks-area{grid-template-columns:1fr;padding:12px;}
+  .crew-row-head{grid-template-columns:1fr;gap:6px;}
+  .tb-g2{grid-template-columns:1fr;}
+}

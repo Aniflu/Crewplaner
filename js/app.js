@@ -30,7 +30,7 @@ import './dialog.js';
 
 // ── Explicit imports for window.* registrations (onclick handlers) ──
 import { saveJSON, savePlan, loadJSON, onFileLoad } from './persistence.js';
-import { openCrewModal, toggleSidebar } from './sidebar.js';
+import { openCrewModal, toggleSidebar, toggleDrawer } from './sidebar.js';
 import { addCrew } from './crew.js';
 import { closeDD } from './dropdown.js';
 import { setView } from './render.js';
@@ -76,6 +76,7 @@ window.loadJSON = loadJSON;
 window.onFileLoad = onFileLoad;
 window.openCrewModal = openCrewModal;
 window.toggleSidebar = toggleSidebar;
+window.toggleDrawer = toggleDrawer;
 window.addCrew = addCrew;
 window.closeDD = closeDD;
 window.setView = setView;

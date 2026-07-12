@@ -15,7 +15,7 @@
   }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script type="module" src="js/admin-app.js?v=12"></script>
+<script type="module" src="js/admin-app.js?v=13"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -338,6 +338,19 @@ body {
 
 @media (max-width: 800px) { .tool-grid { grid-template-columns: 1fr; } }
 
+/* ========== Mobile / Responsive ========== */
+@media (max-width: 768px) {
+  .admin-header { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+  .admin-nav { padding: 0 10px; overflow-x: auto; flex-wrap: nowrap; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  .nav-tab { padding: 12px 14px; }
+  .admin-content { padding: 12px; }
+  /* Breite Tabellen (Benutzer-/Crew-Verzeichnis) horizontal scrollbar statt zerquetscht */
+  .data-table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  /* Such-Input voll breit (behebt flex:1 ↔ max-width:360px-Konflikt) */
+  .search-bar { flex-wrap: wrap; }
+  .search-bar input { max-width: none; width: 100%; }
+}
+
 .tool-card {
   background: #12121f;
   border: 1px solid #2a2a40;
@@ -519,7 +532,7 @@ body {
   <div class="admin-brand">
     <h1>Tour<span>/</span>Crew</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.23.5</span>
+    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.24.0</span>
   </div>
   <div class="header-actions">
     <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>

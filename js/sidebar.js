@@ -32,3 +32,14 @@ export function toggleSidebar(){
   }
   fab.style.display=vis?'flex':'none';
 }
+
+// ── Mobiler Sidebar-Drawer (Off-Canvas) ─────────────────────────────────────────
+// Getrennt von toggleSidebar (Desktop): toggelt nur die .open-Klasse auf Sidebar +
+// Backdrop (Muster wie .modal-bg.open) — greift NICHT in die Grid-/Inline-Styles ein.
+export function toggleDrawer(){
+  const sb=document.getElementById('sidebar');
+  const bd=document.getElementById('drawerBackdrop');
+  if(!sb) return;
+  const open=sb.classList.toggle('open');
+  if(bd) bd.classList.toggle('open',open);
+}
