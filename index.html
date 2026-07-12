@@ -63,7 +63,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.24.0</span>
+            <span class="tour-tag">Personalplan · v0.25.0</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -97,6 +97,7 @@
         <button class="manager-only" onclick="openTourBlock()"><span class="sb-gl">▶</span>Tourblock einfügen</button>
         <button class="manager-only" onclick="openBlockRange()"><span class="sb-gl">▶</span>Bereich → Block</button>
         <button id="btnUpdateQueue" class="manager-only" onclick="_openUpdateQueueModal()" style="display:none;"><span class="sb-gl">↻</span>Updates <span id="updateQueueBadge" style="background:#e84a4a;color:#fff;border-radius:50%;padding:1px 6px;font-size:.7rem;margin-left:4px;">0</span></button>
+        <button onclick="scrollToToday()" title="Zur heutigen Tour-Zeile springen"><span class="sb-gl">⌖</span>→ Heute</button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
         <button onclick="try{localStorage.removeItem('pb_token');localStorage.removeItem('pb_user');}catch(e){};location.href='login.html'" style="border-color:rgba(232,74,74,.35);color:#e8a0a0;"><span class="sb-gl">⎋</span>Abmelden</button>
         <button id="btnKonsole" onclick="window.location.href=window.getNavUrl('admin.html')" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
@@ -421,7 +422,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=36"></script>
+<script type="module" src="js/app.js?v=37"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">

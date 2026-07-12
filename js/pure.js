@@ -191,3 +191,23 @@ export function crewIcsContent(band, rows, dateMeta){
   lines.push('END:VCALENDAR');
   return lines.join('\r\n');
 }
+
+// „Heute"-Marker für die Tourtabelle (v0.25.0). Bestimmt, wo die Heute-Linie sitzt.
+// dateList = alle Tourtag-Daten ("YYYY-MM-DD", Reihenfolge egal), todayISO = heute lokal.
+// ISO-Strings vergleichen lexikografisch = chronologisch → robust auch unsortiert.
+// Rückgabe { today, next }:
+//   today = todayISO, falls heute ein exakter Tourtag ist, sonst null.
+//   next  = kleinstes Datum > todayISO (nur relevant wenn today===null → Strich sitzt dann
+//           zwischen letztem vergangenem und erstem kommendem Tag; vor Tourbeginn = erster Tag).
+//   Nach Tourende (alle Tage < heute) → { today:null, next:null } (kein Strich).
+export function todayMarkers(dateList, todayISO){
+  let today = null, next = null;
+  for(const raw of (dateList||[])){
+    const d = String(raw==null?'':raw);
+    if(!d) continue;
+    if(d === todayISO){ today = todayISO; }
+    else if(d > todayISO){ if(next === null || d < next) next = d; }
+  }
+  if(today !== null) next = null;   // exakter Tag hat Vorrang → kein separater „nextday"-Strich
+  return { today, next };
+}

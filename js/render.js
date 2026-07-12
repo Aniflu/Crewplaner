@@ -6,6 +6,7 @@ import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, defaultCrew,
          OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, CURRENT_USER_EMAIL,
          pendingCancellations } from './state.js';
 import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS, colorToDarkBg, sameCrew } from './utils.js';
+import { toISODate, todayMarkers } from './pure.js';
 import { TYPE_OPTS } from './types.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { updateStats } from './stats.js';
@@ -36,6 +37,10 @@ export function setView(v){
   renderTable();
 }
 
+// Auto-Scroll zur Heute-Zeile nur EINMAL (beim ersten Tabellen-Render), sonst würde die
+// Ansicht bei jeder Zell-Änderung zurückspringen.
+let _autoScrolledToday=false;
+
 export function renderTable(){
   // Always update stats
   if(CURRENT_VIEW==='table'){renderHead();renderBody();}
@@ -45,6 +50,19 @@ export function renderTable(){
   _updateViewMeta();
   _updateMeldungBar();
   _updateCrewUpdateBar();
+  if(CURRENT_VIEW==='table'&&!_autoScrolledToday&&typeof requestAnimationFrame==='function'){
+    _autoScrolledToday=true;
+    requestAnimationFrame(scrollToToday);
+  }
+}
+
+// Springt zur Heute-Zeile (bzw. zum nächsten kommenden Tag, wenn heute kein Tourtag ist).
+// No-op ohne Tabelle/passende Zeile (z.B. Tour vorbei, Block-/Crew-Ansicht).
+export function scrollToToday(){
+  const body=document.getElementById('tBody');
+  if(!body)return;
+  const el=body.querySelector('tr.is-today')||body.querySelector('tr.is-nextday');
+  if(el&&typeof el.scrollIntoView==='function')el.scrollIntoView({block:'center',behavior:'smooth'});
 }
 
 function _updateViewMeta(){
@@ -96,16 +114,24 @@ export function renderBody(){
   let b='',lastBlockId=null;
   const _meldungSentData=_getMeldungSent();
   const myName=SUPABASE_ENABLED?getMyCrewName():null;
+  // „Heute"-Marker (v0.25.0): today = exakter Tourtag, sonst next = erster kommender Tag.
+  const _todayISO=toISODate(new Date());
+  const {today:_todayRow,next:_nextRow}=todayMarkers(TOUR_DATES.map(r=>r.date),_todayISO);
   TOUR_DATES.forEach(row=>{
     if(row.blockId&&row.blockId!==lastBlockId){lastBlockId=row.blockId;b+=`<tr class="month-sep"><td colspan="${3+POSITIONS.length+1}">${esc(row.blockName||'')}</td></tr>`;}
     const tOpt=TYPE_OPTS.find(t=>t.label===row.typeLabel);
     const tColor=tOpt?.color||'';
     const rowBg=tColor?colorToDarkBg(tColor):'';
-    b+=`<tr class="row-${row.type}" style="${rowBg?'--row-bg:'+rowBg+';':''}" data-date="${row.date}">`;
+    const _isToday=row.date===_todayRow;
+    const _isNext=_todayRow===null&&row.date===_nextRow;
+    const _isPast=row.date<_todayISO;
+    const _todayCls=_isToday?' is-today':_isNext?' is-nextday':_isPast?' is-past':'';
+    b+=`<tr class="row-${row.type}${_todayCls}" style="${rowBg?'--row-bg:'+rowBg+';':''}" data-date="${row.date}">`;
     {const _dp=parseD(row.date);const _wd=DE_DAYS[_dp.getDay()];const _dt=`${String(_dp.getDate()).padStart(2,'0')}.${String(_dp.getMonth()+1).padStart(2,'0')}`;
+    const _badge=_isToday?`<span class="today-badge">HEUTE</span>`:'';
     b+=IS_MANAGER
-      ?`<td class="date-cell" onclick="openDateDD(event,'${row.date}')" style="cursor:pointer;" title="Klick für Optionen"><span class="wd">${_wd}</span><span class="dt">${_dt}</span></td>`
-      :`<td class="date-cell"><span class="wd">${_wd}</span><span class="dt">${_dt}</span></td>`;}
+      ?`<td class="date-cell" onclick="openDateDD(event,'${row.date}')" style="cursor:pointer;" title="Klick für Optionen"><span class="wd">${_wd}</span><span class="dt">${_dt}</span>${_badge}</td>`
+      :`<td class="date-cell"><span class="wd">${_wd}</span><span class="dt">${_dt}</span>${_badge}</td>`;}
     b+=`<td class="type-cell">${IS_MANAGER?`<button class="type-btn" style="${tColor?'color:'+tColor+';':''}" onclick="openTypeDD(event,'${row.date}')">${esc(row.typeLabel)}</button>`:`<span class="type-btn" style="${tColor?'color:'+tColor+';':''}cursor:default;">${esc(row.typeLabel)}</span>`}</td>`;
     b+=`<td class="loc-cell">${IS_MANAGER?`<button class="loc-btn" onclick="startLocEdit(event,'${row.date}')" title="${esc(row.loc)}">${esc(row.loc)}</button>`:`<span class="loc-btn" style="cursor:default;">${esc(row.loc)}</span>`}</td>`;
     POSITIONS.forEach(p=>{
