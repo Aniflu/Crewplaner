@@ -37,9 +37,13 @@ export function setView(v){
   renderTable();
 }
 
-// Auto-Scroll zur Heute-Zeile nur EINMAL (beim ersten Tabellen-Render), sonst würde die
-// Ansicht bei jeder Zell-Änderung zurückspringen.
+// Auto-Scroll zur Heute-Zeile nur EINMAL pro geladenem Plan (beim ersten Tabellen-Render),
+// sonst würde die Ansicht bei jeder Zell-Änderung zurückspringen.
 let _autoScrolledToday=false;
+
+// Beim Plan-Wechsel (switchPlan / switchCrewPlan) zurücksetzen, damit der frisch geladene
+// Plan ebenfalls einmalig zu „heute" scrollt (statt nur der erste Plan der Session).
+export function resetTodayAutoScroll(){ _autoScrolledToday=false; }
 
 export function renderTable(){
   // Always update stats

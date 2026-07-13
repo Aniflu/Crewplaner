@@ -17,12 +17,14 @@ import { _queueCrewUpdate } from './userView.js';
 
 export function showDD(rect,header,items){
   const menu=document.getElementById('ddMenu');
-  menu.innerHTML=`<div class="dd-hdr">${header}</div>`;
+  menu.innerHTML=`<div class="dd-hdr">${esc(header)}</div>`;
   items.forEach(it=>{
     const d=document.createElement('div');
     d.className='dd-item'+(it.cls?' '+it.cls:'')+(it.selected?' selected':'');
     if(it.color)d.style.color=it.color;
-    if(it.dot)d.innerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:${it.dot};flex-shrink:0;"></div>${it.label}`;
+    // esc auf label/header: hier landen Crew-/Positionsnamen in innerHTML — konsistent mit
+    // der esc-Härtung (v0.23.3), damit Namen mit <>&"' keinen HTML/XSS-Ausbruch erlauben.
+    if(it.dot)d.innerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:${esc(it.dot)};flex-shrink:0;"></div>${esc(it.label)}`;
     else d.textContent=it.label;
     d.onclick=it.action;menu.appendChild(d);
   });

@@ -5,7 +5,7 @@ import { SUPABASE_ENABLED } from './config.js';
 import { showToast, sortInsert } from './utils.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
 import { hasPermission } from './rbac.js';
-import { renderTable, hasTableView } from './render.js';
+import { renderTable, hasTableView, resetTodayAutoScroll } from './render.js';
 import { renderCrew } from './crew.js';
 
 const PLANS_INDEX_KEY = 'tourplan_plans';
@@ -61,6 +61,7 @@ export function switchPlan(id){
   const pb=localStorage.getItem('tourplan_pb_'+id);
   if(pb)localStorage.setItem('tourplan_active_pb_id',pb);
   else localStorage.removeItem('tourplan_active_pb_id');
+  resetTodayAutoScroll();   // neuer Plan → einmalig wieder zu „heute" scrollen
   _loadPlanFromLS(id);
   renderPlanList();
   showToast('Plan geladen ✓','#4f81bd');

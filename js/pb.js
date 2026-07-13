@@ -40,7 +40,7 @@ export function pbDelete(path)       { return _pbFetch('DELETE', path);       }
 // ── Escapes a value for safe use inside PocketBase filter strings ────────────
 export function pbEscapeFilter(val) {
   return String(val == null ? '' : val)
-    .replace(/\\\\/g, '\\\\\\\\')
+    .replace(/\\/g, '\\\\')   // einzelnen Backslash verdoppeln (vorher matchte /\\\\/ nur DOPPEL-Backslashes)
     .replace(/"/g, '\\"')
     .replace(/'/g, "\\'");
 }

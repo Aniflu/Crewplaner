@@ -9,7 +9,7 @@ import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdat
          bulkProposeCrew, sendAvailabilityNotice, loadPlanForCrew, loadCrewMeta,
          loadCrewPlans } from './dataService.js';
 import { _getNewSlotsForCrew } from './crewNotify.js';
-import { renderTable } from './render.js';
+import { renderTable, resetTodayAutoScroll } from './render.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
 import { closeModal, openModal } from './modals.js';
 import { confirmedIcsRows, crewIcsContent } from './pure.js';
@@ -77,6 +77,7 @@ export async function switchCrewPlan(pbId) {
   try {
     await loadPlanForCrew();
     await Promise.all([loadCrewMeta(), loadAssignmentStatuses()]);
+    resetTodayAutoScroll();   // neue Tour → einmalig wieder zu „heute" scrollen
     renderTable();
     const plans = await loadCrewPlans();
     renderCrewPlanList(plans, localStorage.getItem('tourplan_active_pb_id'));
