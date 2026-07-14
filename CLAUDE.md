@@ -426,6 +426,13 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > 0 Verlust). **Merke: `"__pool__"` ⇒ `crew_members.plan_id` MUSS text sein**, sonst geht der globale Pool nicht.
 
 Aktuell deployte Hook-Version: **v4.6** (Repo: **v4.8** — Deploy via Admin/SSH ausstehend)
+
+> ✅ **Feld `crew_members.role` (text, optional) am 2026-07-13 per PB-Superuser angelegt** (war live
+> NIE vorhanden trotz v0.22.0-„Schema"-Notiz → `createPoolMember` schrieb `role`, PB verwarf es still,
+> wie bei [[users-no-name-field]]). End-to-end getestet: Write mit role='manager' persistiert jetzt.
+> **Damit ist Glied 1 von 2 erledigt. OFFEN für die Auto-Rollen-Übernahme: Hook v4.8 deployen**
+> (aktuell v4.6, liest das Feld noch nicht). Bis dahin: Pool-Rolle wird gespeichert + im Verzeichnis
+> angezeigt, aber ein neu registriertes Konto bekommt sie noch nicht automatisch (bleibt `crew`).
 - v4.1: email_log-Write nach jedem Mailversand
 - v4.2: assignments CREATE-Hook entfernt (keine per-Slot-Emails mehr)
 - v4.3: Absage-Email umformuliert ("Plan geändert")
