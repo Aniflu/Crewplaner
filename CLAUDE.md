@@ -575,6 +575,22 @@ email_log       { plan_id, crew_name, crew_email, email_type, sent_at, success }
 > Booker-Link" in der Konsole, oder per PATCH). Gefunden 2026-07-04: Provinz 2027 hatte keinen →
 > Oliver Thomas sah sie nicht; per Superuser gesetzt.
 
+> 🔒 **Server-seitige Zugriffsregeln GEHÄRTET (v0.26.0, 2026-07-13, per PB-Superuser).** Vorher war
+> alles `@request.auth.id != ""` (jeder eingeloggte Crew-User konnte fremde Einsätze patchen + über
+> `crew_invites` Mails an beliebige Adressen triggern). LIVE gesetzt + per Impersonation getestet
+> (Crew patcht eigenen Einsatz=200, fremden=404, Invite-Create=400/blockiert; Superadmin=200):
+> - **`assignments.updateRule`** =
+>   `@request.auth.role = "superadmin" || (@request.auth.id != "" && crew_email = @request.auth.email) || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)`
+>   → Crew ändert nur EIGENE Einsätze (crew_email = eigene, alle lowercase); Owner/superadmin alles.
+>   createRule/deleteRule bewusst UNVERÄNDERT (`auth != ""`) — Crew-Confirm legt ggf. eigenen Record an.
+> - **`crew_invites.createRule`** =
+>   `@request.auth.role = "superadmin" || (@request.auth.id != "" && type = "availability") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)`
+>   → nur Owner/superadmin dürfen invite/reminder/update/cancellation (mailen an Fremde); `availability`
+>   (Crew-Bereitschaft, mailt NUR an Admin) bleibt jedem Eingeloggten erlaubt.
+> ⚠️ **Coolify-Redeploy / Schema-Reimport SETZT DIESE REGELN ZURÜCK** auf das permissive `auth != ""`
+> (wie beim strip-api/plans-viewRule) → nach jedem Reimport diese zwei Regeln erneut setzen. Das
+> Schema-Import-JSON oben zeigt sie NICHT (bewusst permissiv für die Notfall-Wiederherstellung).
+
 Assignment-Status-Werte: `proposed` → `confirmed` | `declined`
 
 email_type-Werte: `invite` | `reminder` | `cancellation` | `update` | `availability` | `love_invite` | `staff_invite`
