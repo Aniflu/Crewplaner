@@ -142,7 +142,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 
 ---
 
-## Aktueller Stand (Stand: 2026-06-17)
+## Aktueller Stand (Stand: 2026-06-17 — teilweise historisch; maßgeblich ist der Versionierungs-Changelog oben + CHANGELOG.md)
 
 ### Was funktioniert ✓
 - Login/Logout via PocketBase
@@ -150,7 +150,7 @@ Nie selbst entscheiden — User nach gewünschter Versionsnummer fragen, Stufe v
 - Manager-Konsole (`admin.html`): Werkzeuge, E-Mail-Log Tab, Benutzer, Rollen, Pläne
 - **Manager + Crew laden Plan direkt aus PocketBase** — localStorage optional
 - Plan-Transfer admin→index via sessionStorage ("Aktuellen Plan bearbeiten"-Button)
-- E-Mail-Log: Hook v4.6 schreibt nach jedem Mailversand in `email_log` Collection
+- E-Mail-Log: Hook v4.8 schreibt nach jedem Mailversand in `email_log` Collection
 - E-Mail-Flow: Einladung (1 Mail/Person), Erinnerung, Update (neue Termine), Absage
 - Einladen = setzt alle Slots auf `proposed` + sendet 1 Invite-Mail (kein per-Slot-Hook mehr)
 - Update-Button erscheint wenn neue Slots ohne PB-Record vorhanden (inkl. defaultCrew-Slots)
@@ -206,7 +206,7 @@ Alle 9 registriert, alle `emailVisibility=true`, alle mit Rolle gesetzt.
 - Informational-Pfad: `_getNewSlotsForCrew` liefert Slots ohne PB-Record → `bulkProposeCrew` → Mail
 - Nicht-Informational-Pfad (Slot-Änderung): `pbFirst` sucht Record → auf proposed setzen → Mail
 
-### E-Mail-Typen (Hook v4.6)
+### E-Mail-Typen (Hook v4.8)
 | Typ | Wann | Empfänger |
 |---|---|---|
 | `invite` | Admin klickt "Einladen" | Crew — "Du bist dabei." |

@@ -2,6 +2,20 @@
 
 > **v0.10.7 – v0.14.13 (Juni 2026)** — kondensiert. Vollständige, ausführliche Einträge: `CLAUDE.md` → Abschnitt „Versionierung".
 
+## v0.26.0 — 2026-07-14
+- **fix/chore/security:** Sammlung aus einem Gesamt-Code-Review + echte Server-Absicherung.
+  - **Aufräumen:** `js/bundle.js` (505 LOC, seit der ES6-Migration nie mehr geladen) und `js/userView.test.js` (Jest-Altlast ohne Runner) gelöscht; die stale „bundle.js muss gespiegelt werden"-Regel aus CLAUDE.md entfernt.
+  - **XSS-Härtung:** `showDD` (dropdown.js) escaped jetzt `header`/`label`/`dot` (vorher landeten Crew-/Positionsnamen unescaped im `innerHTML`).
+  - **Kleinfixes:** `pbEscapeFilter` (pb.js) verdoppelt einzelne Backslashes korrekt (Regex war `/\\\\/`); `showToast` (utils.js) mit Null-Guard; Auto-Scroll zur „Heute"-Zeile springt nach Tour-/Plan-Wechsel wieder (`resetTodayAutoScroll` in `switchPlan`/`switchCrewPlan`). 85 Tests grün. app.js?v=37→38.
+  - **Server-seitig (PocketBase, per Impersonation getestet):** `assignments.updateRule` → Crew ändert nur EIGENE Einsätze (crew_email = eigene), Owner/superadmin alles. `crew_invites.createRule` → nur Owner/superadmin dürfen invite/reminder/update/cancellation (mailen an Fremde); `availability` (mailt nur an Admin) bleibt erlaubt. ⚠️ Coolify-Redeploy/Reimport setzt beide zurück → neu setzen.
+  - **Feld `crew_members.role` (text) angelegt** (fehlte live trotz v0.22.0-Notiz → createPoolMember-Rolle wurde still verworfen) + **Hook v4.8 deployt** → Pool-Rolle wird beim Erst-Login automatisch aufs `users`-Konto übernommen (end-to-end getestet). Deployte Hook-Version jetzt **v4.8** (war v4.6).
+
+## v0.25.0 — 2026-07-12
+- **feat:** „Heute"-Markierung in der Tourtabelle (Today-Line). Die heutige Zeile bekommt einen goldenen Strich + „HEUTE"-Badge, vergangene Tage werden abgedunkelt, beim Öffnen scrollt die Tabelle einmalig dorthin (+ „→ Heute"-Button). Reine, TZ-sichere Leaf-Funktion `todayMarkers` (pure.js); Strich via `box-shadow:inset` (sticky-Spalten-sicher), Gold statt Rot (declined-Kollision). +tests/today.test.mjs. 85 grün. app.js?v=36→37. Kein Hook/Schema.
+
+## v0.24.0 — 2026-07-11
+- **feat:** Handy-Tauglichkeit / Responsive-Layout. `styles.css` hatte keine Media-Queries → am Handy war die App unbedienbar (falsche Anordnung + gar kein Scrollen). Neuer `@media(max-width:768px)`-Block löst den Scroll-Trap (einspaltiges Layout, `height:auto`, Tabelle horizontal scrollbar mit sticky Datum-Spalte), Sidebar wird Off-Canvas-Drawer (Hamburger + Backdrop, neue `toggleDrawer`), schlanker Header, KPI 6→3 Spalten. admin.html eigener Breakpoint. +tests/mobile.test.mjs. 79 grün. app.js?v=35→36, admin-app.js?v=12→13. Kein Hook/Schema.
+
 ## v0.23.5 — 2026-07-09
 - **fix:** „Konto erstellen" bei bereits vergebener E-Mail zeigte nur „Failed to create record". Wer vorab in der Konsole angelegt wurde, hat schon ein `users`-Konto → PB lehnt die E-Mail als vergeben ab. `doRegister` (login.html) erkennt jetzt `validation_not_unique` → Meldung „Konto mit dieser E-Mail-Adresse schon vorhanden", schaltet auf den Login um und füllt die E-Mail vor (neuer Helfer `_switchToLogin`). Roberts blockierender Leer-Account wurde per PB-Superuser entfernt (Crew-Einträge blieben). Kein Hook/Schema, Tests unverändert (74 grün).
 

@@ -1,6 +1,6 @@
 # Sicherheitsrichtlinie — Tour Crew Plan
 
-Stand: v0.23.5
+Stand: v0.26.0
 
 ---
 
@@ -26,13 +26,35 @@ Stand: v0.23.5
 | Update | `@request.auth.role = "superadmin"` |
 | Delete | `@request.auth.role = "superadmin"` |
 
+### API Rules — Datenzugriff (seit v0.26.0 gehärtet)
+
+Vorher war fast alles `@request.auth.id != ""` (jeder eingeloggte Crew-User konnte fremde Einsätze
+patchen und über `crew_invites` Mails an beliebige Adressen auslösen). Am 2026-07-13 per PB-Superuser
+gehärtet und per **Impersonation** getestet (Crew patcht eigenen Einsatz=200, fremden=404,
+Invite-Create=blockiert; Superadmin=200):
+
+| Collection · Operation | Rule |
+|---|---|
+| `assignments` · Update | `@request.auth.role = "superadmin" || (@request.auth.id != "" && crew_email = @request.auth.email) || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)` |
+| `crew_invites` · Create | `@request.auth.role = "superadmin" || (@request.auth.id != "" && type = "availability") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)` |
+| `plans` · List/View | `@request.auth.id = owner || @request.auth.role = "superadmin" || view_token != ""` |
+
+- **assignments.update:** Crew ändert nur EIGENE Einsätze (`crew_email` = eigene, alle klein
+  gespeichert → case-sensitiver PB-Vergleich passt); Owner/superadmin verwalten den ganzen Plan.
+  create/deleteRule bewusst UNVERÄNDERT (`auth != ""`) — Crew-Bestätigung legt ggf. eigenen Record an.
+- **crew_invites.create:** nur Owner/superadmin dürfen `invite`/`reminder`/`update`/`cancellation`
+  (mailen an Fremde); `availability` (Crew-Bereitschaft, mailt NUR an den Admin) bleibt jedem Eingeloggten erlaubt.
+
+> ⚠️ **Coolify-Redeploy / Schema-Reimport setzt diese Regeln auf `auth != ""` zurück** (wie strip-api /
+> plans-viewRule). Nach jedem Reimport diese zwei Regeln erneut setzen. Details: `CLAUDE.md` → Collections.
+
 ### E-Mail-Sichtbarkeit
 
 `emailVisibility` ist standardmäßig `false`. Beim Anlegen eines Users via Admin-Konsole wird `emailVisibility: true` gesetzt, damit die E-Mail-Adresse in der Admin-Tabelle erscheint.
 
 ### verified-Feld
 
-Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js, aktuell v4.7 im Repo / v4.6 deployt).
+Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js, **v4.8 deployt seit 2026-07-14**). Derselbe users-Create-Hook übernimmt zusätzlich die Rolle aus dem Crew-Pool (`crew_members.role`, Sentinel `plan_id="__pool__"`).
 
 ---
 
@@ -57,6 +79,10 @@ Läuft über Traefik (nicht PocketBase). Erlaubte Origins:
 Alle user-generierten Inhalte werden mit `esc()` (in `utils.js`) gerendert.
 Interaktive Elemente nutzen `data-*` Attribute + `dataset.*` Zugriff — kein `onclick`-Injection.
 
+`esc()` maskiert `& < > " '` (seit v0.23.3 auch Quotes → sicher im Attributkontext).
+Seit v0.26.0 escaped auch die Dropdown-Engine `showDD` (dropdown.js) `header`/`label`/`dot`
+konsequent (vorher landeten Crew-/Positionsnamen im Dot-Zweig unescaped im `innerHTML`).
+
 ---
 
 ## E-Mail-Hooks (PocketBase Goja)
@@ -71,9 +97,17 @@ Der Hook in `.pb_hooks/main.pb.js` sendet E-Mails via Resend HTTP API.
 
 ## Aktions-Scoping (Crew)
 
-Seit v0.20.0 prüfen `confirmAssignment`/`declineAssignment` (dataService.js), dass der Ziel-Record die **eigene** E-Mail trägt → Crew kann nur eigene Einsätze bestätigen/absagen. Der Plan-Scope kommt zusätzlich über `_getActivePlanId` + die `view_token`-basierte plans-viewRule.
+Zwei Ebenen, seit v0.26.0 **beide** aktiv:
+1. **App-seitig (v0.20.0):** `confirmAssignment`/`declineAssignment` (dataService.js) prüfen, dass der
+   Ziel-Record die **eigene** E-Mail trägt → Crew kann in der App nur eigene Einsätze bestätigen/absagen.
+2. **Server-seitig (v0.26.0):** die PocketBase-`assignments.updateRule` erzwingt dasselbe auf DB-Ebene
+   (`crew_email = @request.auth.email`), sodass ein direkter API-Aufruf die App-Prüfung nicht mehr
+   umgehen kann; `crew_invites.createRule` verhindert, dass Crew Mails an Fremde auslöst. Siehe
+   „API Rules — Datenzugriff" oben. Der Plan-Scope kommt zusätzlich über die `view_token`-basierte plans-viewRule.
 
-> ⚠️ Diese Prüfung ist **app-seitig**. Eine echte server-seitige Sperre (PocketBase-API-Rules, die Crew nur eigene `assignments` schreiben lässt) steht noch aus (Backlog). Bis dahin ist die Trennung durch das Frontend erzwungen, nicht durch die Datenbank.
+> ✅ Damit ist der frühere Backlog-Punkt „echte server-seitige Sperre" erledigt (2026-07-13, getestet).
+> ⚠️ Rest-Lücke: `assignments.listRule` ist live `''` (public list) — bewusst nicht angefasst, um den
+> öffentlichen view.html-Booker nicht zu brechen; `crew_members` ist weiterhin `auth != ""`.
 
 ---
 

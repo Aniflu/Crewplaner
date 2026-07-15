@@ -26,7 +26,7 @@
 
 ---
 
-## 2. Aktueller Stand (Stand 2026-07-09) — v0.23.5
+## 2. Aktueller Stand (Stand 2026-07-14) — v0.26.0
 
 > **Juni 2026 (v0.10):** Die ES6-Modul-Migration (v0.9.3) hatte bare Cross-Modul-Referenzen
 > hinterlassen → stille `ReferenceError`s (5-Tage-„Bounce"). In v0.10.0–v0.10.6 bereinigt.
@@ -52,7 +52,7 @@
 > - **„Crew sieht keinen Plan" endgültig eingekreist:** case-sensitiver Mail-Filter (v0.15.0) UND eine ungültige Zuweisung `getActivePlanId()=id;`, die nur **Firefox** beim Parsen abwarf → ganzer Modulgraph tot (v0.16.0). **Bei „sieht nichts in EINEM Browser" zuerst echte Konsole + Engine erfragen.**
 > - **Dauerhafte Cache-Lösung (v0.19.0):** Service Worker `sw.js` liefert JS/CSS/HTML network-first (`no-cache`) → kein „stale Sub-Modul"/Hard-Reload mehr.
 > - **Crew-Features:** bekannte Crew aus früheren Touren übernehmen (v0.18.0), eigene bestätigte Termine als .ics/PDF exportieren (v0.20.1), zwischen mehreren Touren wechseln (v0.21.0).
-> - **Scoping (v0.20.0):** Crew kann nur eigene Einsätze bestätigen/absagen; ICS nur bestätigte Termine. **App-seitig** — server-seitige PB-Regeln stehen noch aus (Backlog).
+> - **Scoping (v0.20.0):** Crew kann nur eigene Einsätze bestätigen/absagen; ICS nur bestätigte Termine. Damals nur app-seitig — die **server-seitigen PB-Regeln sind seit v0.26.0 aktiv** (s. v0.24–v0.26-Block).
 > - **Wichtig (plans-viewRule):** Crew kann einen Plan-Record nur lesen, wenn er einen nicht-leeren `view_token` hat (sonst 404 → leere Tour). Jede Tour, die Crew sehen soll, braucht einen view_token („Öffentlicher Booker-Link").
 
 > **v0.22–v0.23.5 (08.–09.07.):** Crew-Verwaltung & Registrierung. Wichtigste Punkte (Details: CHANGELOG.md / CLAUDE.md):
@@ -62,6 +62,13 @@
 > - **PB-Schema-Falle erneut (v0.23.2):** `crew_members.plan_id` (und `assignments.plan_id`) war **relation** statt **text** → der Pool-Sentinel `"__pool__"` schlug die Validierung durch; auf **text** umgebaut. **Merke: `"__pool__"` ⇒ plan_id MUSS text sein.**
 > - **`esc()`-Attribut-Bug (v0.23.3):** Namen mit `"` (z.B. `Robert "Woody" Steinmetz`) brachen in `value="…"` ab — `esc()` maskiert jetzt auch `"`/`'`.
 > - **Einladung/Registrierung (v0.23.4/5):** Staff-Invite-Link zeigte von der GitHub-Testseite auf 404 (jetzt fest Produktiv-Login); „Konto erstellen" bei bereits vergebener E-Mail zeigt jetzt „Konto mit dieser E-Mail-Adresse schon vorhanden" + schaltet auf Login. **Merke:** vom Admin vorab angelegte Personen haben schon ein `users`-Konto → sie müssen sich anmelden / Passwort zurücksetzen, nicht neu registrieren.
+
+> **v0.24–v0.26 (11.–14.07.):** Mobile, Today-Line, Review-Härtung + Server-Absicherung. Details: CHANGELOG.md / CLAUDE.md.
+> - **Handy-Tauglichkeit (v0.24.0):** `styles.css` bekam Media-Queries → am Handy scrollt die Seite, Tabelle horizontal (sticky Datum), Sidebar als Hamburger-Drawer. +mobile.test.mjs.
+> - **„Heute"-Markierung (v0.25.0):** heutige Zeile mit Gold-Strich + „HEUTE"-Badge, vergangene Tage blasser, Auto-Scroll + „→ Heute"-Button. Reine `todayMarkers` (pure.js). +today.test.mjs.
+> - **Code-Review-Härtung (v0.26.0), 85 grün:** totes `bundle.js` + `userView.test.js` gelöscht; XSS-Härtung in `showDD` (esc header/label); `pbEscapeFilter`-Regex + `showToast`-Null-Guard + Auto-Scroll-Reset bei Plan-Wechsel.
+> - **ECHTE Server-Absicherung (v0.26.0, per Impersonation getestet):** `assignments.updateRule` → Crew ändert nur EIGENE Einsätze; `crew_invites.createRule` → nur Owner/superadmin lösen Fremd-Mails aus (availability bleibt). **⚠️ Coolify-Redeploy/Reimport setzt beide zurück → neu setzen** (Details: docs/security.md, CLAUDE.md).
+> - **Pool-Rolle komplett:** Feld `crew_members.role` live angelegt (fehlte trotz v0.22.0-Notiz) **+ Hook v4.8 deployt** → Pool-angelegte Person bekommt ihre Rolle automatisch beim Erst-Login (end-to-end getestet).
 
 ### Was ist fertig ✅
 
@@ -74,7 +81,7 @@
 - E-Mail-Flow: Proposal → Crew bekommt Mail → Bestätigen/Ablehnen per Button → Admin bekommt Rückmeldung
 - Einladungs-System: Admin schickt Crew-Einladung / Staff-Einladung per E-Mail (♥ Liebeseinladung in v0.22.0 entfernt)
 - Globaler Crew-Pool + vereintes Crew-Verzeichnis in der Konsole (v0.22.0/v0.23.0)
-- Alle Custom-Mails via Resend HTTP API (Hook v4.8 im Repo / v4.6 deployt — Deploy ausstehend)
+- Alle Custom-Mails via Resend HTTP API (Hook **v4.8 deployt** seit 2026-07-14)
 - System-Mails (Passwort-Reset) via PB SMTP → Resend SMTP-Gateway
 - Passwortloses User-Anlegen: Admin gibt E-Mail + Rolle ein → Account angelegt → Reset-Link per Mail
 - Auto-Verify: Hook setzt `verified=true` serverseitig bei User-Create
@@ -117,7 +124,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
 ```
 
 Danach prüfen: `ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 20"`
-Erwartete Ausgabe: `[hook] main.pb.js v4.7 geladen` (Repo-Stand v4.7; deployt ist noch v4.6 → Deploy ausstehend)
+Erwartete Ausgabe: `[hook] main.pb.js v4.8 geladen` (Repo-Stand = deployt = **v4.8**, seit 2026-07-14)
 
 ---
 
@@ -156,7 +163,7 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 ├── view.html             ← Öffentliche Read-only-Ansicht (Token-basiert)
 ├── styles.css
 ├── .pb_hooks/
-│   └── main.pb.js        ← E-Mail-Hooks (Goja, v4.7 im Repo / v4.6 deployt) — via Resend HTTP API
+│   └── main.pb.js        ← E-Mail-Hooks (Goja, **v4.8 deployt**) — via Resend HTTP API
 └── js/
     ├── config.js         ← POCKETBASE_URL, ADMIN_EMAIL
     ├── pb.js             ← PocketBase REST-Client (pbGet/Post/Patch/Delete/List/First/Upsert)
@@ -167,13 +174,12 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
     ├── utils.js          ← getVal(), isPending(), showToast(), fmtD(), esc()
     ├── render.js         ← renderTable(), renderHead(), renderBody()
     ├── dropdown.js       ← Dropdowns, openCrewDD(), requestForPos()
-    ├── bundle.js         ← ⚠️ MANUELLE KOPIE aus dropdown.js (kein Build!)
     └── init.js           ← App-Start: loadLogosGlobal(), initPlans(), render()
 ```
 
 ### Kritische Gotchas
 
-**bundle.js = manuelle Kopie** — jede Änderung an `dropdown.js` MUSS auch in `bundle.js` gespiegelt werden.
+**Kein bundle.js mehr** — seit der ES6-Modul-Migration lädt `index.html` nur `js/app.js` als Modul-Entry; das alte `bundle.js` wurde nie mehr geladen und ist in v0.26.0 gelöscht. Nicht wieder anlegen.
 
 **PocketBase Goja-Isolation** — alle Werte in Hook-Callbacks als String-Literale hardcoden, keine äußeren Variablen.
 
@@ -189,12 +195,16 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 users           { id, email, role(superadmin/manager/booker/crew), verified }
 plans           { id, name, owner(→users), plan_data(JSON), view_token }
 plan_members    { plan_id(→plans), user_id(→users), role }
-crew_members    { plan_id, name, email, sort_order, user_id }
+crew_members    { plan_id, name, email, sort_order, user_id, role }   // plan_id="__pool__" = globaler Pool; role = Konto-Rolle beim Erst-Login (v4.8-Hook)
 assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
 crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url, custom_message }
 ```
 
 Assignment-Status-Werte: `proposed` → `confirmed` | `declined`
+
+> 🔒 **Server-Regeln gehärtet (v0.26.0):** `assignments.updateRule` (Crew nur eigene Einsätze) +
+> `crew_invites.createRule` (nur Owner/superadmin lösen Fremd-Mails aus). **⚠️ Coolify-Redeploy/Reimport
+> setzt sie auf `auth != ""` zurück → neu setzen** (exakte Regeln: docs/security.md · docs/database-schema.md · CLAUDE.md).
 
 > ⚠️ **Schema-Falle (nach Coolify-Wipe/Reimport):** `assignments.proposed_by` MUSS Feldtyp **text**
 > sein (die App schreibt `'bulk'`/`'update'`/`'manual'`). Wird es als **relation** angelegt → jeder

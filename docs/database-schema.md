@@ -1,6 +1,6 @@
 # Datenbank-Schema — Tour Crew Plan
 
-PocketBase-Collections (SQLite). Stand: v0.23.5
+PocketBase-Collections (SQLite). Stand: v0.26.0
 
 ---
 
@@ -61,7 +61,7 @@ PocketBase-Collections (SQLite). Stand: v0.23.5
 | `email` | Email | Für E-Mail-Zuordnung (klein gespeichert) |
 | `sort_order` | Number | Reihenfolge in der Tabelle |
 | `user_id` | Relation → `users` | Verknüpfter Login-Account (optional) |
-| `role` | Text (optional) | Nur bei Pool-Records: Rolle, die der User beim Erst-Login bekommt (v0.22.0). Fehlt → Default `crew`. |
+| `role` | Text (optional) | Nur bei Pool-Records: Rolle, die der User beim Erst-Login bekommt (v0.22.0). Fehlt → Default `crew`. **Feld am 2026-07-13 live angelegt** (fehlte vorher trotz v0.22.0-Notiz → `createPoolMember` schrieb `role`, PB verwarf es still). |
 
 > **Globaler Crew-Pool (v0.22.0):** In der Admin-Konsole angelegte Crew-Mitglieder werden als
 > `crew_members` mit `plan_id = "__pool__"` gespeichert (tour-übergreifend, **kein** Login-Konto).
@@ -96,7 +96,12 @@ PocketBase-Collections (SQLite). Stand: v0.23.5
 > angelegt → jeder Slot-Create wirft „Failed to create record" (Einladen/Update/Bestätigen kaputt).
 > PB erlaubt keine Typ-Änderung am Feld → löschen + als Text neu anlegen.
 
-**Hook-Trigger (Stand Hook v4.8):**
+**API Rule (Update, seit v0.26.0 gehärtet):**
+`@request.auth.role = "superadmin" || (@request.auth.id != "" && crew_email = @request.auth.email) || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)`
+→ Crew ändert nur EIGENE Einsätze; Owner/superadmin alles. create/deleteRule unverändert (`auth != ""`).
+⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen (Details: docs/security.md · CLAUDE.md).
+
+**Hook-Trigger (Stand Hook v4.8, deployt 2026-07-14):**
 - assignments-CREATE-Hook **entfernt** (v4.2) — keine per-Slot-Mails mehr. Mails laufen über `crew_invites` (Einladung/Erinnerung/Update/Absage, konsolidiert).
 - UPDATE (status=declined) → Hook informiert den Admin („Abgelehnt").
 - users-CREATE (v4.8) → Auto-Verify **+** übernimmt die Rolle aus dem Crew-Pool (`crew_members` mit `plan_id="__pool__"`, gleiche E-Mail), falls dort ≠ `crew`.
@@ -116,7 +121,13 @@ PocketBase-Collections (SQLite). Stand: v0.23.5
 | `app_url` | URL | Login-URL in der E-Mail (bei `sendAdminInvite` ein JSON-Slot-Array → Hook v4.7 rendert Terminliste) |
 | `custom_message` | Text (optional) | Freitext des Admins → Notiz-Block in der Mail (Hook v4.6) |
 
-**Hook-Trigger:** CREATE → sendet E-Mail via Resend HTTP API, löscht Record danach
+**API Rule (Create, seit v0.26.0 gehärtet):**
+`@request.auth.role = "superadmin" || (@request.auth.id != "" && type = "availability") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)`
+→ nur Owner/superadmin dürfen `invite`/`reminder`/`update`/`cancellation` (mailen an Fremde);
+`availability` (Crew-Bereitschaft, mailt nur an Admin) bleibt jedem Eingeloggten erlaubt.
+⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen.
+
+**Hook-Trigger:** CREATE → sendet E-Mail via Resend HTTP API
 
 ---
 
