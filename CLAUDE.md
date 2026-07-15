@@ -425,14 +425,15 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Werte zurückschreiben. Am 2026-07-08 per PB-Superuser-API erledigt (crew_members 14, assignments 709 Records,
 > 0 Verlust). **Merke: `"__pool__"` ⇒ `crew_members.plan_id` MUSS text sein**, sonst geht der globale Pool nicht.
 
-Aktuell deployte Hook-Version: **v4.6** (Repo: **v4.8** — Deploy via Admin/SSH ausstehend)
+Aktuell deployte Hook-Version: **v4.8** (deployt 2026-07-14 durch Admin — auf dem aktuellen Repo-Stand)
 
-> ✅ **Feld `crew_members.role` (text, optional) am 2026-07-13 per PB-Superuser angelegt** (war live
-> NIE vorhanden trotz v0.22.0-„Schema"-Notiz → `createPoolMember` schrieb `role`, PB verwarf es still,
-> wie bei [[users-no-name-field]]). End-to-end getestet: Write mit role='manager' persistiert jetzt.
-> **Damit ist Glied 1 von 2 erledigt. OFFEN für die Auto-Rollen-Übernahme: Hook v4.8 deployen**
-> (aktuell v4.6, liest das Feld noch nicht). Bis dahin: Pool-Rolle wird gespeichert + im Verzeichnis
-> angezeigt, aber ein neu registriertes Konto bekommt sie noch nicht automatisch (bleibt `crew`).
+> ✅ **Pool-Rollen-Kette KOMPLETT & end-to-end verifiziert (2026-07-14).** Zwei Glieder waren offen,
+> beide jetzt erledigt: (1) Feld `crew_members.role` (text, optional) am 2026-07-13 per PB-Superuser
+> angelegt (fehlte live trotz v0.22.0-„Schema"-Notiz → `createPoolMember` schrieb `role`, PB verwarf es
+> still, wie bei [[users-no-name-field]]). (2) Hook v4.8 vom Admin deployt. TEST (Superuser, dann
+> aufgeräumt): Pool-Member `role='manager'` + neuer `users`-Record mit Default `role='crew'` gleicher
+> Mail → nach dem users-CREATE-Hook ist `users.role='manager'` (aus Pool kopiert) UND `verified=true`.
+> Pool-angelegte Personen bekommen ihre Rolle jetzt beim Erst-Login automatisch.
 - v4.1: email_log-Write nach jedem Mailversand
 - v4.2: assignments CREATE-Hook entfernt (keine per-Slot-Emails mehr)
 - v4.3: Absage-Email umformuliert ("Plan geändert")
