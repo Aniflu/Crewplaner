@@ -427,7 +427,7 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Werte zurückschreiben. Am 2026-07-08 per PB-Superuser-API erledigt (crew_members 14, assignments 709 Records,
 > 0 Verlust). **Merke: `"__pool__"` ⇒ `crew_members.plan_id` MUSS text sein**, sonst geht der globale Pool nicht.
 
-Aktuell deployte Hook-Version: **v4.8** (deployt 2026-07-14 durch Admin) — ⚠️ **Repo-Stand ist v4.9 (v0.27.0), DEPLOY AUSSTEHEND** (Kalender-Feed-Route + feed_token, siehe unten + BACKEND-SCHRITTE).
+Aktuell deployte Hook-Version: **v4.9** (deployt 2026-07-19 durch Admin) — ⚠️ **Repo-Stand ist v4.9.1, RE-DEPLOY AUSSTEHEND** (plan_data-JSON-Parsing-Fix: v4.9 lieferte den Feed mit leerem Ort/Art, weil `plan.get('plan_data')` im Goja-Hook einen JSONRaw liefert; v4.9.1 nutzt `getString`+`JSON.parse`). Feld `users.feed_token` ist angelegt + alle 10 User backfilled (2026-07-19 per Superuser).
 
 > ✅ **Pool-Rollen-Kette KOMPLETT & end-to-end verifiziert (2026-07-14).** Zwei Glieder waren offen,
 > beide jetzt erledigt: (1) Feld `crew_members.role` (text, optional) am 2026-07-13 per PB-Superuser
@@ -445,7 +445,8 @@ Aktuell deployte Hook-Version: **v4.8** (deployt 2026-07-14 durch Admin) — ⚠
 - v4.7: `type==='invite'` rendert eine Terminliste (DATUM/POSITION-Tabelle), wenn `app_url` ein JSON-Slot-Array ist (`sendAdminInvite` schickt das). Ist `app_url` eine reine URL → unverändert generisch (rückwärtskompatibel). Ermöglicht EINE Einladungsmail mit allen Terminen der Person.
 - v4.8: users-CREATE-Hook (bisher nur Auto-Verify) übernimmt jetzt zusätzlich die **Rolle aus dem globalen Crew-Pool** — sucht via `findFirstRecordByFilter('crew_members','plan_id="__pool__" && email={:email}')`; ist dort eine `role` ≠ `crew` gesetzt, wird sie auf den neuen `users`-Record geschrieben (das Konto entsteht erst beim Erst-Login über den Einladungslink). Query-Fehler/kein Treffer → Default-Rolle bleibt (kein harter Fehler). Voraussetzung: Feld `crew_members.role` (text) muss existieren.
 - v4.9: (a) `users`-CREATE-Hook vergibt zusätzlich einen `feed_token` (`$security.randomString(40)`), falls leer. (b) `onBootstrap`-Backfill vergibt bestehenden users ohne Token einmalig einen (selbstheilend). (c) NEUE öffentliche, UNAUTHENTIFIZIERTE Route `routerAdd('GET','/ics/{token}')` → persönlicher, abonnierbarer ICS-Feed EINER Person über ALLE Touren (confirmed→CONFIRMED, proposed→TENTATIVE; stabile UID `planId-date@crewplanner`). Bandname/Ort/Art kommen aus `plans.plan_data`. **VORAUSSETZUNG:** Feld `users.feed_token` (text, optional) muss existieren; nach Deploy `curl -I …/ics/<token>` → `Content-Type: text/calendar` prüfen.
-Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.9 geladen`
+- v4.9.1: fix — `planMeta` im /ics-Handler parst `plan_data` jetzt via `getString`+`JSON.parse` (JSON-Feld = JSONRaw/[]byte im Goja-Hook; `.get()` gab kein brauchbares JS-Objekt → Ort/Art/Titel blieben leer, Feed fiel auf den Bandnamen zurück). Fallback auf `.get()`, falls schon Objekt.
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.9.1 geladen`
 
 ### Docker-Logs live beobachten
 

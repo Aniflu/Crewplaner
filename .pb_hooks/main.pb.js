@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.9
-console.log('[hook] main.pb.js v4.9 geladen');
+// Version: 4.9.1
+console.log('[hook] main.pb.js v4.9.1 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -472,8 +472,11 @@ routerAdd('GET', '/ics/{token}', function(e) {
       var plan = $app.findRecordById('plans', planId);
       if (plan) {
         meta.band = plan.getString('name') || 'Tour';
-        var raw = plan.get('plan_data');
-        var pd = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+        // plan_data ist ein JSON-Feld → im Goja-Hook als JSONRaw([]byte). getString liefert
+        // den JSON-TEXT (cast.ToString) → parsen. Fallback auf .get(), falls schon Objekt.
+        var pd = null;
+        try { var s = plan.getString('plan_data'); if (s) pd = JSON.parse(s); } catch(e2) {}
+        if (!pd) { try { var g = plan.get('plan_data'); if (g && g.tourDates) pd = g; } catch(e3) {} }
         var td = (pd && pd.tourDates) || [];
         for (var j = 0; j < td.length; j++) {
           if (td[j] && td[j].date) meta.dates[td[j].date] = td[j];
