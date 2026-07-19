@@ -1,7 +1,8 @@
 // Entry point for view.html (read-only tour plan view)
 import { SUPABASE_ENABLED } from './config.js';
 import { pbGet, pbListAll } from './pb.js';
-import { TOUR_DATES } from './state.js';
+import { setTourDates, setPositions, setCrew, setDefaultCrew,
+         loadAssignmentsData, loadStatusesData } from './state.js';
 import { renderTable } from './render.js';
 
 // Read-only Modus — keine Dropdowns, keine Bearbeitungsfunktionen
@@ -42,21 +43,26 @@ window.pbListAll = pbListAll;
       : plan.plan_data;
     if (!pd || !pd.tourDates) throw new Error('Plan enthält keine Daten.');
 
-    // Globals für render.js befüllen
-    window.crew               = pd.crew        || [];
-    window.POSITIONS          = pd.positions   || [];
-    TOUR_DATES.splice(0, TOUR_DATES.length, ...(pd.tourDates || []));
-    window.assignments        = pd.assignments || {};
-    window.defaultCrew        = pd.defaultCrew || {};
-    window.assignmentStatuses = {};
+    // State für render.js/getVal befüllen — MUSS über die state.js-Setter laufen.
+    // render.js und utils.js (getVal) lesen die ES-Modul-Bindings aus state.js,
+    // NICHT window.* → eine window-Zuweisung bliebe für den Render wirkungslos
+    // (Zellen leer, Positionen = Defaults). Nur TOUR_DATES ist ein Live-Array.
+    setCrew(pd.crew                    || []);
+    setPositions(pd.positions          || []);
+    setTourDates(pd.tourDates          || []);
+    loadAssignmentsData(pd.assignments || {});
+    setDefaultCrew(pd.defaultCrew      || {});
+    loadStatusesData({});
 
     try {
       const aData = await pbListAll('assignments',
         `plan_id="${plan.id}" && status!="assigned"`, '-id');
+      const statuses = {};
       (aData?.items || []).forEach(row => {
-        if (!window.assignmentStatuses[row.date]) window.assignmentStatuses[row.date] = {};
-        window.assignmentStatuses[row.date][row.pos_id] = { status: row.status, crewName: row.crew_name };
+        if (!statuses[row.date]) statuses[row.date] = {};
+        statuses[row.date][row.pos_id] = { status: row.status, crewName: row.crew_name };
       });
+      loadStatusesData(statuses);
     } catch(e) { console.warn('[view] assignmentStatuses:', e.message); }
 
     document.getElementById('viewPlanName').textContent = plan.name || 'Tour Plan';

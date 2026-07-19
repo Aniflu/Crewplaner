@@ -83,11 +83,19 @@ for (const f of files) {
   // in `X as Y` ist KEINE Nutzung (sonst False-Positive für aliasierte Imports).
   const usage = code.replace(/\b(?:import|export)\b[\s\S]*?from\s*['"][^'"]*['"]\s*;?/g, ' ');
 
+  // Objekt-Literal-Property-Keys (`{ name: … }` / `, name: …`) sind KEINE Bindungs-
+  // Nutzungen — neutralisieren, damit ein Export-Name, der nur als Daten-Key vorkommt
+  // (z.B. `defaultCrew:{…}` in init.js Demo-Plan), nicht fälschlich als „fehlender
+  // Import" gemeldet wird. Shorthand `{ name }` (kein `:`) bleibt eine Nutzung; der
+  // Wert nach `:` bleibt ebenfalls scanbar.
+  const usageNoKeys = usage.replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g,
+    (_, pre, id, post) => pre + '_'.repeat(id.length) + post);
+
   for (const name of Object.keys(exp)) {
     if (exp[name] === f) continue;        // eigener Export
     if (declared.has(name)) continue;     // importiert / lokal / Parameter
     if (globals.has(name)) continue;      // window-global / Builtin
-    if (reword(name).test(usage)) leaks.push(`${f} → ${name} (Export aus ${exp[name]}) — fehlt import`);
+    if (reword(name).test(usageNoKeys)) leaks.push(`${f} → ${name} (Export aus ${exp[name]}) — fehlt import`);
   }
 }
 leaks.sort();
