@@ -264,6 +264,9 @@ Alle 9 registriert, alle `emailVisibility=true`, alle mit Rolle gesetzt.
 | `$http.send()` | ✓ verfügbar | kein auto Content-Type mehr! |
 | `$getEnv('KEY')` | **NICHT verfügbar** → `ReferenceError` | `$os.getenv('KEY')` |
 | `$os.getenv('KEY')` | ✓ verfügbar | — |
+| `record.get('jsonField')` | liefert **JSONRaw ([]byte)**, KEIN JS-Objekt → `.foo` ist `undefined` | `JSON.parse(record.getString('jsonField'))` (getString = cast.ToString → JSON-Text). Gelernt v4.9→v4.9.1 (leerer /ics-Feed). |
+| `$security.randomString(n)` | ✓ verfügbar (alphanum. Token, z.B. `feed_token`) | — |
+| `routerAdd('GET','/pfad/{p}', fn)` | ✓ Custom-Route; `e.request.pathValue('p')`, `e.response.header().set(k,v)`, `return e.string(200,txt)`. KEIN `e.next()` (nur Record-Hooks). Route liegt am Root (nicht `/api`) → strip-api irrelevant, Traefik reicht sie durch. | — |
 
 ### Hook-Regel: e.next() PFLICHT
 
