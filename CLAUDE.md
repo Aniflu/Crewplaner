@@ -427,7 +427,7 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Werte zurückschreiben. Am 2026-07-08 per PB-Superuser-API erledigt (crew_members 14, assignments 709 Records,
 > 0 Verlust). **Merke: `"__pool__"` ⇒ `crew_members.plan_id` MUSS text sein**, sonst geht der globale Pool nicht.
 
-Aktuell deployte Hook-Version: **v4.9** (deployt 2026-07-19 durch Admin) — ⚠️ **Repo-Stand ist v4.9.1, RE-DEPLOY AUSSTEHEND** (plan_data-JSON-Parsing-Fix: v4.9 lieferte den Feed mit leerem Ort/Art, weil `plan.get('plan_data')` im Goja-Hook einen JSONRaw liefert; v4.9.1 nutzt `getString`+`JSON.parse`). Feld `users.feed_token` ist angelegt + alle 10 User backfilled (2026-07-19 per Superuser).
+Aktuell deployte Hook-Version: **v4.9.1** (deployt 2026-07-19 durch Admin — auf dem aktuellen Repo-Stand). Feld `users.feed_token` ist angelegt + alle 10 User backfilled (2026-07-19 per Superuser). Kalender-Feed `/ics/{token}` end-to-end verifiziert: HTTP 200, `text/calendar`, Ort/Art gefüllt, CONFIRMED + TENTATIVE korrekt, Mehr-Touren-Aggregation ok.
 
 > ✅ **Pool-Rollen-Kette KOMPLETT & end-to-end verifiziert (2026-07-14).** Zwei Glieder waren offen,
 > beide jetzt erledigt: (1) Feld `crew_members.role` (text, optional) am 2026-07-13 per PB-Superuser
