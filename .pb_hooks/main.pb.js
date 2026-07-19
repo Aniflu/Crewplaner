@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.9.1
-console.log('[hook] main.pb.js v4.9.1 geladen');
+// Version: 4.9.2
+console.log('[hook] main.pb.js v4.9.2 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -426,15 +426,16 @@ onBootstrap(function(e) {
 });
 
 
-// ── 6. Öffentlicher, abonnierbarer Kalender-Feed pro Person (v4.9) ────────────
-// GET /ics/{token}  (unauthentifiziert — der nicht-erratbare feed_token IST die Auth).
-// Liefert den persönlichen ICS-Feed EINER Person über ALLE Touren: bestätigte Einsätze
-// als STATUS:CONFIRMED, noch offene Anfragen als STATUS:TENTATIVE. Kalender-Apps holen
-// die URL periodisch → automatische Aktualisierung. Goja-Isolation: alle Helfer + Literale
-// INNERHALB des Handlers (kein Zugriff auf äußeren Scope).
-routerAdd('GET', '/ics/{token}', function(e) {
+// ── 6. Öffentlicher, abonnierbarer Kalender-Feed pro Person + TOUR (v4.9.2) ───
+// GET /ics/{token}/{plan}  (unauthentifiziert — der nicht-erratbare feed_token IST die Auth).
+// Liefert den persönlichen ICS-Feed EINER Person für GENAU EINE Tour ({plan} = PB-Plan-ID):
+// bestätigte Einsätze als STATUS:CONFIRMED, noch offene Anfragen als STATUS:TENTATIVE.
+// Kalender-Apps holen die URL periodisch → automatische Aktualisierung. Goja-Isolation:
+// alle Helfer + Literale INNERHALB des Handlers (kein Zugriff auf äußeren Scope).
+routerAdd('GET', '/ics/{token}/{plan}', function(e) {
   var token = e.request.pathValue('token');
-  if (!token) return e.string(404, 'not found');
+  var planFilter = e.request.pathValue('plan');
+  if (!token || !planFilter) return e.string(404, 'not found');
 
   var user;
   try { user = $app.findFirstRecordByFilter('users', 'feed_token = {:t}', { t: token }); }
@@ -457,8 +458,8 @@ routerAdd('GET', '/ics/{token}', function(e) {
   try {
     rows = $app.findRecordsByFilter(
       'assignments',
-      'crew_email = {:e} && (status = "confirmed" || status = "proposed")',
-      'date', 2000, 0, { e: email }
+      'crew_email = {:e} && plan_id = {:p} && (status = "confirmed" || status = "proposed")',
+      'date', 2000, 0, { e: email, p: planFilter }
     );
   } catch(err) { rows = []; }
 

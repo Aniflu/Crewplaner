@@ -669,6 +669,8 @@ export function downloadMyICS() {
 export function openSubscribeModal() {
   let token = '';
   try { token = (JSON.parse(localStorage.getItem('pb_user') || '{}').feed_token) || ''; } catch (_) {}
+  const planId   = localStorage.getItem('tourplan_active_pb_id') || '';
+  const planName = _activePlanName() || 'diese Tour';
   const body = document.getElementById('subscribeBody');
   if (!body) return;
 
@@ -679,8 +681,15 @@ export function openSubscribeModal() {
     openModal('subscribeModal');
     return;
   }
+  if (!planId) {
+    body.innerHTML = `<p style="font-size:12px;line-height:1.6;color:var(--muted);">
+      Keine Tour geöffnet. Bitte zuerst links eine Tour auswählen — der Abo-Link gilt
+      immer für die geöffnete Tour.</p>`;
+    openModal('subscribeModal');
+    return;
+  }
 
-  const { https, webcal } = feedUrls(POCKETBASE_URL, token);
+  const { https, webcal } = feedUrls(POCKETBASE_URL, token, planId);
   window._copyFeed = (which) => {
     const url = which === 'https' ? https : webcal;
     if (!navigator.clipboard) { showToast('Kopieren nicht möglich — Link manuell markieren', '#e84a4a'); return; }
@@ -691,10 +700,11 @@ export function openSubscribeModal() {
   };
 
   body.innerHTML = `
-    <p style="font-size:12px;line-height:1.6;color:var(--muted);margin-bottom:14px;">
+    <p style="font-size:12px;line-height:1.6;color:var(--muted);margin-bottom:6px;">
       Abonniere deine Termine <b>einmal</b> — dein Kalender aktualisiert sich danach
-      automatisch, sobald sich etwas ändert. Enthält deine bestätigten und angefragten
-      Einsätze aus allen Touren.</p>
+      automatisch, sobald sich etwas ändert (bestätigte und angefragte Einsätze).</p>
+    <p style="font-size:12px;line-height:1.5;margin-bottom:14px;">
+      Gilt für: <b style="color:var(--accent);">${esc(planName)}</b></p>
 
     <div class="mf">
       <label class="ml">Ein-Tipp-Abo (Apple · iPhone · Android · Outlook)</label>
@@ -708,7 +718,11 @@ export function openSubscribeModal() {
       <button class="mbtn" style="width:100%;" onclick="window._copyFeed('https')">Link kopieren</button>
       <p style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5;">
         Google Kalender → „Weitere Kalender" → „Per URL" → diesen Link einfügen.</p>
-    </div>`;
+    </div>
+
+    <p style="font-size:10px;color:var(--muted);line-height:1.5;border-top:1px solid var(--rule);padding-top:10px;">
+      Der Link gilt nur für <b>${esc(planName)}</b>. Bist du in mehreren Touren, links die
+      Tour wechseln und erneut abonnieren.</p>`;
   openModal('subscribeModal');
 }
 

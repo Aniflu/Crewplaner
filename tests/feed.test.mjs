@@ -1,32 +1,35 @@
-// Logik-Guard für den abonnierbaren Kalender-Feed (v0.27.0): feedUrls baut aus
-// POCKETBASE_URL + feed_token die Abo-URLs (https für Google, webcal:// für Ein-Tipp-Abo).
+// Logik-Guard für den abonnierbaren Kalender-Feed (v0.27.0, tour-spezifisch ab v0.27.1):
+// feedUrls baut aus POCKETBASE_URL + feed_token + Plan-ID die Abo-URLs (https für Google,
+// webcal:// für Ein-Tipp-Abo). Der Feed enthält NUR die Termine der übergebenen Tour.
 import { test, deepEq, eq } from './_assert.mjs';
 import { feedUrls } from '../js/pure.js';
 
 const BASE = 'https://api.crewplanner.nyxlightwork.de';
+const PLAN = '03fs6r1o8cqeyt2';
 
-test('feedUrls: https + webcal aus Basis-URL und Token', () => {
-  deepEq(feedUrls(BASE, 'AbC123'), {
-    https:  'https://api.crewplanner.nyxlightwork.de/ics/AbC123',
-    webcal: 'webcal://api.crewplanner.nyxlightwork.de/ics/AbC123'
+test('feedUrls: https + webcal aus Basis, Token und Plan-ID', () => {
+  deepEq(feedUrls(BASE, 'AbC123', PLAN), {
+    https:  'https://api.crewplanner.nyxlightwork.de/ics/AbC123/03fs6r1o8cqeyt2',
+    webcal: 'webcal://api.crewplanner.nyxlightwork.de/ics/AbC123/03fs6r1o8cqeyt2'
   });
 });
 
 test('feedUrls: nur das Schema wird zu webcal umgeschrieben (Rest identisch)', () => {
-  const u = feedUrls(BASE, 'tok');
+  const u = feedUrls(BASE, 'tok', PLAN);
   eq(u.webcal, u.https.replace(/^https/, 'webcal'));
 });
 
 test('feedUrls: nachgestellte Slashes in der Basis werden entfernt (kein //ics)', () => {
-  eq(feedUrls('https://api.crewplanner.nyxlightwork.de///', 'x').https,
-     'https://api.crewplanner.nyxlightwork.de/ics/x');
+  eq(feedUrls('https://api.crewplanner.nyxlightwork.de///', 'x', PLAN).https,
+     'https://api.crewplanner.nyxlightwork.de/ics/x/03fs6r1o8cqeyt2');
 });
 
-test('feedUrls: Token wird URL-kodiert', () => {
-  eq(feedUrls(BASE, 'a b/c').https, 'https://api.crewplanner.nyxlightwork.de/ics/a%20b%2Fc');
+test('feedUrls: Token und Plan werden URL-kodiert', () => {
+  eq(feedUrls(BASE, 'a b/c', 'p/q').https,
+     'https://api.crewplanner.nyxlightwork.de/ics/a%20b%2Fc/p%2Fq');
 });
 
-test('feedUrls: leerer/fehlender Token → leerer Token-Teil (Guard, kein Crash)', () => {
-  eq(feedUrls(BASE, '').https, 'https://api.crewplanner.nyxlightwork.de/ics/');
-  eq(feedUrls(BASE, null).https, 'https://api.crewplanner.nyxlightwork.de/ics/');
+test('feedUrls: fehlender Token/Plan → leere Segmente (Guard, kein Crash)', () => {
+  eq(feedUrls(BASE, '', '').https, 'https://api.crewplanner.nyxlightwork.de/ics//');
+  eq(feedUrls(BASE, null, null).https, 'https://api.crewplanner.nyxlightwork.de/ics//');
 });
