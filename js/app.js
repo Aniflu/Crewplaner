@@ -67,6 +67,27 @@ import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
          downloadMyICS, printMySchedule, switchCrewPlan, openSubscribeModal } from './userView.js';
 import { startLocEdit } from './render.js';
 
+// ── Hell/Dunkel-Umschalter (data-theme am <html>, Schlüssel cp_mode) ──
+// Anfangswert steht schon (Inline-Script im <head>). Hier nur Knopf + Persistenz.
+// Ohne gespeicherte Wahl folgt die App der OS-Einstellung.
+function _cpMode(){
+  return document.documentElement.dataset.theme
+    || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+function _paintThemeToggle(){
+  var b = document.getElementById('themeToggle'); if(!b) return;
+  var dark = _cpMode() === 'dark';
+  b.textContent = dark ? '☀' : '☾';           // zeigt das Ziel, nicht den Ist-Zustand
+  b.title = dark ? 'Auf Hell umschalten' : 'Auf Dunkel umschalten';
+}
+window.toggleTheme = function(){
+  var next = _cpMode() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('cp_mode', next); } catch(e) {}
+  _paintThemeToggle();
+};
+_paintThemeToggle();
+
 // ── Register all onclick-handler functions as window globals ──
 // (Logout läuft inline im Button — token löschen + relativ zu login.html — damit
 //  Abmelden auch funktioniert, falls der App-Init hängt. Kein window.logout nötig.)

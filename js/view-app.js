@@ -21,6 +21,14 @@ window.renderTable = renderTable;
 window.pbGet = pbGet;
 window.pbListAll = pbListAll;
 
+// Hell/Dunkel-Umschalter (data-theme am <html>, Schlüssel cp_mode).
+(function(){
+  function mode(){return document.documentElement.dataset.theme||(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}
+  function paint(){var b=document.getElementById('themeToggle');if(!b)return;var d=mode()==='dark';b.textContent=d?'☀':'☾';b.title=d?'Auf Hell umschalten':'Auf Dunkel umschalten';}
+  window.toggleTheme=function(){var n=mode()==='dark'?'light':'dark';document.documentElement.dataset.theme=n;try{localStorage.setItem('cp_mode',n);}catch(e){}paint();};
+  paint();
+})();
+
 // Main load function
 (async function() {
   const token = new URLSearchParams(window.location.search).get('token');

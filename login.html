@@ -14,7 +14,9 @@
     });
   }
 </script>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="theme.css?v=1">
 <script>
   window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
   window.getNavUrl = function(filename) {
@@ -31,9 +33,9 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    background: #1a1a2e;
-    color: #c8cdd5;
-    font-family: 'IBM Plex Mono', monospace;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -60,12 +62,12 @@
   }
 
   .login-brand h1 span {
-    color: #e8c84a;
+    color: var(--accent);
   }
 
   .login-brand p {
     font-size: .65rem;
-    color: #5a6070;
+    color: var(--muted);
     margin-top: 6px;
     letter-spacing: .04em;
     text-transform: uppercase;
@@ -73,14 +75,14 @@
 
   .login-version {
     font-size: .55rem;
-    color: #3a4050;
+    color: var(--muted);
     margin-top: 3px;
     letter-spacing: .08em;
   }
 
   .login-card {
-    background: #12121f;
-    border: 1px solid #2a2a40;
+    background: var(--panel);
+    border: 1px solid var(--rule-2);
     border-radius: 8px;
     padding: 28px 28px 24px;
   }
@@ -92,7 +94,7 @@
   .field label {
     display: block;
     font-size: .6rem;
-    color: #5a6070;
+    color: var(--muted);
     letter-spacing: .06em;
     text-transform: uppercase;
     margin-bottom: 6px;
@@ -100,29 +102,29 @@
 
   .field input {
     width: 100%;
-    background: #1a1a2e;
-    border: 1px solid #2a2a40;
+    background: var(--bg);
+    border: 1px solid var(--rule-2);
     border-radius: 4px;
     padding: 10px 12px;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: var(--mono);
     font-size: .75rem;
-    color: #c8cdd5;
+    color: var(--ink);
     outline: none;
     transition: border-color .15s;
   }
 
   .field input:focus {
-    border-color: #e8c84a;
+    border-color: var(--accent);
   }
 
   .btn-login {
     width: 100%;
-    background: #e8c84a;
-    color: #1a1a2e;
+    background: var(--accent);
+    color: var(--on-accent);
     border: none;
     border-radius: 4px;
     padding: 11px;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: var(--sans);
     font-size: .75rem;
     font-weight: 600;
     letter-spacing: .04em;
@@ -140,7 +142,7 @@
     border-radius: 4px;
     padding: 9px 12px;
     font-size: .65rem;
-    color: #e84a4a;
+    color: var(--warn);
     margin-top: 14px;
     display: none;
   }
@@ -150,7 +152,7 @@
     text-align: center;
     margin-top: 16px;
     font-size: .6rem;
-    color: #5a6070;
+    color: var(--muted);
     cursor: pointer;
     background: none;
     border: none;
@@ -158,22 +160,22 @@
     width: 100%;
   }
 
-  .reset-link:hover { color: #e8c84a; }
+  .reset-link:hover { color: var(--accent); }
 
   .toggle-link {
     display: block;
     text-align: center;
     margin-top: 14px;
     font-size: .6rem;
-    color: #5a6070;
+    color: var(--muted);
     cursor: pointer;
     text-decoration: none;
   }
-  .toggle-link:hover { color: #e8c84a; }
+  .toggle-link:hover { color: var(--accent); }
 
   .invite-banner {
-    background: #e8c84a;
-    color: #1a1a2e;
+    background: var(--accent);
+    color: var(--on-accent);
     padding: 10px 14px;
     border-radius: 4px;
     margin-bottom: 16px;
@@ -188,7 +190,7 @@
     border-radius: 4px;
     padding: 9px 12px;
     font-size: .65rem;
-    color: #4ae8a0;
+    color: var(--show);
     margin-top: 14px;
     display: none;
   }
@@ -197,10 +199,18 @@
 <body>
 
 <div class="login-wrap">
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten" style="position:fixed;top:16px;right:16px;">☾</button>
   <div class="login-brand">
-    <h1>Tour<span>/</span>Crew</h1>
-    <p>Personalplan · Anmelden</p>
-    <div class="login-version">v0.27.2</div>
+    <svg class="cp-mark" width="60" height="60" viewBox="0 0 56 56" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" style="margin:0 auto 14px;" aria-label="Crewplanner">
+      <path d="M28 3 L49 14 L49 42 L28 53 L7 42 L7 14 Z" stroke="currentColor"/>
+      <rect x="18" y="16" width="20" height="26" rx="2.4" stroke="currentColor"/>
+      <rect x="24" y="13.5" width="8" height="5" rx="1.2" stroke="currentColor"/>
+      <circle cx="28" cy="26" r="4" fill="#f7c948" stroke="none"/>
+      <path d="M21.5 37 v-1 a6.5 6.5 0 0 1 13 0 v1" stroke="currentColor"/>
+    </svg>
+    <h1 style="font-family:var(--sans);font-weight:700;font-size:1.9rem;letter-spacing:-.03em;color:var(--ink);text-transform:none;">Crewplanner</h1>
+    <p>Personalplanung · Touring</p>
+    <div class="login-version">v0.28.0</div>
   </div>
 
   <div class="login-card">
@@ -236,7 +246,7 @@
     </div>
 
     <div id="resetBox" style="display:none">
-      <div style="font-size:.6rem;color:#e8c84a;letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px;">Passwort festlegen</div>
+      <div style="font-size:.6rem;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px;">Passwort festlegen</div>
       <div class="field">
         <label for="resetPw1">Neues Passwort</label>
         <input type="password" id="resetPw1" placeholder="Mindestens 8 Zeichen" autocomplete="new-password">
@@ -418,6 +428,15 @@
     if (msg.includes('Too many requests')) return 'Zu viele Versuche. Bitte kurz warten.';
     return msg;
   }
+</script>
+<script>
+  // Hell/Dunkel-Umschalter (data-theme am <html>, Schlüssel cp_mode). Login lädt app.js nicht.
+  (function(){
+    function mode(){return document.documentElement.dataset.theme||(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}
+    function paint(){var b=document.getElementById('themeToggle');if(!b)return;var d=mode()==='dark';b.textContent=d?'☀':'☾';b.title=d?'Auf Hell umschalten':'Auf Dunkel umschalten';}
+    window.toggleTheme=function(){var n=mode()==='dark'?'light':'dark';document.documentElement.dataset.theme=n;try{localStorage.setItem('cp_mode',n);}catch(e){}paint();};
+    paint();
+  })();
 </script>
 </body>
 </html>

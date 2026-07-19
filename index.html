@@ -28,8 +28,12 @@
     return '/' + filename;
   };
 </script>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=23">
+<!-- Hell/Dunkel VOR dem CSS festlegen, damit beim Laden nichts aufblitzt (Schlüssel cp_mode). -->
+<script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<!-- Design-Tokens + Schriften (Geist, JetBrains Mono) zentral in theme.css. -->
+<link rel="stylesheet" href="theme.css?v=1">
+<link rel="stylesheet" href="styles.css?v=24">
 
 <style>
 #crewUpdateModalBody::-webkit-scrollbar {
@@ -39,11 +43,11 @@
   background: transparent;
 }
 #crewUpdateModalBody::-webkit-scrollbar-thumb {
-  background: #e8c84a;
+  background: var(--accent);
   border-radius: 6px;
 }
 #crewUpdateModalBody::-webkit-scrollbar-thumb:hover {
-  background: #f0d860;
+  background: var(--accent);
 }
 </style>
 </head>
@@ -60,19 +64,30 @@
     <!-- CENTER: Band Logo + Title -->
     <div class="hcenter">
       <div class="logo-band-wrap" id="areaBand">
-        <div id="titleBlock">
-          <h1>Tour<span class="title-slash">/</span>Crew</h1>
-          <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.27.2</span>
-            <span class="active-plan-name" id="activePlanName"></span>
+        <div id="titleBlock" style="display:flex;align-items:center;gap:11px;">
+          <svg class="cp-mark" width="30" height="30" viewBox="0 0 56 56" fill="none" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" aria-label="Crewplanner">
+            <path d="M28 3 L49 14 L49 42 L28 53 L7 42 L7 14 Z" stroke="currentColor"/>
+            <rect x="18" y="16" width="20" height="26" rx="2.4" stroke="currentColor"/>
+            <rect x="24" y="13.5" width="8" height="5" rx="1.2" stroke="currentColor"/>
+            <circle cx="28" cy="26" r="4" fill="#f7c948" stroke="none"/>
+            <path d="M21.5 37 v-1 a6.5 6.5 0 0 1 13 0 v1" stroke="currentColor"/>
+          </svg>
+          <div style="text-align:left;">
+            <h1>Crewplanner</h1>
+            <div class="subtitle-row">
+              <span class="tour-tag">Personalplan · v0.28.0</span>
+              <span class="active-plan-name" id="activePlanName"></span>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- RIGHT: Booking Logo -->
-    <div class="hright" id="areaBooking"></div>
+    <div class="hright"><div id="areaBooking"></div></div>
   </div>
+
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten" style="align-self:center;margin:0 14px;">☾</button>
 
   <input type="file" id="fileInput" accept=".json" style="display:none" onchange="onFileLoad(event)">
   <input type="file" id="inLogoPlaner" accept="image/*" style="display:none" onchange="handleLogoUpload('planer',this)">
@@ -96,24 +111,24 @@
         <button class="manager-only" onclick="openAddDate()"><span class="sb-gl">+</span>Datum hinzufügen</button>
         <button class="manager-only" onclick="openTourBlock()"><span class="sb-gl">▶</span>Tourblock einfügen</button>
         <button class="manager-only" onclick="openBlockRange()"><span class="sb-gl">▶</span>Bereich → Block</button>
-        <button id="btnUpdateQueue" class="manager-only" onclick="_openUpdateQueueModal()" style="display:none;"><span class="sb-gl">↻</span>Updates <span id="updateQueueBadge" style="background:#e84a4a;color:#fff;border-radius:50%;padding:1px 6px;font-size:.7rem;margin-left:4px;">0</span></button>
+        <button id="btnUpdateQueue" class="manager-only" onclick="_openUpdateQueueModal()" style="display:none;"><span class="sb-gl">↻</span>Updates <span id="updateQueueBadge" style="background:var(--warn);color:#fff;border-radius:50%;padding:1px 6px;font-size:.7rem;margin-left:4px;">0</span></button>
         <button onclick="scrollToToday()" title="Zur heutigen Tour-Zeile springen"><span class="sb-gl">⌖</span>→ Heute</button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
-        <button onclick="try{localStorage.removeItem('pb_token');localStorage.removeItem('pb_user');}catch(e){};location.href='login.html'" style="border-color:rgba(232,74,74,.35);color:#e8a0a0;"><span class="sb-gl">⎋</span>Abmelden</button>
+        <button onclick="try{localStorage.removeItem('pb_token');localStorage.removeItem('pb_user');}catch(e){};location.href='login.html'" style="border-color:rgba(232,74,74,.35);color:var(--warn);"><span class="sb-gl">⎋</span>Abmelden</button>
         <button id="btnKonsole" onclick="window.location.href=window.getNavUrl('admin.html')" style="display:none;"><span class="sb-gl">⚙</span>Admin Konsole</button>
         <button class="crew-only primary" onclick="bulkConfirmAllMySlots()" style="display:none;"><span class="sb-gl">✓</span>Termine bestätigen</button>
         <button class="crew-only" onclick="downloadMyICS()" style="display:none;"><span class="sb-gl">📅</span>Meine Termine (.ics)</button>
         <button class="crew-only" onclick="printMySchedule()" style="display:none;"><span class="sb-gl">📄</span>Meine Termine (PDF)</button>
         <button class="crew-only" onclick="openSubscribeModal()" style="display:none;"><span class="sb-gl">📆</span>Kalender abonnieren</button>
-        <button class="crew-only" id="btnSendCancellations" onclick="sendCancellations()" style="display:none;background:rgba(232,74,74,.15);border-color:rgba(232,74,74,.4);color:#e84a4a;"><span class="sb-gl">⚠</span>Änderungen mitteilen</button>
+        <button class="crew-only" id="btnSendCancellations" onclick="sendCancellations()" style="display:none;background:rgba(232,74,74,.15);border-color:rgba(232,74,74,.4);color:var(--warn);"><span class="sb-gl">⚠</span>Änderungen mitteilen</button>
       </div>
     </div>
     <div class="sidebar-section crew-only" style="display:none;">
       <h3>Legende</h3>
-      <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0;font-family:'IBM Plex Mono',monospace;font-size:.6rem;">
-        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#4ae8a0;flex-shrink:0;"></span><span style="color:var(--muted);">bestätigt</span></div>
-        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#e8c84a;flex-shrink:0;"></span><span style="color:var(--muted);">angefragt</span></div>
-        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#e84a4a;flex-shrink:0;"></span><span style="color:var(--muted);">abgesagt</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0;font-family:var(--mono);font-size:.6rem;">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--show);flex-shrink:0;"></span><span style="color:var(--muted);">bestätigt</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;"></span><span style="color:var(--muted);">angefragt</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--warn);flex-shrink:0;"></span><span style="color:var(--muted);">abgesagt</span></div>
       </div>
     </div>
     <div class="sidebar-section">
@@ -123,7 +138,7 @@
         <button class="manager-only" onclick="openNewPlan()"><span class="sb-gl">+</span>Neuer Plan</button>
       </div>
     </div>
-    <div id="userBadge" style="display:none;flex-direction:column;gap:4px;padding:10px 12px;margin-top:auto;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;">
+    <div id="userBadge" style="display:none;flex-direction:column;gap:4px;padding:10px 12px;margin-top:auto;border-top:1px solid var(--border);font-family:var(--mono);">
       <span class="user-email" style="font-size:.6rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <button onclick="try{localStorage.removeItem('pb_token');localStorage.removeItem('pb_user');}catch(e){};location.href='login.html'" style="font-size:.6rem;padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;text-align:left;">Abmelden</button>
     </div>
@@ -171,11 +186,11 @@
 <div class="dd-ov" id="ddOv" onclick="closeDD()"></div>
 <div class="dd-menu" id="ddMenu"></div>
 <div id="meldungSubmitBar" style="position:fixed;bottom:24px;right:24px;z-index:200;display:none;">
-  <button onclick="_submitMeldung()" style="background:#e8c84a;color:#0d0d1a;font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:2px;padding:13px 22px;border:none;border-radius:3px;cursor:pointer;font-weight:bold;box-shadow:0 4px 16px rgba(0,0,0,.4);">BEREITSCHAFT MELDEN (<span id="meldungCount">0</span>) →</button>
+  <button onclick="_submitMeldung()" style="background:var(--accent);color:var(--on-accent);font-family:var(--mono);font-size:.65rem;letter-spacing:2px;padding:13px 22px;border:none;border-radius:3px;cursor:pointer;font-weight:bold;box-shadow:0 4px 16px rgba(0,0,0,.4);">BEREITSCHAFT MELDEN (<span id="meldungCount">0</span>) →</button>
 </div>
-<div id="crewUpdateBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:301;background:#e8c84a;color:#0d0d1a;font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:2px;padding:10px 20px;flex-direction:row;align-items:center;gap:16px;">
+<div id="crewUpdateBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:301;background:var(--accent);color:var(--on-accent);font-family:var(--mono);font-size:.62rem;letter-spacing:2px;padding:10px 20px;flex-direction:row;align-items:center;gap:16px;">
   ⚠ &nbsp;<span id="crewUpdateCount">0</span>&nbsp;Crew-Mitglied(er) müssen erneut bestätigen
-  <button onclick="_sendPendingUpdates()" style="background:#0d0d1a;color:#e8c84a;border:none;padding:7px 16px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:2px;cursor:pointer;border-radius:2px;font-weight:bold;">UPDATE-MAILS SENDEN →</button>
+  <button onclick="_sendPendingUpdates()" style="background:var(--on-accent);color:var(--accent);border:none;padding:7px 16px;font-family:var(--mono);font-size:.6rem;letter-spacing:2px;cursor:pointer;border-radius:2px;font-weight:bold;">UPDATE-MAILS SENDEN →</button>
   <span style="margin-left:auto;cursor:pointer;font-size:1rem;" onclick="_dismissCrewUpdates()">✕</span>
 </div>
 
@@ -231,11 +246,11 @@
       <div class="tb-sub" id="tbStep2Sub"></div>
       <div class="tb-bulk">
         <span class="tb-bulk-lbl">Alle:</span>
-        <button onclick="tbSetAll('show','Show')" style="background:#1a3825;border-color:#2d6a3f;color:#4caf72;padding:3px 9px;font-size:.68rem;">Show</button>
-        <button onclick="tbSetAll('reise','Reise')" style="background:#0e1a2e;border-color:#1a3a6a;color:#5a9fd4;padding:3px 9px;font-size:.68rem;">Reise</button>
-        <button onclick="tbSetAll('prep','Aufbau')" style="background:#2a1800;border-color:#7a3a10;color:#e8883a;padding:3px 9px;font-size:.68rem;">Aufbau</button>
-        <button onclick="tbSetAll('prep','Probe')" style="background:#2a1800;border-color:#7a3a10;color:#e8883a;padding:3px 9px;font-size:.68rem;">Probe</button>
-        <button onclick="tbSetAll('off','OFF')" style="background:#1a1a1a;border-color:#3a3a3a;color:#888;padding:3px 9px;font-size:.68rem;">OFF</button>
+        <button onclick="tbSetAll('show','Show')" style="background:var(--panel2);border-color:var(--rule-2);color:var(--show);padding:3px 9px;font-size:.68rem;">Show</button>
+        <button onclick="tbSetAll('reise','Reise')" style="background:var(--panel2);border-color:var(--rule-2);color:var(--reise);padding:3px 9px;font-size:.68rem;">Reise</button>
+        <button onclick="tbSetAll('prep','Aufbau')" style="background:var(--panel2);border-color:var(--rule-2);color:var(--warn)83a;padding:3px 9px;font-size:.68rem;">Aufbau</button>
+        <button onclick="tbSetAll('prep','Probe')" style="background:var(--panel2);border-color:var(--rule-2);color:var(--warn)83a;padding:3px 9px;font-size:.68rem;">Probe</button>
+        <button onclick="tbSetAll('off','OFF')" style="background:var(--panel2);border-color:var(--rule-2);color:var(--muted);padding:3px 9px;font-size:.68rem;">OFF</button>
       </div>
       <div class="tb-daylist" id="tbDayList"></div>
       <div class="mactions" style="justify-content:space-between;">
@@ -333,10 +348,10 @@
 
     <div class="mf" style="margin-top:12px;"><label class="ml">Tagesarten</label>
       <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfShow" checked style="accent-color:#5fcc8a;"> <span style="color:#5fcc8a;">■ </span> Show</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfReise" checked style="accent-color:#6aa7e8;"> <span style="color:#6aa7e8;">■ </span> Reise</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfPrep" checked style="accent-color:#e89a4a;"> <span style="color:#e89a4a;">■ </span> Aufbau / Probe</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfOff" checked style="accent-color:#6a6f78;"> <span style="color:#6a6f78;">■ </span> OFF / Sonstiges</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfShow" checked style="accent-color:var(--show);"> <span style="color:var(--show);">■ </span> Show</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfReise" checked style="accent-color:var(--reise);"> <span style="color:var(--reise);">■ </span> Reise</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfPrep" checked style="accent-color:var(--prep);"> <span style="color:var(--prep);">■ </span> Aufbau / Probe</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfOff" checked style="accent-color:var(--off);"> <span style="color:var(--off);">■ </span> OFF / Sonstiges</label>
       </div></div>
     <div class="mactions">
       <button class="mbtn" onclick="closeModal('pdfModal')">Abbrechen</button>
@@ -352,10 +367,10 @@
     <div style="font-size:.62rem;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.08em;">Importierbar in Apple Kalender, Google, Outlook</div>
     <div class="mf"><label class="ml">Tagesarten</label>
       <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calShow" checked style="accent-color:#4caf72;"> <span style="color:#4caf72;">■ </span> Show</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calReise" checked style="accent-color:#d4b84a;"> <span style="color:#d4b84a;">■ </span> Reise</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calPrep" checked style="accent-color:#5b8ac4;"> <span style="color:#5b8ac4;">■ </span> Aufbau / Probe</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calOff" style="accent-color:#888;"> <span style="color:#888;">■ </span> OFF / Sonstiges</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calShow" checked style="accent-color:var(--show);"> <span style="color:var(--show);">■ </span> Show</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calReise" checked style="accent-color:var(--reise);"> <span style="color:var(--reise);">■ </span> Reise</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calPrep" checked style="accent-color:var(--prep);"> <span style="color:var(--prep);">■ </span> Aufbau / Probe</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calOff" style="accent-color:var(--muted);"> <span style="color:var(--muted);">■ </span> OFF / Sonstiges</label>
       </div>
     </div>
     <div class="mactions">
@@ -404,8 +419,8 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
       <span style="color:var(--muted);font-size:.58rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
-      <button onclick="_importSelectAll(true)" style="background:#1f3a2a;color:#4ae8a0;border:1px solid #2f5a40;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
-      <button onclick="_importSelectAll(false)" style="background:#3a1f1f;color:#e88;border:1px solid #5a2f2f;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
+      <button onclick="_importSelectAll(true)" style="background:var(--panel2);color:var(--show);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
+      <button onclick="_importSelectAll(false)" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
     </div>
     <div id="crewImportBody" style="overflow-y:auto;flex:1;margin-bottom:12px;padding-right:4px;"></div>
     <div class="mactions">
@@ -416,12 +431,12 @@
 </div>
 
 <!-- TOAST -->
-<div id="cancellation-banner" style="display:none;position:fixed;bottom:64px;right:22px;z-index:9998;background:#e84a4a;color:#fff;border-radius:4px;padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:.68rem;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.35);">
+<div id="cancellation-banner" style="display:none;position:fixed;bottom:64px;right:22px;z-index:9998;background:var(--warn);color:#fff;border-radius:4px;padding:10px 14px;font-family:var(--mono);font-size:.68rem;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.35);">
   <span id="cancellation-count"></span>
-  <button onclick="flushAllCancellations()" style="background:#fff;color:#e84a4a;border:none;border-radius:2px;padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-size:.63rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">ABSAGEN SENDEN</button>
-  <button onclick="clearAllCancellations()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:2px;padding:5px 8px;font-family:'IBM Plex Mono',monospace;font-size:.63rem;cursor:pointer;">✕</button>
+  <button onclick="flushAllCancellations()" style="background:#fff;color:var(--warn);border:none;border-radius:2px;padding:5px 10px;font-family:var(--mono);font-size:.63rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">ABSAGEN SENDEN</button>
+  <button onclick="clearAllCancellations()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:2px;padding:5px 8px;font-family:var(--mono);font-size:.63rem;cursor:pointer;">✕</button>
 </div>
-<div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
+<div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-family:var(--mono);font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -432,44 +447,44 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=40"></script>
+<script type="module" src="js/app.js?v=41"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
-  <div style="background:#1a1a2e;border:1px solid #e8c84a;padding:24px;max-width:520px;width:90%;max-height:80vh;overflow:hidden;font-family:'IBM Plex Mono',monospace;">
+  <div style="background:var(--panel2);border:1px solid var(--accent);padding:24px;max-width:520px;width:90%;max-height:80vh;overflow:hidden;font-family:var(--mono);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <span style="color:#e8c84a;letter-spacing:2px;font-size:.75rem;">AUSSTEHENDE UPDATES</span>
-      <span style="cursor:pointer;color:#aaa;" onclick="_closeUpdateQueueModal()">✕</span>
+      <span style="color:var(--accent);letter-spacing:2px;font-size:.75rem;">AUSSTEHENDE UPDATES</span>
+      <span style="cursor:pointer;color:var(--muted);" onclick="_closeUpdateQueueModal()">✕</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
-      <span style="color:#888;font-size:.6rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
-      <button onclick="_queueSelectAll(true)" style="background:#1f3a2a;color:#4ae8a0;border:1px solid #2f5a40;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
-      <button onclick="_queueSelectAll(false)" style="background:#3a1f1f;color:#e88;border:1px solid #5a2f2f;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
-      <button onclick="_clearUpdateQueue()" style="background:#3a1f1f;color:#e84a4a;border:1px solid #5a2f2f;border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">QUEUE LEEREN</button>
+      <span style="color:var(--muted);font-size:.6rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
+      <button onclick="_queueSelectAll(true)" style="background:var(--panel2);color:var(--show);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
+      <button onclick="_queueSelectAll(false)" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
+      <button onclick="_clearUpdateQueue()" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">QUEUE LEEREN</button>
     </div>
     <div id="crewUpdateModalBody" style="max-height:60vh;overflow-y:scroll;overscroll-behavior:contain;margin-bottom:12px;padding-right:4px;"></div>
     <div style="margin-top:16px;text-align:right;">
-      <button id="btnSendUpdates" onclick="_sendSelectedUpdates()" style="background:#e8c84a;color:#0d0d1a;border:none;padding:8px 16px;cursor:pointer;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;font-size:.7rem;">AUSWAHL SENDEN (0) →</button>
+      <button id="btnSendUpdates" onclick="_sendSelectedUpdates()" style="background:var(--accent);color:var(--on-accent);border:none;padding:8px 16px;cursor:pointer;font-family:var(--mono);letter-spacing:1px;font-size:.7rem;">AUSWAHL SENDEN (0) →</button>
     </div>
   </div>
 </div>
 
 <!-- E-Mail-Vorschau (pro Person, vor dem Senden) -->
 <div id="updatePreviewModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
-  <div style="background:#1a1a2e;border:1px solid #e8c84a;padding:24px;max-width:520px;width:90%;font-family:'IBM Plex Mono',monospace;">
+  <div style="background:var(--panel2);border:1px solid var(--accent);padding:24px;max-width:520px;width:90%;font-family:var(--mono);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <span style="color:#e8c84a;letter-spacing:2px;font-size:.75rem;">📧 E-MAIL-VORSCHAU</span>
-      <span style="cursor:pointer;color:#aaa;" onclick="_updatePreviewCancel()">✕</span>
+      <span style="color:var(--accent);letter-spacing:2px;font-size:.75rem;">📧 E-MAIL-VORSCHAU</span>
+      <span style="cursor:pointer;color:var(--muted);" onclick="_updatePreviewCancel()">✕</span>
     </div>
-    <div id="updatePreviewBody" style="font-size:.7rem;color:#c8cdd5;line-height:1.6;"></div>
+    <div id="updatePreviewBody" style="font-size:.7rem;color:var(--ink-2);line-height:1.6;"></div>
     <div style="margin-top:12px;">
-      <label style="display:block;font-size:.58rem;color:#888;letter-spacing:1px;margin-bottom:4px;">PERSÖNLICHE NACHRICHT (optional)</label>
-      <textarea id="updatePreviewText" rows="3" placeholder="Text, der in der E-Mail oben hervorgehoben wird…" style="resize:vertical;width:100%;background:#0d0d1a;border:1px solid #3a3a55;border-radius:3px;color:#e8e8f0;padding:8px;font-family:'IBM Plex Mono',monospace;font-size:.66rem;box-sizing:border-box;"></textarea>
+      <label style="display:block;font-size:.58rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">PERSÖNLICHE NACHRICHT (optional)</label>
+      <textarea id="updatePreviewText" rows="3" placeholder="Text, der in der E-Mail oben hervorgehoben wird…" style="resize:vertical;width:100%;background:var(--on-accent);border:1px solid var(--rule-2);border-radius:3px;color:var(--ink);padding:8px;font-family:var(--mono);font-size:.66rem;box-sizing:border-box;"></textarea>
     </div>
     <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
-      <button onclick="_updatePreviewCancel()" style="background:#23233a;color:#9ad;border:1px solid #3a3a55;border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Abbrechen</button>
-      <button onclick="_updatePreviewSkip()" style="background:#3a2f1f;color:#e8c84a;border:1px solid #5a4a2f;border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Überspringen</button>
-      <button onclick="_updatePreviewSend()" style="background:#e8c84a;color:#0d0d1a;border:none;border-radius:3px;padding:7px 16px;font-family:inherit;font-size:.66rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">Senden →</button>
+      <button onclick="_updatePreviewCancel()" style="background:var(--panel2);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Abbrechen</button>
+      <button onclick="_updatePreviewSkip()" style="background:var(--panel2);color:var(--accent);border:1px solid var(--rule-2);border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Überspringen</button>
+      <button onclick="_updatePreviewSend()" style="background:var(--accent);color:var(--on-accent);border:none;border-radius:3px;padding:7px 16px;font-family:inherit;font-size:.66rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">Senden →</button>
     </div>
   </div>
 </div>

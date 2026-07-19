@@ -14,7 +14,9 @@
     });
   }
 </script>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="theme.css?v=1">
 <script type="module" src="js/admin-app.js?v=13"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
@@ -89,15 +91,15 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: #1a1a2e;
-  color: #c8cdd5;
-  font-family: 'IBM Plex Mono', monospace;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
   min-height: 100vh;
 }
 
 .admin-header {
-  background: #12121f;
-  border-bottom: 1px solid #2a2a40;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule-2);
   padding: 16px 24px;
   display: flex;
   align-items: center;
@@ -112,19 +114,19 @@ body {
 }
 
 .admin-brand h1 {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--sans);
   font-size: 1.6rem;
   letter-spacing: .06em;
-  color: #fff;
+  color: var(--ink);
   line-height: 1;
 }
 
-.admin-brand h1 span { color: #e8c84a; }
+.admin-brand h1 span { color: var(--accent); }
 
 .admin-brand .badge {
-  background: rgba(232,200,74,.15);
-  border: 1px solid rgba(232,200,74,.3);
-  color: #e8c84a;
+  background: var(--accent-wash);
+  border: 1px solid var(--rule-2);
+  color: var(--accent);
   font-size: .55rem;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -141,7 +143,7 @@ body {
 .btn {
   padding: 8px 16px;
   border-radius: 4px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--mono);
   font-size: .7rem;
   font-weight: 600;
   letter-spacing: .04em;
@@ -151,15 +153,15 @@ body {
 }
 .btn:hover { opacity: .85; }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
-.btn-primary { background: #e8c84a; color: #1a1a2e; }
-.btn-ghost { background: transparent; border: 1px solid #2a2a40; color: #c8cdd5; }
-.btn-green { background: rgba(74,232,160,.15); border: 1px solid rgba(74,232,160,.3); color: #4ae8a0; }
-.btn-danger { background: rgba(232,74,74,.15); border: 1px solid rgba(232,74,74,.3); color: #e84a4a; }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-ghost { background: transparent; border: 1px solid var(--rule-2); color: var(--ink); }
+.btn-green { background: rgba(74,232,160,.15); border: 1px solid rgba(74,232,160,.3); color: var(--show); }
+.btn-danger { background: rgba(232,74,74,.15); border: 1px solid rgba(232,74,74,.3); color: var(--warn); }
 .btn-sm { padding: 5px 10px; font-size: .65rem; }
 
 .admin-nav {
-  background: #12121f;
-  border-bottom: 1px solid #2a2a40;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule-2);
   padding: 0 24px;
   display: flex;
   gap: 0;
@@ -167,12 +169,12 @@ body {
 
 .nav-tab {
   padding: 12px 20px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--mono);
   font-size: .68rem;
   font-weight: 600;
   letter-spacing: .05em;
   text-transform: uppercase;
-  color: #5a6070;
+  color: var(--muted);
   cursor: pointer;
   background: none;
   border: none;
@@ -180,8 +182,8 @@ body {
   transition: color .15s, border-color .15s;
 }
 
-.nav-tab:hover { color: #c8cdd5; }
-.nav-tab.active { color: #e8c84a; border-bottom-color: #e8c84a; }
+.nav-tab:hover { color: var(--ink); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 .admin-content {
   padding: 24px;
@@ -195,13 +197,13 @@ body {
   font-size: .8rem;
   font-weight: 600;
   letter-spacing: .04em;
-  color: #fff;
+  color: var(--ink);
   margin-bottom: 4px;
 }
 
 .section-sub {
   font-size: .62rem;
-  color: #5a6070;
+  color: var(--muted);
   margin-bottom: 20px;
 }
 
@@ -217,32 +219,32 @@ body {
   font-weight: 600;
   letter-spacing: .05em;
   text-transform: uppercase;
-  color: #5a6070;
-  background: #12121f;
-  border-bottom: 1px solid #2a2a40;
+  color: var(--muted);
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule-2);
 }
 
 .data-table td {
   padding: 10px 12px;
   font-size: .7rem;
-  border-bottom: 1px solid #1e2230;
+  border-bottom: 1px solid var(--panel2);
   vertical-align: middle;
 }
 
 .data-table tr:hover td { background: rgba(255,255,255,.02); }
 
 .role-select {
-  background: #1a1a2e;
-  border: 1px solid #2a2a40;
+  background: var(--panel2);
+  border: 1px solid var(--rule-2);
   border-radius: 3px;
   padding: 4px 8px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--mono);
   font-size: .68rem;
-  color: #c8cdd5;
+  color: var(--ink);
   cursor: pointer;
 }
 
-.role-select:focus { outline: none; border-color: #e8c84a; }
+.role-select:focus { outline: none; border-color: var(--accent); }
 
 .role-badge {
   display: inline-block;
@@ -254,20 +256,20 @@ body {
   text-transform: uppercase;
 }
 
-.role-superadmin { background: rgba(232,200,74,.15); color: #e8c84a; border: 1px solid rgba(232,200,74,.3); }
-.role-manager { background: rgba(74,232,160,.12); color: #4ae8a0; border: 1px solid rgba(74,232,160,.25); }
+.role-superadmin { background: var(--accent-wash); color: var(--accent); border: 1px solid var(--rule-2); }
+.role-manager { background: rgba(74,232,160,.12); color: var(--show); border: 1px solid rgba(74,232,160,.25); }
 .role-booker { background: rgba(79,129,189,.15); color: #7ab0e0; border: 1px solid rgba(79,129,189,.3); }
-.role-crew { background: rgba(90,96,112,.15); color: #7a8090; border: 1px solid rgba(90,96,112,.3); }
+.role-crew { background: rgba(90,96,112,.15); color: var(--muted); border: 1px solid rgba(90,96,112,.3); }
 
-.verified-badge { font-size: .6rem; color: #4ae8a0; }
-.unverified-badge { font-size: .6rem; color: #5a6070; }
+.verified-badge { font-size: .6rem; color: var(--show); }
+.unverified-badge { font-size: .6rem; color: var(--muted); }
 
 .toast {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: #12121f;
-  border: 1px solid #2a2a40;
+  background: var(--panel);
+  border: 1px solid var(--rule-2);
   border-radius: 6px;
   padding: 12px 18px;
   font-size: .7rem;
@@ -283,27 +285,27 @@ body {
 }
 
 .role-card {
-  background: #12121f;
-  border: 1px solid #2a2a40;
+  background: var(--panel);
+  border: 1px solid var(--rule-2);
   border-radius: 6px;
   padding: 16px;
 }
 
 .role-card-name { font-size: .75rem; font-weight: 600; margin-bottom: 4px; }
-.role-card-count { font-size: .6rem; color: #5a6070; margin-bottom: 12px; }
+.role-card-count { font-size: .6rem; color: var(--muted); margin-bottom: 12px; }
 
 .role-perm-list {
   list-style: none;
   font-size: .62rem;
-  color: #7a8090;
+  color: var(--muted);
   line-height: 1.9;
 }
 
-.role-perm-list li::before { content: '✓ '; color: #4ae8a0; }
-.role-perm-list li.no::before { content: '✗ '; color: #e84a4a; }
-.role-perm-list li.no { color: #4a5060; }
+.role-perm-list li::before { content: '✓ '; color: var(--show); }
+.role-perm-list li.no::before { content: '✗ '; color: var(--warn); }
+.role-perm-list li.no { color: var(--muted); }
 
-.plan-status { font-size: .6rem; color: #5a6070; }
+.plan-status { font-size: .6rem; color: var(--muted); }
 
 .search-bar {
   display: flex;
@@ -314,20 +316,20 @@ body {
 .search-bar input {
   flex: 1;
   max-width: 360px;
-  background: #12121f;
-  border: 1px solid #2a2a40;
+  background: var(--panel);
+  border: 1px solid var(--rule-2);
   border-radius: 4px;
   padding: 8px 12px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--mono);
   font-size: .72rem;
-  color: #c8cdd5;
+  color: var(--ink);
   outline: none;
 }
 
-.search-bar input:focus { border-color: #e8c84a; }
+.search-bar input:focus { border-color: var(--accent); }
 
-.loading { color: #5a6070; font-size: .7rem; padding: 24px 0; }
-.error-text { color: #e84a4a; font-size: .7rem; padding: 8px 0; }
+.loading { color: var(--muted); font-size: .7rem; padding: 24px 0; }
+.error-text { color: var(--warn); font-size: .7rem; padding: 8px 0; }
 
 /* ── Werkzeuge Tab ─────────────────────────────────────────────────────────── */
 .tool-grid {
@@ -352,8 +354,8 @@ body {
 }
 
 .tool-card {
-  background: #12121f;
-  border: 1px solid #2a2a40;
+  background: var(--panel);
+  border: 1px solid var(--rule-2);
   border-radius: 6px;
   padding: 18px;
 }
@@ -364,29 +366,29 @@ body {
   font-size: .72rem;
   font-weight: 600;
   letter-spacing: .04em;
-  color: #fff;
+  color: var(--ink);
   text-transform: uppercase;
   margin-bottom: 4px;
 }
 
 .tool-card-sub {
   font-size: .6rem;
-  color: #5a6070;
+  color: var(--muted);
   margin-bottom: 14px;
 }
 
 .tool-input {
   width: 100%;
-  background: #1a1a2e;
-  border: 1px solid #2a2a40;
+  background: var(--panel2);
+  border: 1px solid var(--rule-2);
   border-radius: 3px;
   padding: 7px 10px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--mono);
   font-size: .7rem;
-  color: #c8cdd5;
+  color: var(--ink);
   outline: none;
 }
-.tool-input:focus { border-color: #e8c84a; }
+.tool-input:focus { border-color: var(--accent); }
 
 .tool-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
@@ -398,8 +400,8 @@ body {
 }
 
 .plan-info-cell {
-  background: #1a1a2e;
-  border: 1px solid #2a2a40;
+  background: var(--panel2);
+  border: 1px solid var(--rule-2);
   border-radius: 4px;
   padding: 8px 12px;
   text-align: center;
@@ -408,13 +410,13 @@ body {
 .plan-info-val {
   font-size: 1.4rem;
   font-weight: 600;
-  color: #e8c84a;
+  color: var(--accent);
   line-height: 1;
 }
 
 .plan-info-lbl {
   font-size: .55rem;
-  color: #5a6070;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: .06em;
   margin-top: 2px;
@@ -433,7 +435,7 @@ body {
   gap: 8px;
   margin-bottom: 8px;
   padding: 6px 8px;
-  background: #1a1a2e;
+  background: var(--panel2);
   border-radius: 4px;
 }
 
@@ -465,8 +467,8 @@ body {
 }
 .modal-bg.open { display: flex; }
 .modal-box {
-  background: #12121f;
-  border: 1px solid #2a2a40;
+  background: var(--panel);
+  border: 1px solid var(--rule-2);
   border-radius: 8px;
   padding: 24px;
   min-width: 320px;
@@ -480,62 +482,70 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .06em;
-  color: #e8c84a;
+  color: var(--accent);
   margin-bottom: 18px;
 }
 .mf { margin-bottom: 14px; }
 .ml {
   display: block;
   font-size: .58rem;
-  color: #5a6070;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: .06em;
   margin-bottom: 6px;
 }
 .mactions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .mbtn {
-  background: #1a1a2e;
-  border: 1px solid #2a2a40;
+  background: var(--panel2);
+  border: 1px solid var(--rule-2);
   border-radius: 4px;
   padding: 7px 14px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--mono);
   font-size: .68rem;
-  color: #c8cdd5;
+  color: var(--ink);
   cursor: pointer;
 }
-.mbtn.primary { background: #e8c84a; color: #1a1a2e; border-color: #e8c84a; font-weight: 600; }
+.mbtn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
 
 /* PDF view choice */
 .pdf-view-choice { display: flex; gap: 8px; flex-wrap: wrap; }
 .pvc {
   flex: 1;
   min-width: 100px;
-  background: #1a1a2e;
-  border: 1px solid #2a2a40;
+  background: var(--panel2);
+  border: 1px solid var(--rule-2);
   border-radius: 4px;
   padding: 8px 10px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--mono);
   font-size: .65rem;
-  color: #7a8090;
+  color: var(--muted);
   cursor: pointer;
   text-align: left;
 }
-.pvc.active { border-color: #e8c84a; color: #e8c84a; background: rgba(232,200,74,.08); }
+.pvc.active { border-color: var(--accent); color: var(--accent); background: rgba(232,200,74,.08); }
 .pvc-ic { display: block; font-size: 1rem; margin-bottom: 2px; }
 .pvc-lbl { display: block; font-weight: 600; }
-.pvc-desc { display: block; font-size: .55rem; color: #5a6070; margin-top: 2px; line-height: 1.3; }
+.pvc-desc { display: block; font-size: .55rem; color: var(--muted); margin-top: 2px; line-height: 1.3; }
 </style>
 </head>
 <body>
 
 <div class="admin-header">
   <div class="admin-brand">
-    <h1>Tour<span>/</span>Crew</h1>
+    <svg class="cp-mark" width="28" height="28" viewBox="0 0 56 56" fill="none" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" aria-label="Crewplanner">
+      <path d="M28 3 L49 14 L49 42 L28 53 L7 42 L7 14 Z" stroke="currentColor"/>
+      <rect x="18" y="16" width="20" height="26" rx="2.4" stroke="currentColor"/>
+      <rect x="24" y="13.5" width="8" height="5" rx="1.2" stroke="currentColor"/>
+      <circle cx="28" cy="26" r="4" fill="#f7c948" stroke="none"/>
+      <path d="M21.5 37 v-1 a6.5 6.5 0 0 1 13 0 v1" stroke="currentColor"/>
+    </svg>
+    <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:#5a6070;letter-spacing:.08em;margin-left:8px;">v0.27.2</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.28.0</span>
   </div>
   <div class="header-actions">
-    <span id="adminUserBadge" style="font-size:.65rem;color:#5a6070;"></span>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
+    <span id="adminUserBadge" style="font-size:.65rem;color:var(--muted);"></span>
     <button class="btn btn-primary btn-sm" onclick="_wrkPlanData ? loadPlanIntoTourview() : window.location.href=window.getNavUrl('index.html')">Aktuellen Plan bearbeiten →</button>
     <button class="btn btn-ghost btn-sm" onclick="adminLogout()">Abmelden</button>
   </div>
@@ -566,8 +576,8 @@ body {
         </select>
         <button class="btn btn-ghost btn-sm" onclick="loadAdminPlans()">↺ Neu laden</button>
       </div>
-      <div id="wrkPlanLoading" style="font-size:.65rem;color:#5a6070;margin-top:8px;display:none;">Lädt…</div>
-      <div id="wrkPlanError" style="font-size:.65rem;color:#e84a4a;margin-top:8px;display:none;"></div>
+      <div id="wrkPlanLoading" style="font-size:.65rem;color:var(--muted);margin-top:8px;display:none;">Lädt…</div>
+      <div id="wrkPlanError" style="font-size:.65rem;color:var(--warn);margin-top:8px;display:none;"></div>
     </div>
 
     <!-- Plan Info + Tools (nur wenn Plan geladen) -->
@@ -635,8 +645,8 @@ body {
           <div class="tool-card-sub">Logos sind plan-unabhängig und werden im Browser gespeichert</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
             <!-- Planer -->
-            <div style="padding:10px;background:#1a1a2e;border-radius:4px;">
-              <div style="font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Planer</div>
+            <div style="padding:10px;background:var(--panel2);border-radius:4px;">
+              <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Planer</div>
               <img id="admLogo_planer" class="logo-thumb">
               <div style="display:flex;gap:6px;margin-top:6px;">
                 <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
@@ -647,8 +657,8 @@ body {
               </div>
             </div>
             <!-- Band -->
-            <div style="padding:10px;background:#1a1a2e;border-radius:4px;">
-              <div style="font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Band</div>
+            <div style="padding:10px;background:var(--panel2);border-radius:4px;">
+              <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Band</div>
               <img id="admLogo_band" class="logo-thumb">
               <div style="display:flex;gap:6px;margin-top:6px;">
                 <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
@@ -659,8 +669,8 @@ body {
               </div>
             </div>
             <!-- Booking -->
-            <div style="padding:10px;background:#1a1a2e;border-radius:4px;">
-              <div style="font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Booking</div>
+            <div style="padding:10px;background:var(--panel2);border-radius:4px;">
+              <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Booking</div>
               <img id="admLogo_booking" class="logo-thumb">
               <div style="display:flex;gap:6px;margin-top:6px;">
                 <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
@@ -690,13 +700,13 @@ body {
           <div class="tool-card-sub">Read-only Ansicht für Booker — kein Login nötig</div>
           <div id="viewLinkBox" style="display:none;flex-direction:column;gap:10px;margin-bottom:12px;">
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <span style="font-size:.6rem;color:#5a6070;min-width:80px;">Kurzlink</span>
-              <input id="viewShortUrl" class="tool-input" readonly style="max-width:260px;font-weight:600;color:#e8c84a;">
+              <span style="font-size:.6rem;color:var(--muted);min-width:80px;">Kurzlink</span>
+              <input id="viewShortUrl" class="tool-input" readonly style="max-width:260px;font-weight:600;color:var(--accent);">
               <button class="btn btn-gold btn-sm" onclick="copyShortLink()">Kopieren</button>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <span style="font-size:.6rem;color:#5a6070;min-width:80px;">Vollständig</span>
-              <input id="viewLinkUrl" class="tool-input" readonly style="max-width:360px;font-size:.6rem;color:#5a6070;">
+              <span style="font-size:.6rem;color:var(--muted);min-width:80px;">Vollständig</span>
+              <input id="viewLinkUrl" class="tool-input" readonly style="max-width:360px;font-size:.6rem;color:var(--muted);">
             </div>
           </div>
           <button class="btn btn-gold btn-sm" onclick="generateViewLink()" id="btnGenerateLink">Link generieren</button>
@@ -705,7 +715,7 @@ body {
       </div><!-- end tool-grid -->
     </div><!-- end wrkPlanLoaded -->
 
-    <div id="wrkNoData" style="color:#5a6070;font-size:.7rem;padding:16px 0;display:none;">
+    <div id="wrkNoData" style="color:var(--muted);font-size:.7rem;padding:16px 0;display:none;">
       Kein plan_data vorhanden. Plan in der App öffnen und speichern — dann hier neu laden.
     </div>
   </div>
@@ -721,20 +731,20 @@ body {
       <button class="btn btn-primary btn-sm" onclick="toggleNewUserForm(true)">+ Neues Crew-Mitglied</button>
     </div>
 
-    <div id="newUserForm" style="display:none;background:#12121f;border:1px solid #2a2a40;border-radius:6px;padding:16px;margin-bottom:16px;">
-      <div style="font-size:.7rem;font-weight:600;color:#fff;margin-bottom:4px;">Neues Crew-Mitglied anlegen</div>
-      <div style="font-size:.6rem;color:#5a6070;margin-bottom:12px;line-height:1.5;">Landet im globalen Crew-Pool (alle Touren können es übernehmen). <strong>Kein Login-Konto</strong> — das entsteht erst, wenn die Person zu einer Tour eingeladen wird und sich über den Link einloggt.</div>
+    <div id="newUserForm" style="display:none;background:var(--panel);border:1px solid var(--rule-2);border-radius:6px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:.7rem;font-weight:600;color:var(--ink);margin-bottom:4px;">Neues Crew-Mitglied anlegen</div>
+      <div style="font-size:.6rem;color:var(--muted);margin-bottom:12px;line-height:1.5;">Landet im globalen Crew-Pool (alle Touren können es übernehmen). <strong>Kein Login-Konto</strong> — das entsteht erst, wenn die Person zu einer Tour eingeladen wird und sich über den Link einloggt.</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
         <div>
-          <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Name</label>
-          <input type="text" id="newUserName" placeholder="Vor- und Nachname" style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:4px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#c8cdd5;outline:none;width:200px;">
+          <label style="display:block;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Name</label>
+          <input type="text" id="newUserName" placeholder="Vor- und Nachname" style="background:var(--panel2);border:1px solid var(--rule-2);border-radius:4px;padding:7px 10px;font-family:var(--mono);font-size:.7rem;color:var(--ink);outline:none;width:200px;">
         </div>
         <div>
-          <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">E-Mail</label>
-          <input type="email" id="newUserEmail" placeholder="name@beispiel.de" style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:4px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#c8cdd5;outline:none;width:220px;">
+          <label style="display:block;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">E-Mail</label>
+          <input type="email" id="newUserEmail" placeholder="name@beispiel.de" style="background:var(--panel2);border:1px solid var(--rule-2);border-radius:4px;padding:7px 10px;font-family:var(--mono);font-size:.7rem;color:var(--ink);outline:none;width:220px;">
         </div>
         <div>
-          <label style="display:block;font-size:.6rem;color:#5a6070;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Rolle</label>
+          <label style="display:block;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Rolle</label>
           <select id="newUserRole" class="role-select">
             <option value="crew">Crew</option>
             <option value="booker">Booker</option>
@@ -747,11 +757,11 @@ body {
           <button class="btn btn-ghost btn-sm" onclick="toggleNewUserForm(false)">Abbrechen</button>
         </div>
       </div>
-      <div id="newUserError" style="font-size:.65rem;color:#e84a4a;margin-top:8px;display:none;"></div>
+      <div id="newUserError" style="font-size:.65rem;color:var(--warn);margin-top:8px;display:none;"></div>
     </div>
 
     <!-- Vereintes Crew-Verzeichnis: alle Personen per E-Mail zusammengeführt -->
-    <div style="font-size:.6rem;color:#5a6070;margin-bottom:8px;">Alle Personen — zusammengeführt aus Konten, Crew-Pool und Touren. Name/E-Mail/Rolle bearbeiten → „Speichern" (wird überall übernommen, auch in den Touren).</div>
+    <div style="font-size:.6rem;color:var(--muted);margin-bottom:8px;">Alle Personen — zusammengeführt aus Konten, Crew-Pool und Touren. Name/E-Mail/Rolle bearbeiten → „Speichern" (wird überall übernommen, auch in den Touren).</div>
     <table class="data-table">
       <thead>
         <tr>
@@ -847,7 +857,7 @@ body {
     <div class="section-sub">Alle für diesen Plan versendeten E-Mails — kombinierbar filterbar</div>
     <div id="emailLogFilters" style="margin-bottom:8px;"></div>
     <div id="emailLogBody">
-      <p style="font-size:.65rem;color:#5a6070;">Tab anklicken um zu laden.</p>
+      <p style="font-size:.65rem;color:var(--muted);">Tab anklicken um zu laden.</p>
     </div>
   </div>
 
@@ -884,10 +894,10 @@ body {
     <div class="mf">
       <label class="ml">Tagesarten</label>
       <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfShow" checked style="accent-color:#5fcc8a;"> <span style="color:#5fcc8a;">■ </span> Show</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfReise" checked style="accent-color:#6aa7e8;"> <span style="color:#6aa7e8;">■ </span> Reise</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfPrep" checked style="accent-color:#e89a4a;"> <span style="color:#e89a4a;">■ </span> Aufbau / Probe</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfOff" checked style="accent-color:#6a6f78;"> <span style="color:#6a6f78;">■ </span> OFF / Sonstiges</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfShow" checked style="accent-color:var(--show);"> <span style="color:var(--show);">■ </span> Show</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfReise" checked style="accent-color:var(--reise);"> <span style="color:var(--reise);">■ </span> Reise</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfPrep" checked style="accent-color:var(--prep);"> <span style="color:var(--prep);">■ </span> Aufbau / Probe</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;"><input type="checkbox" id="pdfOff" checked style="accent-color:var(--off);"> <span style="color:var(--off);">■ </span> OFF / Sonstiges</label>
       </div>
     </div>
     <div class="mactions">
@@ -901,14 +911,14 @@ body {
 <div class="modal-bg" id="calModal">
   <div class="modal-box" style="width:320px;">
     <div class="modal-title">📅 Kalender exportieren</div>
-    <div style="font-size:.62rem;color:#5a6070;margin-bottom:14px;text-transform:uppercase;letter-spacing:.08em;">Importierbar in Apple Kalender, Google, Outlook</div>
+    <div style="font-size:.62rem;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.08em;">Importierbar in Apple Kalender, Google, Outlook</div>
     <div class="mf">
       <label class="ml">Tagesarten</label>
       <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calShow" checked style="accent-color:#4caf72;"> <span style="color:#4caf72;">■ </span> Show</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calReise" checked style="accent-color:#d4b84a;"> <span style="color:#d4b84a;">■ </span> Reise</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calPrep" checked style="accent-color:#5b8ac4;"> <span style="color:#5b8ac4;">■ </span> Aufbau / Probe</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calOff" style="accent-color:#888;"> <span style="color:#888;">■ </span> OFF / Sonstiges</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calShow" checked style="accent-color:var(--show);"> <span style="color:var(--show);">■ </span> Show</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calReise" checked style="accent-color:var(--reise);"> <span style="color:var(--reise);">■ </span> Reise</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calPrep" checked style="accent-color:var(--prep);"> <span style="color:var(--prep);">■ </span> Aufbau / Probe</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.73rem;cursor:pointer;"><input type="checkbox" id="calOff" style="accent-color:var(--muted);"> <span style="color:var(--muted);">■ </span> OFF / Sonstiges</label>
       </div>
     </div>
     <div class="mactions">
@@ -922,10 +932,10 @@ body {
 <div class="modal-bg" id="emailPreviewModal">
   <div class="modal-box" style="width:520px;max-width:94vw;">
     <div class="modal-title">📧 E-Mail-Vorschau</div>
-    <div id="emailPreviewBody" style="font-size:.7rem;color:#c8cdd5;line-height:1.6;"></div>
+    <div id="emailPreviewBody" style="font-size:.7rem;color:var(--ink);line-height:1.6;"></div>
     <div class="mf" style="margin-top:14px;">
       <label class="ml">Persönliche Nachricht (optional)</label>
-      <textarea id="emailPreviewText" rows="4" class="mi" placeholder="Text, der in der E-Mail oben hervorgehoben wird…" style="resize:vertical;width:100%;font-family:'IBM Plex Mono',monospace;"></textarea>
+      <textarea id="emailPreviewText" rows="4" class="mi" placeholder="Text, der in der E-Mail oben hervorgehoben wird…" style="resize:vertical;width:100%;font-family:var(--mono);"></textarea>
     </div>
     <div class="mactions">
       <button class="mbtn" onclick="closeModal('emailPreviewModal')">Abbrechen</button>
@@ -938,7 +948,7 @@ body {
 <div class="modal-bg" id="cancelSelectModal">
   <div class="modal-box" style="width:480px;max-width:94vw;">
     <div class="modal-title">✕ Einsätze absagen</div>
-    <div id="cancelSelectBody" style="font-size:.7rem;color:#c8cdd5;line-height:1.6;max-height:50vh;overflow-y:auto;"></div>
+    <div id="cancelSelectBody" style="font-size:.7rem;color:var(--ink);line-height:1.6;max-height:50vh;overflow-y:auto;"></div>
     <div class="mactions">
       <button class="mbtn" onclick="closeModal('cancelSelectModal')">Abbrechen</button>
       <button class="mbtn primary" onclick="cancelSelectNext()">Weiter zur Vorschau →</button>
@@ -957,7 +967,7 @@ let assignments = {};
 let defaultCrew = {};
 let assignmentStatuses = {};
 let logos = { booking: '', band: '', planer: '' };
-const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','#c9211e','#2e75b6','#548235'];
+const CREW_COLORS = ['#4f81bd','#70ad47','#ed7d31','#c55a11','#7030a0','var(--warn)','#2e75b6','#548235'];
 const LOGOS_KEY = 'tourplan_logos';
 let activePlanId = null;
 
@@ -1003,8 +1013,8 @@ function switchTab(name) {
 function adminToast(msg, color) {
   const el = document.getElementById('adminToast');
   el.textContent = msg;
-  el.style.borderColor = color || '#2a2a40';
-  el.style.color = color || '#c8cdd5';
+  el.style.borderColor = color || 'var(--rule-2)';
+  el.style.color = color || 'var(--ink)';
   el.style.display = 'block';
   clearTimeout(el._t);
   el._t = setTimeout(() => el.style.display = 'none', 3000);
@@ -1054,7 +1064,7 @@ async function createPoolMember() {
     const existing = await pbGet('/api/collections/crew_members/records?perPage=1&filter=' + encodeURIComponent(`email="${emailFilter}"`));
     if ((existing.items || []).length) { _showFormError('E-Mail bereits vergeben.'); return; }
     await pbPost('/api/collections/crew_members/records', { plan_id: POOL_PLAN_ID, name, email, role });
-    adminToast(`${name} zum Crew-Pool hinzugefügt ✓`, '#4ae8a0');
+    adminToast(`${name} zum Crew-Pool hinzugefügt ✓`, 'var(--show)');
     toggleNewUserForm(false);
     loadDirectory();
   } catch(e) {
@@ -1072,22 +1082,22 @@ function renderDirectory(list) {
     tbody.innerHTML = '<tr><td colspan="5" class="loading">Keine Einträge. Oben „+ Neues Crew-Mitglied" anlegen.</td></tr>';
     return;
   }
-  const badge = (txt, title, color) => `<span title="${esc(title||'')}" style="display:inline-block;font-size:.5rem;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:3px;background:#1e1e30;color:${color};margin:1px 2px 1px 0;">${esc(txt)}</span>`;
+  const badge = (txt, title, color) => `<span title="${esc(title||'')}" style="display:inline-block;font-size:.5rem;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:3px;background:var(--panel2);color:${color};margin:1px 2px 1px 0;">${esc(txt)}</span>`;
   tbody.innerHTML = list.map(e => {
     const i = e._i;
     const badges = [];
-    if (e.account) badges.push(badge(e.account.verified ? 'Konto ✓' : 'Konto ⏳', e.account.verified ? 'Verifiziertes Login-Konto' : 'Konto, Login noch ausstehend', e.account.verified ? '#4ae8a0' : '#e8c84a'));
-    if (e.pool) badges.push(badge('Pool', 'Im globalen Crew-Pool', '#8a90a0'));
-    if (e.tours.length) badges.push(badge(e.tours.length + (e.tours.length > 1 ? ' Touren' : ' Tour'), e.tours.map(t => t.planName).join(', '), '#8a90a0'));
-    if (!badges.length) badges.push('<span style="color:#5a6070;font-size:.55rem;">—</span>');
+    if (e.account) badges.push(badge(e.account.verified ? 'Konto ✓' : 'Konto ⏳', e.account.verified ? 'Verifiziertes Login-Konto' : 'Konto, Login noch ausstehend', e.account.verified ? 'var(--show)' : 'var(--accent)'));
+    if (e.pool) badges.push(badge('Pool', 'Im globalen Crew-Pool', 'var(--muted)'));
+    if (e.tours.length) badges.push(badge(e.tours.length + (e.tours.length > 1 ? ' Touren' : ' Tour'), e.tours.map(t => t.planName).join(', '), 'var(--muted)'));
+    if (!badges.length) badges.push('<span style="color:var(--muted);font-size:.55rem;">—</span>');
     const roleOpts = ['crew', 'booker', 'manager', 'superadmin'].map(r => `<option value="${r}" ${e.role === r ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('');
-    const inp = "background:#1a1a2e;border:1px solid #2a2a40;border-radius:4px;padding:5px 8px;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#c8cdd5;outline:none;width:100%;";
+    const inp = "background:var(--panel2);border:1px solid var(--rule-2);border-radius:4px;padding:5px 8px;font-family:var(--mono);font-size:.62rem;color:var(--ink);outline:none;width:100%;";
     const acctActions = e.account
       ? `<button class="btn btn-ghost btn-sm" title="Passwort-Reset senden" data-email="${esc(e.email)}" onclick="resetUserPassword(this.dataset.email)">🔑</button>`
         + `<button class="btn btn-danger btn-sm" title="Login-Konto löschen" data-uid="${e.account.id}" data-email="${esc(e.email)}" onclick="removeUser(this.dataset.uid,this.dataset.email)">Konto ×</button>`
       : '';
     const poolRemove = (e.pool && !e.account && !e.tours.length)
-      ? `<button class="btn btn-ghost btn-sm" title="Aus Pool entfernen" style="color:#e84a4a;" onclick="removeDirectoryPool(${i})">Pool ×</button>` : '';
+      ? `<button class="btn btn-ghost btn-sm" title="Aus Pool entfernen" style="color:var(--warn);" onclick="removeDirectoryPool(${i})">Pool ×</button>` : '';
     return `<tr>
       <td><input id="dir_name_${i}" value="${esc(e.name)}" placeholder="Name…" style="${inp}"></td>
       <td><input id="dir_email_${i}" type="email" value="${esc(e.email)}" placeholder="E-Mail…" style="${inp}"></td>
@@ -1110,18 +1120,18 @@ async function saveDirectoryEntry(i) {
   const newRole  = document.getElementById('dir_role_' + i).value || 'crew';
   const oldName  = e.name;
   const oldEmail = window.normEmail(e.email);
-  if (!newName) { adminToast('Name darf nicht leer sein', '#e84a4a'); return; }
+  if (!newName) { adminToast('Name darf nicht leer sein', 'var(--warn)'); return; }
   const nameChanged  = newName !== oldName;
   const emailChanged = newEmail !== oldEmail;
   const roleChanged  = newRole !== e.role;
-  if (!nameChanged && !emailChanged && !roleChanged) { adminToast('Nichts geändert', '#8a90a0'); return; }
+  if (!nameChanged && !emailChanged && !roleChanged) { adminToast('Nichts geändert', 'var(--muted)'); return; }
 
   // Kollisions-Guard: neuer Name darf in einer betroffenen Tour nicht schon eine ANDERE Person sein
   if (nameChanged) {
     const nn = newName.toLowerCase();
     for (const t of e.tours) {
       const clash = _directory.some(o => o !== e && o.tours.some(ot => ot.planId === t.planId && (ot.name || '').trim().toLowerCase() === nn));
-      if (clash) { adminToast(`„${newName}" existiert in Tour „${t.planName}" bereits`, '#e84a4a'); return; }
+      if (clash) { adminToast(`„${newName}" existiert in Tour „${t.planName}" bereits`, 'var(--warn)'); return; }
     }
   }
   const q = s => String(s || '').replace(/["\\]/g, ''); // Filter-Guard
@@ -1166,10 +1176,10 @@ async function saveDirectoryEntry(i) {
       if (e.account) await pbPatch('/api/collections/users/records/' + e.account.id, { role: newRole });
       if (e.pool)    await pbPatch('/api/collections/crew_members/records/' + e.pool.id, { role: newRole });
     }
-    adminToast('Gespeichert ✓', '#4ae8a0');
+    adminToast('Gespeichert ✓', 'var(--show)');
     loadDirectory();
   } catch(err) {
-    adminToast('Fehler beim Speichern: ' + (err.message || 'Unbekannt') + ' — neu geladen', '#e84a4a');
+    adminToast('Fehler beim Speichern: ' + (err.message || 'Unbekannt') + ' — neu geladen', 'var(--warn)');
     loadDirectory();
   }
 }
@@ -1180,16 +1190,16 @@ async function removeDirectoryPool(i) {
   if (!confirm(`„${e.name || e.email}" aus dem Crew-Pool entfernen?`)) return;
   try {
     await pbDelete('/api/collections/crew_members/records/' + e.pool.id);
-    adminToast('Aus Pool entfernt ✓', '#4ae8a0');
+    adminToast('Aus Pool entfernt ✓', 'var(--show)');
     loadDirectory();
-  } catch(err) { adminToast('Fehler: ' + err.message, '#e84a4a'); }
+  } catch(err) { adminToast('Fehler: ' + err.message, 'var(--warn)'); }
 }
 
 async function resetUserPassword(email) {
   try {
     await pbPost('/api/collections/users/request-password-reset', { email });
-    adminToast('Reset-Link an ' + email + ' gesendet ✓', '#4ae8a0');
-  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+    adminToast('Reset-Link an ' + email + ' gesendet ✓', 'var(--show)');
+  } catch(e) { adminToast('Fehler: ' + e.message, 'var(--warn)'); }
 }
 
 // ── Verzeichnis laden (users ∪ crew_members ∪ plans, per E-Mail zusammengeführt) ──
@@ -1223,10 +1233,10 @@ async function removeUser(userId, email) {
   if (!confirm(`Login-Konto „${email}" wirklich löschen?\nDiese Aktion kann nicht rückgängig gemacht werden.\n(Crew-Pool-/Tour-Einträge bleiben erhalten.)`)) return;
   try {
     await pbDelete('/api/collections/users/records/' + userId);
-    adminToast('Konto gelöscht ✓', '#4ae8a0');
+    adminToast('Konto gelöscht ✓', 'var(--show)');
     loadDirectory();
   } catch(e) {
-    adminToast('Fehler: ' + e.message, '#e84a4a');
+    adminToast('Fehler: ' + e.message, 'var(--warn)');
   }
 }
 
@@ -1278,10 +1288,10 @@ async function deletePlanAdmin(planId, planName) {
   if (!confirm(`Plan „${planName}" wirklich löschen?\nAlle Daten dieses Plans werden permanent gelöscht.`)) return;
   try {
     await pbDelete('/api/collections/plans/records/' + planId);
-    adminToast('Plan gelöscht ✓', '#4ae8a0');
+    adminToast('Plan gelöscht ✓', 'var(--show)');
     loadPlans();
   } catch(e) {
-    adminToast('Fehler: ' + e.message, '#e84a4a');
+    adminToast('Fehler: ' + e.message, 'var(--warn)');
   }
 }
 
@@ -1292,7 +1302,7 @@ function _adminPlanAction(action) {
 }
 
 function loadPlanIntoTourview() {
-  if (!_wrkPlanData) { adminToast('Kein Plan geladen', '#e84a4a'); return; }
+  if (!_wrkPlanData) { adminToast('Kein Plan geladen', 'var(--warn)'); return; }
 
   // Versuche localStorage zu nutzen
   let usedStorage = false;
@@ -1319,7 +1329,7 @@ function loadPlanIntoTourview() {
       window.location.href = window.getNavUrl('index.html') + '?planTransfer=1&planData=' + encodeURIComponent(planStr);
       return;
     } else {
-      adminToast('Plan zu groß für Transfer!', '#e84a4a');
+      adminToast('Plan zu groß für Transfer!', 'var(--warn)');
       return;
     }
   }
@@ -1331,7 +1341,7 @@ function loadPlanIntoTourview() {
 async function sendStaffInvite() {
   const name  = (document.getElementById('inviteName').value  || '').trim();
   const email = (document.getElementById('inviteEmail').value || '').trim();
-  if (!name || !email) { adminToast('Name und E-Mail erforderlich', '#e84a4a'); return; }
+  if (!name || !email) { adminToast('Name und E-Mail erforderlich', 'var(--warn)'); return; }
   const planName = _wrkPlanName || 'Tour Plan';
   // Empfänger landen IMMER auf der Produktiv-Seite — nie auf der GitHub-Pages-Testseite
   // (dort fehlt das /Crewplaner/-Präfix → window.location.origin+'/login.html' = 404).
@@ -1341,10 +1351,10 @@ async function sendStaffInvite() {
       plan_id: _wrkPbPlanId, crew_name: name, crew_email: email,
       type: 'staff_invite', plan_name: planName, app_url: appUrl
     });
-    adminToast('Einladung gesendet ✓', '#4ae8a0');
+    adminToast('Einladung gesendet ✓', 'var(--show)');
     document.getElementById('inviteName').value  = '';
     document.getElementById('inviteEmail').value = '';
-  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+  } catch(e) { adminToast('Fehler: ' + e.message, 'var(--warn)'); }
 }
 
 // ── Werkzeuge: Öffentlicher View-Link ─────────────────────────────────────────
@@ -1366,8 +1376,8 @@ async function generateViewLink() {
       view_shorturl: shortUrl
     });
     _showViewLink(fullUrl, shortUrl);
-    adminToast('Link generiert ✓', '#4ae8a0');
-  } catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+    adminToast('Link generiert ✓', 'var(--show)');
+  } catch(e) { adminToast('Fehler: ' + e.message, 'var(--warn)'); }
   finally { if (btn) btn.textContent = 'Neu generieren'; }
 }
 
@@ -1382,14 +1392,14 @@ function _showViewLink(fullUrl, shortUrl) {
 
 function copyShortLink() {
   navigator.clipboard.writeText(document.getElementById('viewShortUrl').value)
-    .then(() => adminToast('Kurzlink kopiert ✓', '#4ae8a0'))
-    .catch(() => adminToast('Kopieren fehlgeschlagen', '#e84a4a'));
+    .then(() => adminToast('Kurzlink kopiert ✓', 'var(--show)'))
+    .catch(() => adminToast('Kopieren fehlgeschlagen', 'var(--warn)'));
 }
 
 function copyViewLink() {
   navigator.clipboard.writeText(document.getElementById('viewLinkUrl').value)
-    .then(() => adminToast('Kopiert ✓', '#4ae8a0'))
-    .catch(() => adminToast('Kopieren fehlgeschlagen', '#e84a4a'));
+    .then(() => adminToast('Kopiert ✓', 'var(--show)'))
+    .catch(() => adminToast('Kopieren fehlgeschlagen', 'var(--warn)'));
 }
 
 // ── Werkzeuge: Plan laden ──────────────────────────────────────────────────────
@@ -1495,7 +1505,7 @@ async function loadSelectedPlan() {
 function renderAdminCrewLink() {
   const container = document.getElementById('wrkCrewLinkList');
   if (!crew.length) {
-    container.innerHTML = '<div style="font-size:.65rem;color:#5a6070;">Keine Crew-Mitglieder in diesem Plan.</div>';
+    container.innerHTML = '<div style="font-size:.65rem;color:var(--muted);">Keine Crew-Mitglieder in diesem Plan.</div>';
     return;
   }
   container.innerHTML = crew.map((name, i) => {
@@ -1530,10 +1540,10 @@ async function saveAdminCrewLink(i) {
     }
     if (!_wrkCrewMeta[name]) _wrkCrewMeta[name] = {};
     _wrkCrewMeta[name].email = email;
-    adminToast(`${name} verknüpft ✓`, '#4ae8a0');
+    adminToast(`${name} verknüpft ✓`, 'var(--show)');
     renderAdminNotify();
   } catch(e) {
-    adminToast('Fehler: ' + e.message, '#e84a4a');
+    adminToast('Fehler: ' + e.message, 'var(--warn)');
   }
 }
 
@@ -1541,7 +1551,7 @@ async function saveAdminCrewLink(i) {
 function renderAdminNotify() {
   const container = document.getElementById('wrkNotifyList');
   if (!crew.length) {
-    container.innerHTML = '<div style="font-size:.65rem;color:#5a6070;">Keine Crew-Mitglieder in diesem Plan.</div>';
+    container.innerHTML = '<div style="font-size:.65rem;color:var(--muted);">Keine Crew-Mitglieder in diesem Plan.</div>';
     return;
   }
   container.innerHTML = crew.map((name, i) => {
@@ -1558,19 +1568,19 @@ function renderAdminNotify() {
       });
     });
     const emailInfo = email
-      ? `<span style="color:#5a6070;font-size:.58rem;">${esc(email)}</span>`
-      : `<span style="color:#e84a4a;font-size:.58rem;">Keine E-Mail</span>`;
+      ? `<span style="color:var(--muted);font-size:.58rem;">${esc(email)}</span>`
+      : `<span style="color:var(--warn);font-size:.58rem;">Keine E-Mail</span>`;
     return `<div class="crew-notify-row">
       <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:.65rem;">${esc(name)}</div>
         ${emailInfo}
       </div>
-      <span style="font-size:.58rem;color:#5a6070;white-space:nowrap;">${proposed}⏳ ${confirmed}✓</span>
+      <span style="font-size:.58rem;color:var(--muted);white-space:nowrap;">${proposed}⏳ ${confirmed}✓</span>
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminInvite(this.dataset.crew)">Einladung</button>
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminEmail(this.dataset.crew,'reminder')">Erinnerung</button>
       <button class="btn btn-ghost btn-sm" ${!email?'disabled':''} data-crew="${esc(name)}" onclick="sendAdminUpdate(this.dataset.crew)">Update</button>
-      <button class="btn btn-ghost btn-sm" ${(!email||(proposed+confirmed)===0)?'disabled':''} data-crew="${esc(name)}" onclick="openAdminCancellation(this.dataset.crew)" style="color:#e8907a;">Absage</button>
+      <button class="btn btn-ghost btn-sm" ${(!email||(proposed+confirmed)===0)?'disabled':''} data-crew="${esc(name)}" onclick="openAdminCancellation(this.dataset.crew)" style="color:var(--warn);">Absage</button>
     </div>`;
   }).join('');
 }
@@ -1582,17 +1592,17 @@ function _fmtDateDE(iso){ const p=String(iso||'').split('-'); return (p.length==
 
 function _slotTableHtml(slots){
   if (!slots.length) return '';
-  const rows = slots.map(s => `<tr><td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${_fmtDateDE(s.date)}</td><td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(s.posLabel)}</td></tr>`).join('');
-  return `<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:.62rem;color:#9aa0aa;">${rows}</table>`;
+  const rows = slots.map(s => `<tr><td style="padding:4px 8px;border-bottom:1px solid var(--rule);">${_fmtDateDE(s.date)}</td><td style="padding:4px 8px;border-bottom:1px solid var(--rule);">${esc(s.posLabel)}</td></tr>`).join('');
+  return `<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:.62rem;color:var(--ink-2);">${rows}</table>`;
 }
 
 // opts: { type, crewName, email, subject, intro, slots, sender }
 function openEmailPreview(opts) {
   _emailSender = opts.sender;
   document.getElementById('emailPreviewBody').innerHTML =
-    `<div><strong style="color:#9aa0aa;">An:</strong> ${esc(opts.email)}</div>
-     <div><strong style="color:#9aa0aa;">Betreff:</strong> ${esc(opts.subject)}</div>
-     <div style="margin-top:8px;color:#9aa0aa;">${opts.intro}</div>
+    `<div><strong style="color:var(--ink-2);">An:</strong> ${esc(opts.email)}</div>
+     <div><strong style="color:var(--ink-2);">Betreff:</strong> ${esc(opts.subject)}</div>
+     <div style="margin-top:8px;color:var(--ink-2);">${opts.intro}</div>
      ${_slotTableHtml(opts.slots || [])}`;
   document.getElementById('emailPreviewText').value = '';
   openModal('emailPreviewModal');
@@ -1606,12 +1616,12 @@ async function confirmEmailSend() {
   _emailSender = null;
   closeModal('emailPreviewModal');
   try { await sender(customText); }
-  catch(e) { adminToast('Fehler: ' + e.message, '#e84a4a'); }
+  catch(e) { adminToast('Fehler: ' + e.message, 'var(--warn)'); }
 }
 
 function sendAdminEmail(crewName, type) {
   const meta = _wrkCrewMeta[crewName];
-  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
+  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', 'var(--warn)'); return; }
   const label = type === 'invite' ? 'Einladung' : 'Erinnerung';
   openEmailPreview({
     type, crewName, email: meta.email,
@@ -1625,7 +1635,7 @@ function sendAdminEmail(crewName, type) {
         type, plan_name: _wrkPlanName, app_url: 'https://crewplanner.nyxlightwork.de',
         ...(customText ? { custom_message: customText } : {})
       });
-      adminToast(`${label} gesendet an ${crewName} ✓`, '#4ae8a0');
+      adminToast(`${label} gesendet an ${crewName} ✓`, 'var(--show)');
     }
   });
 }
@@ -1633,7 +1643,7 @@ function sendAdminEmail(crewName, type) {
 // Einladung: EINE Mail mit ALLEN eingeplanten Terminen der Person + legt proposed-Records an.
 function sendAdminInvite(crewName) {
   const meta = _wrkCrewMeta[crewName];
-  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
+  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', 'var(--warn)'); return; }
   const _pos    = (typeof POSITIONS   !== 'undefined' ? POSITIONS   : []);
   const _dates  = (typeof TOUR_DATES  !== 'undefined' ? TOUR_DATES  : []);
   const _assign = (typeof assignments !== 'undefined' ? assignments : {});
@@ -1650,7 +1660,7 @@ function sendAdminInvite(crewName) {
       slots.push({ date: d.date, posId: p.id, posLabel: p.label || p.id, hasRecord: !!si });
     });
   });
-  if (!slots.length) { adminToast(`${crewName}: Keine eingeplanten Termine`, '#e8c84a'); return; }
+  if (!slots.length) { adminToast(`${crewName}: Keine eingeplanten Termine`, 'var(--accent)'); return; }
   openEmailPreview({
     type: 'invite', crewName, email: meta.email,
     subject: 'CREW INVITE · ' + _wrkPlanName,
@@ -1671,14 +1681,14 @@ function sendAdminInvite(crewName) {
         app_url: JSON.stringify(slots.map(s => ({ date: s.date, posLabel: s.posLabel }))),
         ...(customText ? { custom_message: customText } : {})
       });
-      adminToast(`Einladung gesendet an ${crewName} ✓ (${slots.length} Termine)`, '#4ae8a0');
+      adminToast(`Einladung gesendet an ${crewName} ✓ (${slots.length} Termine)`, 'var(--show)');
     }
   });
 }
 
 function sendAdminUpdate(crewName) {
   const meta = _wrkCrewMeta[crewName];
-  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
+  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', 'var(--warn)'); return; }
   const slots = [];
   Object.entries(_wrkAssignmentStatuses).forEach(([date, positions]) => {
     Object.entries(positions).forEach(([posId, si]) => {
@@ -1687,7 +1697,7 @@ function sendAdminUpdate(crewName) {
       slots.push({ date, posLabel: pos?.label || posId, changes: ['Plan wurde aktualisiert'] });
     });
   });
-  if (!slots.length) { adminToast(`${crewName}: Keine bestätigten Einsätze`, '#e8c84a'); return; }
+  if (!slots.length) { adminToast(`${crewName}: Keine bestätigten Einsätze`, 'var(--accent)'); return; }
   openEmailPreview({
     type: 'update', crewName, email: meta.email,
     subject: 'ÄNDERUNG · ' + _wrkPlanName,
@@ -1699,7 +1709,7 @@ function sendAdminUpdate(crewName) {
         type: 'update', plan_name: _wrkPlanName, app_url: JSON.stringify(slots),
         ...(customText ? { custom_message: customText } : {})
       });
-      adminToast(`Update gesendet an ${crewName} ✓`, '#4ae8a0');
+      adminToast(`Update gesendet an ${crewName} ✓`, 'var(--show)');
     }
   });
 }
@@ -1707,7 +1717,7 @@ function sendAdminUpdate(crewName) {
 // ── Absage: Slot-Auswahl → Vorschau → Senden + Status-Records löschen ─────────
 function openAdminCancellation(crewName) {
   const meta = _wrkCrewMeta[crewName];
-  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', '#e84a4a'); return; }
+  if (!meta?.email) { adminToast('Keine E-Mail-Adresse', 'var(--warn)'); return; }
   const slots = [];
   Object.entries(_wrkAssignmentStatuses).forEach(([date, positions]) => {
     Object.entries(positions).forEach(([posId, si]) => {
@@ -1717,13 +1727,13 @@ function openAdminCancellation(crewName) {
       slots.push({ date, posId, posLabel: pos?.label || posId, status: si.status });
     });
   });
-  if (!slots.length) { adminToast(`${crewName}: Keine Einsätze zum Absagen`, '#e8c84a'); return; }
+  if (!slots.length) { adminToast(`${crewName}: Keine Einsätze zum Absagen`, 'var(--accent)'); return; }
   slots.sort((a, b) => a.date.localeCompare(b.date));
   document.getElementById('cancelSelectBody').innerHTML =
-    `<div style="margin-bottom:10px;color:#9aa0aa;">Welche Einsätze von <strong>${esc(crewName)}</strong> absagen?</div>` +
-    slots.map((s, i) => `<label style="display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid #2a2f3a;cursor:pointer;">
-      <input type="checkbox" id="cxl_${i}" data-date="${s.date}" data-pos="${s.posId}" data-label="${esc(s.posLabel)}" checked style="width:15px;height:15px;accent-color:#e84a4a;">
-      <span style="flex:1;">${_fmtDateDE(s.date)} · ${esc(s.posLabel)} <span style="color:#5a6070;">${s.status === 'confirmed' ? '✓' : '⏳'}</span></span>
+    `<div style="margin-bottom:10px;color:var(--ink-2);">Welche Einsätze von <strong>${esc(crewName)}</strong> absagen?</div>` +
+    slots.map((s, i) => `<label style="display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--rule);cursor:pointer;">
+      <input type="checkbox" id="cxl_${i}" data-date="${s.date}" data-pos="${s.posId}" data-label="${esc(s.posLabel)}" checked style="width:15px;height:15px;accent-color:var(--warn);">
+      <span style="flex:1;">${_fmtDateDE(s.date)} · ${esc(s.posLabel)} <span style="color:var(--muted);">${s.status === 'confirmed' ? '✓' : '⏳'}</span></span>
     </label>`).join('');
   _cancelCrewName = crewName; _cancelEmail = meta.email;
   openModal('cancelSelectModal');
@@ -1734,7 +1744,7 @@ function cancelSelectNext() {
   const chosen = Array.from(document.querySelectorAll('#cancelSelectBody input[type=checkbox]'))
     .filter(cb => cb.checked)
     .map(cb => ({ date: cb.dataset.date, posId: cb.dataset.pos, posLabel: cb.dataset.label }));
-  if (!chosen.length) { adminToast('Nichts ausgewählt', '#5a6070'); return; }
+  if (!chosen.length) { adminToast('Nichts ausgewählt', 'var(--muted)'); return; }
   closeModal('cancelSelectModal');
   const crewName = _cancelCrewName, email = _cancelEmail;
   openEmailPreview({
@@ -1761,7 +1771,7 @@ function cancelSelectNext() {
         app_url: JSON.stringify(chosen.map(s => ({ date: s.date, posLabel: s.posLabel }))),
         ...(customText ? { custom_message: customText } : {})
       });
-      adminToast(`Absage gesendet an ${crewName} ✓`, '#4ae8a0');
+      adminToast(`Absage gesendet an ${crewName} ✓`, 'var(--show)');
       renderAdminNotify();
     }
   });
@@ -1769,24 +1779,24 @@ function cancelSelectNext() {
 
 // ── Werkzeuge: JSON Export / Import ───────────────────────────────────────────
 function exportAdminPlanJSON() {
-  if (!_wrkPlanData) { adminToast('Kein Plan geladen', '#e84a4a'); return; }
+  if (!_wrkPlanData) { adminToast('Kein Plan geladen', 'var(--warn)'); return; }
   const blob = new Blob([JSON.stringify(_wrkPlanData, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = (_wrkPlanName || 'plan').replace(/\s+/g, '_') + '.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
-  adminToast('Exportiert ✓', '#4ae8a0');
+  adminToast('Exportiert ✓', 'var(--show)');
 }
 
 async function onAdminImportFile(event) {
-  if (!_wrkPbPlanId) { adminToast('Bitte zuerst einen Plan auswählen', '#e84a4a'); return; }
+  if (!_wrkPbPlanId) { adminToast('Bitte zuerst einen Plan auswählen', 'var(--warn)'); return; }
   const file = event.target.files[0];
   if (!file) return;
   const text = await file.text();
   let data;
-  try { data = JSON.parse(text); } catch(e) { adminToast('Ungültige JSON-Datei', '#e84a4a'); return; }
-  if (!data.tourDates && !data.crew) { adminToast('Kein gültiger Planungsexport', '#e84a4a'); return; }
+  try { data = JSON.parse(text); } catch(e) { adminToast('Ungültige JSON-Datei', 'var(--warn)'); return; }
+  if (!data.tourDates && !data.crew) { adminToast('Kein gültiger Planungsexport', 'var(--warn)'); return; }
   try {
     await pbPatch('/api/collections/plans/records/' + _wrkPbPlanId, { plan_data: text });
     _wrkPlanData = data;
@@ -1800,21 +1810,21 @@ async function onAdminImportFile(event) {
     document.getElementById('wrkInfoPos').textContent = POSITIONS.length;
     renderAdminCrewLink();
     renderAdminNotify();
-    adminToast('Import gespeichert ✓', '#4ae8a0');
+    adminToast('Import gespeichert ✓', 'var(--show)');
   } catch(e) {
-    adminToast('Fehler: ' + e.message, '#e84a4a');
+    adminToast('Fehler: ' + e.message, 'var(--warn)');
   }
   event.target.value = '';
 }
 
 // ── Werkzeuge: PDF & ICS ───────────────────────────────────────────────────────
 function openAdminPDF() {
-  if (!_wrkPlanData) { adminToast('Bitte zuerst einen Plan laden', '#e84a4a'); return; }
+  if (!_wrkPlanData) { adminToast('Bitte zuerst einen Plan laden', 'var(--warn)'); return; }
   openPDFFilter(); // from pdf.js, uses globals set above
 }
 
 function openAdminICS() {
-  if (!_wrkPlanData) { adminToast('Bitte zuerst einen Plan laden', '#e84a4a'); return; }
+  if (!_wrkPlanData) { adminToast('Bitte zuerst einen Plan laden', 'var(--warn)'); return; }
   openModal('calModal');
 }
 
@@ -1836,7 +1846,7 @@ function adminGenerateICS() {
       .map(pid => ({ posLabel: posLabel[pid] || pid, crewName: day[pid].crewName || '' }));
     if (confirmed.length) rows.push({ row: r, confirmed });
   });
-  if (!rows.length) { adminToast('Keine bestätigten Termine', '#e84a4a'); return; }
+  if (!rows.length) { adminToast('Keine bestätigten Termine', 'var(--warn)'); return; }
 
   const lines = [
     'BEGIN:VCALENDAR', 'VERSION:2.0',
@@ -1872,7 +1882,7 @@ function adminGenerateICS() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
   closeModal('calModal');
-  adminToast(`${rows.length} bestätigte Termine exportiert ✓`, '#4ae8a0');
+  adminToast(`${rows.length} bestätigte Termine exportiert ✓`, 'var(--show)');
 }
 
 // ── Werkzeuge: Logos ───────────────────────────────────────────────────────────
@@ -1905,7 +1915,7 @@ function handleAdminLogo(type, input) {
   r.onload = e => {
     logos[type] = e.target.result;
     _saveAdminLogos();
-    adminToast(`${type}-Logo gesetzt ✓`, '#4ae8a0');
+    adminToast(`${type}-Logo gesetzt ✓`, 'var(--show)');
     renderAdminLogos();
   };
   r.readAsDataURL(file);
@@ -1915,9 +1925,18 @@ function handleAdminLogo(type, input) {
 function removeAdminLogo(type) {
   logos[type] = '';
   _saveAdminLogos();
-  adminToast('Logo entfernt', '#e8c84a');
+  adminToast('Logo entfernt', 'var(--accent)');
   renderAdminLogos();
 }
+</script>
+<script>
+  // Hell/Dunkel-Umschalter (data-theme am <html>, Schlüssel cp_mode).
+  (function(){
+    function mode(){return document.documentElement.dataset.theme||(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}
+    function paint(){var b=document.getElementById('themeToggle');if(!b)return;var d=mode()==='dark';b.textContent=d?'☀':'☾';b.title=d?'Auf Hell umschalten':'Auf Dunkel umschalten';}
+    window.toggleTheme=function(){var n=mode()==='dark'?'light':'dark';document.documentElement.dataset.theme=n;try{localStorage.setItem('cp_mode',n);}catch(e){}paint();};
+    paint();
+  })();
 </script>
 </body>
 </html>

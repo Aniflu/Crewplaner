@@ -1,0 +1,89 @@
+/* ── CREWPLANNER · NYX Lightwork CI (Konzept 1d „Crew Pass") ───────────────────
+   Navy/Paper, ruhig und technisch. Schrift Geist (Wortmarke, Titel, Zahlen) +
+   JetBrains Mono (Labels, Eyebrows, Meta). GOLD #f7c948 lebt AUSSCHLIESSLICH im
+   Logo — plus als bewusste Ausnahme im „HEUTE"-Strich der Tourtabelle (Rot ist
+   mit „abgesagt" belegt). Nirgends sonst als UI-Akzent.
+
+   Hell = „Auf Paper" (Standard :root). Dunkel = „Auf Navy". Der Betrachter
+   schaltet über data-theme am <html> (Schlüssel cp_mode, Muster wie CallBoard).
+
+   Diese Datei ist die EINE Quelle der Design-Tokens für alle vier Oberflächen
+   (login/index/admin/view). styles.css und die Inline-Styles konsumieren nur
+   noch var(--…). Kompatibilitäts-Aliase unten decken die alten Token-Namen ab. */
+
+@font-face{font-family:'Geist';font-style:normal;font-weight:400;font-display:swap;src:url('assets/fonts/geist-400.woff2') format('woff2');}
+@font-face{font-family:'Geist';font-style:normal;font-weight:500;font-display:swap;src:url('assets/fonts/geist-500.woff2') format('woff2');}
+@font-face{font-family:'Geist';font-style:normal;font-weight:600;font-display:swap;src:url('assets/fonts/geist-600.woff2') format('woff2');}
+@font-face{font-family:'Geist';font-style:normal;font-weight:700;font-display:swap;src:url('assets/fonts/geist-700.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url('assets/fonts/jetbrains-mono-400.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url('assets/fonts/jetbrains-mono-500.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:600;font-display:swap;src:url('assets/fonts/jetbrains-mono-600.woff2') format('woff2');}
+
+:root{
+  --sans:'Geist',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --gold:#f7c948;               /* NUR Logo + HEUTE-Strich */
+
+  /* Hell = Paper (Default) */
+  --bg:#F1EFE9; --panel:#FFFFFF; --panel2:#FFFFFF;
+  --rule:#E7E4DC; --rule-2:#D6D9DE;
+  --ink:#10172A; --ink-2:#3A4459; --muted:#5A6678;
+  --accent:#10172A; --accent-b:#10172A; --on-accent:#FFFFFF;
+  --accent-wash:rgba(16,23,42,.06); --accent-wash-2:rgba(16,23,42,.10); --ink-wash:rgba(16,23,42,.035);
+
+  /* Status (bedeutungstragend, Hell-Variante auf Kontrast justiert) */
+  --show:#2f8f5b; --reise:#3b6fb0; --prep:#c07a2e; --off:#6a6f78; --warn:#C1453B;
+}
+
+/* OS-Vorgabe, solange der Nutzer nicht explizit gewählt hat */
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])){
+    --bg:#10172A; --panel:#1B2438; --panel2:#202A40;
+    --rule:#26314A; --rule-2:#33415C;
+    --ink:#F1EFE9; --ink-2:#C3CAD8; --muted:#9AA3B5;
+    --accent:#FFFFFF; --accent-b:#FFFFFF; --on-accent:#10172A;
+    --accent-wash:rgba(255,255,255,.07); --accent-wash-2:rgba(255,255,255,.11); --ink-wash:rgba(255,255,255,.03);
+    --show:#5fcc8a; --reise:#6aa7e8; --prep:#e89a4a; --off:#6a6f78; --warn:#F2795A;
+  }
+}
+/* Der Umschalter muss die OS-Wahl in BEIDE Richtungen schlagen. */
+:root[data-theme="dark"]{
+  --bg:#10172A; --panel:#1B2438; --panel2:#202A40;
+  --rule:#26314A; --rule-2:#33415C;
+  --ink:#F1EFE9; --ink-2:#C3CAD8; --muted:#9AA3B5;
+  --accent:#FFFFFF; --accent-b:#FFFFFF; --on-accent:#10172A;
+    --accent-wash:rgba(255,255,255,.07); --accent-wash-2:rgba(255,255,255,.11); --ink-wash:rgba(255,255,255,.03);
+  --show:#5fcc8a; --reise:#6aa7e8; --prep:#e89a4a; --off:#6a6f78; --warn:#F2795A;
+}
+:root[data-theme="light"]{
+  --bg:#F1EFE9; --panel:#FFFFFF; --panel2:#FFFFFF;
+  --rule:#E7E4DC; --rule-2:#D6D9DE;
+  --ink:#10172A; --ink-2:#3A4459; --muted:#5A6678;
+  --accent:#10172A; --accent-b:#10172A; --on-accent:#FFFFFF;
+  --accent-wash:rgba(16,23,42,.06); --accent-wash-2:rgba(16,23,42,.10); --ink-wash:rgba(16,23,42,.035);
+  --show:#2f8f5b; --reise:#3b6fb0; --prep:#c07a2e; --off:#6a6f78; --warn:#C1453B;
+}
+
+/* ── Kompatibilitäts-Aliase (alte Token-Namen der bestehenden CSS) ──────────────
+   Diese referenzieren die scope-abhängigen Tokens oben → lösen pro Theme auf. */
+:root{
+  --rule-soft:var(--rule);
+  --muted-dim:var(--muted);
+  --display:var(--sans);        /* h1/Stats liefen auf Archivo → jetzt Geist */
+}
+
+/* ── Umschalt-Knopf (☀/☾), einheitlich auf allen Seiten ─────────────────────── */
+.theme-toggle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;flex-shrink:0;
+  background:var(--panel2);color:var(--ink-2);
+  border:1px solid var(--rule-2);border-radius:8px;
+  font-size:15px;line-height:1;cursor:pointer;
+  transition:border-color .2s,color .2s,background .2s;
+}
+.theme-toggle:hover{border-color:var(--accent);color:var(--ink);}
+.theme-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+/* ── Logo-Marke „Crew Pass" ─────────────────────────────────────────────────────
+   Outlines erben currentColor (invertiert je Theme), Kopf-Kreis fest gold. */
+.cp-mark{display:block;flex-shrink:0;color:var(--ink);}
