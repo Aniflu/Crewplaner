@@ -64,7 +64,7 @@ import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
          _bulkConfirmMySlots, _deleteSlotFromQueue, _toggleSlotSelection, meinesMelden,
          _queueSelectAll, _queueGrpSel, _clearUpdateQueue,
          _updatePreviewSend, _updatePreviewSkip, _updatePreviewCancel,
-         downloadMyICS, printMySchedule, switchCrewPlan } from './userView.js';
+         downloadMyICS, printMySchedule, switchCrewPlan, openSubscribeModal } from './userView.js';
 import { startLocEdit } from './render.js';
 
 // ── Register all onclick-handler functions as window globals ──
@@ -158,6 +158,7 @@ window._updatePreviewSkip = _updatePreviewSkip;
 window._updatePreviewCancel = _updatePreviewCancel;
 window.downloadMyICS = downloadMyICS;
 window.printMySchedule = printMySchedule;
+window.openSubscribeModal = openSubscribeModal;
 window.switchCrewPlan = switchCrewPlan;
 window.meinesMelden = meinesMelden;
 window.startLocEdit = startLocEdit;

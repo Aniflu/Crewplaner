@@ -63,7 +63,7 @@
         <div id="titleBlock">
           <h1>Tour<span class="title-slash">/</span>Crew</h1>
           <div class="subtitle-row">
-            <span class="tour-tag">Personalplan · v0.26.1</span>
+            <span class="tour-tag">Personalplan · v0.27.0</span>
             <span class="active-plan-name" id="activePlanName"></span>
           </div>
         </div>
@@ -104,6 +104,7 @@
         <button class="crew-only primary" onclick="bulkConfirmAllMySlots()" style="display:none;"><span class="sb-gl">✓</span>Termine bestätigen</button>
         <button class="crew-only" onclick="downloadMyICS()" style="display:none;"><span class="sb-gl">📅</span>Meine Termine (.ics)</button>
         <button class="crew-only" onclick="printMySchedule()" style="display:none;"><span class="sb-gl">📄</span>Meine Termine (PDF)</button>
+        <button class="crew-only" onclick="openSubscribeModal()" style="display:none;"><span class="sb-gl">📆</span>Kalender abonnieren</button>
         <button class="crew-only" id="btnSendCancellations" onclick="sendCancellations()" style="display:none;background:rgba(232,74,74,.15);border-color:rgba(232,74,74,.4);color:#e84a4a;"><span class="sb-gl">⚠</span>Änderungen mitteilen</button>
       </div>
     </div>
@@ -195,6 +196,15 @@
   <div class="modal-box">
     <div class="modal-title" id="sharedTitle"></div>
     <div id="sharedBody"></div>
+  </div>
+</div>
+
+<!-- KALENDER ABONNIEREN MODAL (Crew) -->
+<div class="modal-bg" id="subscribeModal">
+  <div class="modal-box">
+    <div class="modal-title">Kalender abonnieren</div>
+    <div id="subscribeBody"></div>
+    <div class="mactions"><button class="mbtn" onclick="closeModal('subscribeModal')">Schließen</button></div>
   </div>
 </div>
 
@@ -422,7 +432,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=38"></script>
+<script type="module" src="js/app.js?v=39"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">

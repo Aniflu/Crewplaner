@@ -2,7 +2,7 @@
 import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
          IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID, setStatus,
          pendingCancellations } from './state.js';
-import { SUPABASE_ENABLED } from './config.js';
+import { SUPABASE_ENABLED, POCKETBASE_URL } from './config.js';
 import { getVal, isPending, esc, showToast, fmtD, sameCrew } from './utils.js';
 import { pbPatch, pbPost, pbFirst } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
@@ -12,7 +12,7 @@ import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable, resetTodayAutoScroll } from './render.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
 import { closeModal, openModal } from './modals.js';
-import { confirmedIcsRows, crewIcsContent } from './pure.js';
+import { confirmedIcsRows, crewIcsContent, feedUrls } from './pure.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
 export function toggleCancellation(dateStr, posId) {
@@ -661,6 +661,55 @@ export function downloadMyICS() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
   showToast(`${x.rows.length} bestätigte Termine exportiert ✓`, '#2d6a3f');
+}
+
+// ── Crew: Kalender abonnieren (persönlicher, sich aktualisierender Feed) ───────
+// Zeigt den persönlichen Abo-Link (Server-Route /ics/{feed_token}). Anders als der
+// einmalige Download aktualisiert sich ein Abo automatisch, sobald sich Termine ändern.
+export function openSubscribeModal() {
+  let token = '';
+  try { token = (JSON.parse(localStorage.getItem('pb_user') || '{}').feed_token) || ''; } catch (_) {}
+  const body = document.getElementById('subscribeBody');
+  if (!body) return;
+
+  if (!token) {
+    body.innerHTML = `<p style="font-size:12px;line-height:1.6;color:var(--muted);">
+      Dein Abo-Link ist noch nicht bereit. Bitte einmal <b>abmelden und wieder anmelden</b> —
+      danach steht er hier.</p>`;
+    openModal('subscribeModal');
+    return;
+  }
+
+  const { https, webcal } = feedUrls(POCKETBASE_URL, token);
+  window._copyFeed = (which) => {
+    const url = which === 'https' ? https : webcal;
+    if (!navigator.clipboard) { showToast('Kopieren nicht möglich — Link manuell markieren', '#e84a4a'); return; }
+    navigator.clipboard.writeText(url).then(
+      () => showToast('Link kopiert ✓', '#2d6a3f'),
+      () => showToast('Kopieren nicht möglich — Link manuell markieren', '#e84a4a')
+    );
+  };
+
+  body.innerHTML = `
+    <p style="font-size:12px;line-height:1.6;color:var(--muted);margin-bottom:14px;">
+      Abonniere deine Termine <b>einmal</b> — dein Kalender aktualisiert sich danach
+      automatisch, sobald sich etwas ändert. Enthält deine bestätigten und angefragten
+      Einsätze aus allen Touren.</p>
+
+    <div class="mf">
+      <label class="ml">Ein-Tipp-Abo (Apple · iPhone · Android · Outlook)</label>
+      <a href="${esc(webcal)}" class="mbtn primary" style="display:block;text-align:center;text-decoration:none;margin-bottom:6px;">📆 Jetzt abonnieren</a>
+      <button class="mbtn" style="width:100%;" onclick="window._copyFeed('webcal')">Link kopieren</button>
+    </div>
+
+    <div class="mf">
+      <label class="ml">Google Kalender (per URL hinzufügen)</label>
+      <input class="mi" readonly value="${esc(https)}" onclick="this.select()" style="margin-bottom:6px;">
+      <button class="mbtn" style="width:100%;" onclick="window._copyFeed('https')">Link kopieren</button>
+      <p style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5;">
+        Google Kalender → „Weitere Kalender" → „Per URL" → diesen Link einfügen.</p>
+    </div>`;
+  openModal('subscribeModal');
 }
 
 // PDF: druckfertige Liste (Datum · Art · Ort), Titel = Band → „Als PDF speichern".

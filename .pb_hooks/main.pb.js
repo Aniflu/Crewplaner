@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.8
-console.log('[hook] main.pb.js v4.8 geladen');
+// Version: 4.9
+console.log('[hook] main.pb.js v4.9 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -349,6 +349,12 @@ onRecordAfterCreateSuccess(function(e) {
 
   if (!record.getBool('verified')) { record.set('verified', true); changed = true; }
 
+  // Persönlichen Kalender-Feed-Token vergeben (v4.9): nicht-erratbarer Schlüssel für
+  // die öffentliche Abo-Route /ics/{token}. Nur setzen, wenn noch keiner existiert.
+  if (!record.getString('feed_token')) {
+    try { record.set('feed_token', $security.randomString(40)); changed = true; } catch(err) {}
+  }
+
   // Rolle aus dem globalen Crew-Pool übernehmen (crew_members mit plan_id="__pool__"):
   // Ein Konto entsteht erst beim ersten Login über den Einladungslink (Default-Rolle 'crew').
   // Hat der Admin die Person im Pool mit einer ANDEREN Rolle angelegt, greift sie genau hier.
@@ -400,3 +406,121 @@ onRecordAfterUpdateSuccess(function(e) {
     console.error('[hook] Short-URL Fehler:', err.message);
   }
 }, 'plans');
+
+
+// ── 5. Kalender-Feed-Token: Backfill bestehender User (v4.9) ──────────────────
+// Selbstheilend beim Start: alle users ohne feed_token bekommen einmalig einen
+// nicht-erratbaren Token (neue User kriegen ihn bereits im CREATE-Hook oben).
+onBootstrap(function(e) {
+  e.next();
+  try {
+    var missing = $app.findRecordsByFilter('users', 'feed_token = ""', '', 500, 0);
+    var n = 0;
+    for (var i = 0; i < missing.length; i++) {
+      try { missing[i].set('feed_token', $security.randomString(40)); $app.save(missing[i]); n++; } catch(err) {}
+    }
+    if (n) console.log('[hook] feed_token backfilled: ' + n + ' user');
+  } catch(err) {
+    console.error('[hook] feed_token backfill Fehler:', err.message);
+  }
+});
+
+
+// ── 6. Öffentlicher, abonnierbarer Kalender-Feed pro Person (v4.9) ────────────
+// GET /ics/{token}  (unauthentifiziert — der nicht-erratbare feed_token IST die Auth).
+// Liefert den persönlichen ICS-Feed EINER Person über ALLE Touren: bestätigte Einsätze
+// als STATUS:CONFIRMED, noch offene Anfragen als STATUS:TENTATIVE. Kalender-Apps holen
+// die URL periodisch → automatische Aktualisierung. Goja-Isolation: alle Helfer + Literale
+// INNERHALB des Handlers (kein Zugriff auf äußeren Scope).
+routerAdd('GET', '/ics/{token}', function(e) {
+  var token = e.request.pathValue('token');
+  if (!token) return e.string(404, 'not found');
+
+  var user;
+  try { user = $app.findFirstRecordByFilter('users', 'feed_token = {:t}', { t: token }); }
+  catch(err) { user = null; }
+  if (!user) return e.string(404, 'not found');
+
+  var email = (user.getString('email') || '').toLowerCase();
+
+  function icsEsc(s){ return String(s == null ? '' : s).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n'); }
+  function ymd(iso){ return String(iso || '').replace(/-/g, ''); }
+  function nextYmd(iso){
+    var p = String(iso || '').split('-');
+    var dt = new Date(Date.UTC(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10) + 1));
+    var mm = ('0' + (dt.getUTCMonth() + 1)).slice(-2);
+    var dd = ('0' + dt.getUTCDate()).slice(-2);
+    return '' + dt.getUTCFullYear() + mm + dd;
+  }
+
+  var rows;
+  try {
+    rows = $app.findRecordsByFilter(
+      'assignments',
+      'crew_email = {:e} && (status = "confirmed" || status = "proposed")',
+      'date', 2000, 0, { e: email }
+    );
+  } catch(err) { rows = []; }
+
+  // Bandname + Ort/Art pro Datum liegen im plans.plan_data (JSON), NICHT im assignment.
+  // Pro Plan einmal laden und cachen.
+  var planCache = {};
+  function planMeta(planId){
+    if (planCache[planId]) return planCache[planId];
+    var meta = { band: 'Tour', dates: {} };
+    try {
+      var plan = $app.findRecordById('plans', planId);
+      if (plan) {
+        meta.band = plan.getString('name') || 'Tour';
+        var raw = plan.get('plan_data');
+        var pd = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+        var td = (pd && pd.tourDates) || [];
+        for (var j = 0; j < td.length; j++) {
+          if (td[j] && td[j].date) meta.dates[td[j].date] = td[j];
+        }
+      }
+    } catch(err) {}
+    planCache[planId] = meta;
+    return meta;
+  }
+
+  // Pro (plan_id + date) EIN Ganztags-Event (Positionen zusammengefasst, wie der Download).
+  // Hat die Person an dem Tag mind. einen bestätigten Slot → CONFIRMED, sonst TENTATIVE.
+  var days = {};
+  for (var i = 0; i < rows.length; i++) {
+    var planId = rows[i].getString('plan_id');
+    var date   = rows[i].getString('date');
+    if (!date) continue;
+    var key = planId + '|' + date;
+    if (!days[key]) days[key] = { planId: planId, date: date, confirmed: false };
+    if (rows[i].getString('status') === 'confirmed') days[key].confirmed = true;
+  }
+
+  var out = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Crewplaner//Feed v4.9//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Crewplaner'];
+  var keys = Object.keys(days);
+  for (var k = 0; k < keys.length; k++) {
+    var d = days[keys[k]];
+    var m = planMeta(d.planId);
+    var dm = m.dates[d.date] || {};
+    var loc = dm.loc || '';
+    var art = dm.typeLabel || dm.type || '';
+    var title = [art, loc].filter(Boolean).join(': ') || m.band;
+    out.push(
+      'BEGIN:VEVENT',
+      'UID:' + d.planId + '-' + d.date + '@crewplanner',
+      'DTSTART;VALUE=DATE:' + ymd(d.date),
+      'DTEND;VALUE=DATE:' + nextYmd(d.date),
+      'SUMMARY:' + icsEsc(title),
+      'LOCATION:' + icsEsc(loc),
+      'DESCRIPTION:' + icsEsc('Band: ' + m.band + '\nArt: ' + art + '\nOrt: ' + loc),
+      'STATUS:' + (d.confirmed ? 'CONFIRMED' : 'TENTATIVE'),
+      'END:VEVENT'
+    );
+  }
+  out.push('END:VCALENDAR');
+
+  e.response.header().set('Content-Type', 'text/calendar; charset=utf-8');
+  e.response.header().set('Content-Disposition', 'inline; filename="crewplanner.ics"');
+  e.response.header().set('Cache-Control', 'public, max-age=1800');
+  return e.string(200, out.join('\r\n'));
+});

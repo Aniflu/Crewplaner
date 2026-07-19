@@ -192,6 +192,17 @@ export function crewIcsContent(band, rows, dateMeta){
   return lines.join('\r\n');
 }
 
+// Abo-URLs für den persönlichen Kalender-Feed (v0.27.0). baseUrl = POCKETBASE_URL
+// (https://…), token = users.feed_token. Rückgabe { https, webcal }:
+//   https  → für Google Calendar („Per URL hinzufügen").
+//   webcal → Ein-Tipp-Abo (Apple/iOS/Android/Outlook) — gleiche URL, nur webcal://-Schema.
+export function feedUrls(baseUrl, token){
+  const base = String(baseUrl==null?'':baseUrl).replace(/\/+$/, '');
+  const https = base + '/ics/' + encodeURIComponent(String(token==null?'':token));
+  const webcal = https.replace(/^https?:\/\//, 'webcal://');
+  return { https, webcal };
+}
+
 // „Heute"-Marker für die Tourtabelle (v0.25.0). Bestimmt, wo die Heute-Linie sitzt.
 // dateList = alle Tourtag-Daten ("YYYY-MM-DD", Reihenfolge egal), todayISO = heute lokal.
 // ISO-Strings vergleichen lexikografisch = chronologisch → robust auch unsortiert.
