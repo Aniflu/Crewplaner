@@ -17,6 +17,7 @@ const admin  = readFileSync(join(root, 'admin.html'), 'utf8');
 const index  = readFileSync(join(root, 'index.html'), 'utf8');
 const sidebar= readFileSync(join(root, 'js/sidebar.js'), 'utf8');
 const app    = readFileSync(join(root, 'js/app.js'), 'utf8');
+const modals = readFileSync(join(root, 'js/modals.js'), 'utf8');
 
 test('styles.css: hat einen mobilen Breakpoint (max-width)', () => {
   ok(/@media[^{]*max-width\s*:\s*\d+px/.test(css),
@@ -45,4 +46,30 @@ test('Drawer registriert: export + window.toggleDrawer', () => {
      'toggleDrawer wird in sidebar.js nicht exportiert');
   ok(/window\.toggleDrawer\s*=\s*toggleDrawer/.test(app),
      'window.toggleDrawer wird in app.js nicht registriert — Klick crasht sonst');
+});
+
+// Handy-Modal-Fix (v0.26.1): auf Android landete das Popup nach dem Login außerhalb
+// des Sichtfelds (schwarzer Backdrop, Box irgendwo). Fix = Overlay als Scroll-Fläche +
+// oben-verankerte Box im Mobile-Block + Body-Scroll-Lock via .modal-open.
+test('styles.css: Modal am Handy oben verankert (nicht flex-zentriert)', () => {
+  // Der Mobile-Block muss .modal-bg auf flex-start UND overflow-y:auto stellen.
+  const mq = css.slice(css.search(/@media[^{]*max-width\s*:\s*768px/));
+  ok(/\.modal-bg\s*{[^}]*align-items\s*:\s*flex-start/.test(mq),
+     '.modal-bg wird am Handy nicht auf align-items:flex-start gestellt (Box würde zentriert aus dem Bild rutschen)');
+  ok(/\.modal-bg\s*{[^}]*overflow-y\s*:\s*auto/.test(mq),
+     '.modal-bg ist am Handy nicht selbst scrollbar (hohe Box wäre unerreichbar)');
+});
+
+test('styles.css: Body-Scroll-Lock-Regel vorhanden', () => {
+  ok(/body\.modal-open\s*{[^}]*overflow\s*:\s*hidden/.test(css),
+     'body.modal-open{overflow:hidden} fehlt — Hintergrund scrollt hinter dem Modal weg');
+});
+
+test('modals.js: setzt/entfernt modal-open (Scroll-Lock)', () => {
+  ok(/classList\.add\(\s*['"]modal-open['"]\s*\)/.test(modals),
+     'openModal setzt die modal-open-Klasse nicht');
+  ok(/classList\.remove\(\s*['"]modal-open['"]\s*\)/.test(modals),
+     'closeModal entfernt die modal-open-Klasse nicht');
+  ok(/\.modal-bg\.open/.test(modals),
+     'closeModal prüft nicht auf weitere offene Modals (gestapelte Modals würden den Lock zu früh lösen)');
 });

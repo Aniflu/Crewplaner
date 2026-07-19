@@ -2,10 +2,16 @@
 
 export function openModal(id){
   document.getElementById(id).classList.add('open');
+  // Body-Scroll-Lock: verhindert, dass der (am Handy lange, scrollbare) Hintergrund
+  // hinter dem fixed-Overlay mitscrollt und die Box aus dem Sichtfeld schiebt (v0.26.1).
+  document.body.classList.add('modal-open');
 }
 
 export function closeModal(id){
   document.getElementById(id).classList.remove('open');
+  // Lock nur lösen, wenn KEIN weiteres Modal mehr offen ist (gestapelte Modals wie
+  // crewImportModal über crewModal).
+  if(!document.querySelector('.modal-bg.open')) document.body.classList.remove('modal-open');
 }
 
 document.addEventListener('click',e=>{

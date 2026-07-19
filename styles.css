@@ -441,6 +441,9 @@ tbody td.date-cell{padding:8px 12px 8px 18px;color:var(--ink);white-space:nowrap
 /* ========== Modal ========== */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(3px);z-index:200;align-items:center;justify-content:center;}
 .modal-bg.open{display:flex;}
+/* Body-Scroll-Lock, solange ein Modal offen ist (v0.26.1) — Hintergrund darf nicht
+   hinter dem fixed-Overlay wegscrollen (Desktop harmlos: Seite scrollt dort ohnehin nicht). */
+body.modal-open{overflow:hidden;}
 .modal-box{
   background:var(--panel2);
   border:1px solid var(--rule);
@@ -716,4 +719,13 @@ tbody td.date-cell{padding:8px 12px 8px 18px;color:var(--ink);white-space:nowrap
   .blocks-area{grid-template-columns:1fr;padding:12px;}
   .crew-row-head{grid-template-columns:1fr;gap:6px;}
   .tb-g2{grid-template-columns:1fr;}
+
+  /* --- Modal am Handy: am Viewport oben verankert (v0.26.1) ---
+     Das Overlay wird selbst zur Scroll-Fläche und richtet die Box oben aus, statt sie
+     zu zentrieren. So startet die Box IMMER im sichtbaren Bereich (kein Suchen/Verschieben
+     mehr), auch wenn sie höher als der Viewport ist oder die Android-URL-Bar den fixed-
+     Viewport verschiebt. Ersetzt die flex-Zentrierung, die auf Android die Box aus dem Bild
+     schob (schwarzer Backdrop sichtbar, Box irgendwo im Layout-Viewport-Zentrum). */
+  .modal-bg{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;}
+  .modal-box{width:100%;max-width:none;max-height:none;margin:auto 0;}
 }
