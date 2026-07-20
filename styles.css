@@ -274,9 +274,9 @@ tbody td:nth-child(2){position:sticky;left:88px;z-index:4;}
 tbody td:nth-child(3){position:sticky;left:213px;z-index:4;}
 
 /* Row backgrounds - very subtle tint */
-.row-show{--row-bg:rgba(95,204,138,.035);--row-bg-hover:rgba(95,204,138,.07);--row-accent:var(--show);}
-.row-reise{--row-bg:rgba(106,167,232,.03);--row-bg-hover:rgba(106,167,232,.06);--row-accent:var(--reise);}
-.row-prep{--row-bg:rgba(232,154,74,.03);--row-bg-hover:rgba(232,154,74,.06);--row-accent:var(--prep);}
+.row-show{--row-bg:var(--row-show-bg);--row-bg-hover:var(--row-show-hover);--row-accent:var(--show);}
+.row-reise{--row-bg:var(--row-reise-bg);--row-bg-hover:var(--row-reise-hover);--row-accent:var(--reise);}
+.row-prep{--row-bg:var(--row-prep-bg);--row-bg-hover:var(--row-prep-hover);--row-accent:var(--prep);}
 .row-off{--row-bg:transparent;--row-bg-hover:var(--ink-wash);--row-accent:var(--off);}
 .row-show td,.row-reise td,.row-prep td,.row-off td{background:var(--row-bg);}
 .row-show:hover td,.row-reise:hover td,.row-prep:hover td,.row-off:hover td{background:var(--row-bg-hover);}

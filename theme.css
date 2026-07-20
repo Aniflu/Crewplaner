@@ -24,15 +24,21 @@
   --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
   --gold:#f7c948;               /* NUR Logo + HEUTE-Strich */
 
-  /* Hell = Paper (Default) */
-  --bg:#F1EFE9; --panel:#FFFFFF; --panel2:#FFFFFF;
-  --rule:#E7E4DC; --rule-2:#D6D9DE;
-  --ink:#10172A; --ink-2:#3A4459; --muted:#5A6678;
+  /* Hell = „Sage" — gedämpftes Salbeigrün-Grau (v0.28.1). Ersetzt das warme
+     Creme #F1EFE9, das mit den (warmen) prep-Zeilen einen braunen Eindruck ergab;
+     Panels heben sich jetzt vom getönten Grund ab (nicht mehr „alles weiß"). */
+  --bg:#E7ECE4; --panel:#FCFDFB; --panel2:#FFFFFF;
+  --rule:#D5DCCD; --rule-2:#C7D0BD;
+  --ink:#10172A; --ink-2:#3B4A40; --muted:#5C6A5E;
   --accent:#10172A; --accent-b:#10172A; --on-accent:#FFFFFF;
   --accent-wash:rgba(16,23,42,.06); --accent-wash-2:rgba(16,23,42,.10); --ink-wash:rgba(16,23,42,.035);
 
   /* Status (bedeutungstragend, Hell-Variante auf Kontrast justiert) */
-  --show:#2f8f5b; --reise:#3b6fb0; --prep:#c07a2e; --off:#6a6f78; --warn:#C1453B;
+  --show:#2E8B57; --reise:#3B6FB0; --prep:#A96C34; --off:#6A6F78; --warn:#C1453B;
+  /* Zeilen-Tönung (Hell entschärft/kühler → prep wirkt nicht „braun" auf dem Grund) */
+  --row-show-bg:rgba(46,139,87,.055); --row-show-hover:rgba(46,139,87,.10);
+  --row-reise-bg:rgba(59,111,176,.05); --row-reise-hover:rgba(59,111,176,.09);
+  --row-prep-bg:rgba(169,108,52,.05); --row-prep-hover:rgba(169,108,52,.09);
 }
 
 /* OS-Vorgabe, solange der Nutzer nicht explizit gewählt hat */
@@ -44,6 +50,9 @@
     --accent:#FFFFFF; --accent-b:#FFFFFF; --on-accent:#10172A;
     --accent-wash:rgba(255,255,255,.07); --accent-wash-2:rgba(255,255,255,.11); --ink-wash:rgba(255,255,255,.03);
     --show:#5fcc8a; --reise:#6aa7e8; --prep:#e89a4a; --off:#6a6f78; --warn:#F2795A;
+    --row-show-bg:rgba(95,204,138,.035); --row-show-hover:rgba(95,204,138,.07);
+    --row-reise-bg:rgba(106,167,232,.03); --row-reise-hover:rgba(106,167,232,.06);
+    --row-prep-bg:rgba(232,154,74,.03); --row-prep-hover:rgba(232,154,74,.06);
   }
 }
 /* Der Umschalter muss die OS-Wahl in BEIDE Richtungen schlagen. */
@@ -54,14 +63,20 @@
   --accent:#FFFFFF; --accent-b:#FFFFFF; --on-accent:#10172A;
     --accent-wash:rgba(255,255,255,.07); --accent-wash-2:rgba(255,255,255,.11); --ink-wash:rgba(255,255,255,.03);
   --show:#5fcc8a; --reise:#6aa7e8; --prep:#e89a4a; --off:#6a6f78; --warn:#F2795A;
+  --row-show-bg:rgba(95,204,138,.035); --row-show-hover:rgba(95,204,138,.07);
+  --row-reise-bg:rgba(106,167,232,.03); --row-reise-hover:rgba(106,167,232,.06);
+  --row-prep-bg:rgba(232,154,74,.03); --row-prep-hover:rgba(232,154,74,.06);
 }
 :root[data-theme="light"]{
-  --bg:#F1EFE9; --panel:#FFFFFF; --panel2:#FFFFFF;
-  --rule:#E7E4DC; --rule-2:#D6D9DE;
-  --ink:#10172A; --ink-2:#3A4459; --muted:#5A6678;
+  --bg:#E7ECE4; --panel:#FCFDFB; --panel2:#FFFFFF;
+  --rule:#D5DCCD; --rule-2:#C7D0BD;
+  --ink:#10172A; --ink-2:#3B4A40; --muted:#5C6A5E;
   --accent:#10172A; --accent-b:#10172A; --on-accent:#FFFFFF;
   --accent-wash:rgba(16,23,42,.06); --accent-wash-2:rgba(16,23,42,.10); --ink-wash:rgba(16,23,42,.035);
-  --show:#2f8f5b; --reise:#3b6fb0; --prep:#c07a2e; --off:#6a6f78; --warn:#C1453B;
+  --show:#2E8B57; --reise:#3B6FB0; --prep:#A96C34; --off:#6A6F78; --warn:#C1453B;
+  --row-show-bg:rgba(46,139,87,.055); --row-show-hover:rgba(46,139,87,.10);
+  --row-reise-bg:rgba(59,111,176,.05); --row-reise-hover:rgba(59,111,176,.09);
+  --row-prep-bg:rgba(169,108,52,.05); --row-prep-hover:rgba(169,108,52,.09);
 }
 
 /* ── Kompatibilitäts-Aliase (alte Token-Namen der bestehenden CSS) ──────────────
