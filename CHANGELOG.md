@@ -2,6 +2,16 @@
 
 > **v0.10.7 – v0.14.13 (Juni 2026)** — kondensiert. Vollständige, ausführliche Einträge: `CLAUDE.md` → Abschnitt „Versionierung".
 
+## v0.28.0 — 2026-07-19
+- **feat:** Rebrand „Crew Pass" + Hell/Dunkel-Umschalter (NYX-Lightwork-CI). Kompletter Marken-/Design-Umbau nach übergebenem Design-Brief, konsistent zur Schwester-App CallBoard/Bauzeitenplan: neues Hexagon-Logo, Navy/Paper-Palette, Geist + JetBrains Mono statt IBM Plex Mono/Bebas Neue/Archivo. Neue zentrale `theme.css` mit Light/Dark/OS-Tokens (`data-theme` am `<html>`, Schlüssel `cp_mode`) behebt die bisherige 4-Welten-CSS-Fragmentierung (styles.css + je eigenes Inline-CSS in admin/login/view). ☀/☾-Umschalter auf allen vier Seiten, Fonts selbstgehostet (`assets/fonts/`). Gold `#f7c948` lebt jetzt nur noch im Logo + im „HEUTE"-Strich der Tourtabelle — alle dekorativen Gold-Stellen (Header-Rail, Buttons, Banner) auf `var(--accent)` umgestellt. Vorschau (interaktives Artifact) vor jeder Code-Änderung mit dem User abgestimmt. +tests/theme.test.mjs. 102 grün. app.js?v=40→41, view-app.js?v=2→3, styles.css?v=23→24, NEU theme.css?v=1. Kein Hook/Schema.
+- **fix:** Öffentlicher Booker-Link (v0.27.2) zeigte keine Besetzung. `view-app.js` befüllte den Render-State über `window.crew/POSITIONS/assignments/defaultCrew=…` statt über die state.js-Setter → render.js/getVal lasen nie davon (nur `TOUR_DATES` per `.splice()` wirkte). Betraf alle öffentlichen Links, nicht nur einzelne Touren. Fix: state.js-Setter (`setCrew`/`setPositions`/`setTourDates`/`loadAssignmentsData`/`setDefaultCrew`/`loadStatusesData`) statt window-Zuweisungen. +tests/viewapp.test.mjs.
+
+## v0.27.0 – v0.27.1 — 2026-07-19
+- **feat:** Abonnierbarer Kalender pro Person (v0.27.0). Statt eines einmaligen ICS-Downloads liefert eine neue Server-Route (`/ics/{token}`, Hook v4.9) einen live aktualisierten Kalender-Feed pro Crew-Mitglied (`users.feed_token`) — Ein-Tipp-Abo für Apple/Android/Outlook, „Per URL" für Google. Feed enthält bestätigte (CONFIRMED) und angefragte (TENTATIVE) Termine über alle Touren. **fix (v0.27.1):** Feed war fälschlich tour-übergreifend gemischt (eine Person in zwei Touren sah beide vermengt) — Route auf `/ics/{token}/{plan}` erweitert (Hook v4.9.2), ein Abo gilt jetzt nur für die aktuell geöffnete Tour.
+
+## v0.26.1 — 2026-07-14
+- **fix:** Handy — Einladungs-Popup landete außerhalb des Sichtfelds (nur schwarzer Backdrop sichtbar). Ursache: kein Body-Scroll-Lock + keine Mobile-Regeln für `.modal-bg`/`.modal-box` seit dem Scrollbar-Fix (v0.24). Fix: `body.modal-open{overflow:hidden}` + am Handy Overlay als Scroll-Fläche mit Box oben verankert statt zentriert.
+
 ## v0.26.0 — 2026-07-14
 - **fix/chore/security:** Sammlung aus einem Gesamt-Code-Review + echte Server-Absicherung.
   - **Aufräumen:** `js/bundle.js` (505 LOC, seit der ES6-Migration nie mehr geladen) und `js/userView.test.js` (Jest-Altlast ohne Runner) gelöscht; die stale „bundle.js muss gespiegelt werden"-Regel aus CLAUDE.md entfernt.

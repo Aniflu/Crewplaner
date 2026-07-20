@@ -1,4 +1,4 @@
-# HANDOFF — Tour Crew Plan
+# HANDOFF — Crewplanner
 
 > Dieses Dokument ist für den Kollegen und seinen Claude-Assistenten.
 > Lies es komplett durch, bevor du irgendetwas tust.
@@ -7,7 +7,7 @@
 
 ## 1. Was ist diese App?
 
-**Tour Crew Plan** ist eine Web-App zur Verwaltung von Crew-Besetzungen für Tourneen.
+**Crewplanner** (intern/Repo: „Tour Crew Plan") ist eine Web-App zur Verwaltung von Crew-Besetzungen für Tourneen.
 
 - Ein **Admin** (Tourmanager/Superadmin) legt Tourdaten, Positionen und Crew-Mitglieder an
 - Der Admin weist Crew-Mitglieder pro Position und Tag zu — oder stellt **Anfragen** (Proposals)
@@ -26,7 +26,7 @@
 
 ---
 
-## 2. Aktueller Stand (Stand 2026-07-14) — v0.26.0
+## 2. Aktueller Stand (Stand 2026-07-19) — v0.28.0
 
 > **Juni 2026 (v0.10):** Die ES6-Modul-Migration (v0.9.3) hatte bare Cross-Modul-Referenzen
 > hinterlassen → stille `ReferenceError`s (5-Tage-„Bounce"). In v0.10.0–v0.10.6 bereinigt.
@@ -70,6 +70,12 @@
 > - **ECHTE Server-Absicherung (v0.26.0, per Impersonation getestet):** `assignments.updateRule` → Crew ändert nur EIGENE Einsätze; `crew_invites.createRule` → nur Owner/superadmin lösen Fremd-Mails aus (availability bleibt). **⚠️ Coolify-Redeploy/Reimport setzt beide zurück → neu setzen** (Details: docs/security.md, CLAUDE.md).
 > - **Pool-Rolle komplett:** Feld `crew_members.role` live angelegt (fehlte trotz v0.22.0-Notiz) **+ Hook v4.8 deployt** → Pool-angelegte Person bekommt ihre Rolle automatisch beim Erst-Login (end-to-end getestet).
 
+> **v0.26.1–v0.28.0 (14.–19.07.):** Handy-Popup-Fix, Kalender-Abo, öffentlicher-Link-Fix, kompletter Rebrand. Details: CHANGELOG.md / CLAUDE.md.
+> - **Handy-Einladungs-Popup (v0.26.1):** landete nach Login außerhalb des Sichtfelds (nur schwarzer Backdrop) — Body-Scroll-Lock + Mobile-Anker-Regeln für alle Modals ergänzt.
+> - **Abonnierbarer Kalender pro Person (v0.27.0/v0.27.1):** neue Server-Route `/ics/{token}/{plan}` (Hook **v4.9.2**) liefert einen live aktualisierten ICS-Feed — Ein-Tipp-Abo statt Einmal-Download. **Wichtig:** ein Abo gilt nur für die *aktuell geöffnete* Tour (v0.27.1-Korrektur, vorher mischte der Feed alle Touren einer Person). Feld `users.feed_token` (⚠️ Redeploy löscht es → Backfill-Hook vergibt automatisch neue Tokens beim nächsten User-Zugriff).
+> - **Öffentlicher Link zeigte keine Besetzung (v0.27.2):** `view-app.js` schrieb den Render-State nach `window.*` statt über die state.js-Setter → render.js/getVal lasen nie davon. Betraf ALLE öffentlichen Links. Gefixt + Guard-Test ergänzt.
+> - **Kompletter Rebrand (v0.28.0):** neues „Crew Pass"-Logo (Hexagon), Navy/Paper-Farbwelt, Geist + JetBrains Mono, **Hell/Dunkel-Umschalter** (☀/☾) auf allen 4 Seiten. Neue zentrale `theme.css` (Light/Dark/OS via `data-theme`) ersetzt die bisherige 4-Welten-CSS-Fragmentierung. Gold nur noch im Logo + „HEUTE"-Strich. **Test-Guards jetzt 102 grün.**
+
 ### Was ist fertig ✅
 
 - Multi-Rollen-System: `superadmin`, `manager`, `booker`, `crew`
@@ -81,7 +87,9 @@
 - E-Mail-Flow: Proposal → Crew bekommt Mail → Bestätigen/Ablehnen per Button → Admin bekommt Rückmeldung
 - Einladungs-System: Admin schickt Crew-Einladung / Staff-Einladung per E-Mail (♥ Liebeseinladung in v0.22.0 entfernt)
 - Globaler Crew-Pool + vereintes Crew-Verzeichnis in der Konsole (v0.22.0/v0.23.0)
-- Alle Custom-Mails via Resend HTTP API (Hook **v4.8 deployt** seit 2026-07-14)
+- Abonnierbarer Kalender-Feed pro Person + Tour (v0.27.0/v0.27.1, `/ics/{token}/{plan}`)
+- Hell/Dunkel-Umschalter + neues Markendesign „Crew Pass" auf allen 4 Seiten (v0.28.0)
+- Alle Custom-Mails via Resend HTTP API (Hook **v4.9.2 deployt** seit 2026-07-19)
 - System-Mails (Passwort-Reset) via PB SMTP → Resend SMTP-Gateway
 - Passwortloses User-Anlegen: Admin gibt E-Mail + Rolle ein → Account angelegt → Reset-Link per Mail
 - Auto-Verify: Hook setzt `verified=true` serverseitig bei User-Create
@@ -124,7 +132,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
 ```
 
 Danach prüfen: `ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 20"`
-Erwartete Ausgabe: `[hook] main.pb.js v4.8 geladen` (Repo-Stand = deployt = **v4.8**, seit 2026-07-14)
+Erwartete Ausgabe: `[hook] main.pb.js v4.9.2 geladen` (Repo-Stand = deployt = **v4.9.2**, seit 2026-07-19)
 
 ---
 
@@ -161,9 +169,12 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 ├── admin.html            ← Konsole für superadmin/manager
 ├── login.html            ← Login + Registrierung + Passwort-Reset
 ├── view.html             ← Öffentliche Read-only-Ansicht (Token-basiert)
+├── theme.css             ← Zentrale Design-Tokens (Hell/Dunkel, Fonts) — seit v0.28.0
 ├── styles.css
+├── favicon.svg
+├── assets/fonts/         ← Geist + JetBrains Mono (selbstgehostet, seit v0.28.0)
 ├── .pb_hooks/
-│   └── main.pb.js        ← E-Mail-Hooks (Goja, **v4.8 deployt**) — via Resend HTTP API
+│   └── main.pb.js        ← E-Mail-Hooks (Goja, **v4.9.2 deployt**) — via Resend HTTP API + Kalender-Feed
 └── js/
     ├── config.js         ← POCKETBASE_URL, ADMIN_EMAIL
     ├── pb.js             ← PocketBase REST-Client (pbGet/Post/Patch/Delete/List/First/Upsert)
@@ -192,12 +203,13 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 ## 8. PocketBase Collections
 
 ```
-users           { id, email, role(superadmin/manager/booker/crew), verified }
+users           { id, email, role(superadmin/manager/booker/crew), verified, feed_token }   // feed_token seit v0.27.0 (Kalender-Abo)
 plans           { id, name, owner(→users), plan_data(JSON), view_token }
 plan_members    { plan_id(→plans), user_id(→users), role }
-crew_members    { plan_id, name, email, sort_order, user_id, role }   // plan_id="__pool__" = globaler Pool; role = Konto-Rolle beim Erst-Login (v4.8-Hook)
+crew_members    { plan_id, name, email, sort_order, user_id, role }   // plan_id="__pool__" = globaler Pool; role = Konto-Rolle beim Erst-Login (v4.9.2-Hook)
 assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
 crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url, custom_message }
+email_log       { plan_id, crew_name, crew_email, email_type, sent_at, success }
 ```
 
 Assignment-Status-Werte: `proposed` → `confirmed` | `declined`

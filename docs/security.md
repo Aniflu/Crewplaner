@@ -1,6 +1,6 @@
-# Sicherheitsrichtlinie — Tour Crew Plan
+# Sicherheitsrichtlinie — Crewplanner
 
-Stand: v0.26.0
+Stand: v0.28.0
 
 ---
 
@@ -54,7 +54,7 @@ Invite-Create=blockiert; Superadmin=200):
 
 ### verified-Feld
 
-Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js, **v4.8 deployt seit 2026-07-14**). Derselbe users-Create-Hook übernimmt zusätzlich die Rolle aus dem Crew-Pool (`crew_members.role`, Sentinel `plan_id="__pool__"`).
+Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js, **v4.9.2 deployt seit 2026-07-19**). Derselbe users-Create-Hook übernimmt zusätzlich die Rolle aus dem Crew-Pool (`crew_members.role`, Sentinel `plan_id="__pool__"`) und vergibt einen `feed_token` für den Kalender-Abo-Feed (`/ics/{token}/{plan}`, seit v0.27.0).
 
 ---
 
@@ -110,6 +110,18 @@ Zwei Ebenen, seit v0.26.0 **beide** aktiv:
 > öffentlichen view.html-Booker nicht zu brechen; `crew_members` ist weiterhin `auth != ""`.
 
 ---
+
+## Öffentliche, unauthentifizierte Routen
+
+Zwei Server-Routen sind bewusst **ohne** Login erreichbar — Sicherheit läuft hier über einen
+nicht-erratbaren Token statt über Auth:
+
+- **`plans` mit `view_token`** (öffentlicher Booker-Link, `view.html`): Read-only, liest nur `plan_data`.
+- **`/ics/{token}/{plan}`** (Kalender-Abo-Feed, Hook v4.9.2, seit v0.27.0): `users.feed_token`
+  (`$security.randomString(40)`) identifiziert die Person, das zweite Pfadsegment grenzt auf EINE
+  Tour ein (v0.27.1 — vorher lieferte ein Token alle Touren gemischt, eine Person in zwei Touren
+  sah beide vermengt). Beide Tokens sind lang genug, um praktisch nicht erratbar zu sein; ein
+  kompromittierter Token gibt nur Lesezugriff auf Tourdaten/Termine preis, keine Schreibrechte.
 
 ## Datenschutz (DSGVO)
 

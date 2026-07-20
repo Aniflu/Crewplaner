@@ -1,6 +1,6 @@
-# Datenbank-Schema — Tour Crew Plan
+# Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v0.26.0
+PocketBase-Collections (SQLite). Stand: v0.28.0
 
 ---
 
@@ -15,6 +15,7 @@ PocketBase-Collections (SQLite). Stand: v0.26.0
 | `role` | Select | `superadmin` / `manager` / `booker` / `crew` |
 | `verified` | Bool | Muss `true` sein für Passwort-Reset-Mails; wird via Hook auto-gesetzt |
 | `emailVisibility` | Bool | `true` = E-Mail in API-Responses sichtbar |
+| `feed_token` | Text (optional) | Nicht-erratbarer Schlüssel für den abonnierbaren Kalender-Feed (`/ics/{token}/{plan}`, seit v0.27.0). Wird beim User-Create vom Hook vergeben; ein Backfill vergibt ihn bestehenden Usern nach. ⚠️ Ein Coolify-Redeploy/Reimport löscht das Feld nicht, aber falls es fehlt: der Hook vergibt es selbstheilend beim nächsten Bootstrap. |
 
 **API Rules:**
 - Create: *(leer — public für Selbstregistrierung)*
@@ -68,7 +69,7 @@ PocketBase-Collections (SQLite). Stand: v0.26.0
 > `loadAllKnownCrew` liest alle `crew_members` → Pool-Mitglieder erscheinen in „Aus Crew-Pool wählen".
 > Beim Übernehmen in eine Tour entsteht ein zweiter Record mit der echten `plan_id`.
 > Das Login-Konto entsteht erst beim ersten Login über den Einladungslink; der `users`-Create-Hook
-> (main.pb.js v4.8) übernimmt dann die im Pool gesetzte `role`.
+> (main.pb.js v4.9.2) übernimmt dann die im Pool gesetzte `role`.
 
 > ⚠️ **`plan_id` MUSS Text sein (v0.23.2):** Nach einem Coolify-Wipe/Reimport war `crew_members.plan_id`
 > (und `assignments.plan_id`) als **`relation → plans`** angelegt. Der Sentinel `"__pool__"` ist kein
@@ -101,10 +102,11 @@ PocketBase-Collections (SQLite). Stand: v0.26.0
 → Crew ändert nur EIGENE Einsätze; Owner/superadmin alles. create/deleteRule unverändert (`auth != ""`).
 ⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen (Details: docs/security.md · CLAUDE.md).
 
-**Hook-Trigger (Stand Hook v4.8, deployt 2026-07-14):**
+**Hook-Trigger (Stand Hook v4.9.2, deployt 2026-07-19):**
 - assignments-CREATE-Hook **entfernt** (v4.2) — keine per-Slot-Mails mehr. Mails laufen über `crew_invites` (Einladung/Erinnerung/Update/Absage, konsolidiert).
 - UPDATE (status=declined) → Hook informiert den Admin („Abgelehnt").
-- users-CREATE (v4.8) → Auto-Verify **+** übernimmt die Rolle aus dem Crew-Pool (`crew_members` mit `plan_id="__pool__"`, gleiche E-Mail), falls dort ≠ `crew`.
+- users-CREATE (v4.8+) → Auto-Verify **+** übernimmt die Rolle aus dem Crew-Pool (`crew_members` mit `plan_id="__pool__"`, gleiche E-Mail), falls dort ≠ `crew`; vergibt zusätzlich `feed_token` falls leer (v4.9).
+- `routerAdd('GET','/ics/{token}/{plan}')` (v4.9.2, öffentlich, unauthentifiziert) → liefert den abonnierbaren ICS-Kalender-Feed einer Person für EINE Tour (Token→user, Plan-ID grenzt ein). Kein `/api`-Präfix, liegt am Route-Root.
 
 ---
 
@@ -128,6 +130,22 @@ PocketBase-Collections (SQLite). Stand: v0.26.0
 ⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen.
 
 **Hook-Trigger:** CREATE → sendet E-Mail via Resend HTTP API
+
+---
+
+### `email_log`
+
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `id` | String (UUID) | Auto |
+| `plan_id` | Text | Plan-Referenz (optional) |
+| `crew_name` | Text | Empfänger-Name |
+| `crew_email` | Text | Empfänger-E-Mail |
+| `email_type` | Text | `invite` / `reminder` / `update` / `cancellation` / `availability` / `love_invite` / `staff_invite` |
+| `sent_at` | Text | Zeitstempel |
+| `success` | Text | Erfolg/Fehler des Versands |
+
+Wird vom Hook nach jedem Mailversand geschrieben (seit v4.1); zeigt sich im „E-Mail-Log"-Tab der Konsole. `updateRule` leer (kein Patch nötig, nur Create + Read).
 
 ---
 

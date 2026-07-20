@@ -1,6 +1,6 @@
-# Tour Crew Plan — Erste Schritte
+# Crewplanner — Erste Schritte
 
-Stand: v0.23.5
+Stand: v0.28.0
 
 ---
 
@@ -32,7 +32,15 @@ Stehst du in mehr als einer Tour (z.B. AMK + Provinz), erscheinen in der Seitenl
 
 ### 6. Eigene Termine exportieren
 
-In der Seitenleiste: **„📅 Meine Termine (.ics)"** (für den Kalender) und **„📄 Meine Termine (PDF)"**. Exportiert werden ausschließlich deine **eigenen bestätigten** Tage.
+In der Seitenleiste: **„📅 Meine Termine (.ics)"** (einmaliger Download für den Kalender) und **„📄 Meine Termine (PDF)"**. Exportiert werden ausschließlich deine **eigenen bestätigten** Tage.
+
+### 7. Kalender abonnieren (aktualisiert sich automatisch)
+
+Statt eines einmaligen Downloads kannst du deinen Kalender auch **abonnieren** — er aktualisiert sich danach von selbst, sobald sich deine Einsätze ändern. Sidebar → **„📆 Kalender abonnieren"** öffnet einen Link zum Ein-Tipp-Abo (Apple/iPhone/Android/Outlook) sowie eine URL für Google Kalender („Per URL"). Der Feed gilt immer nur für die **gerade geöffnete Tour** — bist du in mehreren Touren, wechsle links die Tour und abonniere für jede einzeln.
+
+### 8. Hell/Dunkel umschalten
+
+Oben im Header gibt es einen ☀/☾-Knopf — er schaltet zwischen hellem und dunklem Erscheinungsbild um. Deine Wahl wird gespeichert und bleibt beim nächsten Besuch erhalten.
 
 ---
 
@@ -65,26 +73,31 @@ Admin-Konsole öffnen (Button oben rechts) → Werkzeuge-Tab → Crew-Einladung 
 
 Superadmin landet nach dem Login automatisch auf `admin.html`.
 
-### Neuen Benutzer anlegen
+### Neues Crew-Mitglied anlegen
 
-Benutzer-Tab → "Neuer Benutzer" → E-Mail + Rolle eingeben → Erstellen.
-Der neue User bekommt automatisch eine E-Mail mit einem Link zum Passwort-Setzen.
+„Crew & Benutzer"-Tab → „+ Neues Crew-Mitglied" → Name, E-Mail, Rolle eingeben → Anlegen.
+Die Person landet im **globalen Crew-Pool** (tour-übergreifend verfügbar über „Aus Crew-Pool wählen") —
+**es entsteht dabei noch KEIN Login-Konto**. Das Konto entsteht erst, wenn die Person zu einer Tour
+eingeladen wird und sich über den Einladungslink zum ersten Mal einloggt; die im Pool hinterlegte
+Rolle wird dabei automatisch übernommen.
+
+### Vereintes Crew-Verzeichnis
+
+Der „Crew & Benutzer"-Tab zeigt EINE Liste aller Personen (per E-Mail zusammengeführt aus Konto,
+Pool und allen Touren) mit Badges, welche davon zutreffen. Name/E-Mail/Rolle sind direkt editierbar —
+eine Änderung propagiert automatisch ins Konto, den Pool und alle Touren, in denen die Person steht.
 
 ### Passwort-Reset für bestehenden User
 
-Benutzer-Tab → 🔑 Reset neben dem User → Reset-Link wird per E-Mail gesendet.
-
-### ♥ Liebeseinladung
-
-"Neuer Benutzer"-Formular → E-Mail eingeben → ♥ Liebeseinladung → sendet eine warmherzige Onboarding-E-Mail (erstellt keinen Account — nur E-Mail).
+Crew & Benutzer-Tab → 🔑 Reset neben dem User → Reset-Link wird per E-Mail gesendet.
 
 ### Rollen ändern
 
-Benutzer-Tab → Rollen-Dropdown neben dem User → Rolle auswählen → wird sofort gespeichert.
+Crew & Benutzer-Tab → Rollen-Dropdown neben dem Eintrag → Rolle auswählen → wird sofort gespeichert.
 
-### Benutzer löschen
+### Benutzer/Crew-Mitglied entfernen
 
-Benutzer-Tab → Entfernen-Button → Bestätigung → User gelöscht.
+Crew & Benutzer-Tab → Entfernen-Button → Bestätigung → Eintrag gelöscht.
 
 ---
 
