@@ -804,16 +804,22 @@ export function _updatePreviewSkip()   { _resolveUpdatePreview('skip'); }
 export function _updatePreviewCancel() { _resolveUpdatePreview('cancel'); }
 
 // Sendet das Update für EINE Person (legt fehlende PB-Records an, mailt). customText
-// optional → wird als Freitext-Notiz (custom_message) mitgeschickt.
+// optional → wird als Freitext-Notiz (custom_message) mitgeschickt. Entfernte Slots
+// (kind:'removed', v0.30.0) gehen mit aid in die Mail — der Hook rendert daraus den
+// ➖-Abschnitt mit „GESEHEN ✓"-Button; sie werden NICHT auf proposed gesetzt.
 async function _sendUpdateForEntry(name, entry, customText) {
+  const removed = (entry.slots || []).filter(s => s.kind === 'removed');
+  const normal  = (entry.slots || []).filter(s => s.kind !== 'removed');
+  const removedMail = removed.map(s => ({ date: s.date, posLabel: s.posLabel, kind: 'removed', aid: s.aid || '', changes: ['Termin entfernt'] }));
+
   if (entry.informational) {
     // Nur die ausgewählten neuen Slots anfragen + mailen (nicht den ganzen Plan).
     const allNew = _getNewSlotsForCrew(name, entry.email);
-    const wanted = new Set((entry.slots || []).map(s => s.date + '|' + (s.posId || '')));
+    const wanted = new Set(normal.map(s => s.date + '|' + (s.posId || '')));
     let newSlots = allNew.filter(s => wanted.has(s.date + '|' + s.posId));
-    if (!newSlots.length) newSlots = allNew;   // Fallback (Legacy-Slots ohne posId)
+    if (!newSlots.length && normal.length) newSlots = allNew;   // Fallback (Legacy-Slots ohne posId)
     if (newSlots.length) await bulkProposeCrew(newSlots);
-    const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, changes: ['Neuer Termin'] }));
+    const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, kind: 'new', changes: ['Neuer Termin'] })).concat(removedMail);
     if (mailSlots.length) await sendUpdateNotice(name, entry.email, mailSlots, customText);
     return;
   }
@@ -821,7 +827,7 @@ async function _sendUpdateForEntry(name, entry, customText) {
   const newSlots = _getNewSlotsForCrew(name, entry.email);
   if (newSlots.length) await bulkProposeCrew(newSlots);
   const planId = localStorage.getItem('tourplan_active_pb_id');
-  for (const slot of entry.slots) {
+  for (const slot of normal) {
     const day = assignmentStatuses[slot.date];
     const posId = day ? Object.keys(day).find(p => {
       const pos = POSITIONS.find(pp => pp.id === p);
@@ -834,7 +840,7 @@ async function _sendUpdateForEntry(name, entry, customText) {
         { status: 'proposed', proposed_by: 'update' });
     }
   }
-  await sendUpdateNotice(name, entry.email, entry.slots, customText);
+  await sendUpdateNotice(name, entry.email, normal.concat(removedMail), customText);
 }
 
 export async function _sendSelectedUpdates() {
