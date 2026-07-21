@@ -541,7 +541,7 @@ body {
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.29.2</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.29.3</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -1727,18 +1727,49 @@ function openAdminCancellation(crewName) {
       slots.push({ date, posId, posLabel: pos?.label || posId, status: si.status });
     });
   });
-  if (!slots.length) { adminToast(`${crewName}: Keine Einsätze zum Absagen`, 'var(--accent)'); return; }
   slots.sort((a, b) => a.date.localeCompare(b.date));
+  // Bewusst KEIN Early-Return bei leerer Liste (v0.29.3): wurde die Zuweisung bereits
+  // entfernt (Status-Record existiert nicht mehr — z.B. Manager hat vorher schon über
+  // „Nicht besetzt" gelöscht), gibt es HIER nichts mehr zu erkennen. Trotzdem soll der
+  // Manager die Absage nachträglich manuell verschicken können → Modal öffnet immer,
+  // mit Hinweis + manuellem Eintrag statt stillem „Keine Einsätze"-Toast-Abbruch.
+  const emptyNote = slots.length ? '' :
+    `<div style="color:var(--muted);margin-bottom:10px;line-height:1.5;">Keine aktive Zuweisung gefunden (z.B. weil sie schon entfernt wurde, bevor die Absage verschickt wurde). Trag den Termin unten manuell nach, um trotzdem eine Absage-Mail zu schicken.</div>`;
   document.getElementById('cancelSelectBody').innerHTML =
     `<div style="margin-bottom:10px;color:var(--ink-2);">Welche Einsätze von <strong>${esc(crewName)}</strong> absagen?</div>` +
+    emptyNote +
     slots.map((s, i) => `<label style="display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--rule);cursor:pointer;">
       <input type="checkbox" id="cxl_${i}" data-date="${s.date}" data-pos="${s.posId}" data-label="${esc(s.posLabel)}" checked style="width:15px;height:15px;accent-color:var(--warn);">
       <span style="flex:1;">${_fmtDateDE(s.date)} · ${esc(s.posLabel)} <span style="color:var(--muted);">${s.status === 'confirmed' ? '✓' : '⏳'}</span></span>
-    </label>`).join('');
+    </label>`).join('') +
+    `<div id="cxlManualRows"></div>
+     <div style="display:flex;gap:6px;margin-top:12px;align-items:center;flex-wrap:wrap;">
+       <input type="date" id="cxlManualDate" class="tool-input" style="flex:1;min-width:130px;">
+       <input type="text" id="cxlManualPos" class="tool-input" placeholder="Position / Hinweis (optional)" style="flex:1;min-width:160px;">
+       <button class="btn btn-ghost btn-sm" onclick="cxlAddManual()">+ Termin manuell hinzufügen</button>
+     </div>`;
   _cancelCrewName = crewName; _cancelEmail = meta.email;
   openModal('cancelSelectModal');
 }
-let _cancelCrewName = '', _cancelEmail = '';
+let _cancelCrewName = '', _cancelEmail = '', _cxlManualIdx = 0;
+
+// Manuellen Termin zur Absage-Auswahl hinzufügen (v0.29.3) — für bereits entfernte
+// Zuweisungen ohne PB-Record mehr. Erzeugt dieselbe Checkbox-Struktur, die
+// cancelSelectNext() ohnehin generisch über #cancelSelectBody ausliest.
+function cxlAddManual() {
+  const dateEl = document.getElementById('cxlManualDate');
+  const posEl = document.getElementById('cxlManualPos');
+  const date = dateEl.value;
+  if (!date) { adminToast('Bitte zuerst ein Datum wählen', 'var(--warn)'); return; }
+  const label = posEl.value.trim() || 'Termin';
+  const i = 'm' + (_cxlManualIdx++);
+  const row = document.createElement('label');
+  row.style.cssText = 'display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--rule);cursor:pointer;';
+  row.innerHTML = `<input type="checkbox" id="cxl_${i}" data-date="${date}" data-pos="manual_${i}" data-label="${esc(label)}" checked style="width:15px;height:15px;accent-color:var(--warn);">
+    <span style="flex:1;">${_fmtDateDE(date)} · ${esc(label)} <span style="color:var(--muted);">(manuell)</span></span>`;
+  document.getElementById('cxlManualRows').appendChild(row);
+  dateEl.value = ''; posEl.value = '';
+}
 
 function cancelSelectNext() {
   const chosen = Array.from(document.querySelectorAll('#cancelSelectBody input[type=checkbox]'))
