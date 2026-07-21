@@ -89,7 +89,7 @@ PocketBase-Collections (SQLite). Stand: v0.28.0
 | `pos_label` | Text | Positions-Bezeichnung (für E-Mail) |
 | `crew_name` | Text | Name der zugewiesenen Crew |
 | `crew_email` | Email | E-Mail für Hook-Benachrichtigung |
-| `status` | Select | `proposed` → `confirmed` / `declined` |
+| `status` | **Text** (kein Select — 2026-07-21 live geprüft, entgegen früherer Doku-Annahme) | `proposed` → `confirmed` / `declined` / `pencilled` (v0.29.0, „vorgemerkt"). Da es ein freies Textfeld ist, braucht ein neuer Status-Wert KEINE Schema-Änderung. |
 | `proposed_by` | **Text** | Quelle der Anfrage: `'bulk'` / `'update'` / `'manual'` (NICHT E-Mail) |
 | `responded_at` | DateTime | Zeitstempel der Antwort |
 

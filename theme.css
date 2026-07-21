@@ -35,6 +35,10 @@
 
   /* Status (bedeutungstragend, Hell-Variante auf Kontrast justiert) */
   --show:#2E8B57; --reise:#3B6FB0; --prep:#A96C34; --off:#6A6F78; --warn:#C1453B;
+  --pencilled:#7A5FB3;          /* vorgemerkt - eigener Ton, kollidiert nicht mit show/reise/prep/warn/gold */
+  --show-wash:rgba(46,139,87,.08); --show-wash-2:rgba(46,139,87,.30);
+  --warn-wash:rgba(193,69,59,.08); --warn-wash-2:rgba(193,69,59,.30);
+  --pencilled-wash:rgba(122,95,179,.08); --pencilled-wash-2:rgba(122,95,179,.30);
   /* Zeilen-Tönung (Hell entschärft/kühler → prep wirkt nicht „braun" auf dem Grund) */
   --row-show-bg:rgba(46,139,87,.055); --row-show-hover:rgba(46,139,87,.10);
   --row-reise-bg:rgba(59,111,176,.05); --row-reise-hover:rgba(59,111,176,.09);
@@ -50,6 +54,10 @@
     --accent:#FFFFFF; --accent-b:#FFFFFF; --on-accent:#10172A;
     --accent-wash:rgba(255,255,255,.07); --accent-wash-2:rgba(255,255,255,.11); --ink-wash:rgba(255,255,255,.03);
     --show:#5fcc8a; --reise:#6aa7e8; --prep:#e89a4a; --off:#6a6f78; --warn:#F2795A;
+    --pencilled:#A98DE0;
+    --show-wash:rgba(95,204,138,.08); --show-wash-2:rgba(95,204,138,.32);
+    --warn-wash:rgba(242,121,90,.08); --warn-wash-2:rgba(242,121,90,.32);
+    --pencilled-wash:rgba(169,141,224,.10); --pencilled-wash-2:rgba(169,141,224,.34);
     --row-show-bg:rgba(95,204,138,.035); --row-show-hover:rgba(95,204,138,.07);
     --row-reise-bg:rgba(106,167,232,.03); --row-reise-hover:rgba(106,167,232,.06);
     --row-prep-bg:rgba(232,154,74,.03); --row-prep-hover:rgba(232,154,74,.06);
@@ -63,6 +71,10 @@
   --accent:#FFFFFF; --accent-b:#FFFFFF; --on-accent:#10172A;
     --accent-wash:rgba(255,255,255,.07); --accent-wash-2:rgba(255,255,255,.11); --ink-wash:rgba(255,255,255,.03);
   --show:#5fcc8a; --reise:#6aa7e8; --prep:#e89a4a; --off:#6a6f78; --warn:#F2795A;
+  --pencilled:#A98DE0;
+  --show-wash:rgba(95,204,138,.08); --show-wash-2:rgba(95,204,138,.32);
+  --warn-wash:rgba(242,121,90,.08); --warn-wash-2:rgba(242,121,90,.32);
+  --pencilled-wash:rgba(169,141,224,.10); --pencilled-wash-2:rgba(169,141,224,.34);
   --row-show-bg:rgba(95,204,138,.035); --row-show-hover:rgba(95,204,138,.07);
   --row-reise-bg:rgba(106,167,232,.03); --row-reise-hover:rgba(106,167,232,.06);
   --row-prep-bg:rgba(232,154,74,.03); --row-prep-hover:rgba(232,154,74,.06);
@@ -74,6 +86,10 @@
   --accent:#10172A; --accent-b:#10172A; --on-accent:#FFFFFF;
   --accent-wash:rgba(16,23,42,.06); --accent-wash-2:rgba(16,23,42,.10); --ink-wash:rgba(16,23,42,.035);
   --show:#2E8B57; --reise:#3B6FB0; --prep:#A96C34; --off:#6A6F78; --warn:#C1453B;
+  --pencilled:#7A5FB3;
+  --show-wash:rgba(46,139,87,.08); --show-wash-2:rgba(46,139,87,.30);
+  --warn-wash:rgba(193,69,59,.08); --warn-wash-2:rgba(193,69,59,.30);
+  --pencilled-wash:rgba(122,95,179,.08); --pencilled-wash-2:rgba(122,95,179,.30);
   --row-show-bg:rgba(46,139,87,.055); --row-show-hover:rgba(46,139,87,.10);
   --row-reise-bg:rgba(59,111,176,.05); --row-reise-hover:rgba(59,111,176,.09);
   --row-prep-bg:rgba(169,108,52,.05); --row-prep-hover:rgba(169,108,52,.09);

@@ -16,6 +16,10 @@ import { renderCrewView } from './crewview.js';
 import { getMyCrewName, _updateMeldungBar, _updateCrewUpdateBar,
          _getMeldungSent, _meldungDraft, _queueCrewUpdate } from './userView.js';
 
+// Status-Icon etwas größer als der umgebende Zellentext (User-Wunsch v0.29.0) — nur das
+// Symbol skaliert, Name/Layout bleiben unangetastet.
+const _statIc=ch=>`<span style="font-size:1.4em;line-height:1;vertical-align:-2px;">${ch}</span>`;
+
 // View state
 export let CURRENT_VIEW = 'table'; // 'table' | 'blocks' | 'crew'
 export const VIEW_KEY = 'tourplan_view';
@@ -152,9 +156,10 @@ export function renderBody(){
       const si=SUPABASE_ENABLED?(assignmentStatuses[row.date]?.[p.id]||null):null;
       if(si&&si.status!=='assigned'){
         const sn=si.crewName||val||'';
-        if(si.status==='proposed'){display=`⏳ ${sn}`;style='color:#e8c84a;border-color:rgba(232,200,74,.35);background:rgba(232,200,74,.07);';}
-        else if(si.status==='confirmed'){display=`✓ ${sn}`;style='color:#4ae8a0;border-color:rgba(74,232,160,.35);background:rgba(74,232,160,.07);';}
-        else if(si.status==='declined'){display=`✗ ${sn}`;style='color:#e84a4a;border-color:rgba(232,74,74,.35);background:rgba(232,74,74,.07);';}
+        if(si.status==='proposed'){display=`${_statIc('⏳')} ${sn}`;style='color:var(--accent);border-color:var(--accent-wash-2);background:var(--accent-wash);';}
+        else if(si.status==='confirmed'){display=`${_statIc('✓')} ${sn}`;style='color:var(--show);border-color:var(--show-wash-2);background:var(--show-wash);';}
+        else if(si.status==='pencilled'){display=`${_statIc('✎')} ${sn}`;style='color:var(--pencilled);border-color:var(--pencilled-wash-2);background:var(--pencilled-wash);';}
+        else if(si.status==='declined'){display=`${_statIc('✗')} ${sn}`;style='color:var(--warn);border-color:var(--warn-wash-2);background:var(--warn-wash);';}
       } else if(val===OFFDAY){style='color:#70ad47;border-color:rgba(112,173,71,.4);background:rgba(112,173,71,.07);font-weight:600;';display='🏖 Offday';}
       else if(val===REISE_TAG){style='color:#4f81bd;border-color:rgba(79,129,189,.4);background:rgba(79,129,189,.07);font-weight:600;';display='✈ Reise';}
       else if(val===AUSSCHREIBEN){style='color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);font-weight:600;';display='📋 Ausschr.';}
@@ -172,14 +177,15 @@ export function renderBody(){
       }else if(isAusschreibenSlot){
         b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);">📋 Bewerben</button>`;
       }else if(IS_CREW&&si&&si.crewName!==myName){
-        if(si.status==='confirmed'){b+=`<span style="font-size:.6rem;color:#4ae8a0;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
-        else if(si.status==='declined'){b+=`<span style="font-size:.6rem;color:#e84a4a;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
-        else{b+=`<span style="font-size:.6rem;color:#e8c84a;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
+        if(si.status==='confirmed'){b+=`<span style="font-size:.6rem;color:var(--show);display:block;text-align:center;">${esc(si.crewName)}</span>`;}
+        else if(si.status==='declined'){b+=`<span style="font-size:.6rem;color:var(--warn);display:block;text-align:center;">${esc(si.crewName)}</span>`;}
+        else if(si.status==='pencilled'){b+=`<span style="font-size:.6rem;color:var(--pencilled);display:block;text-align:center;">${esc(si.crewName)}</span>`;}
+        else{b+=`<span style="font-size:.6rem;color:var(--accent);display:block;text-align:center;">${esc(si.crewName)}</span>`;}
       }else if(IS_CREW&&si&&si.crewName===myName){
         const _pkey=row.date+'|'+p.id;
         const _isPending=pendingCancellations.has(_pkey);
         if(si.status==='confirmed'){
-          const _ps=_isPending?'background:rgba(232,74,74,.12);border-color:rgba(232,74,74,.4);color:#e84a4a;text-decoration:line-through;':'color:#4ae8a0;border-color:rgba(74,232,160,.35);background:rgba(74,232,160,.07);';
+          const _ps=_isPending?'background:rgba(232,74,74,.12);border-color:rgba(232,74,74,.4);color:var(--warn);text-decoration:line-through;':'color:var(--show);border-color:var(--show-wash-2);background:var(--show-wash);';
           b+=`<button class="assign-btn" style="${_ps}" onclick="toggleCancellation('${row.date}','${p.id}')">${_isPending?'Absagen?':'✓ '+esc(si.crewName||myName)}</button>`;
         }else{
           b+=`<span class="${cls}" style="${style};cursor:default;">${display}</span>`;

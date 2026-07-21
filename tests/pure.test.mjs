@@ -66,6 +66,14 @@ test('confirmedIcsRows: nur Tage mit bestätigten Einsätzen', () => {
   deepEq(rows[0].confirmed, [{posLabel:'Gewerkeleitung',crewName:'Wolf'}], 'nur confirmed-Slot, proposed nicht');
 });
 
+test('confirmedIcsRows: pencilled (v0.29.0) fällt raus wie proposed — nur confirmed zählt', () => {
+  const dates=[{date:'2026-08-01',type:'show'}];
+  const pos=[{id:'gl',label:'Gewerkeleitung'}];
+  const st={'2026-08-01':{gl:{status:'pencilled',crewName:'Wolf'}}};
+  const rows = confirmedIcsRows(dates, pos, st, {});
+  deepEq(rows, [], 'vorgemerkter Tag erscheint nicht im Kalender-Export');
+});
+
 test('confirmedIcsRows: onlyCrew filtert auf eigenen Namen', () => {
   const rows = confirmedIcsRows(_dates, _pos, _st, { onlyCrew:true, myName:'wolf' });
   deepEq(rows.map(r=>r.date), ['2026-07-01'], 'nur Wolfs bestätigter Tag (Olivers 07-03 raus)');

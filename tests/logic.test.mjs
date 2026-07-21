@@ -13,6 +13,17 @@ test('isPending: proposed/declined → true, confirmed/assigned/null → false',
   ok(!isPending(null), 'null');
 });
 
+test('isPencilled: nur status=pencilled → true; NICHT Teil von isPending (v0.29.0)', async () => {
+  const g = await graph(); if(!g) return 'SKIP';
+  const { isPencilled, isPending } = g.utils;
+  ok(isPencilled({ status:'pencilled' }), 'pencilled → true');
+  ok(!isPencilled({ status:'proposed' }), 'proposed → false');
+  ok(!isPencilled({ status:'confirmed' }), 'confirmed → false');
+  ok(!isPencilled(null), 'null → false');
+  // Vorgemerkt ist kein "Warten auf Crew-Antwort" — isPending darf pencilled nicht mit einschließen.
+  ok(!isPending({ status:'pencilled' }), 'pencilled ist NICHT isPending');
+});
+
 test('esc: maskiert " und \' (Attribut-sicher) — Name mit Anführungszeichen bricht value="..." nicht mehr', async () => {
   const g = await graph(); if(!g) return 'SKIP';
   const { esc } = g.utils;

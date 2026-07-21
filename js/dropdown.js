@@ -4,11 +4,11 @@ import { TOUR_DATES, POSITIONS, crew, CREW_COLORS, assignments, defaultCrew,
          OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, crewMeta,
          setAssignment, clearAssignmentSlot } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
-import { getVal, isPending, esc, showToast, sortInsert, fmtD, sameCrew } from './utils.js';
+import { getVal, isPending, isPencilled, esc, showToast, sortInsert, fmtD, sameCrew } from './utils.js';
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
 import { renderTable } from './render.js';
 import { pbDelete } from './pb.js';
-import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses, confirmAssignment } from './dataService.js';
+import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses, confirmAssignment, pencilInAssignment, promotePencilledToProposed } from './dataService.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { showPrompt, showConfirm } from './dialog.js';
 import { hasPermission } from './rbac.js';
@@ -142,6 +142,49 @@ export function openCrewDD(e,dateStr,posId){
       renderTable();
     }});
   }
+  // Vorläufig vormerken — für Fernzukunft-Termine, die noch NICHT offiziell angefragt
+  // werden sollen (kein Mailversand). Nur anbieten, wenn eine Person geplant ist, aber
+  // noch gar kein Status-Record existiert (sonst würde man einen proposed/confirmed
+  // Slot überschreiben).
+  if(planned && planned!==OFFEN && !si){
+    items.push({label:'✎ Vorläufig vormerken',color:'var(--pencilled)',action:async()=>{
+      closeDD();
+      try{
+        const who=planned;
+        await pencilInAssignment(dateStr,posId,who,crewMeta?.[who]?.email||'');
+        showToast('Vorgemerkt ✎','#7A5FB3');
+      }catch(err){
+        showToast('Fehler – nicht vorgemerkt: '+err.message,'#e84a4a');
+        await loadAssignmentStatuses();
+      }
+      renderTable();
+    }});
+  }
+  if(isPencilled(si)){
+    items.push({label:'→ Jetzt anfragen',color:'var(--accent)',action:async()=>{
+      closeDD();
+      try{
+        await promotePencilledToProposed(dateStr,posId);
+        showToast('Angefragt ⏳ — Mail folgt über „Einladen"','var(--accent-b)');
+      }catch(err){
+        showToast('Fehler – nicht angefragt: '+err.message,'#e84a4a');
+        await loadAssignmentStatuses();
+      }
+      renderTable();
+    }});
+    items.push({label:'✕ Vormerkung zurückziehen',cls:'danger',action:async()=>{
+      closeDD();
+      try{
+        await cancelProposal(dateStr,posId);
+        if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
+        showToast('Vormerkung zurückgezogen ✓','#4ae8a0');
+      }catch(err){
+        showToast('Fehler: '+(err&&err.message||'nicht zurückgezogen'),'#e84a4a');
+        await loadAssignmentStatuses();
+      }
+      renderTable();
+    }});
+  }
   if(isPending(si)){
     items.push({label:'✕ Anfrage zurückziehen',cls:'danger',action:async()=>{
       closeDD();
@@ -160,7 +203,7 @@ export function openCrewDD(e,dateStr,posId){
       renderTable();
     }});
   }
-  if(si && !isPending(si)){
+  if(si && !isPending(si) && !isPencilled(si)){
     items.push({label:'✕ Besetzung aufheben',cls:'danger',action:async()=>{
       closeDD();
       try{

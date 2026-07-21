@@ -407,6 +407,43 @@ export async function bulkProposeCrew(slots) {
   });
 }
 
+// ── Slot vorläufig vormerken (Manager, Fernzukunft, KEIN Mailversand) ─────────
+// status='pencilled' ist dem Hook unbekannt (main.pb.js prüft nur 'proposed'/'declined')
+// → kein automatischer Mailversand, exakt wie gewünscht. Analog zu bulkProposeCrew, aber
+// Einzelslot + eigener Status.
+export async function pencilInAssignment(dateStr, posId, crewName, crewEmail) {
+  if (!SUPABASE_ENABLED) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  const pos = (POSITIONS || []).find(p => p.id === posId);
+  await pbUpsert(
+    'assignments',
+    `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`,
+    { plan_id: planId, date: dateStr, pos_id: posId, pos_label: pos?.label || posId,
+      crew_name: crewName, crew_email: crewEmail || '', status: 'pencilled', proposed_by: 'manual' },
+    { crew_name: crewName, pos_label: pos?.label || posId, crew_email: crewEmail || '',
+      status: 'pencilled', proposed_by: 'manual' }
+  );
+  if (!assignmentStatuses[dateStr]) assignmentStatuses[dateStr] = {};
+  assignmentStatuses[dateStr][posId] = { status: 'pencilled', proposedBy: 'manual', crewName };
+}
+
+// ── Vormerkung → echte Anfrage („Jetzt anfragen") ──────────────────────────────
+// Setzt NUR den Status auf 'proposed' (Slot verhält sich danach wie jede andere Anfrage,
+// inkl. Sichtbarkeit in der Einladen/Update-Sammelfunktion). Sendet HIER bewusst KEINE
+// eigene Mail — Mailversand läuft wie bei jedem Slot über die bestehende, konsolidierte
+// Einladen/Update-Funktion (kein doppelter/inkonsistenter Mail-Pfad).
+export async function promotePencilledToProposed(dateStr, posId) {
+  if (!SUPABASE_ENABLED) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  const existing = await pbFirst('assignments',
+    `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
+  if (!existing) return;
+  await pbPatch('/api/collections/assignments/records/' + existing.id, { status: 'proposed' });
+  if (assignmentStatuses[dateStr]?.[posId]) assignmentStatuses[dateStr][posId].status = 'proposed';
+}
+
 // ── Absage-Sammel-E-Mail an Crew-Mitglied (via Pocketbase-Hook) ───────────────
 export async function sendCancellationNotice(crewName, crewEmail, slots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;

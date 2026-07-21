@@ -31,6 +31,15 @@ test('calcByPers: declined zählt nicht in total', async () => {
   eq(r['Pascal'].total, 1, 'declined zählt nicht, nur der confirmed Tag');
 });
 
+test('calcByPers: pencilled (v0.29.0) zählt nicht in total — wie proposed geführt', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  scenario(g);
+  g.state.setStatus('2026-07-01', 'gl', { status: 'pencilled', crewName: 'Pascal' });
+  g.state.setStatus('2026-07-02', 'gl', { status: 'confirmed', crewName: 'Pascal' });
+  const r = g.stats.calcByPers();
+  eq(r['Pascal'].total, 1, 'nur der confirmed Tag zählt, pencilled nicht');
+});
+
 test('calcByPers: alle unbestätigt → total 0', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   scenario(g);

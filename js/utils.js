@@ -42,6 +42,10 @@ export function colorToDarkBg(hex){
   return `#${hex2(r2)}${hex2(g2)}${hex2(b2)}`;
 }
 export function isPending(si){return!!(si&&(si.status==='proposed'||si.status==='declined'));}
+// „Vorgemerkt" (v0.29.0) ist bewusst NICHT Teil von isPending — inhaltlich kein Warten auf
+// eine Crew-Antwort (es wurde ja noch nichts angefragt), sondern ein reiner Manager-Platzhalter
+// für die Fernzukunft. Eigene Prüfung, damit dropdown.js beide Fälle sauber trennen kann.
+export function isPencilled(si){return!!(si&&si.status==='pencilled');}
 export function showToast(msg,color='#4f81bd'){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.style.background=color;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.opacity='0';},2200);}
 // Escaped auch " und ' — der textContent/innerHTML-Trick maskierte die NICHT, wodurch ein Wert
 // mit " (z.B. Name „Robert \"Woody\" Steinmetz") in value="${esc(...)}"-Attributen abbrach (v0.23.3).

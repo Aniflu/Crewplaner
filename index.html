@@ -75,7 +75,7 @@
           <div style="text-align:left;">
             <h1>Crewplanner</h1>
             <div class="subtitle-row">
-              <span class="tour-tag">Personalplan · v0.28.1</span>
+              <span class="tour-tag">Personalplan · v0.29.0</span>
               <span class="active-plan-name" id="activePlanName"></span>
             </div>
           </div>
@@ -123,12 +123,13 @@
         <button class="crew-only" id="btnSendCancellations" onclick="sendCancellations()" style="display:none;background:rgba(232,74,74,.15);border-color:rgba(232,74,74,.4);color:var(--warn);"><span class="sb-gl">⚠</span>Änderungen mitteilen</button>
       </div>
     </div>
-    <div class="sidebar-section crew-only" style="display:none;">
+    <div class="sidebar-section" id="statusLegend">
       <h3>Legende</h3>
       <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0;font-family:var(--mono);font-size:.6rem;">
-        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--show);flex-shrink:0;"></span><span style="color:var(--muted);">bestätigt</span></div>
-        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;"></span><span style="color:var(--muted);">angefragt</span></div>
-        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--warn);flex-shrink:0;"></span><span style="color:var(--muted);">abgesagt</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--show);flex-shrink:0;"></span><span style="color:var(--muted);">✓ bestätigt</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;"></span><span style="color:var(--muted);">⏳ angefragt</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--pencilled);flex-shrink:0;"></span><span style="color:var(--muted);">✎ vorgemerkt</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--warn);flex-shrink:0;"></span><span style="color:var(--muted);">✗ abgesagt</span></div>
       </div>
     </div>
     <div class="sidebar-section">
@@ -447,7 +448,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=41"></script>
+<script type="module" src="js/app.js?v=42"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
