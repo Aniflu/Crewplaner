@@ -149,6 +149,35 @@ Wird vom Hook nach jedem Mailversand geschrieben (seit v4.1); zeigt sich im „E
 
 ---
 
+### `activity_log`
+
+| Feld | Typ | Beschreibung |
+|---|---|---|
+| `id` | String (UUID) | Auto |
+| `plan_id` | Text | Plan-Referenz |
+| `crew_name` | Text | Name der reagierenden Person |
+| `crew_email` | Text | E-Mail der Person |
+| `action` | Text | `confirmed` (zugesagt) / `declined` (abgelehnt) / `cancel_acked` (Absage gesehen) |
+| `date` | Text | Betroffener Termin (`YYYY-MM-DD`) |
+| `pos_label` | Text | Positions-Bezeichnung |
+| `ts` | Text | **Client-gesetzter** ISO-Zeitstempel — die Collections haben KEIN `created`-Feld (sort=-id-Gotcha); Recency-Vergleich läuft lexikografisch über `ts` |
+
+**Crew-Reaktions-Log (v0.30.0):** Die App (`logActivity`, dataService.js) schreibt bei jeder
+Crew-Reaktion eine Zeile — In-App-Zusagen/-Absagen (nur bei `IS_CREW`, Manager-Klicks loggen
+nicht) sowie Mail-Button-Reaktionen (confirm/decline/ackcancel in authService.js). Die
+Admin-Konsole zeigt den Bestand im „Aktivität"-Tab und beim Login ein Popup mit den Zeilen,
+die neuer sind als `localStorage['tourplan_activity_last_seen']`. Fire-and-forget: ein
+fehlgeschlagener Log-Write bricht nie den Hauptflow.
+Rules: list/view/create `auth != ""`, delete nur superadmin. ⚠️ Coolify-Redeploy/Reimport-Caveat
+wie bei allen Collections. **Am 2026-07-21 live angelegt** (per Superuser, mit Test-Record verifiziert).
+
+**Verwandte `assignments.status`-Werte (v0.30.0):** `cancelled` (Zuweisung entfernt,
+Quittung ausstehend — Soft-Cancel statt Löschen, damit der „GESEHEN ✓"-Mail-Button eine
+Record-ID hat) und `cancel_acked` (Crew hat quittiert). Beide werden aus den Zellen-Ladepfaden
+gefiltert (loadAssignmentStatuses/view-app.js) — die Tabelle zeigt sie nie an.
+
+---
+
 ## Beziehungen (vereinfacht)
 
 ```

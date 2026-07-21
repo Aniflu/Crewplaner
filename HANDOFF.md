@@ -210,6 +210,7 @@ crew_members    { plan_id, name, email, sort_order, user_id, role }   // plan_id
 assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
 crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url, custom_message }
 email_log       { plan_id, crew_name, crew_email, email_type, sent_at, success }
+activity_log    { plan_id, crew_name, crew_email, action, date, pos_label, ts }  // Crew-Reaktions-Log (v0.30.0): action=confirmed|declined|cancel_acked; ts client-gesetzt (ISO, Sortierung -id)
 ```
 
 Assignment-Status-Werte: `proposed` → `confirmed` | `declined`
