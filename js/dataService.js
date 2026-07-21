@@ -248,7 +248,7 @@ export async function loadAssignmentStatuses() {
 
   try {
     const data = await pbListAll('assignments',
-      `plan_id = "${pbEscapeFilter(planId)}" && status != "assigned"`);
+      `plan_id = "${pbEscapeFilter(planId)}" && status != "assigned" && status != "cancelled" && status != "cancel_acked"`);
     Object.keys(assignmentStatuses).forEach(k => delete assignmentStatuses[k]);
     (data?.items || []).forEach(row => {
       if (!assignmentStatuses[row.date]) assignmentStatuses[row.date] = {};

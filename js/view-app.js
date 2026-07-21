@@ -64,7 +64,7 @@ window.pbListAll = pbListAll;
 
     try {
       const aData = await pbListAll('assignments',
-        `plan_id="${plan.id}" && status!="assigned"`, '-id');
+        `plan_id="${plan.id}" && status!="assigned" && status!="cancelled" && status!="cancel_acked"`, '-id');
       const statuses = {};
       (aData?.items || []).forEach(row => {
         if (!statuses[row.date]) statuses[row.date] = {};
