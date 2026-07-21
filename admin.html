@@ -84,6 +84,7 @@
     renderAdminLogos();
     loadAdminPlans();
     switchTab('werkzeuge');
+    checkNewActivity();
   }
 </script>
 
@@ -557,6 +558,7 @@ body {
   <button class="nav-tab superadmin-only" data-tab="roles" onclick="switchTab('roles')" style="display:none;">Rollen</button>
   <button class="nav-tab superadmin-only" data-tab="plans" onclick="switchTab('plans')" style="display:none;">Pläne</button>
   <button class="nav-tab" data-tab="emaillog" onclick="switchTab('emaillog'); renderEmailLog()">E-Mail-Log</button>
+  <button class="nav-tab" data-tab="aktivitaet" onclick="switchTab('aktivitaet'); renderActivityLog()">Aktivität</button>
 </div>
 
 <div class="admin-content">
@@ -861,6 +863,13 @@ body {
     </div>
   </div>
 
+  <!-- AKTIVITÄT -->
+  <div class="section" id="tabAktivitaet">
+    <div class="section-title">Aktivität</div>
+    <div class="section-sub">Alle Crew-Reaktionen — zugesagt ✓ · abgelehnt ✗ · Absage gesehen 👁</div>
+    <div id="activityList" style="font-family:var(--mono);font-size:.66rem;line-height:2;color:var(--ink-2);"></div>
+  </div>
+
 </div><!-- admin-content -->
 
 <!-- PDF MODAL -->
@@ -953,6 +962,15 @@ body {
       <button class="mbtn" onclick="closeModal('cancelSelectModal')">Abbrechen</button>
       <button class="mbtn primary" onclick="cancelSelectNext()">Weiter zur Vorschau →</button>
     </div>
+  </div>
+</div>
+
+<!-- Neue Crew-Reaktionen (Login-Popup) -->
+<div class="modal-bg" id="activityPopupModal">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-title">Neue Crew-Reaktionen</div>
+    <div id="activityPopupBody" style="font-family:var(--mono);font-size:.66rem;line-height:2;max-height:50vh;overflow-y:auto;color:var(--ink-2);"></div>
+    <div class="mactions"><button class="mbtn primary" onclick="closeModal('activityPopupModal')">OK</button></div>
   </div>
 </div>
 
@@ -1958,6 +1976,41 @@ function removeAdminLogo(type) {
   _saveAdminLogos();
   adminToast('Logo entfernt', 'var(--accent)');
   renderAdminLogos();
+}
+
+// ── Aktivitäts-Log (v0.30.0) ──────────────────────────────────────────────────
+const ACTIVITY_SEEN_KEY = 'tourplan_activity_last_seen';
+const ACTIVITY_LABEL = {
+  confirmed:    { txt: 'hat zugesagt',            ic: '✓', col: 'var(--show)' },
+  declined:     { txt: 'hat abgelehnt',           ic: '✗', col: 'var(--warn)' },
+  cancel_acked: { txt: 'hat die Absage gesehen',  ic: '👁', col: 'var(--pencilled)' },
+};
+function _activityLine(r) {
+  const l = ACTIVITY_LABEL[r.action] || { txt: r.action, ic: '·', col: 'var(--muted)' };
+  const when = (r.ts || '').replace('T', ' ').substring(0, 16);
+  return `<div><span style="color:var(--muted);">${esc(when)}</span> — <strong>${esc(r.crew_name)}</strong> ` +
+    `<span style="color:${l.col};">${l.ic} ${esc(l.txt)}</span>` +
+    (r.date ? ` · ${esc(_fmtDateDE(r.date))}${r.pos_label ? ' / ' + esc(r.pos_label) : ''}` : '') + `</div>`;
+}
+async function renderActivityLog() {
+  const el = document.getElementById('activityList');
+  try {
+    const data = await pbGet('/api/collections/activity_log/records?perPage=200&sort=-id');
+    const items = data?.items || [];
+    el.innerHTML = items.length ? items.map(_activityLine).join('') :
+      '<div style="color:var(--muted);">Noch keine Aktivität.</div>';
+  } catch(e) { el.innerHTML = '<div style="color:var(--warn);">Fehler: ' + esc(e.message) + '</div>'; }
+}
+async function checkNewActivity() {
+  try {
+    const lastSeen = localStorage.getItem(ACTIVITY_SEEN_KEY) || '';
+    const data = await pbGet('/api/collections/activity_log/records?perPage=50&sort=-id');
+    const fresh = (data?.items || []).filter(r => (r.ts || '') > lastSeen);
+    localStorage.setItem(ACTIVITY_SEEN_KEY, new Date().toISOString());
+    if (!fresh.length) return;
+    document.getElementById('activityPopupBody').innerHTML = fresh.map(_activityLine).join('');
+    openModal('activityPopupModal');
+  } catch(e) { console.warn('[aktivität]', e.message); }
 }
 </script>
 <script>
