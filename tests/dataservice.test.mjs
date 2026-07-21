@@ -152,3 +152,36 @@ test('declineAssignment: wirft bei PATCH-Fehler', async () => {
   ok(threw, 'Fehler wird weitergereicht');
   eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'proposed', 'Status nicht fälschlich declined');
 });
+
+test('softCancelAssignment: patcht status=cancelled statt zu löschen, liefert Record', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primePlan(g);
+  localStorage.setItem('tourplan_active_pb_id','plan1');
+  const calls = [];
+  mockFetch((url, method) => {
+    calls.push({ url:String(url), method:method||'GET' });
+    if (method === 'GET' && String(url).includes('/assignments/records')) return res({ items:[{ id:'rec1', status:'confirmed', crew_name:'Pascal' }] });
+    if (method === 'PATCH') return res({ id:'rec1', status:'cancelled' });
+    return res({});
+  });
+  const rec = await g.dataService.softCancelAssignment('2026-08-01','gl');
+  ok(rec && rec.id==='rec1', 'liefert den Record');
+  ok(calls.some(c=>c.method==='PATCH'), 'PATCH statt DELETE');
+  ok(!calls.some(c=>c.method==='DELETE'), 'kein DELETE');
+});
+
+test('ackCancelledAssignments: quittiert NUR Records mit status=cancelled', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeCrew(g, 'pascal@test.de');
+  const patched = [];
+  mockFetch((url, method) => {
+    const u = String(url);
+    if ((method||'GET')==='GET' && u.includes('/rec_c')) return res({ id:'rec_c', status:'cancelled', crew_email:'pascal@test.de', date:'2026-08-01', pos_label:'GL', crew_name:'Pascal', plan_id:'plan1' });
+    if ((method||'GET')==='GET' && u.includes('/rec_p')) return res({ id:'rec_p', status:'proposed', crew_email:'pascal@test.de' });
+    if ((method||'GET')==='PATCH') { patched.push(u); return res({}); }
+    return res({});
+  });
+  const n = await g.dataService.ackCancelledAssignments(['rec_c','rec_p']);
+  eq(n, 1, 'nur der cancelled-Record wird quittiert');
+  ok(patched.length===1 && patched[0].includes('rec_c'), 'PATCH nur auf rec_c');
+});

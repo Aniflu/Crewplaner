@@ -444,6 +444,60 @@ export async function promotePencilledToProposed(dateStr, posId) {
   if (assignmentStatuses[dateStr]?.[posId]) assignmentStatuses[dateStr][posId].status = 'proposed';
 }
 
+// ── Soft-Cancel: Zuweisung entfernen, Record BEHALTEN (v0.30.0) ────────────────
+// Statt zu löschen wird status='cancelled' gesetzt — nur so hat der „GESEHEN ✓"-
+// Button in der Änderungs-Mail ein Ziel (aid). Liefert den gepatchten Record
+// (für die Queue) oder null, wenn keiner existiert.
+export async function softCancelAssignment(dateStr, posId) {
+  if (!SUPABASE_ENABLED) return null;
+  const planId = await _getActivePlanId();
+  if (!planId) return null;
+  const existing = await pbFirst('assignments',
+    `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
+  if (!existing) return null;
+  await pbPatch('/api/collections/assignments/records/' + existing.id, {
+    status: 'cancelled', responded_at: new Date().toISOString()
+  });
+  clearStatus(dateStr, posId);   // Zelle sofort „leer" (Cache), Record bleibt in PB
+  return existing;
+}
+
+// ── Absage-Quittung („ÄNDERUNGEN GESEHEN ✓" aus der Mail) ─────────────────────
+// Patcht NUR Records, die noch status='cancelled' haben (Guard: der Slot kann
+// inzwischen neu besetzt sein — pbUpsert überschreibt cancelled-Records) und die
+// der eingeloggten Crew gehören. Liefert die Anzahl quittierter Termine.
+export async function ackCancelledAssignments(aids) {
+  if (!SUPABASE_ENABLED || !aids?.length) return 0;
+  const myEmail = (CURRENT_USER_EMAIL || '').toLowerCase();
+  let n = 0;
+  for (const aid of aids) {
+    try {
+      const rec = await pbGet('/api/collections/assignments/records/' + aid);
+      if (!rec || rec.status !== 'cancelled') continue;
+      if ((rec.crew_email || '').toLowerCase() !== myEmail) continue;
+      await pbPatch('/api/collections/assignments/records/' + aid, {
+        status: 'cancel_acked', responded_at: new Date().toISOString()
+      });
+      logActivity('cancel_acked', { planId: rec.plan_id, crewName: rec.crew_name,
+        crewEmail: rec.crew_email, date: rec.date, posLabel: rec.pos_label });
+      n++;
+    } catch (e) { console.warn('ackCancelledAssignments:', e.message); }
+  }
+  return n;
+}
+
+// ── Aktivitäts-Log (fire-and-forget — darf NIE den Hauptflow brechen) ─────────
+// action: 'confirmed' | 'declined' | 'cancel_acked'. ts client-seitig (die
+// Collections haben KEIN created-Feld, siehe sort=-id-Gotcha).
+export function logActivity(action, { planId, crewName, crewEmail, date, posLabel }) {
+  if (!SUPABASE_ENABLED) return;
+  pbPost('/api/collections/activity_log/records', {
+    plan_id: planId || '', crew_name: crewName || '', crew_email: crewEmail || '',
+    action, date: date || '', pos_label: posLabel || '',
+    ts: new Date().toISOString()
+  }).catch(e => console.warn('logActivity:', e.message));
+}
+
 // ── Absage-Sammel-E-Mail an Crew-Mitglied (via Pocketbase-Hook) ───────────────
 export async function sendCancellationNotice(crewName, crewEmail, slots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
