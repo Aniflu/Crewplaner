@@ -8,13 +8,12 @@ import { getVal, isPending, isPencilled, esc, showToast, sortInsert, fmtD, sameC
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
 import { renderTable } from './render.js';
 import { pbDelete } from './pb.js';
-import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses, confirmAssignment, pencilInAssignment, promotePencilledToProposed } from './dataService.js';
+import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses, confirmAssignment, pencilInAssignment, promotePencilledToProposed, softCancelAssignment } from './dataService.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { showPrompt, showConfirm } from './dialog.js';
 import { hasPermission } from './rbac.js';
 import { openBlockAssign } from './tourblock.js';
-import { _queueCrewUpdate } from './userView.js';
-import { _storePendingCancellation } from './crewNotify.js';
+import { _queueCrewUpdate, _queueRemovedSlot } from './userView.js';
 
 export function showDD(rect,header,items){
   const menu=document.getElementById('ddMenu');
@@ -190,13 +189,11 @@ export function openCrewDD(e,dateStr,posId){
     items.push({label:'✕ Anfrage zurückziehen',cls:'danger',action:async()=>{
       closeDD();
       try{
-        await cancelProposal(dateStr,posId);
-        _notifyIfWasActive();
-        if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
+        await _removeAssignment();
         setAssign(dateStr,posId,'');
         showToast('Anfrage zurückgezogen ✓','#4ae8a0');
       }catch(err){
-        console.error('cancelProposal failed:',err);
+        console.error('_removeAssignment failed:',err);
         showToast('Fehler: '+(err&&err.message||'Anfrage nicht zurückgezogen'),'#e84a4a');
         await loadAssignmentStatuses();
       }
@@ -207,9 +204,7 @@ export function openCrewDD(e,dateStr,posId){
     items.push({label:'✕ Besetzung aufheben',cls:'danger',action:async()=>{
       closeDD();
       try{
-        await cancelProposal(dateStr,posId);
-        _notifyIfWasActive();
-        if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
+        await _removeAssignment();
         setAssign(dateStr,posId,'');
         showToast('Besetzung aufgehoben ✓','#4ae8a0');
       }catch(err){
@@ -219,35 +214,34 @@ export function openCrewDD(e,dateStr,posId){
       renderTable();
     }});
   }
-  // War die Person bestätigt/angefragt (also schon benachrichtigt), bevor der Slot hier
-  // geändert/geleert wird → Absage in die Queue legen, damit der Manager sie mitteilen
-  // kann („Änderungen mitteilen"-Banner). Pencilled/declined brauchen keine Absage (die
-  // Person wusste noch nichts bzw. weiß es schon). Zentral, damit „— Nicht besetzt",
-  // „↩ Standard" UND das Umbesetzen auf eine andere Person das GLEICHE tun (vorher tat
-  // das keiner dieser drei Wege — Bug-Report v0.29.2: „Nicht besetzt" löschte Crew ohne
-  // je die Möglichkeit zu bieten, ein Update zu verschicken).
-  const _notifyIfWasActive=()=>{
-    if(!si||!si.crewName)return;
-    if(si.status!=='confirmed'&&si.status!=='proposed')return;
-    const _email=crewMeta?.[si.crewName]?.email;
-    if(!_email)return;
-    const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;
-    _storePendingCancellation(si.crewName,_email,dateStr,_lbl);
+  // Zuweisung entfernen (v0.30.0): War die Person bestätigt/angefragt (also schon
+  // benachrichtigt) → Soft-Cancel (Record bleibt für die „GESEHEN ✓"-Quittung) +
+  // Eintrag in die Updates-Queue („➖ entfernt"). Sonst (pencilled/declined/ohne
+  // Record) → hartes Löschen wie bisher, keine Benachrichtigung nötig.
+  const _removeAssignment=async()=>{
+    const wasActive=si && (si.status==='confirmed' || si.status==='proposed');
+    if(wasActive){
+      const rec=await softCancelAssignment(dateStr,posId);
+      const _email=crewMeta?.[si.crewName]?.email||rec?.crew_email||'';
+      const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;
+      if(rec && si.crewName)_queueRemovedSlot(si.crewName,_email,dateStr,posId,_lbl,rec.id);
+    }else if(si){
+      await cancelProposal(dateStr,posId);
+    }
+    if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
   };
   // Anfragen ausschließlich über Crew-Notify-Modal (Einladen-Button)
   const _applyState=async(val)=>{
     closeDD();
     if(si){
-      try{await cancelProposal(dateStr,posId);}catch(e){console.warn('cancelProposal:',e);}
-      _notifyIfWasActive();
-      if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
+      try{await _removeAssignment();}catch(e){console.warn('_removeAssignment:',e);}
     }
     setAssign(dateStr,posId,val);
     renderTable();
   };
   if(def)items.push({label:`↩ Standard: ${def}`,cls:'reset',action:async()=>{
     closeDD();
-    if(si){try{await cancelProposal(dateStr,posId);}catch(e){console.warn(e);}_notifyIfWasActive();if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];}
+    if(si){try{await _removeAssignment();}catch(e){console.warn(e);}}
     clearAssignmentSlot(dateStr, posId);
     renderTable();
   }});
