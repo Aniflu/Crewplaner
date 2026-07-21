@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.9.2
-console.log('[hook] main.pb.js v4.9.2 geladen');
+// Version: 4.10
+console.log('[hook] main.pb.js v4.10 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -171,29 +171,44 @@ onRecordAfterCreateSuccess(function(e) {
   } else if (type === 'update') {
     var upSlots = [];
     try { upSlots = JSON.parse(appUrl || '[]'); } catch (_) {}
-    var upRows = '';
+    // v4.10: Slots nach kind trennen — 'removed' = entfernte Termine (GESEHEN-Quittung),
+    // alles andere (auch ohne kind, rückwärtskompatibel) = neue/geänderte Termine.
+    var upNew = [], upRem = [], ackIds = [];
     for (var i = 0; i < upSlots.length; i++) {
-      var s = upSlots[i];
-      var fdv = fmtISO(s.date);
-      var chg = Array.isArray(s.changes) ? s.changes.map(function(c){return esc(c);}).join(', ') : '';
-      upRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+fdv+'</td>'+
-        '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">'+esc(s.posLabel)+'</td>'+
-        '<td style="padding:10px 16px;font-size:12px;color:#e84a4a;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+chg+'</td></tr>';
+      if (upSlots[i] && upSlots[i].kind === 'removed') {
+        upRem.push(upSlots[i]);
+        if (upSlots[i].aid) ackIds.push(upSlots[i].aid);
+      } else { upNew.push(upSlots[i]); }
     }
-    sendMail(email, 'ÄNDERUNG · ' + plan, wrap(
-      '<h1 style="font-size:36px;font-weight:bold;color:#e84a4a;margin:0 0 6px 0;">Achtung.</h1>'+
-      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">PLAN GEÄNDERT · '+ePlan+'</p>'+
-      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey '+eName+',<br><br>folgende Einss&auml;tze haben sich ge&auml;ndert. Bitte logge dich ein und best&auml;tige erneut:</p>'+
-      noteBlock(customMsg)+
-      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">'+
-      '<tr style="background:#f8f9fb;">'+
-      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td>'+
-      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td>'+
-      '<td style="padding:10px 16px;font-size:9px;color:#e84a4a;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">&Auml;NDERUNG</td></tr>'+
-      upRows+'</table>'+
-      mkBtn('https://crewplanner.nyxlightwork.de','JETZT &Uuml;BERPR&Uuml;FEN &rarr;')
-    ));
-    console.log('[hook] update email sent to '+email+' ('+upSlots.length+' slots)');
+    function upTable(rows, chgColor) {
+      var out = '<table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0 24px 0;border:1px solid #e8e8e8;border-radius:2px;">'+
+        '<tr style="background:#f8f9fb;">'+
+        '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td>'+
+        '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td></tr>';
+      for (var j = 0; j < rows.length; j++) {
+        out += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+fmtISO(rows[j].date)+'</td>'+
+          '<td style="padding:10px 16px;font-size:13px;color:'+chgColor+';border-bottom:1px solid #e8e8e8;">'+esc(rows[j].posLabel||'')+'</td></tr>';
+      }
+      return out + '</table>';
+    }
+    var upBody = '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Es gab &Auml;nderungen.</h1>'+
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">PLAN GE&Auml;NDERT · '+ePlan+'</p>'+
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hallo '+eName+',<br><br>in der Tour <strong style="color:#1a1a2e;">'+ePlan+'</strong> haben sich folgende &Auml;nderungen ergeben:</p>'+
+      noteBlock(customMsg);
+    if (upNew.length) {
+      upBody += '<p style="font-size:13px;color:#2d6a3f;font-weight:bold;margin:24px 0 0 0;">&#10133; Neue Termine &mdash; bitte best&auml;tige, dass du Zeit hast:</p>'+
+        upTable(upNew, '#555570')+
+        mkBtn('https://crewplanner.nyxlightwork.de', 'TERMINE BEST&Auml;TIGEN &rarr;');
+    }
+    if (upRem.length) {
+      upBody += '<p style="font-size:13px;color:#e84a4a;font-weight:bold;margin:24px 0 0 0;">&#10134; Entfernte Termine &mdash; bitte best&auml;tige, dass du die &Auml;nderung gesehen hast:</p>'+
+        upTable(upRem, '#e84a4a');
+      if (ackIds.length) {
+        upBody += mkBtn('https://crewplanner.nyxlightwork.de?action=ackcancel&aids='+ackIds.join(','), '&Auml;NDERUNGEN GESEHEN &#10003;', '#f8f9fb', '#555570');
+      }
+    }
+    sendMail(email, 'ÄNDERUNG · ' + plan, wrap(upBody));
+    console.log('[hook] update email sent to '+email+' ('+upNew.length+' neu, '+upRem.length+' entfernt)');
   } else if (type === 'love_invite') {
     var _lGuide = 'https://aniflu.github.io/Crewplaner/docs/guide-admin.html';
     sendMail(email, '♥ Du wirst gebraucht · ' + plan, wrap(
