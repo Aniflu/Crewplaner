@@ -455,11 +455,16 @@ export async function softCancelAssignment(dateStr, posId) {
   const existing = await pbFirst('assignments',
     `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
   if (!existing) return null;
-  await pbPatch('/api/collections/assignments/records/' + existing.id, {
-    status: 'cancelled', responded_at: new Date().toISOString()
-  });
-  clearStatus(dateStr, posId);   // Zelle sofort „leer" (Cache), Record bleibt in PB
-  return existing;
+  try {
+    await pbPatch('/api/collections/assignments/records/' + existing.id, {
+      status: 'cancelled', responded_at: new Date().toISOString()
+    });
+    clearStatus(dateStr, posId);   // Zelle sofort „leer" (Cache), Record bleibt in PB
+    return existing;
+  } catch (e) {
+    console.warn('softCancelAssignment Fehler:', e.message);
+    throw e;
+  }
 }
 
 // ── Absage-Quittung („ÄNDERUNGEN GESEHEN ✓" aus der Mail) ─────────────────────
@@ -474,6 +479,7 @@ export async function ackCancelledAssignments(aids) {
     try {
       const rec = await pbGet('/api/collections/assignments/records/' + aid);
       if (!rec || rec.status !== 'cancelled') continue;
+      if (!myEmail || !rec.crew_email) continue;
       if ((rec.crew_email || '').toLowerCase() !== myEmail) continue;
       await pbPatch('/api/collections/assignments/records/' + aid, {
         status: 'cancel_acked', responded_at: new Date().toISOString()

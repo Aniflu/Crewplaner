@@ -157,6 +157,7 @@ test('softCancelAssignment: patcht status=cancelled statt zu löschen, liefert R
   const g = await loadGraph(); if(!g) return 'SKIP';
   resetState(g); primePlan(g);
   localStorage.setItem('tourplan_active_pb_id','plan1');
+  g.state.setStatus('2026-08-01','gl',{status:'confirmed',crewName:'Pascal'});
   const calls = [];
   mockFetch((url, method) => {
     calls.push({ url:String(url), method:method||'GET' });
@@ -168,20 +169,24 @@ test('softCancelAssignment: patcht status=cancelled statt zu löschen, liefert R
   ok(rec && rec.id==='rec1', 'liefert den Record');
   ok(calls.some(c=>c.method==='PATCH'), 'PATCH statt DELETE');
   ok(!calls.some(c=>c.method==='DELETE'), 'kein DELETE');
+  eq(g.state.assignmentStatuses['2026-08-01']?.gl, undefined, 'clearStatus leert den Cache');
 });
 
 test('ackCancelledAssignments: quittiert NUR Records mit status=cancelled', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   resetState(g); primeCrew(g, 'pascal@test.de');
-  const patched = [];
+  const patched = [], posts = [];
   mockFetch((url, method) => {
     const u = String(url);
     if ((method||'GET')==='GET' && u.includes('/rec_c')) return res({ id:'rec_c', status:'cancelled', crew_email:'pascal@test.de', date:'2026-08-01', pos_label:'GL', crew_name:'Pascal', plan_id:'plan1' });
     if ((method||'GET')==='GET' && u.includes('/rec_p')) return res({ id:'rec_p', status:'proposed', crew_email:'pascal@test.de' });
     if ((method||'GET')==='PATCH') { patched.push(u); return res({}); }
+    if ((method||'GET')==='POST') { posts.push(u); return res({}); }
     return res({});
   });
   const n = await g.dataService.ackCancelledAssignments(['rec_c','rec_p']);
+  await new Promise(r=>setTimeout(r,0));  // fire-and-forget logActivity
   eq(n, 1, 'nur der cancelled-Record wird quittiert');
   ok(patched.length===1 && patched[0].includes('rec_c'), 'PATCH nur auf rec_c');
+  ok(posts.some(u=>u.includes('activity_log')), 'logActivity POST abgesetzt');
 });
