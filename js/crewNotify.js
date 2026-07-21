@@ -16,7 +16,10 @@ function _loadCancellations() {
   try { return JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}'); } catch { return {}; }
 }
 
-function _storePendingCancellation(crewName, email, dateStr, posLabel) {
+// Exportiert (v0.29.2) — wird auch von dropdown.js beim Entfernen/Ersetzen einer
+// bestätigten/angefragten Person aufgerufen (war dort ohne Import aufgerufen worden →
+// ReferenceError, verschluckt vom umgebenden try/catch → Absage landete nie in der Queue).
+export function _storePendingCancellation(crewName, email, dateStr, posLabel) {
   const q = _loadCancellations();
   if (!q[crewName]) q[crewName] = { email, slots: [] };
   const exists = q[crewName].slots.some(s => s.date === dateStr && s.posLabel === posLabel);

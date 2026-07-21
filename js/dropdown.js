@@ -14,6 +14,7 @@ import { showPrompt, showConfirm } from './dialog.js';
 import { hasPermission } from './rbac.js';
 import { openBlockAssign } from './tourblock.js';
 import { _queueCrewUpdate } from './userView.js';
+import { _storePendingCancellation } from './crewNotify.js';
 
 export function showDD(rect,header,items){
   const menu=document.getElementById('ddMenu');
@@ -190,8 +191,7 @@ export function openCrewDD(e,dateStr,posId){
       closeDD();
       try{
         await cancelProposal(dateStr,posId);
-        const _email=crewMeta?.[si.crewName]?.email;
-        if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
+        _notifyIfWasActive();
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
         setAssign(dateStr,posId,'');
         showToast('Anfrage zurückgezogen ✓','#4ae8a0');
@@ -208,8 +208,7 @@ export function openCrewDD(e,dateStr,posId){
       closeDD();
       try{
         await cancelProposal(dateStr,posId);
-        const _email=crewMeta?.[si.crewName]?.email;
-        if(_email&&si.crewName){const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;_storePendingCancellation(si.crewName,_email,dateStr,_lbl);}
+        _notifyIfWasActive();
         if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
         setAssign(dateStr,posId,'');
         showToast('Besetzung aufgehoben ✓','#4ae8a0');
@@ -220,11 +219,27 @@ export function openCrewDD(e,dateStr,posId){
       renderTable();
     }});
   }
+  // War die Person bestätigt/angefragt (also schon benachrichtigt), bevor der Slot hier
+  // geändert/geleert wird → Absage in die Queue legen, damit der Manager sie mitteilen
+  // kann („Änderungen mitteilen"-Banner). Pencilled/declined brauchen keine Absage (die
+  // Person wusste noch nichts bzw. weiß es schon). Zentral, damit „— Nicht besetzt",
+  // „↩ Standard" UND das Umbesetzen auf eine andere Person das GLEICHE tun (vorher tat
+  // das keiner dieser drei Wege — Bug-Report v0.29.2: „Nicht besetzt" löschte Crew ohne
+  // je die Möglichkeit zu bieten, ein Update zu verschicken).
+  const _notifyIfWasActive=()=>{
+    if(!si||!si.crewName)return;
+    if(si.status!=='confirmed'&&si.status!=='proposed')return;
+    const _email=crewMeta?.[si.crewName]?.email;
+    if(!_email)return;
+    const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;
+    _storePendingCancellation(si.crewName,_email,dateStr,_lbl);
+  };
   // Anfragen ausschließlich über Crew-Notify-Modal (Einladen-Button)
   const _applyState=async(val)=>{
     closeDD();
     if(si){
       try{await cancelProposal(dateStr,posId);}catch(e){console.warn('cancelProposal:',e);}
+      _notifyIfWasActive();
       if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
     }
     setAssign(dateStr,posId,val);
@@ -232,7 +247,7 @@ export function openCrewDD(e,dateStr,posId){
   };
   if(def)items.push({label:`↩ Standard: ${def}`,cls:'reset',action:async()=>{
     closeDD();
-    if(si){try{await cancelProposal(dateStr,posId);}catch(e){console.warn(e);}if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];}
+    if(si){try{await cancelProposal(dateStr,posId);}catch(e){console.warn(e);}_notifyIfWasActive();if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];}
     clearAssignmentSlot(dateStr, posId);
     renderTable();
   }});
