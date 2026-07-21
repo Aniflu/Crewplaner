@@ -93,3 +93,20 @@ test('_updateCrewUpdateBar: Self-Heal — entfernter Name fällt aus der Queue',
   ok(q['Wolf'], 'Wolf bleibt (noch eingeplant)');
   ok(!q['Oliver'], 'Oliver fällt raus (nicht mehr eingeplant)');
 });
+
+test('removed-Slots überleben den Self-Heal (getVal ist für sie leer)', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  setup(g);
+  const { POSITIONS, TOUR_DATES } = g.state;
+  POSITIONS.push({ id:'gl', label:'GL' });
+  TOUR_DATES.push({ date:'2026-08-01', type:'show', typeLabel:'Show' });
+  g.state.setAuthState('u1','a@test.de','superadmin');
+
+  g.userView._queueRemovedSlot('Pascal','pascal@test.de','2026-08-01','gl','GL','rec1');
+  g.userView._updateCrewUpdateBar();   // Self-Heal läuft hier
+
+  const q = readQueue();
+  ok(q['Pascal'], 'Eintrag existiert nach Self-Heal noch');
+  eq(q['Pascal'].slots[0].kind, 'removed', 'kind=removed gespeichert');
+  eq(q['Pascal'].slots[0].aid, 'rec1', 'aid für GESEHEN-Button gespeichert');
+});

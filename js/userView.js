@@ -375,7 +375,7 @@ function _mergeLiveNewSlots(q) {
     for (const s of slots) {
       if (!q[name]) { q[name] = { email, informational: true, slots: [] }; changed = true; }
       if (!q[name].slots.find(x => x.date === s.date && x.posId === s.posId)) {
-        q[name].slots.push({ date: s.date, posId: s.posId, posLabel: s.posLabel, changes: ['Neuer Termin'] });
+        q[name].slots.push({ kind: 'new', date: s.date, posId: s.posId, posLabel: s.posLabel, changes: ['Neuer Termin'] });
         changed = true;
       }
     }
@@ -439,6 +439,19 @@ export function _queueGlobalCrewUpdate(changeDesc, dates) {
   _updateCrewUpdateBar();
 }
 
+// Entfernten (vorher bestätigten/angefragten) Slot in die Updates-Queue legen
+// (v0.30.0 — ersetzt das frühere Absage-Banner). aid = PB-Record-ID des
+// soft-gecancelten assignments-Records (Ziel des „GESEHEN ✓"-Mail-Buttons).
+export function _queueRemovedSlot(crewName, email, dateStr, posId, posLabel, aid) {
+  if (!email) return;   // ohne Mail-Adresse nichts sendbar (wie bei Updates)
+  const q = _getCrewUpdateQueue();
+  if (!q[crewName]) q[crewName] = { email, slots: [] };
+  const exists = q[crewName].slots.some(s => s.kind === 'removed' && s.date === dateStr && s.posId === posId);
+  if (!exists) q[crewName].slots.push({ kind: 'removed', date: dateStr, posId, posLabel, aid, changes: ['Termin entfernt'] });
+  _saveCrewUpdateQueue(q);
+  _updateCrewUpdateBar();
+}
+
 export function _updateCrewUpdateBar() {
   const q = _getCrewUpdateQueue();
   // Queue bereinigen: nur Slots im AKTUELLEN Plan (Datum in TOUR_DATES) behalten,
@@ -452,6 +465,8 @@ export function _updateCrewUpdateBar() {
     const orig = entry.slots || [];
     const slots = orig.filter(s => {
       if (!valid.has(s.date)) return false;
+      // removed-Slots sind per Definition nicht mehr in getVal → NICHT wegheilen.
+      if (s.kind === 'removed') return true;
       // Self-Heal: ein auto-gequeuter (informational) Slot ist nur gültig, solange die
       // Person dort noch eingeplant ist. Entfernt der Manager den Namen wieder
       // (getVal → ''), fällt der Slot raus → Bar/Badge stimmen live. posId nötig
@@ -529,11 +544,14 @@ export function _openUpdateQueueModal() {
         slots.forEach(slot => {
           const slotKey = `${slot.date}|${slot.posLabel}`;
           const isChecked = slot.selected !== false;
+          const kindTag = slot.kind === 'removed'
+            ? `<span style="color:var(--warn);font-weight:600;">➖ entfernt</span> · `
+            : `<span style="color:var(--show);">➕ neu</span> · `;
           html += `<div style="display:flex;align-items:center;gap:8px;padding:2px 0 2px 14px;border-bottom:1px solid #2a2a3a;font-size:.64rem;color:#ccc;">
             <input type="checkbox" data-crew="${esc(name)}" data-key="${esc(slotKey)}" ${isChecked ? 'checked' : ''}
               onchange="_toggleSlotSelection(this)"
               style="width:14px;height:14px;accent-color:#4ae8a0;flex-shrink:0;cursor:pointer;">
-            <span style="flex:1;">${esc(slot.date)} · ${esc(slot.posLabel||'')}</span>
+            <span style="flex:1;">${kindTag}${esc(slot.date)} · ${esc(slot.posLabel||'')}</span>
             <span class="q-del" data-crew="${esc(name)}" data-key="${esc(slotKey)}" onclick="_deleteSlotFromQueue(this)" style="cursor:pointer;color:#e84a4a;margin-left:8px;font-size:.7rem;">✕</span>
           </div>`;
         });
