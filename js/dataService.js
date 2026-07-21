@@ -282,6 +282,7 @@ export async function confirmAssignment(dateStr, posId) {
       });
       // Lokal NUR setzen wenn wirklich ein Record gepatcht wurde (sonst falsches "grün")
       if (assignmentStatuses[dateStr]?.[posId]) assignmentStatuses[dateStr][posId].status = 'confirmed';
+      if (IS_CREW && !IS_MANAGER) logActivity('confirmed', { planId, crewName: existing.crew_name, crewEmail: existing.crew_email, date: dateStr, posLabel: existing.pos_label });
     } else {
       // KEIN Record vorhanden → geplante Crew direkt als bestätigt anlegen (Manager
       // bestätigt einen nachträglich eingetragenen Slot, der nie „angefragt" wurde).
@@ -302,6 +303,7 @@ export async function confirmAssignment(dateStr, posId) {
       // lokalen Status-Cache setzen (gleiche Form wie loadAssignmentStatuses) → sofort grün
       if (!assignmentStatuses[dateStr]) assignmentStatuses[dateStr] = {};
       assignmentStatuses[dateStr][posId] = { status: 'confirmed', proposedBy: 'manual', crewName };
+      if (IS_CREW && !IS_MANAGER) logActivity('confirmed', { planId, crewName, crewEmail: meta.email || '', date: dateStr, posLabel: pos?.label || posId });
     }
   } catch (e) {
     console.warn('confirmAssignment Fehler:', e.message);
@@ -330,6 +332,7 @@ export async function declineAssignment(dateStr, posId) {
       });
       // Lokal NUR bei echtem Record. E-Mail an Admin via Pocketbase-Hook.
       if (si) si.status = 'declined';
+      if (IS_CREW && !IS_MANAGER) logActivity('declined', { planId, crewName: existing.crew_name, crewEmail: existing.crew_email, date: dateStr, posLabel: existing.pos_label });
     }
   } catch (e) {
     console.warn('declineAssignment Fehler:', e.message);

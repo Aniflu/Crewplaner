@@ -1,7 +1,7 @@
 import { SUPABASE_ENABLED } from './config.js';
 import { setAuthState, IS_MANAGER, IS_CREW, CURRENT_USER_EMAIL } from './state.js';
 import { pbPost, pbGet, pbPatch } from './pb.js';
-import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses, loadCrewPlans } from './dataService.js';
+import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses, loadCrewPlans, ackCancelledAssignments, logActivity } from './dataService.js';
 import { renderTable } from './render.js';
 import { showToast } from './utils.js';
 import { getActivePlanId, _pruneOrphanPlans } from './plans.js';
@@ -147,9 +147,19 @@ export async function _handleEmailAction() {
   const params = new URLSearchParams(window.location.search);
   const action = params.get('action');
   const aid    = params.get('aid');
-  if (!action || !aid || !SUPABASE_ENABLED) return;
+  const aids   = params.get('aids');
+  if (!action || (!aid && !aids) || !SUPABASE_ENABLED) return;
   history.replaceState({}, '', window.location.pathname);
   try {
+    // „ÄNDERUNGEN GESEHEN ✓" aus der Änderungs-Mail (v0.30.0): quittiert alle
+    // mitgegebenen soft-gecancelten Records (Guard: nur status='cancelled' + eigene E-Mail).
+    if (action === 'ackcancel') {
+      const n = await ackCancelledAssignments((aids || '').split(',').filter(Boolean));
+      showToast(n ? `${n} Änderung(en) als gesehen bestätigt ✓` : 'Nichts mehr zu bestätigen', n ? '#4ae8a0' : '#5a6070');
+      await loadAssignmentStatuses();
+      renderTable();
+      return;
+    }
     const record = await pbGet('/api/collections/assignments/records/' + aid);
     if (!record || (record.crew_email || '').toLowerCase() !== (CURRENT_USER_EMAIL || '').toLowerCase()) {
       showToast('Zugriff verweigert', '#e84a4a');
@@ -159,10 +169,12 @@ export async function _handleEmailAction() {
     if (action === 'confirm') {
       payload.status = 'confirmed';
       await pbPatch('/api/collections/assignments/records/' + aid, payload);
+      logActivity('confirmed', { planId: record.plan_id, crewName: record.crew_name, crewEmail: record.crew_email, date: record.date, posLabel: record.pos_label });
       showToast('Einsatz bestätigt ✓', '#4ae8a0');
     } else if (action === 'decline') {
       payload.status = 'declined';
       await pbPatch('/api/collections/assignments/records/' + aid, payload);
+      logActivity('declined', { planId: record.plan_id, crewName: record.crew_name, crewEmail: record.crew_email, date: record.date, posLabel: record.pos_label });
       showToast('Einsatz abgelehnt', '#e84a4a');
     } else { return; }
     await loadAssignmentStatuses();
