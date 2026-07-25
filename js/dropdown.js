@@ -143,10 +143,9 @@ export function openCrewDD(e,dateStr,posId){
     }});
   }
   // Vorläufig vormerken — für Fernzukunft-Termine, die noch NICHT offiziell angefragt
-  // werden sollen (kein Mailversand). Nur anbieten, wenn eine Person geplant ist, aber
-  // noch gar kein Status-Record existiert (sonst würde man einen proposed/confirmed
-  // Slot überschreiben).
-  if(planned && planned!==OFFEN && !si){
+  // werden sollen (kein Mailversand). Anbieten, sobald eine Person geplant ist — auch
+  // wenn schon ein Status existiert (erlaubt das Zurücksetzen auf vorgemerkt).
+  if(planned && planned!==OFFEN){
     items.push({label:'✎ Vorläufig vormerken',color:'var(--pencilled)',action:async()=>{
       closeDD();
       try{
@@ -255,6 +254,25 @@ export function openCrewDD(e,dateStr,posId){
     const hasEmail=!!(meta?.email);
     const label=hasEmail?`📧 ${name}`:name;
     items.push({label,dot:CREW_COLORS[i%CREW_COLORS.length],selected:current===name,action:()=>_applyState(name)});
+  });
+  // Direkt als vorgemerkt zuweisen — für JEDE Person aus der Crew-Liste, unabhängig
+  // vom aktuellen Zellstatus (leer oder bereits belegt). Ergänzt den Quick-Toggle oben,
+  // der nur die bereits in der Zelle stehende Person betrifft.
+  const _applyPencil=async(name)=>{
+    closeDD();
+    try{
+      if(si){try{await _removeAssignment();}catch(e){console.warn('_removeAssignment:',e);}}
+      await pencilInAssignment(dateStr,posId,name,crewMeta?.[name]?.email||'');
+      setAssign(dateStr,posId,name);
+      showToast('Vorgemerkt ✎','#7A5FB3');
+    }catch(err){
+      showToast('Fehler – nicht vorgemerkt: '+err.message,'#e84a4a');
+      await loadAssignmentStatuses();
+      renderTable();
+    }
+  };
+  crew.forEach((name,i)=>{
+    items.push({label:`✎ Vorgemerkt: ${name}`,dot:CREW_COLORS[i%CREW_COLORS.length],color:'var(--pencilled)',action:()=>_applyPencil(name)});
   });
   showDD(e.currentTarget.getBoundingClientRect(),pos.label+(SUPABASE_ENABLED?' · 📧=Benachrichtigung':''),items);
 }
