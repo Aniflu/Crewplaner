@@ -1,6 +1,6 @@
 # Sicherheitsrichtlinie — Crewplanner
 
-Stand: v0.28.0
+Stand: v0.30.2
 
 ---
 
@@ -38,6 +38,8 @@ Invite-Create=blockiert; Superadmin=200):
 | `assignments` · Update | `@request.auth.role = "superadmin" || (@request.auth.id != "" && crew_email = @request.auth.email) || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)` |
 | `crew_invites` · Create | `@request.auth.role = "superadmin" || (@request.auth.id != "" && type = "availability") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)` |
 | `plans` · List/View | `@request.auth.id = owner || @request.auth.role = "superadmin" || view_token != ""` |
+| `activity_log` · List/View/Create | `auth != ""` (jeder Eingeloggte, seit v0.30.0) |
+| `activity_log` · Delete | `@request.auth.role = "superadmin"` |
 
 - **assignments.update:** Crew ändert nur EIGENE Einsätze (`crew_email` = eigene, alle klein
   gespeichert → case-sensitiver PB-Vergleich passt); Owner/superadmin verwalten den ganzen Plan.
@@ -54,7 +56,7 @@ Invite-Create=blockiert; Superadmin=200):
 
 ### verified-Feld
 
-Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js, **v4.9.2 deployt seit 2026-07-19**). Derselbe users-Create-Hook übernimmt zusätzlich die Rolle aus dem Crew-Pool (`crew_members.role`, Sentinel `plan_id="__pool__"`) und vergibt einen `feed_token` für den Kalender-Abo-Feed (`/ics/{token}/{plan}`, seit v0.27.0).
+Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js, **aktuell v4.10, deployt seit 2026-07-22**). Derselbe users-Create-Hook übernimmt zusätzlich die Rolle aus dem Crew-Pool (`crew_members.role`, Sentinel `plan_id="__pool__"`) und vergibt einen `feed_token` für den Kalender-Abo-Feed (`/ics/{token}/{plan}`, seit v0.27.0).
 
 ---
 

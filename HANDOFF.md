@@ -26,7 +26,7 @@
 
 ---
 
-## 2. Aktueller Stand (Stand 2026-07-19) — v0.28.0
+## 2. Aktueller Stand (Stand 2026-07-25) — v0.30.2
 
 > **Juni 2026 (v0.10):** Die ES6-Modul-Migration (v0.9.3) hatte bare Cross-Modul-Referenzen
 > hinterlassen → stille `ReferenceError`s (5-Tage-„Bounce"). In v0.10.0–v0.10.6 bereinigt.
@@ -76,6 +76,14 @@
 > - **Öffentlicher Link zeigte keine Besetzung (v0.27.2):** `view-app.js` schrieb den Render-State nach `window.*` statt über die state.js-Setter → render.js/getVal lasen nie davon. Betraf ALLE öffentlichen Links. Gefixt + Guard-Test ergänzt.
 > - **Kompletter Rebrand (v0.28.0):** neues „Crew Pass"-Logo (Hexagon), Navy/Paper-Farbwelt, Geist + JetBrains Mono, **Hell/Dunkel-Umschalter** (☀/☾) auf allen 4 Seiten. Neue zentrale `theme.css` (Light/Dark/OS via `data-theme`) ersetzt die bisherige 4-Welten-CSS-Fragmentierung. Gold nur noch im Logo + „HEUTE"-Strich. **Test-Guards jetzt 102 grün.**
 
+> **v0.28.1–v0.30.2 (19.–25.07.):** Helle-Theme-Nachfix, dritter Zell-Status, Absage-Härtung, vereinheitlichte Änderungs-Mail, „Vorgemerkt" direkt anwählbar. Details: CHANGELOG.md / CLAUDE.md.
+> - **Helles Theme überarbeitet (v0.28.1):** wirkte „zu weiß"/bräunlich — neuer ruhiger Grundton **„Sage"** (nur helle Variante geändert, Dunkel unverändert).
+> - **Dritter Zell-Status „Vorgemerkt" (v0.29.0):** ✎, violett — grobe Vorplanung für Fernzukunft-Termine **ohne** Mailversand, „→ Jetzt anfragen" wandelt später in eine echte Anfrage um. Nebenbei Farbtoken-Fix bei „angefragt" (nutzte noch altes Gold). Legende jetzt für **alle Rollen** sichtbar (vorher nur Crew).
+> - **Icon-Rendering-Nachfix (v0.29.1):** Status-Symbole erschienen kurzzeitig als Roh-HTML-Text (esc()-Kollision) — behoben.
+> - **Absage-Benachrichtigung nachgehärtet (v0.29.2/v0.29.3):** „Nicht besetzt"/„Standard"/Umbesetzen lösten bisher **keine** Absage-Notiz aus (fehlender Import + fehlende Aufrufe) — jetzt tun das alle Entfernen-Wege einheitlich. Für schon vor dem Fix gelöschte Zuweisungen: manuelles Nachtragen im Absage-Dialog der Konsole.
+> - **Vereinheitlichte „Es gab Änderungen"-Mail + Aktivitäts-Log (v0.30.0):** das rote Absage-Banner ist **ersetzt** — der Sidebar-Button „↻ Updates" bündelt jetzt neue UND entfernte Termine in **einer** Mail pro Person mit zwei Abschnitten. Entfernen setzt Zuweisungen auf `status:'cancelled'` (**Soft-Cancel statt Löschen**), damit ein „ÄNDERUNGEN GESEHEN ✓"-Mail-Button ein Ziel hat; Quittung → `cancel_acked`. Alle Crew-Reaktionen landen in der neuen Collection **`activity_log`** — Konsole zeigt sie im „Aktivität"-Tab + als Login-Popup. **Hook jetzt v4.10** (deployt 2026-07-22, per `[hook] main.pb.js v4.10 geladen` + `/api/health`→200 verifiziert). **Test-Guards jetzt 108 grün.**
+> - **„Vorgemerkt" direkt anwählbar + Nachfix (v0.30.1/v0.30.2):** der v0.29.0-Status war im Zellen-Menü kaum erreichbar (nur bei belegter Zelle ohne Status) — jetzt gibt es pro Person einen „✎ Vorgemerkt: Name"-Eintrag für **jede** Zelle. Code-Review-Nachfix (v0.30.2): das Vormerken einer bereits bestätigten Person erzeugte fälschlich einen „Termin entfernt"-Queue-Eintrag → nur noch bei Verdrängung einer *anderen* aktiven Person (`sameCrew`-Check). Nur `js/dropdown.js`, kein Hook/Schema.
+
 ### Was ist fertig ✅
 
 - Multi-Rollen-System: `superadmin`, `manager`, `booker`, `crew`
@@ -88,8 +96,10 @@
 - Einladungs-System: Admin schickt Crew-Einladung / Staff-Einladung per E-Mail (♥ Liebeseinladung in v0.22.0 entfernt)
 - Globaler Crew-Pool + vereintes Crew-Verzeichnis in der Konsole (v0.22.0/v0.23.0)
 - Abonnierbarer Kalender-Feed pro Person + Tour (v0.27.0/v0.27.1, `/ics/{token}/{plan}`)
-- Hell/Dunkel-Umschalter + neues Markendesign „Crew Pass" auf allen 4 Seiten (v0.28.0)
-- Alle Custom-Mails via Resend HTTP API (Hook **v4.9.2 deployt** seit 2026-07-19)
+- Hell/Dunkel-Umschalter + neues Markendesign „Crew Pass" auf allen 4 Seiten (v0.28.0), helle Palette „Sage" (v0.28.1)
+- Dritter Zell-Status „Vorgemerkt" (✎, kein Mailversand) für Fernzukunft-Vorplanung (v0.29.0)
+- Vereinheitlichte „Es gab Änderungen"-Mail (neue + entfernte Termine in einer Mail) mit Soft-Cancel + Aktivitäts-Log/-Tab (v0.30.0)
+- Alle Custom-Mails via Resend HTTP API (Hook **v4.10 deployt** seit 2026-07-22)
 - System-Mails (Passwort-Reset) via PB SMTP → Resend SMTP-Gateway
 - Passwortloses User-Anlegen: Admin gibt E-Mail + Rolle ein → Account angelegt → Reset-Link per Mail
 - Auto-Verify: Hook setzt `verified=true` serverseitig bei User-Create
@@ -132,7 +142,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
 ```
 
 Danach prüfen: `ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 20"`
-Erwartete Ausgabe: `[hook] main.pb.js v4.9.2 geladen` (Repo-Stand = deployt = **v4.9.2**, seit 2026-07-19)
+Erwartete Ausgabe: `[hook] main.pb.js v4.10 geladen` (Repo-Stand = deployt = **v4.10**, seit 2026-07-22)
 
 ---
 
@@ -174,7 +184,7 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 ├── favicon.svg
 ├── assets/fonts/         ← Geist + JetBrains Mono (selbstgehostet, seit v0.28.0)
 ├── .pb_hooks/
-│   └── main.pb.js        ← E-Mail-Hooks (Goja, **v4.9.2 deployt**) — via Resend HTTP API + Kalender-Feed
+│   └── main.pb.js        ← E-Mail-Hooks (Goja, **v4.10 deployt**) — via Resend HTTP API + Kalender-Feed + Aktivitäts-Log
 └── js/
     ├── config.js         ← POCKETBASE_URL, ADMIN_EMAIL
     ├── pb.js             ← PocketBase REST-Client (pbGet/Post/Patch/Delete/List/First/Upsert)
@@ -206,14 +216,14 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 users           { id, email, role(superadmin/manager/booker/crew), verified, feed_token }   // feed_token seit v0.27.0 (Kalender-Abo)
 plans           { id, name, owner(→users), plan_data(JSON), view_token }
 plan_members    { plan_id(→plans), user_id(→users), role }
-crew_members    { plan_id, name, email, sort_order, user_id, role }   // plan_id="__pool__" = globaler Pool; role = Konto-Rolle beim Erst-Login (v4.9.2-Hook)
+crew_members    { plan_id, name, email, sort_order, user_id, role }   // plan_id="__pool__" = globaler Pool; role = Konto-Rolle beim Erst-Login (seit Hook v4.8, aktuell v4.10)
 assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
 crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url, custom_message }
 email_log       { plan_id, crew_name, crew_email, email_type, sent_at, success }
 activity_log    { plan_id, crew_name, crew_email, action, date, pos_label, ts }  // Crew-Reaktions-Log (v0.30.0): action=confirmed|declined|cancel_acked; ts client-gesetzt (ISO, Sortierung -id)
 ```
 
-Assignment-Status-Werte: `proposed` → `confirmed` | `declined`
+Assignment-Status-Werte: `proposed` → `confirmed` | `declined` | `pencilled` (v0.29.0, „vorgemerkt", kein Mailversand) | `cancelled` → `cancel_acked` (v0.30.0, Soft-Cancel statt Löschen — beide werden aus allen Zellen-Ladepfaden gefiltert)
 
 > 🔒 **Server-Regeln gehärtet (v0.26.0):** `assignments.updateRule` (Crew nur eigene Einsätze) +
 > `crew_invites.createRule` (nur Owner/superadmin lösen Fremd-Mails aus). **⚠️ Coolify-Redeploy/Reimport

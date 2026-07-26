@@ -2,6 +2,10 @@
 
 > **v0.10.7 – v0.14.13 (Juni 2026)** — kondensiert. Vollständige, ausführliche Einträge: `CLAUDE.md` → Abschnitt „Versionierung".
 
+## v0.30.1 – v0.30.2 — 2026-07-25
+- **fix (v0.30.1):** „Vorgemerkt" war im Zellen-Menü kaum erreichbar. Der v0.29.0-Status erschien nur, wenn eine Person schon in der Zelle stand und noch kein Status gesetzt war — leere Zellen boten die Option gar nicht, bestehende Status ließen sich nicht auf „vorgemerkt" ändern. Jetzt gibt es pro Crew-Person direkt im Menü einen Eintrag „✎ Vorgemerkt: Name" (für leere wie belegte Zellen, unabhängig vom aktuellen Status) + der Quick-Toggle erscheint auch bei bestehendem Status. Nur `js/dropdown.js`. 108 grün.
+- **fix (v0.30.2):** Nachfix zu v0.30.1 (aus Code-Review). Das neue „✎ Vorgemerkt: Name" rief bei jedem bestehenden Status-Record erst `_removeAssignment()` → für bestätigte/angefragte Slots einen Soft-Cancel + `_queueRemovedSlot()`, dessen `{kind:'removed'}`-Eintrag der Self-Heal nie entfernt; danach patcht `pencilInAssignment` denselben Record auf `pencilled`. Ergebnis: Person steht weiter (vorgemerkt) im Slot, aber die Update-Queue trug fälschlich „Termin entfernt" → beim nächsten manuellen Versand eine falsche Absage-Mail (nur im Gleiche-Person-Fall). Fix: `_removeAssignment` nur noch aufrufen, wenn eine *andere* aktive Person verdrängt wird (`sameCrew`-Check) — dann geht deren Entfernung wie gewünscht in die Queue (Versand erst per Knopfdruck). „Vorgemerkt" ist dabei ausdrücklich **keine** Zurückstufung, sondern der neutrale Zukunfts-Planungsstatus. Nur `js/dropdown.js`. 108 grün.
+
 ## v0.29.0 – v0.30.0 — 2026-07-21
 - **feat (v0.29.0):** Dritter Zell-Status „Vorgemerkt" (✎, violett) für Fernzukunft-Termine ohne Mailversand + Übergang „→ Jetzt anfragen"; nebenbei Farbtoken-Fix bei „angefragt" (nutzte noch altes Gold).
 - **fix (v0.29.1):** Status-Icon-Span erschien in Manager/Booker-Ansicht als Roh-Text (esc() maskierte das Icon-HTML) — Icon jetzt in eigener, nie escapter Variable.

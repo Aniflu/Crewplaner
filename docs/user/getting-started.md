@@ -1,6 +1,6 @@
 # Crewplanner — Erste Schritte
 
-Stand: v0.28.0
+Stand: v0.30.2
 
 ---
 
@@ -21,6 +21,11 @@ Wenn der Admin dich für einen Einsatz einträgt, bekommst du eine E-Mail mit zw
 - **ABLEHNEN** — du lehnst ab (der Admin bekommt eine Benachrichtigung)
 
 Du kannst auch direkt in der App auf deine Einsätze klicken und dort reagieren.
+
+Ändert sich später etwas an deinem Plan — egal ob ein Termin **hinzukommt** oder **wegfällt** —
+bekommst du dafür genau **eine** Mail „Es gab Änderungen": neue Termine bitten dich um eine
+Zusage, entfernte Termine bitten dich nur um eine kurze Bestätigung „gesehen" (Button
+„ÄNDERUNGEN GESEHEN ✓"). Es gibt also keine getrennten Wege mehr für „neu" und „abgesagt".
 
 ### 4. Passwort vergessen
 
@@ -61,6 +66,16 @@ In der Sidebar links: Plan auswählen oder neuen Plan erstellen. Ein Plan enthä
 3. Crew bekommt automatisch eine E-Mail
 4. Nach Bestätigung wird die Zelle grün (✓), nach Ablehnung rot (✗)
 
+Für Termine weit in der Zukunft gibt es zusätzlich **„Vorgemerkt"** (✎, violett) — eine grobe
+Vorplanung, wenn Termine/Besetzung noch nicht verbindlich feststehen; es wird **keine**
+Anfrage-Mail verschickt. Im Zellen-Menü kannst du jede Person direkt über **„✎ Vorgemerkt: Name"**
+vormerken (auch in einer leeren Zelle). Über „→ Jetzt anfragen" wird daraus später eine normale
+Anfrage.
+
+Entfernst du eine bereits bestätigte oder angefragte Person aus einem Tag, landet das
+automatisch in der Sidebar unter **„↻ Updates"** — von dort verschickst du gesammelt die
+„Es gab Änderungen"-Mail (siehe Crew-Abschnitt oben).
+
 ### Crew einladen
 
 Admin-Konsole öffnen (Button oben rechts) → Werkzeuge-Tab → Crew-Einladung senden.
@@ -98,6 +113,12 @@ Crew & Benutzer-Tab → Rollen-Dropdown neben dem Eintrag → Rolle auswählen �
 ### Benutzer/Crew-Mitglied entfernen
 
 Crew & Benutzer-Tab → Entfernen-Button → Bestätigung → Eintrag gelöscht.
+
+### Aktivität-Tab
+
+Zeigt ein Protokoll aller Crew-Reaktionen (zugesagt, abgelehnt, Absage gesehen) — sowohl aus
+der App als auch per Mail-Button. Beim nächsten Login erscheint zusätzlich ein Popup mit den
+Zeilen, die seit dem letzten Besuch neu dazugekommen sind.
 
 ---
 

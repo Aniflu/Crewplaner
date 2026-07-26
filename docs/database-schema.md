@@ -1,6 +1,6 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v0.28.0
+PocketBase-Collections (SQLite). Stand: v0.30.2
 
 ---
 
@@ -69,7 +69,7 @@ PocketBase-Collections (SQLite). Stand: v0.28.0
 > `loadAllKnownCrew` liest alle `crew_members` → Pool-Mitglieder erscheinen in „Aus Crew-Pool wählen".
 > Beim Übernehmen in eine Tour entsteht ein zweiter Record mit der echten `plan_id`.
 > Das Login-Konto entsteht erst beim ersten Login über den Einladungslink; der `users`-Create-Hook
-> (main.pb.js v4.9.2) übernimmt dann die im Pool gesetzte `role`.
+> (main.pb.js, aktuell v4.10) übernimmt dann die im Pool gesetzte `role`.
 
 > ⚠️ **`plan_id` MUSS Text sein (v0.23.2):** Nach einem Coolify-Wipe/Reimport war `crew_members.plan_id`
 > (und `assignments.plan_id`) als **`relation → plans`** angelegt. Der Sentinel `"__pool__"` ist kein
@@ -102,11 +102,12 @@ PocketBase-Collections (SQLite). Stand: v0.28.0
 → Crew ändert nur EIGENE Einsätze; Owner/superadmin alles. create/deleteRule unverändert (`auth != ""`).
 ⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen (Details: docs/security.md · CLAUDE.md).
 
-**Hook-Trigger (Stand Hook v4.9.2, deployt 2026-07-19):**
+**Hook-Trigger (Stand Hook v4.10, deployt 2026-07-22):**
 - assignments-CREATE-Hook **entfernt** (v4.2) — keine per-Slot-Mails mehr. Mails laufen über `crew_invites` (Einladung/Erinnerung/Update/Absage, konsolidiert).
 - UPDATE (status=declined) → Hook informiert den Admin („Abgelehnt").
 - users-CREATE (v4.8+) → Auto-Verify **+** übernimmt die Rolle aus dem Crew-Pool (`crew_members` mit `plan_id="__pool__"`, gleiche E-Mail), falls dort ≠ `crew`; vergibt zusätzlich `feed_token` falls leer (v4.9).
 - `routerAdd('GET','/ics/{token}/{plan}')` (v4.9.2, öffentlich, unauthentifiziert) → liefert den abonnierbaren ICS-Kalender-Feed einer Person für EINE Tour (Token→user, Plan-ID grenzt ein). Kein `/api`-Präfix, liegt am Route-Root.
+- `type==='update'` (v4.10) → rendert die zweiteilige „Es gab Änderungen"-Mail: ➕-Abschnitt für neue Slots (`kind` fehlt oder ≠ `'removed'`, rückwärtskompatibel) und ➖-Abschnitt für entfernte Slots (`kind==='removed'`), Letzterer mit Button `?action=ackcancel&aids=id1,id2` (nur wenn `aid`-Werte vorhanden). Der App-seitige `ackcancel`-Zweig (authService.js) patcht die betroffenen `assignments` von `cancelled` → `cancel_acked`.
 
 ---
 
