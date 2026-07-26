@@ -261,7 +261,14 @@ export function openCrewDD(e,dateStr,posId){
   const _applyPencil=async(name)=>{
     closeDD();
     try{
-      if(si){try{await _removeAssignment();}catch(e){console.warn('_removeAssignment:',e);}}
+      // Verdrängt das Vormerken eine ANDERE Person, die im Slot sitzt? Dann deren
+      // Entfernung in die Update-Queue legen — Versand passiert NICHT automatisch,
+      // sondern erst wenn der Manager „Updates senden" drückt. Wird dagegen dieselbe
+      // Person als vorgemerkt gesetzt, gibt es nichts zu entfernen (kein Queue-Eintrag,
+      // sonst falsche „Termin entfernt"-Notiz für jemanden, der weiter im Slot steht).
+      if(si && si.crewName && !sameCrew(si.crewName,name)){
+        try{await _removeAssignment();}catch(e){console.warn('_removeAssignment:',e);}
+      }
       await pencilInAssignment(dateStr,posId,name,crewMeta?.[name]?.email||'');
       setAssign(dateStr,posId,name);
       showToast('Vorgemerkt ✎','#7A5FB3');
