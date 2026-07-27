@@ -1,6 +1,6 @@
 // Tests für js/pure.js — keine Browser-Stubs nötig (dependency-frei).
 import { test, eq, deepEq, ok } from './_assert.mjs';
-import { toISODate, eachDateInRange, normCrewName, sameCrew, confirmedIcsRows, crewIcsContent } from '../js/pure.js';
+import { toISODate, eachDateInRange, normCrewName, sameCrew, confirmedIcsRows, crewIcsContent, pickApiUrl } from '../js/pure.js';
 
 // ── eachDateInRange ───────────────────────────────────────────────────────────
 test('eachDateInRange: Einzeltag', () =>
@@ -96,4 +96,16 @@ test('crewIcsContent: Titel = Art: Ort, Band in Details, keine Crew-Namen', () =
   ok(/DESCRIPTION:.*Art: Show/.test(ics), 'Art in Beschreibung');
   ok(ics.includes('DTSTART;VALUE=DATE:20260701'), 'Ganztags-Datum');
   ok(!ics.includes('Wolf') && !ics.includes('Gewerkeleitung'), 'KEINE Crew-/Positionsnamen');
+});
+
+// ── pickApiUrl (Umgebungs-Auswahl Test vs. Live, v0.31.0) ─────────────────────
+test('pickApiUrl: Live-Host → Live-API (mit und ohne www)', () => {
+  eq(pickApiUrl('crewplanner.nyxlightwork.de'), 'https://api.crewplanner.nyxlightwork.de');
+  eq(pickApiUrl('www.crewplanner.nyxlightwork.de'), 'https://api.crewplanner.nyxlightwork.de');
+});
+
+test('pickApiUrl: alles andere → Test-API (Sicherheits-Default "im Zweifel Test")', () => {
+  eq(pickApiUrl('aniflu.github.io'), 'https://api-test.crewplanner.nyxlightwork.de', 'GitHub Pages → Test');
+  eq(pickApiUrl('localhost'), 'https://api-test.crewplanner.nyxlightwork.de', 'lokal → Test');
+  eq(pickApiUrl(''), 'https://api-test.crewplanner.nyxlightwork.de', 'leer/unbekannt → Test');
 });

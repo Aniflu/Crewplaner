@@ -17,11 +17,17 @@
 <script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="theme.css?v=2">
-<script type="module" src="js/admin-app.js?v=14"></script>
+<script type="module" src="js/admin-app.js?v=15"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
-  window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
+  // Umgebungs-Auswahl (v0.31.0): nur der exakte Live-Host bekommt die Live-API,
+  // GitHub Pages / localhost / sonst → Test-API. Wortgleich zu pickApiUrl in js/pure.js.
+  window.POCKETBASE_URL = (function (h) {
+    if (h === 'crewplanner.nyxlightwork.de' || h === 'www.crewplanner.nyxlightwork.de')
+      return 'https://api.crewplanner.nyxlightwork.de';
+    return 'https://api-test.crewplanner.nyxlightwork.de';
+  })(location.hostname);
 
   // Smart URL navigation — funktioniert auf GitHub Pages + Produktivserver
   window.getNavUrl = function(filename) {
@@ -542,7 +548,7 @@ body {
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.30.2</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.31.0</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>

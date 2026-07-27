@@ -75,7 +75,7 @@
           <div style="text-align:left;">
             <h1>Crewplanner</h1>
             <div class="subtitle-row">
-              <span class="tour-tag">Personalplan · v0.30.2</span>
+              <span class="tour-tag">Personalplan · v0.31.0</span>
               <span class="active-plan-name" id="activePlanName"></span>
             </div>
           </div>
@@ -436,14 +436,20 @@
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
-  window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
+  // Umgebungs-Auswahl (v0.31.0): nur der exakte Live-Host bekommt die Live-API,
+  // GitHub Pages / localhost / sonst → Test-API. Wortgleich zu pickApiUrl in js/pure.js.
+  window.POCKETBASE_URL = (function (h) {
+    if (h === 'crewplanner.nyxlightwork.de' || h === 'www.crewplanner.nyxlightwork.de')
+      return 'https://api.crewplanner.nyxlightwork.de';
+    return 'https://api-test.crewplanner.nyxlightwork.de';
+  })(location.hostname);
 </script>
 
 <!-- Auth Bootstrap: Centralized auth validation (before app.js loads) -->
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=43"></script>
+<script type="module" src="js/app.js?v=44"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">

@@ -18,7 +18,13 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="theme.css?v=2">
 <script>
-  window.POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
+  // Umgebungs-Auswahl (v0.31.0): nur der exakte Live-Host bekommt die Live-API,
+  // GitHub Pages / localhost / sonst → Test-API. Wortgleich zu pickApiUrl in js/pure.js.
+  window.POCKETBASE_URL = (function (h) {
+    if (h === 'crewplanner.nyxlightwork.de' || h === 'www.crewplanner.nyxlightwork.de')
+      return 'https://api.crewplanner.nyxlightwork.de';
+    return 'https://api-test.crewplanner.nyxlightwork.de';
+  })(location.hostname);
   window.getNavUrl = function(filename) {
     const parts = window.location.pathname.split('/').filter(Boolean);
     if (parts.length >= 1 && !parts[0].includes('.')) {
@@ -28,7 +34,7 @@
   };
 </script>
 <script src="js/auth-bootstrap.js?v=12"></script>
-<script src="js/pb-login-bundle.js?v=1"></script>
+<script src="js/pb-login-bundle.js?v=2"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -210,7 +216,7 @@
     </svg>
     <h1 style="font-family:var(--sans);font-weight:700;font-size:1.9rem;letter-spacing:-.03em;color:var(--ink);text-transform:none;">Crewplanner</h1>
     <p>Personalplanung · Touring</p>
-    <div class="login-version">v0.30.2</div>
+    <div class="login-version">v0.31.0</div>
   </div>
 
   <div class="login-card">

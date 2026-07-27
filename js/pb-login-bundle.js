@@ -1,5 +1,9 @@
 // ── Pocketbase-Konfiguration (für login.html) ─────────────────────────────────
-const POCKETBASE_URL = 'https://api.crewplanner.nyxlightwork.de';
+// Umgebungs-Auswahl (v0.31.0): login.html setzt window.POCKETBASE_URL im Kopf-Skript
+// (Test- vs. Live-API nach Hostname) VOR diesem Bundle → hier nur übernehmen. Fallback
+// „im Zweifel Test", falls window.POCKETBASE_URL wider Erwarten fehlt.
+const POCKETBASE_URL = (typeof window !== 'undefined' && window.POCKETBASE_URL)
+  || 'https://api-test.crewplanner.nyxlightwork.de';
 
 // ── Pocketbase REST Client ─────────────────────────────────────────────────────
 // Thin fetch-wrapper: setzt Authorization-Header automatisch aus localStorage.

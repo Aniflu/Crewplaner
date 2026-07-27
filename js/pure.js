@@ -205,6 +205,18 @@ export function feedUrls(baseUrl, token, planId){
   return { https, webcal };
 }
 
+// Umgebungs-Auswahl der PocketBase-API nach Hostname (v0.31.0). Test (GitHub Pages) und
+// Live (Hetzner) laufen mit demselben Frontend-Code, aber je einer EIGENEN PocketBase.
+// Sicherheits-Default „im Zweifel Test": NUR der exakte Live-Host bekommt die Live-API;
+// GitHub Pages, localhost und jeder unbekannte Host fallen auf die Test-API zurück, damit
+// nie versehentlich in die Live-DB geschrieben wird. Reines Leaf → in HTML-Kopf-Skripten
+// wortgleich inline dupliziert (wie getNavUrl), hier die kanonische, getestete Fassung.
+export function pickApiUrl(host){
+  if (host === 'crewplanner.nyxlightwork.de' || host === 'www.crewplanner.nyxlightwork.de')
+    return 'https://api.crewplanner.nyxlightwork.de';
+  return 'https://api-test.crewplanner.nyxlightwork.de';
+}
+
 // „Heute"-Marker für die Tourtabelle (v0.25.0). Bestimmt, wo die Heute-Linie sitzt.
 // dateList = alle Tourtag-Daten ("YYYY-MM-DD", Reihenfolge egal), todayISO = heute lokal.
 // ISO-Strings vergleichen lexikografisch = chronologisch → robust auch unsortiert.
