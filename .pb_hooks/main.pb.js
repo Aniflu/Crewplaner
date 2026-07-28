@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
 // Version: 4.10
-console.log('[hook] main.pb.js v4.10 geladen');
+console.log('[hook] main.pb.js v4.11 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -29,6 +29,9 @@ onRecordAfterCreateSuccess(function(e) {
   var sendMail = function(to, subject, html) {
     try {
       var _key  = $os.getenv('RESEND_KEY');
+      // Test-Umgebung ohne RESEND_KEY (v0.31.0): Mailversand bewusst aus → still überspringen,
+      // kein sinnloser 401-Call an Resend. Live hat den Key → unverändertes Verhalten.
+      if (!_key) { console.log('[mail] kein RESEND_KEY — Mailversand übersprungen (Test-Umgebung)'); return; }
       var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
       var res = $http.send({
         url: 'https://api.resend.com/emails', method: 'POST',
@@ -72,7 +75,7 @@ onRecordAfterCreateSuccess(function(e) {
       '</td></tr></table></td></tr></table></body></html>';
   };
 
-  var _crewGuide = 'https://aniflu.github.io/Crewplaner/docs/guide-crew.html';
+  var _crewGuide = 'https://crewplanner.nyxlightwork.de/docs/guide-crew.html';
 
   // Optionaler Freitext des Admins (Feld custom_message auf crew_invites) als Notiz-Block
   var noteBlock = function(msg) {
@@ -210,7 +213,7 @@ onRecordAfterCreateSuccess(function(e) {
     sendMail(email, 'ÄNDERUNG · ' + plan, wrap(upBody));
     console.log('[hook] update email sent to '+email+' ('+upNew.length+' neu, '+upRem.length+' entfernt)');
   } else if (type === 'love_invite') {
-    var _lGuide = 'https://aniflu.github.io/Crewplaner/docs/guide-admin.html';
+    var _lGuide = 'https://crewplanner.nyxlightwork.de/docs/guide-admin.html';
     sendMail(email, '♥ Du wirst gebraucht · ' + plan, wrap(
       '<div style="text-align:center;padding:8px 0 24px 0;"><div style="font-size:64px;line-height:1;">♥</div></div>' +
       '<h1 style="font-size:32px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;text-align:center;">Ich hab dich lieb.</h1>' +
@@ -223,7 +226,7 @@ onRecordAfterCreateSuccess(function(e) {
       mkBtn(_lGuide, 'ANLEITUNG &rarr;', '#f8f9fb', '#555570')
     ));
   } else if (type === 'staff_invite') {
-    var _guideUrl = 'https://aniflu.github.io/Crewplaner/docs/guide-admin.html';
+    var _guideUrl = 'https://crewplanner.nyxlightwork.de/docs/guide-admin.html';
     sendMail(email, 'EINLADUNG · ' + plan, wrap(
       '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Du wurdest eingeladen.</h1>' +
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">EINLADUNG · ' + ePlan + '</p>' +
@@ -246,6 +249,8 @@ onRecordAfterUpdateSuccess(function(e) {
 
   var sendMail = function(to, subject, html) {
     var _key  = $os.getenv('RESEND_KEY');
+    // Test-Umgebung ohne RESEND_KEY (v0.31.0): Mailversand bewusst aus → still überspringen.
+    if (!_key) { console.log('[mail] kein RESEND_KEY — Mailversand übersprungen (Test-Umgebung)'); return; }
     var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
     try {
       var res = $http.send({
