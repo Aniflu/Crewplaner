@@ -32,14 +32,16 @@ Eine **zweite** PocketBase-Instanz, nur für die GitHub-Testseite, **ohne** Mail
    erlaubte Origin **`https://aniflu.github.io`**. Kein `StripPrefix` (wie Live).
 4. **`RESEND_KEY` NICHT setzen.** Dann überspringt der Hook den Mailversand komplett
    (Code-Guard v4.11) → auf Test gehen garantiert keine echten Mails raus.
-5. **Schema importieren:** dasselbe Collections-JSON wie Live (siehe `CLAUDE.md` →
-   „Collections nach Coolify-Redeploy weg"). **Alle Felder als `text`** anlegen (nie
-   `relation` — bekannte Feldtyp-Falle bei `assignments.proposed_by`, `assignments.plan_id`,
-   `crew_members.plan_id`, `crew_members.role`).
-6. **Zugriffsregeln wie Live** setzen (die Härtung aus v0.26.0 — sonst sind sie nach dem
-   Import permissiv):
-   - `assignments.updateRule`, `crew_invites.createRule`, `plans` list/viewRule
-     (Wortlaut siehe `CLAUDE.md` → Abschnitt „Server-seitige Zugriffsregeln GEHÄRTET").
+5. **Schema importieren:** Fertiger, aktueller **Live-Export** liegt im Repo unter
+   **`pocketbase/pb_schema_live_2026-07-28.json`** (8 App-Collections, read-only aus der
+   Live-PB gezogen). PB Admin → Settings → **Import collections** → diese JSON → Confirm.
+   Vorteil: garantierte Parität — die **korrekten Feldtypen** (alle kritischen Felder bereits
+   `text`, nicht `relation`) **und** die **gehärteten Zugriffsregeln** (v0.26.0) sind darin
+   schon enthalten. *(Die alte `pocketbase/pb_schema.json` NICHT verwenden — veraltete
+   Relation-IDs.)*
+6. **Zugriffsregeln prüfen:** Sie kommen mit dem Export mit (`assignments.updateRule`,
+   `crew_invites.createRule`, `plans` list/viewRule). Nach dem Import kurz gegenprüfen, dass
+   sie nicht auf das permissive `@request.auth.id != ""` zurückgefallen sind.
 7. Feld **`users.feed_token`** (text, optional) anlegen.
 8. **Hook deployen** → siehe Schritt 3 (Test-Pfad).
 9. **Superuser** für die Test-Instanz anlegen (Login ins Test-Admin-UI
@@ -56,11 +58,16 @@ Eine **zweite** PocketBase-Instanz, nur für die GitHub-Testseite, **ohne** Mail
 
 Damit Test-Pushes auf `main` **nicht** mehr automatisch live gehen.
 
+> ✅ **Vorbedingung erledigt:** Der `live`-Branch existiert bereits auf GitHub (angelegt
+> 2026-07-28 aus dem **aktuellen Live-Stand**, also vor v0.31.0). Die Branch-Umstellung ist
+> damit ein **No-Op für Live** — Coolify baut denselben Stand, der jetzt schon läuft. Das
+> neue v0.31.0-Frontend kommt erst später per bewusstem `main → live`-Merge (Go-Live).
+
 1. In Coolify die bestehende **Crewplaner-Frontend-App** öffnen
    (`od48m2ubvy7rqq55fofbqgph-154940502903`).
 2. **Build-Branch** von `main` auf **`live`** umstellen.
    ⚠️ **Wichtig — Reihenfolge:** Solange die App noch `main` baut, geht jeder Test-Push
-   sofort live. Diesen Schritt daher **bevor** Marco anfängt, nur-Test auf `main` zu pushen.
+   sofort live. Diese Umstellung daher **bevor** Marco v0.31.0 auf `main` pusht.
 3. **Auto-Deploy on push** anlassen (so löst `git push origin live` das Go-Live aus).
 4. Einmal manuell **Redeploy** auslösen → Live ist sauber vom `live`-Branch gebaut.
 5. **Prüfen:** `curl -I https://crewplanner.nyxlightwork.de` → `200`, Version unverändert.
