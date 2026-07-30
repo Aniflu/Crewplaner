@@ -2,6 +2,7 @@
 
 **Live-App:** https://crewplanner.nyxlightwork.de
 **Login:** https://crewplanner.nyxlightwork.de/login.html
+**Testumgebung:** https://aniflu.github.io/Crewplaner/ (eigene Test-DB, kein Mailversand — seit v0.31.0)
 
 Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und Tag zu, Crew bestätigt oder lehnt per App oder E-Mail-Button ab — Benachrichtigungen via Pocketbase-Hook (Resend).
 

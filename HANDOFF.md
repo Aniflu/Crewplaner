@@ -26,7 +26,16 @@
 
 ---
 
-## 2. Aktueller Stand (Stand 2026-07-25) — v0.30.2
+## 2. Aktueller Stand (Stand 2026-07-30) — v0.31.0
+
+> ⚠️ **SEIT v0.31.0 — ZWEI GETRENNTE UMGEBUNGEN (zuerst lesen!):**
+> - **Branch `main` = TEST** → GitHub Pages `aniflu.github.io/Crewplaner` → **Test-**PocketBase `api-test.crewplanner.nyxlightwork.de` (eigene, leere DB, **kein** Mailversand).
+> - **Branch `live` = PRODUKTION** → Coolify-nginx `crewplanner.nyxlightwork.de` → **Live-**PocketBase `api.crewplanner.nyxlightwork.de` (echte Tourdaten).
+> - **`git push origin main` = auf TEST veröffentlichen** (NICHT live!). **Go-Live = `main → live` pushen** (Coolify baut den Live-Container automatisch).
+> - Das Frontend wählt die API **automatisch nach Hostname** (`pickApiUrl`, js/pure.js) — derselbe Code in beiden Umgebungen.
+> - **Hook `main.pb.js` v4.11** läuft auf **BEIDEN** Backends → Hook-Änderungen immer an beide deployen (erst Test, dann Live).
+> - Runbooks: `docs/admin-runbook-umzug.md`, `docs/admin-runbook-golive.md`, `docs/admin-runbook-pb-upgrade.md`.
+> - **Offen (optional):** PocketBase-Versions-Upgrade beider Instanzen (Live noch auf altem Mai-Image) — Backup + Test-first, siehe pb-upgrade-Runbook.
 
 > **Juni 2026 (v0.10):** Die ES6-Modul-Migration (v0.9.3) hatte bare Cross-Modul-Referenzen
 > hinterlassen → stille `ReferenceError`s (5-Tage-„Bounce"). In v0.10.0–v0.10.6 bereinigt.

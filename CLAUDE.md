@@ -16,10 +16,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Version & Live-URLs
 
 - Aktuelle Version: **v0.31.0**
-- Test (GitHub Pages): https://aniflu.github.io/Crewplaner/
-- Frontend (Produktiv): https://crewplanner.nyxlightwork.de
-- Pocketbase API: https://api.crewplanner.nyxlightwork.de
-- Pocketbase Admin UI: https://api.crewplanner.nyxlightwork.de/_/
+- **Zwei getrennte Umgebungen seit v0.31.0** (Branch `main` = Test, `live` = Produktion; Go-Live = `main → live` pushen). Frontend wählt die API per Hostname (`pickApiUrl`, js/pure.js). Details: `docs/admin-runbook-umzug.md` / `docs/admin-runbook-golive.md`.
+- **TEST** — Frontend (GitHub Pages, Branch `main`): https://aniflu.github.io/Crewplaner/ · Backend: https://api-test.crewplanner.nyxlightwork.de (eigene Test-DB, **kein** RESEND_KEY → kein Mailversand; Coolify-Service `pocketbase-test`, Superuser `lightinch@me.com`)
+- **LIVE** — Frontend (Produktiv, Branch `live`): https://crewplanner.nyxlightwork.de · Backend: https://api.crewplanner.nyxlightwork.de
+- Pocketbase Admin UI: https://api.crewplanner.nyxlightwork.de/_/ (Live) · https://api-test.crewplanner.nyxlightwork.de/_/ (Test)
 - GitHub Repo: https://github.com/Aniflu/Crewplaner
 
 ---
@@ -255,8 +255,9 @@ Alle 9 registriert, alle `emailVisibility=true`, alle mit Rolle gesetzt.
 | Resend verifizierte Domain | `crewplanner.nyxlightwork.de` |
 | GitHub | https://github.com/Aniflu/Crewplaner (main = Production) |
 | Server SSH Alias | `ssh hetzner` |
-| PocketBase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` (Coolify-managed) |
-| pb_hooks Pfad | `/var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/` |
+| PocketBase Container (LIVE) | `pocketbase-ad9adhhkygjreidi79i4v5eb` (Coolify-managed) |
+| pb_hooks Pfad (LIVE) | `/var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/` |
+| PocketBase Container (TEST) | Coolify-Service `pocketbase-test` (`jl1phsvsusxnqzah6ip20qlc`); Container-Name + Hooks-Volume-Pfad beim Admin erfragen — Hook muss an BEIDE Backends (erst Test, dann Live) |
 
 ---
 
@@ -358,7 +359,7 @@ TZ=UTC           node tests/run.mjs
 - Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
 - **Reine, testbare Logik gehört nach `js/pure.js`** (import-freies Leaf), nicht in `utils.js`.
 
-**Cache-Bust-Stand:** `index.html` lädt `theme.css?v=2` + `styles.css?v=25` + `js/app.js?v=43`; `view.html` lädt `js/view-app.js?v=3`; `admin.html` lädt `js/admin-app.js?v=14`. Alle 4 Seiten laden `theme.css?v=2` (zentrale Token-/Font-Ebene, seit v0.28.0; helle Palette „Sage" seit v0.28.1). **Seit v0.19.0 hält der Service Worker (`sw.js`) alle Module dauerhaft frisch** (network-first/`no-cache`) → normalerweise KEIN Hard-Reload mehr nötig. Beim ERSTEN Laden nach dem v0.19.0-Deploy installiert sich der SW (einmaliger Auto-Reload via `controllerchange`, sonst 1× Hard-Reload). Danach kommen Updates automatisch an. Fällt der SW aus (kein SW-Support/deregistriert): Sub-Module laden ohne `?v=` → dann wie früher Hard-Reload. Kill-Switch: Kommentar in `sw.js`.
+**Cache-Bust-Stand:** `index.html` lädt `theme.css?v=2` + `styles.css?v=25` + `js/app.js?v=44`; `view.html` lädt `js/view-app.js?v=4`; `admin.html` lädt `js/admin-app.js?v=15`; `login.html` lädt `js/pb-login-bundle.js?v=2`. Alle 4 Seiten laden `theme.css?v=2` (zentrale Token-/Font-Ebene, seit v0.28.0; helle Palette „Sage" seit v0.28.1). **Seit v0.19.0 hält der Service Worker (`sw.js`) alle Module dauerhaft frisch** (network-first/`no-cache`) → normalerweise KEIN Hard-Reload mehr nötig. Beim ERSTEN Laden nach dem v0.19.0-Deploy installiert sich der SW (einmaliger Auto-Reload via `controllerchange`, sonst 1× Hard-Reload). Danach kommen Updates automatisch an. Fällt der SW aus (kein SW-Support/deregistriert): Sub-Module laden ohne `?v=` → dann wie früher Hard-Reload. Kill-Switch: Kommentar in `sw.js`.
 
 ---
 
@@ -458,7 +459,7 @@ War am 15., 17. und 20. Mai 2026 aufgetreten. Seit 20. Mai permanent gefixt.
 > Werte zurückschreiben. Am 2026-07-08 per PB-Superuser-API erledigt (crew_members 14, assignments 709 Records,
 > 0 Verlust). **Merke: `"__pool__"` ⇒ `crew_members.plan_id` MUSS text sein**, sonst geht der globale Pool nicht.
 
-Aktuell deployte Hook-Version: **v4.10** (deployt 2026-07-22 durch Admin — zweiteilige Änderungs-Mail, siehe v0.30.0-Eintrag; `docker restart` erfolgreich, `/api/health` → 200). Feld `users.feed_token` ist angelegt + alle 10 User backfilled (2026-07-19 per Superuser). Kalender-Abo **tour-spezifisch** (`/ics/{token}/{plan}`) end-to-end verifiziert: Peter Weist getrennt (AMK 2026 = 53 CONFIRMED, AMK 2027 = 33 TENTATIVE, keine Vermischung), bare `/ics/{token}` → 404.
+Aktuell deployte Hook-Version: **v4.11** — auf **BEIDEN** Backends (Live + Test) deployt 2026-07-30 durch Admin (Log `v4.11 geladen` + `/api/health` → 200 auf beiden bestätigt). v4.11 = RESEND_KEY-Guard (Test ohne Key sendet keine Mails) + Doc-Links auf `crewplanner.nyxlightwork.de/docs`. Feld `users.feed_token` ist angelegt + alle 10 User backfilled (2026-07-19 per Superuser). Kalender-Abo **tour-spezifisch** (`/ics/{token}/{plan}`) end-to-end verifiziert: Peter Weist getrennt (AMK 2026 = 53 CONFIRMED, AMK 2027 = 33 TENTATIVE, keine Vermischung), bare `/ics/{token}` → 404.
 
 > ✅ **Pool-Rollen-Kette KOMPLETT & end-to-end verifiziert (2026-07-14).** Zwei Glieder waren offen,
 > beide jetzt erledigt: (1) Feld `crew_members.role` (text, optional) am 2026-07-13 per PB-Superuser
@@ -479,7 +480,8 @@ Aktuell deployte Hook-Version: **v4.10** (deployt 2026-07-22 durch Admin — zwe
 - v4.9.1: fix — `planMeta` im /ics-Handler parst `plan_data` jetzt via `getString`+`JSON.parse` (JSON-Feld = JSONRaw/[]byte im Goja-Hook; `.get()` gab kein brauchbares JS-Objekt → Ort/Art/Titel blieben leer, Feed fiel auf den Bandnamen zurück). Fallback auf `.get()`, falls schon Objekt.
 - v4.9.2: fix — Kalender-Feed jetzt tour-spezifisch. Route `/ics/{token}` → `/ics/{token}/{plan}` (2. Pfad-Param `e.request.pathValue('plan')`), assignments-Filter zusätzlich `&& plan_id = {:p}` → ein Abo enthält nur die Termine EINER Tour (v0.27.1, User-Wunsch). Bare `/ics/{token}` (ohne Plan) → 404.
 - v4.10: feat (v0.30.0, **deployt 2026-07-22**) — `type==='update'` rendert jetzt eine zweiteilige „Es gab Änderungen."-Mail statt der bisherigen einteiligen „Achtung."-Mail. Slots werden nach `kind` getrennt: ohne `kind` oder `kind!=='removed'` → ➕-Abschnitt „Neue Termine — bitte bestätige, dass du Zeit hast" (rückwärtskompatibel zum alten Format); `kind==='removed'` → ➖-Abschnitt „Entfernte Termine — bitte bestätige, dass du die Änderung gesehen hast" + (nur wenn `aid`-Werte vorhanden) Button „ÄNDERUNGEN GESEHEN ✓" → `?action=ackcancel&aids=id1,id2` (App-seitig behandelt in authService `_handleEmailAction`, patcht die soft-gecancelten Records auf `cancel_acked`). Beide Abschnitte sind optional (nur gerendert, wenn Slots des jeweiligen Typs vorhanden).
-Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.10 geladen`
+- v4.11: feat (v0.31.0, **deployt 2026-07-30 auf BEIDE Backends**) — beide `sendMail`-Funktionen mit Guard `if(!_key){…return;}` → ohne `RESEND_KEY` (Test-Backend) wird der Mailversand still übersprungen (kein 401-Call, kein Crash). Anleitungs-Links (crew/admin-Guide) von `aniflu.github.io/Crewplaner/docs/` auf `crewplanner.nyxlightwork.de/docs/` umgebogen. Rückwärtskompatibel, kein Schema-Schritt.
+Danach in Docker-Logs prüfen: `[hook] main.pb.js v4.11 geladen`
 
 ### Docker-Logs live beobachten
 
