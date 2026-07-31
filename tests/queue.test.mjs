@@ -94,6 +94,77 @@ test('_updateCrewUpdateBar: Self-Heal — entfernter Name fällt aus der Queue',
   ok(!q['Oliver'], 'Oliver fällt raus (nicht mehr eingeplant)');
 });
 
+// ── Statuswechsel-Slots (v0.50.0: bestätigt ⇄ vorgemerkt) ─────────────────────
+test('_queueStatusSlot: legt kind=status mit Richtung an und überlebt den Self-Heal', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  setup(g);
+  const { POSITIONS, TOUR_DATES, setAssignment } = g.state;
+  POSITIONS.push({ id:'gl', label:'GL' });
+  TOUR_DATES.push({ date:'2026-08-01', type:'show', typeLabel:'Show' });
+  setAssignment('2026-08-01', 'gl', 'Wolf');   // Person steht weiter in der Zelle
+  g.state.setAuthState('u1','a@test.de','superadmin');
+
+  g.userView._queueStatusSlot('Wolf','w@x.de','2026-08-01','gl','GL','pencilled');
+  g.userView._updateCrewUpdateBar();
+
+  const q = readQueue();
+  ok(q['Wolf'], 'Eintrag existiert nach Self-Heal noch');
+  eq(q['Wolf'].slots[0].kind, 'status', 'kind=status gespeichert');
+  eq(q['Wolf'].slots[0].to, 'pencilled', 'Richtung gespeichert');
+});
+
+test('Self-Heal entfernt einen status-Slot, wenn die Person nicht mehr in der Zelle steht', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  setup(g);
+  const { POSITIONS, TOUR_DATES, setAssignment } = g.state;
+  POSITIONS.push({ id:'gl', label:'GL' });
+  TOUR_DATES.push({ date:'2026-08-01', type:'show', typeLabel:'Show' });
+  setAssignment('2026-08-01', 'gl', 'Wolf');
+  g.state.setAuthState('u1','a@test.de','superadmin');
+
+  g.userView._queueStatusSlot('Wolf','w@x.de','2026-08-01','gl','GL','pencilled');
+  setAssignment('2026-08-01', 'gl', '');       // Manager nimmt Wolf ganz raus
+  g.userView._updateCrewUpdateBar();
+
+  ok(!readQueue()['Wolf'], 'status-Slot geheilt — der Entfernen-Pfad queued stattdessen removed');
+});
+
+// Der teuerste denkbare Fehler: der Versand patcht die eben gesetzte Vormerkung wieder
+// auf 'proposed' zurück (und löst dabei eine Anfrage-Mail aus). status-Slots müssen —
+// wie removed-Slots — vom „auf proposed setzen"-Zweig ausgenommen bleiben.
+test('_sendPendingUpdates: status-Slots werden NICHT auf proposed gepatcht', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  setup(g);
+  const { POSITIONS, TOUR_DATES, setAssignment } = g.state;
+  POSITIONS.push({ id:'gl', label:'GL' });
+  TOUR_DATES.push({ date:'2026-08-01', type:'show', typeLabel:'Show' });
+  setAssignment('2026-08-01', 'gl', 'Wolf');
+  g.state.setStatus('2026-08-01', 'gl', { status:'pencilled', crewName:'Wolf' });
+  g.state.setAuthState('u1','a@test.de','superadmin');
+  localStorage.setItem('pb_token', 't');
+
+  g.userView._queueStatusSlot('Wolf','w@x.de','2026-08-01','gl','GL','pencilled');
+
+  const patched = [];           // alle PATCH-Bodies
+  const invites = [];           // alle crew_invites-Mails
+  globalThis.fetch = async (url, opts) => {
+    const method = (opts && opts.method) || 'GET';
+    let body = {}; try { body = JSON.parse(opts?.body || '{}'); } catch(_) {}
+    if (method === 'PATCH') patched.push(body);
+    if (method === 'POST' && String(url).includes('crew_invites')) invites.push(body);
+    return { status:200, ok:true, json: async () => ({ items: [], id:'rec1' }) };
+  };
+
+  await g.userView._sendPendingUpdates();
+
+  ok(!patched.some(b => b.status === 'proposed'), 'kein PATCH auf proposed');
+  eq(invites.length, 1, 'genau eine Update-Mail');
+  const slots = JSON.parse(invites[0].app_url || '[]');
+  eq(slots.length, 1, 'ein Slot in der Mail');
+  eq(slots[0].kind, 'status', 'als Statuswechsel markiert');
+  eq(slots[0].to, 'pencilled', 'Richtung geht an den Hook mit');
+});
+
 test('removed-Slots überleben den Self-Heal (getVal ist für sie leer)', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   setup(g);

@@ -12,7 +12,7 @@ import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable, resetTodayAutoScroll } from './render.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
 import { closeModal, openModal } from './modals.js';
-import { confirmedIcsRows, crewIcsContent, feedUrls } from './pure.js';
+import { icsExportRows, ICS_STATUS_LABEL, crewIcsContent, feedUrls } from './pure.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
 export function toggleCancellation(dateStr, posId) {
@@ -382,7 +382,7 @@ function _mergeLiveNewSlots(q) {
   }
   return changed;
 }
-function _dateBlockId(date) {
+export function _dateBlockId(date) {
   const r = TOUR_DATES.find(x => x.date === date);
   return r ? (r.blockId || '') : '';
 }
@@ -452,6 +452,25 @@ export function _queueRemovedSlot(crewName, email, dateStr, posId, posLabel, aid
   _updateCrewUpdateBar();
 }
 
+// Statuswechsel „bestätigt ⇄ vorgemerkt" (v0.50.0) in die Updates-Queue legen.
+// `to` = Zielstatus ('pencilled' | 'confirmed'). Anders als bei removed bleibt die Person
+// in der Zelle stehen — nur die Verbindlichkeit ändert sich. Versand wie immer erst per
+// Knopfdruck („Updates senden"), nie automatisch.
+export function _queueStatusSlot(crewName, email, dateStr, posId, posLabel, to) {
+  if (!email) return;   // ohne Mail-Adresse nichts sendbar (wie bei Updates)
+  const q = _getCrewUpdateQueue();
+  if (!q[crewName]) q[crewName] = { email, slots: [] };
+  // Gleicher Slot schon gequeued? Dann nur die Richtung aktualisieren — sonst stünden
+  // nach einem Hin-und-Zurück zwei widersprüchliche Einträge in der Mail.
+  const prev = q[crewName].slots.find(s => s.kind === 'status' && s.date === dateStr && s.posId === posId);
+  if (prev) { prev.to = to; prev.changes = [_STATUS_CHANGE_LABEL[to] || 'Status geändert']; }
+  else q[crewName].slots.push({ kind: 'status', to, date: dateStr, posId, posLabel,
+                                changes: [_STATUS_CHANGE_LABEL[to] || 'Status geändert'] });
+  _saveCrewUpdateQueue(q);
+  _updateCrewUpdateBar();
+}
+const _STATUS_CHANGE_LABEL = { pencilled: 'Jetzt vorgemerkt', confirmed: 'Wieder bestätigt' };
+
 export function _updateCrewUpdateBar() {
   const q = _getCrewUpdateQueue();
   // Queue bereinigen: nur Slots im AKTUELLEN Plan (Datum in TOUR_DATES) behalten,
@@ -467,6 +486,10 @@ export function _updateCrewUpdateBar() {
       if (!valid.has(s.date)) return false;
       // removed-Slots sind per Definition nicht mehr in getVal → NICHT wegheilen.
       if (s.kind === 'removed') return true;
+      // Statuswechsel-Slots (v0.50.0) sind weiter in getVal — sie gelten nur, solange die
+      // Person auch wirklich noch in der Zelle steht. Nimmt der Manager sie danach ganz
+      // heraus, legt der Entfernen-Pfad seinen eigenen removed-Eintrag an.
+      if (s.kind === 'status') return s.posId ? getVal(s.date, s.posId) === name : true;
       // Self-Heal: ein auto-gequeuter (informational) Slot ist nur gültig, solange die
       // Person dort noch eingeplant ist. Entfernt der Manager den Namen wieder
       // (getVal → ''), fällt der Slot raus → Bar/Badge stimmen live. posId nötig
@@ -546,7 +569,11 @@ export function _openUpdateQueueModal() {
           const isChecked = slot.selected !== false;
           const kindTag = slot.kind === 'removed'
             ? `<span style="color:var(--warn);font-weight:600;">➖ entfernt</span> · `
-            : `<span style="color:var(--show);">➕ neu</span> · `;
+            : slot.kind === 'status'
+              ? (slot.to === 'pencilled'
+                  ? `<span style="color:var(--pencilled);font-weight:600;">✎ vorgemerkt</span> · `
+                  : `<span style="color:var(--show);font-weight:600;">✓ wieder bestätigt</span> · `)
+              : `<span style="color:var(--show);">➕ neu</span> · `;
           html += `<div style="display:flex;align-items:center;gap:8px;padding:2px 0 2px 14px;border-bottom:1px solid #2a2a3a;font-size:.64rem;color:#ccc;">
             <input type="checkbox" data-crew="${esc(name)}" data-key="${esc(slotKey)}" ${isChecked ? 'checked' : ''}
               onchange="_toggleSlotSelection(this)"
@@ -656,13 +683,14 @@ function _fmtPrevDate(iso) {
   return (p.length === 3 && p[0].length === 4) ? `${p[2]}.${p[1]}.${p[0]}` : iso;
 }
 
-// ── Crew: eigener Export (nur EIGENE bestätigten Termine) ─────────────────────
-// Liefert die bestätigten Tage der eingeloggten Crew + Bandname + Datum-Metadaten.
+// ── Crew: eigener Export (nur EIGENE Termine) ─────────────────────────────────
+// Liefert die bestätigten UND vorgemerkten Tage der eingeloggten Crew + Bandname +
+// Datum-Metadaten. Vorgemerkte tragen ihren Status mit (v0.50.0).
 function _myConfirmedExport() {
   const myName = getMyCrewName();
   if (!myName) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return null; }
-  const rows = confirmedIcsRows(TOUR_DATES, POSITIONS, assignmentStatuses, { onlyCrew: true, myName });
-  if (!rows.length) { showToast('Keine bestätigten Termine', '#5a6070'); return null; }
+  const rows = icsExportRows(TOUR_DATES, POSITIONS, assignmentStatuses, { onlyCrew: true, myName });
+  if (!rows.length) { showToast('Keine Termine', '#5a6070'); return null; }
   const dateMeta = {}; TOUR_DATES.forEach(r => { dateMeta[r.date] = r; });
   return { rows, dateMeta, band: _activePlanName(), myName };
 }
@@ -678,7 +706,7 @@ export function downloadMyICS() {
   a.download = `${safe}_meine-termine.ics`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
-  showToast(`${x.rows.length} bestätigte Termine exportiert ✓`, '#2d6a3f');
+  showToast(`${x.rows.length} Termine exportiert ✓`, '#2d6a3f');
 }
 
 // ── Crew: Kalender abonnieren (persönlicher, sich aktualisierender Feed) ───────
@@ -749,7 +777,8 @@ export function printMySchedule() {
   const x = _myConfirmedExport(); if (!x) return;
   const rowsHtml = x.rows.map(r => {
     const m = x.dateMeta[r.date] || {};
-    return `<tr><td>${esc(_fmtPrevDate(r.date))}</td><td>${esc(m.typeLabel || m.type || '')}</td><td>${esc(m.loc || '')}</td></tr>`;
+    const st = ICS_STATUS_LABEL[r.status] || '';
+    return `<tr><td>${esc(_fmtPrevDate(r.date))}</td><td>${esc(m.typeLabel || m.type || '')}</td><td>${esc(m.loc || '')}</td><td>${esc(st)}</td></tr>`;
   }).join('');
   const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>${esc(x.band)} — Meine Termine</title>
     <style>
@@ -762,8 +791,8 @@ export function printMySchedule() {
       @media print{body{margin:12mm;}}
     </style></head><body>
     <h1>${esc(x.band)}</h1>
-    <p class="sub">Meine bestätigten Termine · ${esc(x.myName)} · ${x.rows.length}</p>
-    <table><thead><tr><th>Datum</th><th>Art</th><th>Ort</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+    <p class="sub">Meine Termine · ${esc(x.myName)} · ${x.rows.length}</p>
+    <table><thead><tr><th>Datum</th><th>Art</th><th>Ort</th><th>Status</th></tr></thead><tbody>${rowsHtml}</tbody></table>
     <script>window.onload=function(){window.print();};<\/script>
   </body></html>`;
   const w = window.open('', '_blank');
@@ -778,9 +807,13 @@ function _openUpdatePreview(opts) {
     _updatePreviewResolve = resolve;
     const body = document.getElementById('updatePreviewBody');
     if (body) {
+      const _kindTxt = s => s.kind === 'removed' ? '➖ entfernt'
+        : s.kind === 'status' ? (s.to === 'pencilled' ? '✎ vorgemerkt' : '✓ bestätigt')
+        : '➕ neu';
       const rows = (opts.slots || []).map(s =>
         `<tr><td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(_fmtPrevDate(s.date))}</td>` +
-        `<td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(s.posLabel || '')}</td></tr>`).join('');
+        `<td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(s.posLabel || '')}</td>` +
+        `<td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(_kindTxt(s))}</td></tr>`).join('');
       body.innerHTML =
         `<div><strong style="color:#9aa0aa;">An:</strong> ${esc(opts.email || '')}</div>
          <div><strong style="color:#9aa0aa;">Betreff:</strong> ${esc(opts.subject || '')}</div>
@@ -809,8 +842,14 @@ export function _updatePreviewCancel() { _resolveUpdatePreview('cancel'); }
 // ➖-Abschnitt mit „GESEHEN ✓"-Button; sie werden NICHT auf proposed gesetzt.
 async function _sendUpdateForEntry(name, entry, customText) {
   const removed = (entry.slots || []).filter(s => s.kind === 'removed');
-  const normal  = (entry.slots || []).filter(s => s.kind !== 'removed');
+  // Statuswechsel-Slots (v0.50.0) gehen NUR in die Mail. Sie dürfen NICHT in `normal`
+  // landen — der Zweig unten patcht dort jeden Slot auf 'proposed' und würde damit die
+  // gerade gesetzte Vormerkung zerstören und eine Anfrage-Mail auslösen.
+  const status  = (entry.slots || []).filter(s => s.kind === 'status');
+  const normal  = (entry.slots || []).filter(s => s.kind !== 'removed' && s.kind !== 'status');
   const removedMail = removed.map(s => ({ date: s.date, posLabel: s.posLabel, kind: 'removed', aid: s.aid || '', changes: ['Termin entfernt'] }));
+  const statusMail = status.map(s => ({ date: s.date, posLabel: s.posLabel, kind: 'status', to: s.to || 'pencilled',
+                                        changes: [_STATUS_CHANGE_LABEL[s.to] || 'Status geändert'] }));
 
   if (entry.informational) {
     // Nur die ausgewählten neuen Slots anfragen + mailen (nicht den ganzen Plan).
@@ -819,7 +858,7 @@ async function _sendUpdateForEntry(name, entry, customText) {
     let newSlots = allNew.filter(s => wanted.has(s.date + '|' + s.posId));
     if (!newSlots.length && normal.length) newSlots = allNew;   // Fallback (Legacy-Slots ohne posId)
     if (newSlots.length) await bulkProposeCrew(newSlots);
-    const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, kind: 'new', changes: ['Neuer Termin'] })).concat(removedMail);
+    const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, kind: 'new', changes: ['Neuer Termin'] })).concat(removedMail, statusMail);
     if (mailSlots.length) await sendUpdateNotice(name, entry.email, mailSlots, customText);
     return;
   }
@@ -840,7 +879,7 @@ async function _sendUpdateForEntry(name, entry, customText) {
         { status: 'proposed', proposed_by: 'update' });
     }
   }
-  await sendUpdateNotice(name, entry.email, normal.concat(removedMail), customText);
+  await sendUpdateNotice(name, entry.email, normal.concat(removedMail, statusMail), customText);
 }
 
 export async function _sendSelectedUpdates() {
@@ -860,7 +899,10 @@ export async function _sendSelectedUpdates() {
     const res = await _openUpdatePreview({
       email: r.entry.email,
       subject: 'ÄNDERUNG · ' + planName,
-      intro: `${r.slots.length} aktualisierte/neue Einsätze für <strong>${esc(planName)}</strong> — bitte erneut bestätigen.`,
+      // Reine Statuswechsel verlangen keine erneute Bestätigung — Wortlaut entsprechend.
+      intro: r.slots.every(s => s.kind === 'status')
+        ? `${r.slots.length} Einsätze für <strong>${esc(planName)}</strong> haben einen neuen Status.`
+        : `${r.slots.length} aktualisierte/neue Einsätze für <strong>${esc(planName)}</strong> — bitte erneut bestätigen.`,
       slots: r.slots,
     });
     if (res.action === 'cancel') break;

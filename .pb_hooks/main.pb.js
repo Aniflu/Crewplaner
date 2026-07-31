@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.10
-console.log('[hook] main.pb.js v4.11 geladen');
+// Version: 4.12
+console.log('[hook] main.pb.js v4.12 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -174,13 +174,19 @@ onRecordAfterCreateSuccess(function(e) {
   } else if (type === 'update') {
     var upSlots = [];
     try { upSlots = JSON.parse(appUrl || '[]'); } catch (_) {}
-    // v4.10: Slots nach kind trennen — 'removed' = entfernte Termine (GESEHEN-Quittung),
-    // alles andere (auch ohne kind, rückwärtskompatibel) = neue/geänderte Termine.
-    var upNew = [], upRem = [], ackIds = [];
+    // v4.10: Slots nach kind trennen — 'removed' = entfernte Termine (GESEHEN-Quittung).
+    // v4.12: 'status' = Statuswechsel bestätigt ⇄ vorgemerkt (Termin bleibt, nur die
+    // Verbindlichkeit ändert sich). Alles andere (auch ohne kind, rückwärtskompatibel)
+    // = neue/geänderte Termine.
+    var upNew = [], upRem = [], upPen = [], upCnf = [], ackIds = [];
     for (var i = 0; i < upSlots.length; i++) {
-      if (upSlots[i] && upSlots[i].kind === 'removed') {
+      if (!upSlots[i]) continue;
+      if (upSlots[i].kind === 'removed') {
         upRem.push(upSlots[i]);
         if (upSlots[i].aid) ackIds.push(upSlots[i].aid);
+      } else if (upSlots[i].kind === 'status') {
+        if (upSlots[i].to === 'confirmed') upCnf.push(upSlots[i]);
+        else upPen.push(upSlots[i]);
       } else { upNew.push(upSlots[i]); }
     }
     function upTable(rows, chgColor) {
@@ -210,8 +216,20 @@ onRecordAfterCreateSuccess(function(e) {
         upBody += mkBtn('https://crewplanner.nyxlightwork.de?action=ackcancel&aids='+ackIds.join(','), '&Auml;NDERUNGEN GESEHEN &#10003;', '#f8f9fb', '#555570');
       }
     }
+    // v4.12: Statuswechsel — der Termin bleibt bestehen, nur die Verbindlichkeit ändert
+    // sich. Bewusst OHNE Aktions-Button: hier ist nichts zu bestätigen.
+    if (upPen.length) {
+      upBody += '<p style="font-size:13px;color:#7A5FB3;font-weight:bold;margin:24px 0 0 0;">&#9998; Jetzt vorgemerkt &mdash; vorl&auml;ufig geplant, noch nicht verbindlich:</p>'+
+        upTable(upPen, '#7A5FB3')+
+        '<p style="font-size:12px;color:#555570;line-height:1.7;margin:0 0 16px 0;">Du musst nichts tun. Die Termine bleiben in deinem Kalender, sind aber noch nicht fest &mdash; wir melden uns, sobald sie verbindlich werden.</p>';
+    }
+    if (upCnf.length) {
+      upBody += '<p style="font-size:13px;color:#2d6a3f;font-weight:bold;margin:24px 0 0 0;">&#10003; Wieder verbindlich best&auml;tigt:</p>'+
+        upTable(upCnf, '#2d6a3f')+
+        '<p style="font-size:12px;color:#555570;line-height:1.7;margin:0 0 16px 0;">Diese Termine sind jetzt wieder fest eingeplant.</p>';
+    }
     sendMail(email, 'ÄNDERUNG · ' + plan, wrap(upBody));
-    console.log('[hook] update email sent to '+email+' ('+upNew.length+' neu, '+upRem.length+' entfernt)');
+    console.log('[hook] update email sent to '+email+' ('+upNew.length+' neu, '+upRem.length+' entfernt, '+upPen.length+' vorgemerkt, '+upCnf.length+' bestätigt)');
   } else if (type === 'love_invite') {
     var _lGuide = 'https://crewplanner.nyxlightwork.de/docs/guide-admin.html';
     sendMail(email, '♥ Du wirst gebraucht · ' + plan, wrap(
@@ -478,7 +496,7 @@ routerAdd('GET', '/ics/{token}/{plan}', function(e) {
   try {
     rows = $app.findRecordsByFilter(
       'assignments',
-      'crew_email = {:e} && plan_id = {:p} && (status = "confirmed" || status = "proposed")',
+      'crew_email = {:e} && plan_id = {:p} && (status = "confirmed" || status = "proposed" || status = "pencilled")',
       'date', 2000, 0, { e: email, p: planFilter }
     );
   } catch(err) { rows = []; }
@@ -509,15 +527,22 @@ routerAdd('GET', '/ics/{token}/{plan}', function(e) {
   }
 
   // Pro (plan_id + date) EIN Ganztags-Event (Positionen zusammengefasst, wie der Download).
-  // Hat die Person an dem Tag mind. einen bestätigten Slot → CONFIRMED, sonst TENTATIVE.
+  // Der höchste Rang des Tages bestimmt den Status: bestätigt schlägt angefragt schlägt
+  // vorgemerkt. Vorgemerkte Termine bleiben seit v4.12 im Feed (vorher fielen sie raus und
+  // verschwanden lautlos aus dem Kalender der Person) — sie tragen ihren Status im Infofeld.
+  var RANK = { pencilled: 1, proposed: 2, confirmed: 3 };
+  var LABEL = { pencilled: 'Vorgemerkt', proposed: 'Angefragt', confirmed: 'Bestätigt' };
   var days = {};
   for (var i = 0; i < rows.length; i++) {
     var planId = rows[i].getString('plan_id');
     var date   = rows[i].getString('date');
     if (!date) continue;
+    var st = rows[i].getString('status');
+    var rank = RANK[st] || 0;
+    if (!rank) continue;
     var key = planId + '|' + date;
-    if (!days[key]) days[key] = { planId: planId, date: date, confirmed: false };
-    if (rows[i].getString('status') === 'confirmed') days[key].confirmed = true;
+    if (!days[key]) days[key] = { planId: planId, date: date, rank: 0, status: '' };
+    if (rank > days[key].rank) { days[key].rank = rank; days[key].status = st; }
   }
 
   var out = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Crewplaner//Feed v4.9//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Crewplaner'];
@@ -536,8 +561,8 @@ routerAdd('GET', '/ics/{token}/{plan}', function(e) {
       'DTEND;VALUE=DATE:' + nextYmd(d.date),
       'SUMMARY:' + icsEsc(title),
       'LOCATION:' + icsEsc(loc),
-      'DESCRIPTION:' + icsEsc('Band: ' + m.band + '\nArt: ' + art + '\nOrt: ' + loc),
-      'STATUS:' + (d.confirmed ? 'CONFIRMED' : 'TENTATIVE'),
+      'DESCRIPTION:' + icsEsc('Band: ' + m.band + '\nArt: ' + art + '\nOrt: ' + loc + '\nStatus: ' + (LABEL[d.status] || '')),
+      'STATUS:' + (d.status === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE'),
       'END:VEVENT'
     );
   }

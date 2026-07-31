@@ -65,6 +65,9 @@ import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
          _updatePreviewSend, _updatePreviewSkip, _updatePreviewCancel,
          downloadMyICS, printMySchedule, switchCrewPlan, openSubscribeModal } from './userView.js';
 import { startLocEdit } from './render.js';
+import { openBulkStatusModal, closeBulkStatusModal, applyBulkStatus,
+         _bulkStatusToggle, _bulkStatusGrpSel, _bulkStatusSelectAll,
+         _bulkStatusSetMode } from './bulkStatus.js';
 
 // ── Hell/Dunkel-Umschalter (data-theme am <html>, Schlüssel cp_mode) ──
 // Anfangswert steht schon (Inline-Script im <head>). Hier nur Knopf + Persistenz.
@@ -171,6 +174,13 @@ window._toggleSlotSelection = _toggleSlotSelection;
 window._queueSelectAll = _queueSelectAll;
 window._queueGrpSel = _queueGrpSel;
 window._clearUpdateQueue = _clearUpdateQueue;
+window.openBulkStatusModal = openBulkStatusModal;
+window.closeBulkStatusModal = closeBulkStatusModal;
+window.applyBulkStatus = applyBulkStatus;
+window._bulkStatusToggle = _bulkStatusToggle;
+window._bulkStatusGrpSel = _bulkStatusGrpSel;
+window._bulkStatusSelectAll = _bulkStatusSelectAll;
+window._bulkStatusSetMode = _bulkStatusSetMode;
 window._updatePreviewSend = _updatePreviewSend;
 window._updatePreviewSkip = _updatePreviewSkip;
 window._updatePreviewCancel = _updatePreviewCancel;

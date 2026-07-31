@@ -2,7 +2,7 @@
 import { TOUR_DATES, POSITIONS, assignmentStatuses, crewMeta, IS_CREW,
          CURRENT_USER_EMAIL, CURRENT_USER_ID } from './state.js';
 import { showToast } from './utils.js';
-import { confirmedIcsRows } from './pure.js';
+import { icsExportRows, ICS_STATUS_LABEL } from './pure.js';
 import { openModal } from './modals.js';
 
 // Eigener Crew-Name aus crewMeta (gleiche Logik wie getMyCrewName, ohne userView-Import).
@@ -24,10 +24,11 @@ export function generateICS(){
     prep:document.getElementById('calPrep').checked,
     off:document.getElementById('calOff').checked,
   };
-  // NUR bestätigte Termine. Crew → nur eigene bestätigten Tage; Manager → alle bestätigten.
+  // Bestätigte UND vorgemerkte Termine (v0.50.0 — vorgemerkte tragen den Status im
+  // Infofeld). Crew → nur eigene Tage; Manager → alle.
   const allow = new Set(Object.keys(inclTypes).filter(k => inclTypes[k]));
   const myName = IS_CREW ? _myCrewName() : null;
-  const rows = confirmedIcsRows(TOUR_DATES, POSITIONS, assignmentStatuses,
+  const rows = icsExportRows(TOUR_DATES, POSITIONS, assignmentStatuses,
     { onlyCrew: IS_CREW, myName, allowTypes: allow });
   if(!rows.length){
     showToast('Keine bestätigten Termine','#e84a4a');
@@ -43,7 +44,7 @@ export function generateICS(){
     'METHOD:PUBLISH',
   ];
 
-  rows.forEach(({date, confirmed})=>{
+  rows.forEach(({date, status, slots})=>{
     const row = dateMeta[date] || {};
     const dtStart=date.replace(/-/g,'');
     const [y,m,d]=date.split('-').map(Number);
@@ -51,7 +52,11 @@ export function generateICS(){
     const dtEnd=`${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
     const summary=`${row.typeLabel||row.type||''} – ${row.loc||''}`;
     let desc=`Art: ${row.typeLabel||row.type||''}\\nOrt: ${row.loc||''}`;
-    const crewList=confirmed.map(c=>`${c.posLabel}: ${c.crewName}`);
+    const stLabel = ICS_STATUS_LABEL[status] || '';
+    if(stLabel) desc+=`\\nStatus: ${stLabel}`;
+    // Pro Slot den eigenen Status mitschreiben — ein Tag kann bestätigte UND
+    // vorgemerkte Positionen gleichzeitig haben.
+    const crewList=slots.map(c=>`${c.posLabel}: ${c.crewName}${c.status==='pencilled'?' (vorgemerkt)':''}`);
     if(crewList.length)desc+='\\n'+crewList.join('\\n');
     const uid=`${date}-${Math.random().toString(36).slice(2)}@tourcrewplan`;
     lines.push(
@@ -60,6 +65,7 @@ export function generateICS(){
       `DTEND;VALUE=DATE:${dtEnd}`,
       `SUMMARY:${summary}`,
       `DESCRIPTION:${desc}`,
+      `STATUS:${status==='confirmed'?'CONFIRMED':'TENTATIVE'}`,
       `UID:${uid}`,
       'END:VEVENT'
     );

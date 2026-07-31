@@ -1,6 +1,6 @@
 // Tests für js/pure.js — keine Browser-Stubs nötig (dependency-frei).
 import { test, eq, deepEq, ok } from './_assert.mjs';
-import { toISODate, eachDateInRange, normCrewName, sameCrew, confirmedIcsRows, crewIcsContent, pickApiUrl } from '../js/pure.js';
+import { toISODate, eachDateInRange, normCrewName, sameCrew, icsExportRows, crewIcsContent, pickApiUrl } from '../js/pure.js';
 
 // ── eachDateInRange ───────────────────────────────────────────────────────────
 test('eachDateInRange: Einzeltag', () =>
@@ -51,42 +51,69 @@ test('normCrewName: null/leer/whitespace', () => {
   eq(normCrewName('  Wolf Geffenius '), 'wolf geffenius');
 });
 
-// ── confirmedIcsRows (ICS nur bestätigt) ──────────────────────────────────────
+// ── icsExportRows (ICS: bestätigt UND vorgemerkt, v0.50.0) ────────────────────
 const _dates = [{date:'2026-07-01',type:'show'},{date:'2026-07-02',type:'show'},{date:'2026-07-03',type:'reise'}];
 const _pos = [{id:'gl',label:'Gewerkeleitung'},{id:'st',label:'Stage'}];
 const _st = {
   '2026-07-01': { gl:{status:'confirmed',crewName:'Wolf'}, st:{status:'proposed',crewName:'Oliver'} },
-  '2026-07-02': { gl:{status:'proposed',crewName:'Wolf'} },                     // nichts confirmed
+  '2026-07-02': { gl:{status:'proposed',crewName:'Wolf'} },                     // nur angefragt
   '2026-07-03': { st:{status:'confirmed',crewName:'Oliver'} },
 };
 
-test('confirmedIcsRows: nur Tage mit bestätigten Einsätzen', () => {
-  const rows = confirmedIcsRows(_dates, _pos, _st, {});
+test('icsExportRows: nur Tage mit bestätigten Einsätzen (angefragt zählt nicht)', () => {
+  const rows = icsExportRows(_dates, _pos, _st, {});
   deepEq(rows.map(r=>r.date), ['2026-07-01','2026-07-03'], '07-02 (nur proposed) fällt raus');
-  deepEq(rows[0].confirmed, [{posLabel:'Gewerkeleitung',crewName:'Wolf'}], 'nur confirmed-Slot, proposed nicht');
+  deepEq(rows[0].slots, [{posLabel:'Gewerkeleitung',crewName:'Wolf',status:'confirmed'}], 'nur confirmed-Slot, proposed nicht');
+  eq(rows[0].status, 'confirmed', 'Tagesstatus = bestätigt');
 });
 
-test('confirmedIcsRows: pencilled (v0.29.0) fällt raus wie proposed — nur confirmed zählt', () => {
+test('icsExportRows: vorgemerkt (✎) bleibt im Export, markiert als pencilled', () => {
   const dates=[{date:'2026-08-01',type:'show'}];
   const pos=[{id:'gl',label:'Gewerkeleitung'}];
   const st={'2026-08-01':{gl:{status:'pencilled',crewName:'Wolf'}}};
-  const rows = confirmedIcsRows(dates, pos, st, {});
-  deepEq(rows, [], 'vorgemerkter Tag erscheint nicht im Kalender-Export');
+  const rows = icsExportRows(dates, pos, st, {});
+  deepEq(rows.map(r=>r.date), ['2026-08-01'], 'vorgemerkter Tag ist im Kalender-Export enthalten');
+  eq(rows[0].status, 'pencilled', 'Tagesstatus = vorgemerkt');
 });
 
-test('confirmedIcsRows: onlyCrew filtert auf eigenen Namen', () => {
-  const rows = confirmedIcsRows(_dates, _pos, _st, { onlyCrew:true, myName:'wolf' });
+test('icsExportRows: bestätigt schlägt vorgemerkt im Tagesstatus', () => {
+  const dates=[{date:'2026-08-02',type:'show'}];
+  const pos=[{id:'gl',label:'GL'},{id:'st',label:'Stage'}];
+  const st={'2026-08-02':{gl:{status:'pencilled',crewName:'Wolf'},st:{status:'confirmed',crewName:'Wolf'}}};
+  const rows = icsExportRows(dates, pos, st, {});
+  eq(rows[0].status, 'confirmed', 'ein bestätigter Slot macht den Tag bestätigt');
+});
+
+test('icsExportRows: cancelled/declined bleiben draußen', () => {
+  const dates=[{date:'2026-08-03',type:'show'}];
+  const pos=[{id:'gl',label:'GL'},{id:'st',label:'Stage'}];
+  const st={'2026-08-03':{gl:{status:'declined',crewName:'Wolf'},st:{status:'cancelled',crewName:'Wolf'}}};
+  deepEq(icsExportRows(dates, pos, st, {}), [], 'abgesagte/entfernte Einsätze nie im Kalender');
+});
+
+test('icsExportRows: onlyCrew filtert auf eigenen Namen', () => {
+  const rows = icsExportRows(_dates, _pos, _st, { onlyCrew:true, myName:'wolf' });
   deepEq(rows.map(r=>r.date), ['2026-07-01'], 'nur Wolfs bestätigter Tag (Olivers 07-03 raus)');
 });
 
-test('confirmedIcsRows: allowTypes filtert Tagestypen', () => {
-  const rows = confirmedIcsRows(_dates, _pos, _st, { allowTypes:new Set(['show']) });
+test('icsExportRows: allowTypes filtert Tagestypen', () => {
+  const rows = icsExportRows(_dates, _pos, _st, { allowTypes:new Set(['show']) });
   deepEq(rows.map(r=>r.date), ['2026-07-01'], 'reise-Tag 07-03 durch Typ-Filter raus');
 });
 
-// ── crewIcsContent: persönlicher Eintrag NUR Band/Ort/Art ─────────────────────
+// ── crewIcsContent: persönlicher Eintrag NUR Band/Ort/Art + Status ────────────
+test('crewIcsContent: Status im Infofeld — bestätigt bzw. vorgemerkt', () => {
+  const meta = { '2026-07-01': { loc:'Berlin – Arena', typeLabel:'Show' } };
+  const conf = crewIcsContent('Provinz 2027', [{date:'2026-07-01', status:'confirmed', slots:[]}], meta);
+  ok(/DESCRIPTION:.*Status: Best/.test(conf), 'bestätigter Tag trägt Status: Bestätigt');
+  ok(conf.includes('STATUS:CONFIRMED'), 'VEVENT-STATUS = CONFIRMED');
+  const pen = crewIcsContent('Provinz 2027', [{date:'2026-07-01', status:'pencilled', slots:[]}], meta);
+  ok(/DESCRIPTION:.*Status: Vorgemerkt/.test(pen), 'vorgemerkter Tag trägt Status: Vorgemerkt');
+  ok(pen.includes('STATUS:TENTATIVE'), 'vorgemerkt = TENTATIVE, nicht CONFIRMED');
+});
+
 test('crewIcsContent: Titel = Art: Ort, Band in Details, keine Crew-Namen', () => {
-  const rows = [{date:'2026-07-01', confirmed:[{posLabel:'Gewerkeleitung',crewName:'Wolf'}]}];
+  const rows = [{date:'2026-07-01', status:'confirmed', slots:[{posLabel:'Gewerkeleitung',crewName:'Wolf',status:'confirmed'}]}];
   const meta = { '2026-07-01': { loc:'Berlin – Arena', typeLabel:'Show' } };
   const ics = crewIcsContent('Provinz 2027', rows, meta);
   ok(ics.includes('SUMMARY:Show: Berlin'), 'Titel = Art: Ort');

@@ -9,6 +9,7 @@ import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
 import { renderTable } from './render.js';
 import { pbDelete } from './pb.js';
 import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses, confirmAssignment, pencilInAssignment, promotePencilledToProposed, softCancelAssignment } from './dataService.js';
+import { openBulkStatusModal } from './bulkStatus.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { showPrompt, showConfirm } from './dialog.js';
 import { hasPermission } from './rbac.js';
@@ -140,6 +141,15 @@ export function openCrewDD(e,dateStr,posId){
         await loadAssignmentStatuses();
       }
       renderTable();
+    }});
+  }
+  // Sammel-Umstellung für DIESE Person (v0.50.0) — öffnet den Auswahl-Dialog mit
+  // Personen-Vorfilter, statt Zelle für Zelle durchzuklicken.
+  if(planned && planned!==OFFEN){
+    const who=(si && si.crewName) || planned;
+    items.push({label:`✎ Termine von ${who} umstellen…`,color:'var(--pencilled)',action:()=>{
+      closeDD();
+      openBulkStatusModal(who);
     }});
   }
   // Vorläufig vormerken — für Fernzukunft-Termine, die noch NICHT offiziell angefragt

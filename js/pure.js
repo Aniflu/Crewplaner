@@ -140,7 +140,16 @@ export function renameInPlanData(planData, oldName, newName){
 // opts.onlyCrew + opts.myName → nur eigene bestätigte Slots (sameCrew). opts.allowTypes
 // (optional Set von r.type) → zusätzlicher Typ-Filter.
 // Rückgabe: [{date, confirmed:[{posLabel, crewName}]}] — Tage ohne bestätigte Slots fallen raus.
-export function confirmedIcsRows(tourDates, positions, statuses, opts){
+// Kalender-Status eines Einsatzes → Klartext fürs Infofeld. Bewusst hier (statt in
+// utils.js), damit Download UND Server-Feed dieselbe Formulierung nutzen können.
+export const ICS_STATUS_LABEL = { confirmed:'Bestätigt', proposed:'Angefragt', pencilled:'Vorgemerkt' };
+
+// Welche Status landen im Kalender — und in welcher Rangfolge sie den Tagesstatus
+// bestimmen (bestätigt schlägt vorgemerkt). 'declined'/'cancelled'/'cancel_acked'
+// fehlen bewusst: abgesagte Einsätze gehören in keinen Kalender.
+const _ICS_RANK = { confirmed:2, pencilled:1 };
+
+export function icsExportRows(tourDates, positions, statuses, opts){
   const o = opts || {};
   const posLabel = {};
   for(const p of (positions||[])) posLabel[p.id] = p.label || p.short || p.id;
@@ -148,21 +157,25 @@ export function confirmedIcsRows(tourDates, positions, statuses, opts){
   for(const row of (tourDates||[])){
     if(o.allowTypes && !o.allowTypes.has(row.type)) continue;
     const day = (statuses||{})[row.date] || {};
-    const confirmed = [];
+    const slots = [];
+    let best = 0, dayStatus = '';
     for(const posId of Object.keys(day)){
       const si = day[posId];
-      if(!si || si.status !== 'confirmed') continue;
+      const rank = si ? _ICS_RANK[si.status] : 0;
+      if(!rank) continue;
       if(o.onlyCrew && !sameCrew(si.crewName, o.myName)) continue;
-      confirmed.push({ posLabel: posLabel[posId] || posId, crewName: si.crewName || '' });
+      slots.push({ posLabel: posLabel[posId] || posId, crewName: si.crewName || '', status: si.status });
+      if(rank > best){ best = rank; dayStatus = si.status; }
     }
-    if(confirmed.length) out.push({ date: row.date, confirmed });
+    if(slots.length) out.push({ date: row.date, status: dayStatus, slots });
   }
   return out;
 }
 
-// Persönlicher Crew-ICS: pro Tag NUR Band (SUMMARY) + Ort (LOCATION) + Art (DESCRIPTION).
-// KEINE Positions-/Crew-Namen. rows = confirmedIcsRows-Ausgabe (nur Datum genutzt),
-// dateMeta = { date: {loc, typeLabel, type} }. Rückgabe: kompletter .ics-Text.
+// Persönlicher Crew-ICS: pro Tag NUR Band (SUMMARY) + Ort (LOCATION) + Art/Status
+// (DESCRIPTION). KEINE Positions-/Crew-Namen. rows = icsExportRows-Ausgabe (Datum +
+// Tagesstatus genutzt), dateMeta = { date: {loc, typeLabel, type} }.
+// Rückgabe: kompletter .ics-Text.
 export function crewIcsContent(band, rows, dateMeta){
   const esc = s => String(s==null?'':s).replace(/([,;\\])/g,'\\$1').replace(/\n/g,'\\n');
   const bandName = String(band||'Tour').trim() || 'Tour';
@@ -177,13 +190,18 @@ export function crewIcsContent(band, rows, dateMeta){
     const dtEnd = `${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
     // Sichtbarer Kalender-Titel = „Art: Ort" (Bandname wandert in die Beschreibung).
     const title = [art, loc].filter(Boolean).join(': ') || bandName;
+    // Status ins Infofeld (v0.50.0): vorgemerkte Termine bleiben im Kalender, sind aber
+    // als unverbindlich erkennbar — sichtbar im Text UND als VEVENT-STATUS.
+    const stLabel = ICS_STATUS_LABEL[r.status] || '';
+    const desc = 'Band: '+bandName+'\nArt: '+art+'\nOrt: '+loc + (stLabel ? '\nStatus: '+stLabel : '');
     lines.push(
       'BEGIN:VEVENT',
       `DTSTART;VALUE=DATE:${dtStart}`,
       `DTEND;VALUE=DATE:${dtEnd}`,
       `SUMMARY:${esc(title)}`,
       `LOCATION:${esc(loc)}`,
-      `DESCRIPTION:${esc('Band: '+bandName+'\nArt: '+art+'\nOrt: '+loc)}`,
+      `DESCRIPTION:${esc(desc)}`,
+      `STATUS:${r.status === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE'}`,
       `UID:${r.date}-${Math.random().toString(36).slice(2)}@tourcrewplan`,
       'END:VEVENT'
     );
