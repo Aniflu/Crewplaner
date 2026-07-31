@@ -36,10 +36,13 @@ Kurz danach: `curl -I https://api.crewplanner.nyxlightwork.de/api/health` → `2
 nutzt (das ist bereits verifiziert). Dann `https://aniflu.github.io` aus der **Live**-CORS
 entfernen, damit die Testseite die Live-DB gar nicht mehr erreichen kann.
 
-- Datei auf dem Server: der Live-CORS-Override (analog `pocketbase-fix.yaml`),
-  `accessControlAllowOriginList` → `aniflu.github.io` streichen, sodass nur noch
-  `https://crewplanner.nyxlightwork.de` erlaubt ist.
-- Traefik lädt die Datei automatisch neu (kein Restart nötig).
+👉 **Schritt-für-Schritt-Anleitung mit allen Befehlen, Prüfungen und Rollback:
+[admin-runbook-cors.md](admin-runbook-cors.md)**
+
+Kurzfassung: im Live-CORS-Override (`/data/coolify/proxy/dynamic/pocketbase-fix.yaml`) unter
+`accessControlAllowOriginList` die Zeile `aniflu.github.io` streichen, sodass nur noch
+`https://crewplanner.nyxlightwork.de` erlaubt ist. Traefik lädt die Datei automatisch neu
+(kein Restart, kein Ausfall).
 
 Die **Test**-PB behält ihren eigenen Override mit `aniflu.github.io` — nur die **Live**-PB
 wird eingeschränkt.

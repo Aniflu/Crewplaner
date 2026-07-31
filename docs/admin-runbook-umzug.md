@@ -70,7 +70,8 @@ Konkrete „mach jetzt das"-Anleitung für den Server-Admin. Ausführliche Hinte
 
 - ❌ Hook v4.11 auf die **Live**-PB (`api.crewplanner…`) — kommt zusammen mit dem Go-Live.
 - ❌ Go-Live des Frontends (`main → live`-Merge) — macht Marco/Claude nach dem Test.
-- ❌ `aniflu.github.io` aus der **Live**-CORS entfernen — optionale Härtung ganz am Ende.
+- ❌ `aniflu.github.io` aus der **Live**-CORS entfernen — optionale Härtung ganz am Ende,
+  Anleitung: [admin-runbook-cors.md](admin-runbook-cors.md).
 
 ## Bitte an Marco zurückmelden
 
