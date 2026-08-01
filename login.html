@@ -34,7 +34,7 @@
   };
 </script>
 <script src="js/auth-bootstrap.js?v=12"></script>
-<script src="js/pb-login-bundle.js?v=2"></script>
+<script src="js/pb-login-bundle.js?v=3"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -216,7 +216,7 @@
     </svg>
     <h1 style="font-family:var(--sans);font-weight:700;font-size:1.9rem;letter-spacing:-.03em;color:var(--ink);text-transform:none;">Crewplanner</h1>
     <p>Personalplanung · Touring</p>
-    <div class="login-version">v0.50.0</div>
+    <div class="login-version">v0.5.1</div>
   </div>
 
   <div class="login-card">
@@ -388,6 +388,18 @@
     } catch (e) {
       btn.disabled = false;
       btn.textContent = 'Konto erstellen';
+      // Adresse nicht freigegeben (v0.5.1): Ein Konto entsteht nur, wenn der Planer die
+      // Adresse vorher angelegt hat. Abgewiesen wird server-seitig — entweder vom
+      // users-Create-Hook (Kennung `not_allowlisted`) oder von der createRule (403,
+      // generische Meldung). Beides führt hier zum selben Hinweis, bewusst ohne Auskunft
+      // darüber, ob die Adresse existiert.
+      const notAllowed = /not_allowlisted/i.test((e && e.message) || '')
+                      || e?.status === 403
+                      || /forbidden|not allowed to perform/i.test((e && e.message) || '');
+      if (notAllowed) {
+        showError('Diese E-Mail-Adresse ist nicht freigegeben. Bitte wende dich an deinen Planer.');
+        return;
+      }
       // E-Mail schon vergeben (z.B. vom Admin vorab angelegtes Konto) → KEIN neues Konto,
       // sondern in den Login umschalten. Sonst sieht der User nur „Failed to create record".
       const emailTaken = (e && e.data && e.data.email && e.data.email.code === 'validation_not_unique')

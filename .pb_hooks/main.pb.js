@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.12
-console.log('[hook] main.pb.js v4.12 geladen');
+// Version: 4.13
+console.log('[hook] main.pb.js v4.13 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -380,6 +380,44 @@ onRecordAfterUpdateSuccess(function(e) {
 }, 'assignments');
 
 // ── 3. Auto-Verify + Pool-Rolle bei neuen Users ───────────────────────────────
+// ── 3b. Registrierungs-Sperre: nur freigegebene E-Mail-Adressen (v4.13) ───────
+// Ein Konto darf nur entstehen, wenn die Adresse vorher vom Planer angelegt wurde —
+// also irgendwo in `crew_members` steht (globaler Pool ODER Crew einer Tour).
+// Vorher war `users.createRule` leer: JEDE beliebige Adresse konnte sich selbst ein
+// Konto anlegen.
+//
+// Zwei Ebenen bewusst: die `createRule` ist das harte Tor, DIESER Hook die dauerhafte
+// zweite Schicht — Zugriffsregeln fallen bei Coolify-Redeploy/Schema-Reimport auf den
+// permissiven Stand zurück (mehrfach passiert), Hook-Dateien überleben das.
+// Zusätzlich prüft der Hook KLEINGESCHRIEBEN, die Regel kann das nicht (PB `=` ist
+// case-sensitiv) — fängt also auch gemischtschreibende crew_members-Einträge.
+// ⚠️ ACHTUNG, Abweichung von der Projekt-Regel „e.next() zuerst": Die gilt für BEOBACHTENDE
+// Hooks (onRecord*Success). Dies ist ein BLOCKIERENDER Request-Hook — `e.next()` führt die
+// Kette inkl. Anlegen aus. Die Prüfung MUSS also davor stehen, sonst ist der Datensatz
+// bereits erzeugt und die Sperre wirkungslos.
+onRecordCreateRequest(function(e) {
+  var mail = '';
+  try { mail = String(e.record.getString('email') || '').trim().toLowerCase(); } catch (err) { mail = ''; }
+  if (!mail) throw new BadRequestError('not_allowlisted: E-Mail fehlt.');
+
+  var allowed = null;
+  try {
+    allowed = $app.findFirstRecordByFilter('crew_members', 'email = {:m}', { m: mail });
+  } catch (err) {
+    // Kein Treffer wirft hier ebenfalls → als „nicht freigegeben" behandeln (im Zweifel NICHT anlegen).
+    allowed = null;
+  }
+  if (!allowed) {
+    // Kennung `not_allowlisted` → login.html erkennt sie und zeigt den freundlichen Hinweis.
+    // Bewusst OHNE Auskunft darüber, ob die Adresse bereits ein Konto hat.
+    console.log('[hook] Registrierung abgewiesen (nicht freigegeben): ' + mail);
+    throw new BadRequestError('not_allowlisted: Diese E-Mail-Adresse ist nicht freigegeben.');
+  }
+
+  e.next();
+}, 'users');
+
+
 onRecordAfterCreateSuccess(function(e) {
   e.next();
   var record = e.record;
@@ -393,20 +431,32 @@ onRecordAfterCreateSuccess(function(e) {
     try { record.set('feed_token', $security.randomString(40)); changed = true; } catch(err) {}
   }
 
-  // Rolle aus dem globalen Crew-Pool übernehmen (crew_members mit plan_id="__pool__"):
-  // Ein Konto entsteht erst beim ersten Login über den Einladungslink (Default-Rolle 'crew').
-  // Hat der Admin die Person im Pool mit einer ANDEREN Rolle angelegt, greift sie genau hier.
+  // Rolle aus der Freigabeliste übernehmen. Das Konto entsteht mit Default-Rolle 'crew'
+  // (login.html kann users.role nicht selbst setzen, updateRule = superadmin) — die vom
+  // Planer hinterlegte Rolle greift genau hier.
+  // v4.13: Quelle ist nicht mehr nur der globale Pool, sondern jeder crew_members-Eintrag
+  // mit dieser Adresse (Pool ODER Tour-Crew) — passend zur Registrierungs-Sperre oben.
+  // Der Pool hat Vorrang, weil dort die Rolle bewusst gesetzt wird.
   try {
     var email = (record.getString('email') || '').toLowerCase();
     if (email && record.getString('role') === 'crew') {
-      var pool = $app.findFirstRecordByFilter('crew_members', 'plan_id = "__pool__" && email = {:email}', { email: email });
-      if (pool) {
-        var poolRole = pool.getString('role');
-        if (poolRole && poolRole !== 'crew') { record.set('role', poolRole); changed = true; }
+      var src = null;
+      try {
+        src = $app.findFirstRecordByFilter('crew_members', 'plan_id = "__pool__" && email = {:email}', { email: email });
+      } catch(err2) { src = null; }
+      if (!src || !src.getString('role')) {
+        try {
+          var any = $app.findFirstRecordByFilter('crew_members', 'email = {:email} && role != ""', { email: email });
+          if (any) src = any;
+        } catch(err3) {}
+      }
+      if (src) {
+        var srcRole = src.getString('role');
+        if (srcRole && srcRole !== 'crew') { record.set('role', srcRole); changed = true; }
       }
     }
   } catch(err) {
-    // kein Pool-Treffer oder Query-Fehler → Default-Rolle behalten (kein harter Fehler)
+    // kein Treffer oder Query-Fehler → Default-Rolle behalten (kein harter Fehler)
   }
 
   if (changed) {

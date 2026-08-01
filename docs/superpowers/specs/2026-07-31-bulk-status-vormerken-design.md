@@ -1,4 +1,4 @@
-# Design — Sammel-Statuswechsel „bestätigt ⇄ vorgemerkt" + Status im Kalender (v0.50.0)
+# Design — Sammel-Statuswechsel „bestätigt ⇄ vorgemerkt" + Status im Kalender (v0.5.0)
 
 Stand: 2026-07-31 · Status: **approved**
 
@@ -110,7 +110,7 @@ damit Download und Abo identisch aussehen. `adminGenerateICS` (admin.html) zieht
 
 ## Rollout
 
-- Version **v0.50.0** in den fünf Pflichtdateien, Cache-Bust `app.js?v=44→45`.
+- Version **v0.5.0** in den fünf Pflichtdateien, Cache-Bust `app.js?v=44→45`.
 - Hook v4.12 muss der Admin auf **beide** Backends deployen (erst Test, dann Live).
 - Bis dahin funktioniert der App-Teil vollständig; nur Mail-Wortlaut und Kalender-Status
   hinken hinterher.

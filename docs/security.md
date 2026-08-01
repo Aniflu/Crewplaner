@@ -60,6 +60,36 @@ Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch n
 
 ---
 
+## Kontoanlage (Registrierung)
+
+**Seit v0.5.1 geschlossen.** Vorher war `users.createRule` leer — **jede beliebige Person**
+konnte sich selbst ein Konto anlegen (auf Test und Live). Jetzt gilt:
+
+- Ein Konto entsteht **nur**, wenn die E-Mail-Adresse vorher in `crew_members` steht —
+  globaler Pool (`plan_id="__pool__"`) **oder** Crew einer Tour. Angelegt wird sie vom Planer
+  in der Konsole („+ Neues Crew-Mitglied") oder direkt beim Besetzen einer Tour.
+- Die dort hinterlegte **Rolle** übernimmt der Post-Create-Hook beim ersten Login. Der Client
+  kann `users.role` nicht selbst setzen (`updateRule` = superadmin).
+- Abgewiesene Versuche bekommen einen neutralen Hinweis, der **nicht** verrät, ob die Adresse
+  existiert.
+
+Zwei Ebenen, weil Zugriffsregeln bei Coolify-Redeploy/Schema-Reimport zurückfallen:
+
+| Ebene | Prüfung | Überlebt Redeploy? |
+|---|---|---|
+| `users.createRule` = `@collection.crew_members.email ?= email` | exakt (PB `=` ist case-sensitiv) | nein — neu setzen |
+| Hook v4.13 (`onRecordCreateRequest` auf `users`) | kleingeschrieben | ja (Datei im Volume) |
+
+Im Hook steht die Prüfung bewusst **vor** `e.next()` — danach wäre der Datensatz bereits
+angelegt und die Sperre wirkungslos (abgesichert durch `tests/registration.test.mjs`).
+
+**Nicht betroffen:** Anmeldung und „Passwort vergessen" bestehender Konten.
+
+⚠️ In einer **leeren** Datenbank sperrt die Regel alle aus — der erste `crew_members`-Eintrag
+muss über den PocketBase-Superuser rein (siehe `admin-runbook-registrierungs-sperre.md`).
+
+---
+
 ## Infrastruktur-Sicherheit
 
 ### Server

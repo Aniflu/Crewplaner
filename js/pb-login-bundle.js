@@ -20,7 +20,14 @@ async function _pbFetch(method, path, body) {
   const json = await res.json();
   if (!res.ok) {
     if (json.data) console.error('[pb] Validierungsfehler:', JSON.stringify(json.data));
-    throw new Error(json.message || 'Pocketbase Fehler ' + res.status);
+    // `data` und `status` an den Fehler hängen — wie js/pb.js (v0.5.1). Vorher war es ein
+    // nackter Error: `e.data` war IMMER undefined, wodurch die „E-Mail schon vergeben"-
+    // Erkennung (v0.23.5, prüft `e.data.email.code`) auf der Login-Seite nie griff und
+    // der Nutzer nur „Failed to create record." sah — genau das, was v0.23.5 beheben wollte.
+    const err = new Error(json.message || 'Pocketbase Fehler ' + res.status);
+    err.data = json.data || null;
+    err.status = res.status;
+    throw err;
   }
   return json;
 }

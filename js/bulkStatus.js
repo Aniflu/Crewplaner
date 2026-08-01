@@ -1,4 +1,4 @@
-// ── Sammel-Statuswechsel: bestätigt ⇄ vorgemerkt (v0.50.0) ────────────────────
+// ── Sammel-Statuswechsel: bestätigt ⇄ vorgemerkt (v0.5.0) ────────────────────
 // Der Manager wählt Personen → Tourblöcke → einzelne Tage und schaltet deren Einsätze
 // in einem Rutsch um. Ersetzt das Zelle-für-Zelle-Vormerken, das bei 30–60 Tourtagen
 // praktisch unbenutzbar war.

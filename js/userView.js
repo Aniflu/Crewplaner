@@ -452,7 +452,7 @@ export function _queueRemovedSlot(crewName, email, dateStr, posId, posLabel, aid
   _updateCrewUpdateBar();
 }
 
-// Statuswechsel „bestätigt ⇄ vorgemerkt" (v0.50.0) in die Updates-Queue legen.
+// Statuswechsel „bestätigt ⇄ vorgemerkt" (v0.5.0) in die Updates-Queue legen.
 // `to` = Zielstatus ('pencilled' | 'confirmed'). Anders als bei removed bleibt die Person
 // in der Zelle stehen — nur die Verbindlichkeit ändert sich. Versand wie immer erst per
 // Knopfdruck („Updates senden"), nie automatisch.
@@ -486,7 +486,7 @@ export function _updateCrewUpdateBar() {
       if (!valid.has(s.date)) return false;
       // removed-Slots sind per Definition nicht mehr in getVal → NICHT wegheilen.
       if (s.kind === 'removed') return true;
-      // Statuswechsel-Slots (v0.50.0) sind weiter in getVal — sie gelten nur, solange die
+      // Statuswechsel-Slots (v0.5.0) sind weiter in getVal — sie gelten nur, solange die
       // Person auch wirklich noch in der Zelle steht. Nimmt der Manager sie danach ganz
       // heraus, legt der Entfernen-Pfad seinen eigenen removed-Eintrag an.
       if (s.kind === 'status') return s.posId ? getVal(s.date, s.posId) === name : true;
@@ -685,7 +685,7 @@ function _fmtPrevDate(iso) {
 
 // ── Crew: eigener Export (nur EIGENE Termine) ─────────────────────────────────
 // Liefert die bestätigten UND vorgemerkten Tage der eingeloggten Crew + Bandname +
-// Datum-Metadaten. Vorgemerkte tragen ihren Status mit (v0.50.0).
+// Datum-Metadaten. Vorgemerkte tragen ihren Status mit (v0.5.0).
 function _myConfirmedExport() {
   const myName = getMyCrewName();
   if (!myName) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return null; }
@@ -842,7 +842,7 @@ export function _updatePreviewCancel() { _resolveUpdatePreview('cancel'); }
 // ➖-Abschnitt mit „GESEHEN ✓"-Button; sie werden NICHT auf proposed gesetzt.
 async function _sendUpdateForEntry(name, entry, customText) {
   const removed = (entry.slots || []).filter(s => s.kind === 'removed');
-  // Statuswechsel-Slots (v0.50.0) gehen NUR in die Mail. Sie dürfen NICHT in `normal`
+  // Statuswechsel-Slots (v0.5.0) gehen NUR in die Mail. Sie dürfen NICHT in `normal`
   // landen — der Zweig unten patcht dort jeden Slot auf 'proposed' und würde damit die
   // gerade gesetzte Vormerkung zerstören und eine Anfrage-Mail auslösen.
   const status  = (entry.slots || []).filter(s => s.kind === 'status');

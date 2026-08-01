@@ -1,6 +1,6 @@
-# Admin-Runbook — Hook v4.12 deployen (v0.50.0)
+# Admin-Runbook — Hook v4.12 deployen (v0.5.0)
 
-**Was v4.12 bringt** (zu v0.50.0 „Status am Stück umstellen"):
+**Was v4.12 bringt** (zu v0.5.0 „Status am Stück umstellen"):
 
 1. **Kalender-Feed**: vorgemerkte Einsätze (`status = "pencilled"`) bleiben jetzt im
    abonnierbaren Feed. Vorher fielen sie raus und verschwanden **lautlos** aus dem Kalender

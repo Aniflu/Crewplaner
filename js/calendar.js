@@ -24,7 +24,7 @@ export function generateICS(){
     prep:document.getElementById('calPrep').checked,
     off:document.getElementById('calOff').checked,
   };
-  // Bestätigte UND vorgemerkte Termine (v0.50.0 — vorgemerkte tragen den Status im
+  // Bestätigte UND vorgemerkte Termine (v0.5.0 — vorgemerkte tragen den Status im
   // Infofeld). Crew → nur eigene Tage; Manager → alle.
   const allow = new Set(Object.keys(inclTypes).filter(k => inclTypes[k]));
   const myName = IS_CREW ? _myCrewName() : null;

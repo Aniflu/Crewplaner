@@ -143,7 +143,7 @@ export function openCrewDD(e,dateStr,posId){
       renderTable();
     }});
   }
-  // Sammel-Umstellung für DIESE Person (v0.50.0) — öffnet den Auswahl-Dialog mit
+  // Sammel-Umstellung für DIESE Person (v0.5.0) — öffnet den Auswahl-Dialog mit
   // Personen-Vorfilter, statt Zelle für Zelle durchzuklicken.
   if(planned && planned!==OFFEN){
     const who=(si && si.crewName) || planned;

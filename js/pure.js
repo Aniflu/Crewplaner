@@ -190,7 +190,7 @@ export function crewIcsContent(band, rows, dateMeta){
     const dtEnd = `${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
     // Sichtbarer Kalender-Titel = „Art: Ort" (Bandname wandert in die Beschreibung).
     const title = [art, loc].filter(Boolean).join(': ') || bandName;
-    // Status ins Infofeld (v0.50.0): vorgemerkte Termine bleiben im Kalender, sind aber
+    // Status ins Infofeld (v0.5.0): vorgemerkte Termine bleiben im Kalender, sind aber
     // als unverbindlich erkennbar — sichtbar im Text UND als VEVENT-STATUS.
     const stLabel = ICS_STATUS_LABEL[r.status] || '';
     const desc = 'Band: '+bandName+'\nArt: '+art+'\nOrt: '+loc + (stLabel ? '\nStatus: '+stLabel : '');
