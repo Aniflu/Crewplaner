@@ -628,6 +628,26 @@ activity_log    { plan_id, crew_name, crew_email, action, date, pos_label, ts } 
 > Booker-Link" in der Konsole, oder per PATCH). Gefunden 2026-07-04: Provinz 2027 hatte keinen →
 > Oliver Thomas sah sie nicht; per Superuser gesetzt.
 
+> 🚨 **`assignments.listRule` war LEER = WELTÖFFENTLICH (gefunden + geschlossen 2026-08-03).**
+> Beim Nachmessen der CORS-Konfiguration kam heraus: ein **unauthentifizierter** GET auf
+> `/api/collections/assignments/records` lieferte auf **Test UND Live** alle **913** Datensätze —
+> inkl. **10 echter Crew-E-Mail-Adressen**, 9 Klarnamen, aller Termine/Positionen/Status, und zwar
+> OHNE den geheimen `view_token`. Ursache war kein Versehen: `view.html` liest die Collection
+> unauthentifiziert, um die Status-Farben zu zeigen (view-app.js:66) — die leere Regel war dafür
+> tragend. **Fix:** `listRule` = `@request.auth.id != ""` auf beiden Instanzen gesetzt.
+> Gegengeprüft: unauth → 0 Datensätze, angemeldet → 913; die öffentliche Ansicht rendert
+> weiterhin vollständig (Headless-Render: Titel, 73 Zeilen, alle Namen) — sie verliert nur die
+> Status-Einfärbung, weil der Abruf in einem `try/catch` steht. `plans` bleibt bewusst
+> öffentlich lesbar (view_token-Regel, Booker-Link) — dort stehen KEINE Mailadressen (geprüft).
+> **OFFEN als Nacharbeit:** Status-Farben für die öffentliche Ansicht aus `plan_data` speisen,
+> statt aus der Collection.
+>
+> ℹ️ **CORS-Nebenbefund (2026-08-03, nicht kritisch):** beide Backends antworten *unbekannten*
+> Herkünften mit `Access-Control-Allow-Origin: *` statt nur den zwei dokumentierten Origins.
+> Praktisch begrenzt (Token liegt origin-isoliert im Browser-Speicher, Preflight gibt fremden
+> Herkünften keine Freigabe), widerspricht aber der Doku → siehe docs/admin-runbook-cors.md.
+> Immerhin: `aniflu.github.io` bekommt auf Live keine Sonderfreigabe mehr.
+
 > 🔒 **Server-seitige Zugriffsregeln GEHÄRTET (v0.26.0, 2026-07-13, per PB-Superuser).** Vorher war
 > alles `@request.auth.id != ""` (jeder eingeloggte Crew-User konnte fremde Einsätze patchen + über
 > `crew_invites` Mails an beliebige Adressen triggern). LIVE gesetzt + per Impersonation getestet

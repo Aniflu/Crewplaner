@@ -90,6 +90,22 @@ muss über den PocketBase-Superuser rein (siehe `admin-runbook-registrierungs-sp
 
 ---
 
+## Öffentlich lesbare Daten (Stand 2026-08-03)
+
+Ohne Anmeldung erreichbar ist **nur** die `plans`-Collection (Regel `view_token != ""`) — das ist
+der öffentliche Booker-Link. Dort stehen Tourdaten, Positionen und Crew-**Namen**, aber
+**keine E-Mail-Adressen** (geprüft).
+
+Gesperrt (0 Datensätze ohne Anmeldung): `assignments`, `crew_members`, `users`, `email_log`,
+`activity_log`.
+
+> **Vorher war das anders:** `assignments.listRule` war leer und damit weltöffentlich — 913
+> Datensätze inkl. 10 Crew-E-Mail-Adressen waren ohne Login und ohne den geheimen Link abrufbar.
+> Am 2026-08-03 auf beiden Instanzen geschlossen (`@request.auth.id != ""`). Die öffentliche
+> Ansicht verliert dadurch die Status-Farben; Termine und Besetzung zeigt sie weiterhin.
+
+---
+
 ## Infrastruktur-Sicherheit
 
 ### Server
