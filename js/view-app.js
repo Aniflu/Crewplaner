@@ -1,5 +1,5 @@
 // Entry point for view.html (read-only tour plan view)
-import { SUPABASE_ENABLED } from './config.js';
+import { SUPABASE_ENABLED, POCKETBASE_URL } from './config.js';
 import { pbGet, pbListAll } from './pb.js';
 import { setTourDates, setPositions, setCrew, setDefaultCrew,
          loadAssignmentsData, loadStatusesData } from './state.js';
@@ -62,15 +62,18 @@ window.pbListAll = pbListAll;
     setDefaultCrew(pd.defaultCrew      || {});
     loadStatusesData({});
 
+    // Bestätigungs-Status über die token-geschützte Server-Route holen (Hook v4.14).
+    // Früher las diese Seite die assignments-Collection direkt — dafür musste deren
+    // listRule offen sein, wodurch alle Einsätze INKLUSIVE der Crew-Mailadressen
+    // weltöffentlich abrufbar waren (2026-08-03 geschlossen). Die Route liefert nur
+    // Datum/Position/Status/Name und nur für den Plan hinter diesem Token.
+    // Schlägt sie fehl (z.B. Hook noch nicht deployt), rendert die Ansicht wie bisher
+    // ohne Status-Einfärbung weiter — deshalb try/catch statt Abbruch.
     try {
-      const aData = await pbListAll('assignments',
-        `plan_id="${plan.id}" && status!="assigned" && status!="cancelled" && status!="cancel_acked"`, '-id');
-      const statuses = {};
-      (aData?.items || []).forEach(row => {
-        if (!statuses[row.date]) statuses[row.date] = {};
-        statuses[row.date][row.pos_id] = { status: row.status, crewName: row.crew_name };
-      });
-      loadStatusesData(statuses);
+      const res = await fetch(POCKETBASE_URL + '/viewstatus/' + encodeURIComponent(token));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const sData = await res.json();
+      loadStatusesData(sData?.statuses || {});
     } catch(e) { console.warn('[view] assignmentStatuses:', e.message); }
 
     document.getElementById('viewPlanName').textContent = plan.name || 'Tour Plan';

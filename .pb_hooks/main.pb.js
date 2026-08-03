@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.13
-console.log('[hook] main.pb.js v4.13 geladen');
+// Version: 4.14
+console.log('[hook] main.pb.js v4.14 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -520,6 +520,52 @@ onBootstrap(function(e) {
 // bestätigte Einsätze als STATUS:CONFIRMED, noch offene Anfragen als STATUS:TENTATIVE.
 // Kalender-Apps holen die URL periodisch → automatische Aktualisierung. Goja-Isolation:
 // alle Helfer + Literale INNERHALB des Handlers (kein Zugriff auf äußeren Scope).
+// ── 7. Status für die öffentliche Ansicht (v4.14) ────────────────────────────
+// GET /viewstatus/{token}  (unauthentifiziert — der geheime view_token IST die Auth).
+//
+// Warum: view.html hat die Bestätigungs-Status bis 2026-08-03 direkt aus der
+// assignments-Collection gelesen. Damit die das ungeschützt konnte, war deren listRule
+// LEER — und damit lagen 913 Datensätze inkl. aller Crew-MAILADRESSEN weltöffentlich.
+// Die Regel ist jetzt zu; diese Route liefert stattdessen NUR das, was die Ansicht
+// wirklich braucht: Datum, Position, Status, Anzeigename. KEINE E-Mail-Adressen,
+// und nur für den EINEN Plan, zu dem der Token gehört.
+//
+// Abgesagte/entfernte Einsätze bleiben draußen (wie bisher in view-app.js gefiltert).
+// Goja-Isolation: alle Helfer/Literale INNERHALB des Handlers.
+routerAdd('GET', '/viewstatus/{token}', function(e) {
+  var token = e.request.pathValue('token');
+  if (!token) return e.string(404, 'not found');
+
+  var plan;
+  try { plan = $app.findFirstRecordByFilter('plans', 'view_token = {:t}', { t: token }); }
+  catch (err) { plan = null; }
+  if (!plan) return e.string(404, 'not found');
+
+  var rows;
+  try {
+    rows = $app.findRecordsByFilter(
+      'assignments',
+      'plan_id = {:p} && status != "assigned" && status != "cancelled" && status != "cancel_acked"',
+      'date', 5000, 0, { p: plan.id }
+    );
+  } catch (err) { rows = []; }
+
+  var statuses = {};
+  for (var i = 0; i < rows.length; i++) {
+    var d = rows[i].getString('date');
+    var pos = rows[i].getString('pos_id');
+    if (!d || !pos) continue;
+    if (!statuses[d]) statuses[d] = {};
+    // BEWUSST nur diese drei Felder — crew_email gehört nicht in eine öffentliche Antwort.
+    statuses[d][pos] = { status: rows[i].getString('status'), crewName: rows[i].getString('crew_name') };
+  }
+
+  e.response.header().set('Content-Type', 'application/json; charset=utf-8');
+  e.response.header().set('Cache-Control', 'public, max-age=60');
+  return e.string(200, JSON.stringify({ plan: plan.id, statuses: statuses }));
+});
+
+
 routerAdd('GET', '/ics/{token}/{plan}', function(e) {
   var token = e.request.pathValue('token');
   var planFilter = e.request.pathValue('plan');
