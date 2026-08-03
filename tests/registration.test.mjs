@@ -41,5 +41,19 @@ test('Hook: Rolle kommt aus dem Pool ODER der Tour-Crew', () => {
 test('login.html: abgewiesene Adresse bekommt einen verständlichen Hinweis', () => {
   ok(/not_allowlisted/.test(login), 'login.html erkennt die Hook-Kennung nicht');
   ok(/nicht freigegeben/.test(login), 'Hinweistext fehlt');
-  ok(/status === 403|status===403/.test(login), 'Ablehnung durch die createRule (403) wird nicht behandelt');
+  // Der Normalfall am echten Backend: die createRule weist VOR dem Hook ab — HTTP 400,
+  // generische Meldung, `data` LEER. Ohne diese Prüfung sähe der Nutzer nur
+  // „Failed to create record." (am Live- und Test-Backend per curl verifiziert).
+  ok(/emptyData/.test(login), 'leeres data (Regel-Ablehnung) wird nicht erkannt');
+  ok(/status === 400 && emptyData/.test(login), '400-mit-leerem-data führt nicht zum Hinweis');
+});
+
+// Reihenfolge: die Dublette liefert einen Feld-Grund in `data` und ist damit der
+// spezifischere Fall — sie muss VOR der Freigabe-Prüfung stehen, sonst schluckt diese
+// (400 + leeres data) sie nie, aber ein künftiger Umbau könnte es umdrehen.
+test('login.html: Dubletten-Erkennung läuft VOR der Freigabe-Prüfung', () => {
+  const posTaken = login.indexOf('const emailTaken');
+  const posAllow = login.indexOf('const notAllowed');
+  ok(posTaken !== -1 && posAllow !== -1, 'einer der beiden Zweige fehlt');
+  ok(posTaken < posAllow, 'Freigabe-Prüfung steht vor der Dubletten-Erkennung');
 });

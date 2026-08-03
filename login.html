@@ -388,25 +388,30 @@
     } catch (e) {
       btn.disabled = false;
       btn.textContent = 'Konto erstellen';
-      // Adresse nicht freigegeben (v0.5.1): Ein Konto entsteht nur, wenn der Planer die
-      // Adresse vorher angelegt hat. Abgewiesen wird server-seitig — entweder vom
-      // users-Create-Hook (Kennung `not_allowlisted`) oder von der createRule (403,
-      // generische Meldung). Beides führt hier zum selben Hinweis, bewusst ohne Auskunft
-      // darüber, ob die Adresse existiert.
-      const notAllowed = /not_allowlisted/i.test((e && e.message) || '')
-                      || e?.status === 403
-                      || /forbidden|not allowed to perform/i.test((e && e.message) || '');
-      if (notAllowed) {
-        showError('Diese E-Mail-Adresse ist nicht freigegeben. Bitte wende dich an deinen Planer.');
-        return;
-      }
       // E-Mail schon vergeben (z.B. vom Admin vorab angelegtes Konto) → KEIN neues Konto,
       // sondern in den Login umschalten. Sonst sieht der User nur „Failed to create record".
+      // ZUERST prüfen: das ist der spezifischere Fall (PB liefert einen Feld-Grund).
       const emailTaken = (e && e.data && e.data.email && e.data.email.code === 'validation_not_unique')
                       || /already in use|must be unique|not_unique/i.test((e && e.message) || '');
       if (emailTaken) {
         _switchToLogin(email);
         showError('Konto mit dieser E-Mail-Adresse schon vorhanden. Bitte melde dich unten an — oder klicke „Passwort vergessen?", falls du noch kein Passwort hast.');
+        return;
+      }
+      // Adresse nicht freigegeben (v0.5.1): Ein Konto entsteht nur, wenn der Planer die
+      // Adresse vorher angelegt hat. Abgewiesen wird server-seitig auf zwei Wegen:
+      //  • createRule (greift ZUERST, in der Praxis der Normalfall): HTTP 400,
+      //    `message` generisch „Failed to create record.", `data` LEER — am echten
+      //    Backend verifiziert. Das leere `data` ist der Unterscheider: Feldfehler wie
+      //    die Dublette oben liefern immer einen Grund in `data`.
+      //  • Hook v4.13 (falls die Regel mal fehlt, z.B. nach einem Coolify-Redeploy):
+      //    Kennung `not_allowlisted` in der Meldung.
+      const emptyData = !e?.data || Object.keys(e.data).length === 0;
+      const notAllowed = /not_allowlisted/i.test((e && e.message) || '')
+                      || e?.status === 403
+                      || (e?.status === 400 && emptyData);
+      if (notAllowed) {
+        showError('Diese E-Mail-Adresse ist nicht freigegeben. Bitte wende dich an deinen Planer.');
         return;
       }
       showError('Registrierung fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler'));
