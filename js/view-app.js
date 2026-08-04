@@ -41,9 +41,15 @@ window.pbListAll = pbListAll;
   }
 
   try {
-    const data = await pbGet('/api/collections/plans/records?filter='
-      + encodeURIComponent('view_token="' + token + '"') + '&perPage=1&sort=-id');
-    const plan = (data.items || [])[0];
+    // Plan über die token-geschützte Server-Route holen (Hook v4.15) statt über die
+    // plans-REST-API. Vorher musste dafür `plans.listRule` auf `view_token != ""` stehen —
+    // dieser Zweig trifft aber auf JEDEN Plan mit Token zu, wodurch alle Pläne anonym
+    // abrufbar waren, inklusive der `view_token` im Klartext (2026-08-04). Die Route gibt
+    // nur Plantitel und plan_data heraus, kein Token, keine Owner-ID.
+    const res = await fetch(POCKETBASE_URL + '/viewplan/' + encodeURIComponent(token));
+    if (res.status === 404) throw new Error('Plan nicht gefunden oder Link ungültig.');
+    if (!res.ok) throw new Error('Plan nicht ladbar (HTTP ' + res.status + ').');
+    const plan = await res.json();
     if (!plan) throw new Error('Plan nicht gefunden oder Link ungültig.');
 
     const pd = typeof plan.plan_data === 'string'

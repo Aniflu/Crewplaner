@@ -46,3 +46,27 @@ test('Hook: /viewstatus-Route existiert und gibt KEINE Mailadressen heraus', () 
   const code = m[0].replace(/\/\/[^\n]*/g, '');
   ok(!/crew_email/.test(code), 'crew_email darf in der öffentlichen Antwort nicht vorkommen');
 });
+
+// ── Öffentliche Ansicht darf auch die plans-Collection NICHT direkt lesen ─────
+// Dafür musste `plans.listRule` auf `view_token != ""` stehen — ein Zweig, der auf JEDEN
+// Plan mit Token zutrifft. Folge (2026-08-04): alle Pläne anonym abrufbar, inklusive der
+// `view_token` im Klartext, die damit aufzählbar statt geheim waren. Seit Hook v4.15 läuft
+// der Abruf über /viewplan/{token}.
+test('view-app.js liest die plans-Collection nicht mehr direkt', () => {
+  ok(!/collections\/plans/.test(src),
+     'greift wieder direkt auf die plans-REST-API zu — das erzwingt eine offene listRule');
+  ok(/\/viewplan\//.test(src), 'nutzt die Plan-Route nicht');
+});
+
+test('Hook: /viewplan-Route gibt weder Token noch Owner heraus', () => {
+  const m = hook.match(/routerAdd\('GET',\s*'\/viewplan\/\{token\}',[\s\S]*?\n\}\);/);
+  ok(m, 'Route /viewplan/{token} fehlt');
+  ok(/view_token = \{:t\}/.test(m[0]), 'löst den Plan nicht über den view_token auf');
+  // Kommentare raus — geprüft wird der CODE, nicht die Erklärung (die erwähnt die Felder
+  // zwangsläufig; genau darauf lief der Guard in v0.5.2 zuerst auf).
+  const code = m[0].replace(/\/\/[^\n]*/g, '');
+  for (const feld of ['view_token', 'owner', 'view_shorturl', 'crew_email']) {
+    ok(!new RegExp("getString\\('" + feld + "'\\)").test(code) && !new RegExp(feld + '\\s*:').test(code),
+       feld + ' darf in der öffentlichen Antwort nicht vorkommen');
+  }
+});

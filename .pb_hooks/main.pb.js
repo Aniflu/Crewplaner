@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.14
-console.log('[hook] main.pb.js v4.14 geladen');
+// Version: 4.15
+console.log('[hook] main.pb.js v4.15 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -520,6 +520,43 @@ onBootstrap(function(e) {
 // bestätigte Einsätze als STATUS:CONFIRMED, noch offene Anfragen als STATUS:TENTATIVE.
 // Kalender-Apps holen die URL periodisch → automatische Aktualisierung. Goja-Isolation:
 // alle Helfer + Literale INNERHALB des Handlers (kein Zugriff auf äußeren Scope).
+// ── 7a. Plan für die öffentliche Ansicht (v4.15) ─────────────────────────────
+// GET /viewplan/{token}  (unauthentifiziert — der view_token löst den Plan auf).
+//
+// Warum: `plans.listRule` endete auf `|| view_token != ""`, damit view.html den Plan
+// ohne Anmeldung laden konnte. Dieser Zweig trifft aber auf JEDEN Plan mit Token zu —
+// eine PB-Regel filtert pro Datensatz und kann den Token aus dem Request nicht an EINEN
+// Datensatz binden. Folge (2026-08-04 vom Admin gefunden, nachgemessen): alle Pläne waren
+// anonym vollständig abrufbar, inkl. `view_token` im Klartext — die Tokens waren also
+// aufzählbar und damit nicht geheim.
+//
+// Diese Route liefert nur, was die Ansicht braucht: Plantitel + plan_data. BEWUSST NICHT
+// dabei: view_token (sonst wäre wieder aufzählbar, was geheim sein soll), owner (interne
+// User-ID), view_shorturl, id. Danach kann die listRule zugemacht werden.
+// Goja-Isolation: alle Helfer/Literale INNERHALB des Handlers.
+routerAdd('GET', '/viewplan/{token}', function(e) {
+  var token = e.request.pathValue('token');
+  if (!token) return e.string(404, 'not found');
+
+  var plan;
+  try { plan = $app.findFirstRecordByFilter('plans', 'view_token = {:t}', { t: token }); }
+  catch (err) { plan = null; }
+  if (!plan) return e.string(404, 'not found');
+
+  // plan_data ist ein JSON-Feld → im Goja-Hook JSONRaw/[]byte. getString liefert den
+  // JSON-TEXT (siehe v4.9.1), der hier unverändert durchgereicht wird.
+  var pdText = '';
+  try { pdText = plan.getString('plan_data') || ''; } catch (err) { pdText = ''; }
+  var pd = null;
+  if (pdText) { try { pd = JSON.parse(pdText); } catch (err2) { pd = null; } }
+  if (!pd) { try { pd = plan.get('plan_data') || null; } catch (err3) { pd = null; } }
+
+  e.response.header().set('Content-Type', 'application/json; charset=utf-8');
+  e.response.header().set('Cache-Control', 'public, max-age=60');
+  return e.string(200, JSON.stringify({ name: plan.getString('name'), plan_data: pd }));
+});
+
+
 // ── 7. Status für die öffentliche Ansicht (v4.14) ────────────────────────────
 // GET /viewstatus/{token}  (unauthentifiziert — der geheime view_token IST die Auth).
 //

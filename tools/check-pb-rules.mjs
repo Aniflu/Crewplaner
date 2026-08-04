@@ -21,7 +21,14 @@ import { join } from 'path';
 const CRED = process.env.PB_CRED || join(homedir(),
   '.claude/projects/-Users-marcohoch-Library-CloudStorage-Dropbox-Incomming-github-Crewplaner/pb-admin.local.json');
 
-// ── Soll-Regeln (Stand 2026-08-03, nach dem Schließen des assignments-Lecks) ──
+// Zugriff auf `plans`: Owner, superadmin — oder Crew, die in DIESER Tour steht.
+// Wird beim Scharfschalten auf Test erprobt; bindet PocketBase die beiden
+// @collection-Bedingungen nicht an denselben crew_members-Datensatz, ist der Rückfall
+// `@request.auth.id != ""` (schließt den anonymen Zugriff genauso, ist nur weniger streng).
+// Falls der Rückfall gilt: HIER anpassen, sonst meldet das Werkzeug dauerhaft Abweichung.
+const PLANS_RULE = '@request.auth.id = owner || @request.auth.role = "superadmin" || (@collection.crew_members.plan_id ?= id && @collection.crew_members.email ?= @request.auth.email)';
+
+// ── Soll-Regeln (Stand 2026-08-04, nach dem Schließen von assignments UND plans) ──
 // Nur sicherheitsrelevante Regeln. Was hier NICHT steht, wird nicht geprüft.
 const SOLL = {
   users: {
@@ -43,9 +50,13 @@ const SOLL = {
     createRule: '@request.auth.role = "superadmin" || (@request.auth.id != "" && type = "availability") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)',
   },
   plans: {
-    // öffentlich lesbar NUR mit view_token (Booker-Link) — bewusst so
-    listRule:   '@request.auth.id = owner || @request.auth.role = "superadmin" || view_token != ""',
-    viewRule:   '@request.auth.id = owner || @request.auth.role = "superadmin" || view_token != ""',
+    // v0.6.0: Der frühere Zweig `|| view_token != ""` machte ALLE Pläne anonym lesbar —
+    // inkl. der view_token im Klartext (2026-08-04). Die öffentliche Ansicht holt den Plan
+    // jetzt über die Hook-Route /viewplan/{token}; hier darf nur noch Angemeldetes durch.
+    // Crew braucht Lesezugriff auf IHRE Touren (loadPlanForCrew/loadCrewPlans) — die
+    // crew_members-Bedingung deckt das ab.
+    listRule:   PLANS_RULE,
+    viewRule:   PLANS_RULE,
     updateRule: '@request.auth.id = owner || @request.auth.role = "superadmin"',
     deleteRule: '@request.auth.id = owner || @request.auth.role = "superadmin"',
   },
@@ -102,15 +113,26 @@ async function pruefe(name, inst) {
   }
 
   // Gegenprobe von außen: was liefert die API OHNE Anmeldung?
+  // Am Statuscode NICHT festmachen — PocketBase antwortet bei einer FILTER-Regel mit 200
+  // und leerer Liste; nur eine null-Regel gibt 403. Maßgeblich ist totalItems.
   console.log('   Ohne Anmeldung abrufbar:');
-  for (const coll of ['assignments', 'crew_members', 'users', 'plans']) {
+  for (const coll of ['assignments', 'crew_members', 'users', 'plans', 'email_log', 'activity_log']) {
     const r = await fetch(`${inst.base_url}/api/collections/${coll}/records?perPage=1`);
     const j = await r.json().catch(() => ({}));
     const n = j.totalItems ?? 'gesperrt';
-    // plans ist bewusst öffentlich (Booker-Link), alles andere muss 0 sein
-    const ok = coll === 'plans' ? true : (n === 0 || n === 'gesperrt');
+    const ok = n === 0 || n === 'gesperrt';
     if (!ok) abweichungen++;
-    console.log(`     ${ok ? '✓' : '✗'} ${coll.padEnd(13)} ${n}${coll === 'plans' ? '  (gewollt: Booker-Link)' : ''}`);
+    console.log(`     ${ok ? '✓' : '✗'} ${coll.padEnd(13)} ${n}`);
+  }
+
+  // Und: die öffentliche Ansicht darf ihre Daten nur noch über die Hook-Routen bekommen.
+  // Wenn plans wieder anonym liefert, taucht dort auch der view_token auf — genau das
+  // war der Befund vom 2026-08-04.
+  const leak = await fetch(`${inst.base_url}/api/collections/plans/records?perPage=50`)
+    .then(r => r.text()).catch(() => '');
+  if (/"view_token"\s*:\s*"[^"]+"/.test(leak)) {
+    abweichungen++;
+    console.log('     ✗ view_token liegt anonym offen — plans-Regel ist wieder zu weit');
   }
   console.log(abweichungen === 0 ? '   Alles wie erwartet ✓' : `   ${abweichungen} Abweichung(en)`);
   return abweichungen;
