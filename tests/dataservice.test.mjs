@@ -106,35 +106,32 @@ test('confirmAssignment: Crew darf EIGENEN Slot bestätigen', async () => {
 });
 
 // ── Crew-Plan-Umschalter (v0.21.0): loadCrewPlans ────────────────────────────
-test('loadCrewPlans: Crew in mehreren Plänen → alphabetische Namensliste', async () => {
+test('loadCrewPlans: holt die Touren über die Route /myplans (nicht über plans-REST)', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   resetState(g); primeCrew(g, 'oliver@x.de');
+  const gesehen = [];
   mockFetch((url, method) => {
-    if (method === 'GET' && url.includes('/crew_members/records'))
-      return res({ items: [{ plan_id: 'P_PROV' }, { plan_id: 'P_AMK' }, { plan_id: 'P_PROV' }] });
-    if (method === 'GET' && url.includes('/plans/records/P_AMK'))  return res({ id: 'P_AMK',  name: 'AMK Tour 2026' });
-    if (method === 'GET' && url.includes('/plans/records/P_PROV')) return res({ id: 'P_PROV', name: 'Provinz 2027' });
+    gesehen.push(url);
+    if (url.includes('/myplans'))
+      return res([{ id: 'P_AMK', name: 'AMK Tour 2026' }, { id: 'P_PROV', name: 'Provinz 2027' }]);
     return res({});
   });
   const plans = await g.dataService.loadCrewPlans();
-  eq(plans.length, 2, 'zwei eindeutige Pläne (Duplikat entfernt)');
-  eq(plans[0].name, 'AMK Tour 2026', 'alphabetisch: AMK zuerst');
-  eq(plans[1].name, 'Provinz 2027', 'dann Provinz');
+  eq(plans.length, 2, 'Liste der Route wird durchgereicht');
+  eq(plans[0].name, 'AMK Tour 2026');
+  // Der entscheidende Punkt: die plans-Collection wird NICHT mehr angefasst — dort käme
+  // der view_token mit zurück. Dubletten-Entfernung, Sortierung und das Überspringen
+  // gelöschter Pläne liegen seit v4.16 im Hook (unter Node nicht ausführbar).
+  ok(!gesehen.some(u => u.includes('/collections/plans/')),
+     'kein Zugriff auf die plans-REST-API: ' + gesehen.join(', '));
 });
 
-test('loadCrewPlans: gelöschter Plan wird übersprungen', async () => {
+test('loadCrewPlans: Fehler der Route → leere Liste statt Absturz', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   resetState(g); primeCrew(g, 'oliver@x.de');
-  mockFetch((url, method) => {
-    if (method === 'GET' && url.includes('/crew_members/records'))
-      return res({ items: [{ plan_id: 'P_OK' }, { plan_id: 'P_GONE' }] });
-    if (method === 'GET' && url.includes('/plans/records/P_OK'))   return res({ id: 'P_OK', name: 'AMK Tour 2026' });
-    if (method === 'GET' && url.includes('/plans/records/P_GONE')) return res({ message: 'not found' }, 404);
-    return res({});
-  });
+  mockFetch(() => res({ message: 'not found' }, 404));
   const plans = await g.dataService.loadCrewPlans();
-  eq(plans.length, 1, 'nur der erreichbare Plan');
-  eq(plans[0].id, 'P_OK', 'gelöschter Plan übersprungen');
+  eq(plans.length, 0, 'leere Liste, kein Wurf');
 });
 
 test('declineAssignment: wirft bei PATCH-Fehler', async () => {

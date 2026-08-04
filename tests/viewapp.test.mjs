@@ -70,3 +70,49 @@ test('Hook: /viewplan-Route gibt weder Token noch Owner heraus', () => {
        feld + ' darf in der öffentlichen Antwort nicht vorkommen');
   }
 });
+
+// ── Auch der CREW-Ladepfad darf die plans-Collection nicht mehr lesen ─────────
+// Dort käme der komplette Datensatz inkl. `view_token` zurück. Seit Hook v4.16 laufen
+// beide Crew-Abrufe über /myplan bzw. /myplans, die serverseitig prüfen und filtern.
+// (Der MANAGER-Pfad liest weiterhin direkt — er ist der Owner und darf den Token sehen.)
+const ds = readFileSync(join(root, 'js/dataService.js'), 'utf8');
+
+test('dataService.js: Crew liest Pläne über die Routen, nicht über plans-REST', () => {
+  ok(/\/myplan\//.test(ds),  'loadPlanForCrew nutzt /myplan/ nicht');
+  ok(/\/myplans/.test(ds),   'loadCrewPlans nutzt /myplans nicht');
+  const crewTeil = ds.slice(ds.indexOf('export async function loadPlanForCrew'),
+                            ds.indexOf('export async function loadPlanForManager'));
+  ok(!/collections\/plans\/records/.test(crewTeil),
+     'der Crew-Abschnitt greift wieder direkt auf plans zu — dort steht der view_token');
+});
+
+// Hilfsfunktion: den Block EINER Route herausschneiden — bis zum nächsten routerAdd
+// oder Dateiende. Ein träger Ausdruck bis zum nächsten `requireAuth()` würde sonst in die
+// FOLGENDE Route überlaufen und ein fehlendes requireAuth der ersten nicht bemerken
+// (beim Mutationstest genau so passiert).
+function routeBlock(src, pfad) {
+  const start = src.indexOf("routerAdd('GET', '" + pfad + "'");
+  if (start === -1) return null;
+  const next = src.indexOf('routerAdd(', start + 10);
+  return src.slice(start, next === -1 ? src.length : next);
+}
+
+// Kommentare entfernen, aber NICHT das `//` in URLs zerstören (sonst verschwindet
+// `https://is.gd/...` aus der Prüfung — genau das ist beim ersten Anlauf passiert).
+const ohneKommentare = t => t.replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+
+test('Hook: /myplan und /myplans sind authentifiziert und geben keinen Token heraus', () => {
+  for (const pfad of ['/myplans', '/myplan/{id}']) {
+    const block = routeBlock(hook, pfad);
+    ok(block, `Route ${pfad} fehlt`);
+    ok(/\$apis\.requireAuth\(\)/.test(block), `Route ${pfad} ist nicht mit requireAuth geschützt`);
+    const code = ohneKommentare(block);
+    ok(!/view_token/.test(code), `${pfad} darf den view_token nicht ausgeben`);
+    ok(!/view_shorturl/.test(code), `${pfad} darf den Kurzlink nicht ausgeben`);
+  }
+});
+
+test('Hook: die is.gd-Anbindung ist entfernt (Token ging an einen fremden Dienst)', () => {
+  ok(!/is\.gd/.test(ohneKommentare(hook)),
+     'is.gd-Aufruf wieder im Hook — der Token verlässt damit den Server');
+});

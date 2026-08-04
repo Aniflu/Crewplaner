@@ -21,12 +21,13 @@ import { join } from 'path';
 const CRED = process.env.PB_CRED || join(homedir(),
   '.claude/projects/-Users-marcohoch-Library-CloudStorage-Dropbox-Incomming-github-Crewplaner/pb-admin.local.json');
 
-// Zugriff auf `plans`: Owner, superadmin — oder Crew, die in DIESER Tour steht.
-// Wird beim Scharfschalten auf Test erprobt; bindet PocketBase die beiden
-// @collection-Bedingungen nicht an denselben crew_members-Datensatz, ist der Rückfall
-// `@request.auth.id != ""` (schließt den anonymen Zugriff genauso, ist nur weniger streng).
-// Falls der Rückfall gilt: HIER anpassen, sonst meldet das Werkzeug dauerhaft Abweichung.
-const PLANS_RULE = '@request.auth.id = owner || @request.auth.role = "superadmin" || (@collection.crew_members.plan_id ?= id && @collection.crew_members.email ?= @request.auth.email)';
+// Zugriff auf `plans`: NUR Owner und superadmin (seit v0.6.1).
+// Der frühere crew_members-Zweig ist entfallen, weil Crew ihre Touren seit Hook v4.16
+// über /myplans und /myplan/{id} lädt und die plans-Collection gar nicht mehr anfasst.
+// Damit sieht niemand außer Owner/superadmin je den `view_token` im Payload.
+// ⚠️ Meldet Abweichung, solange der Admin die Regel noch nicht nachgezogen hat — das ist
+// gewollt und zeigt genau den offenen Schritt an.
+const PLANS_RULE = '@request.auth.id = owner || @request.auth.role = "superadmin"';
 
 // ── Soll-Regeln (Stand 2026-08-04, nach dem Schließen von assignments UND plans) ──
 // Nur sicherheitsrelevante Regeln. Was hier NICHT steht, wird nicht geprüft.

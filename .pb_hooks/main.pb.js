@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.15
-console.log('[hook] main.pb.js v4.15 geladen');
+// Version: 4.16
+console.log('[hook] main.pb.js v4.16 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -470,30 +470,17 @@ onRecordAfterCreateSuccess(function(e) {
 }, 'users');
 
 
-// ── 4. Short-URL für View-Link (plans view_token Update) ─────────────────────
-onRecordAfterUpdateSuccess(function(e) {
-  e.next();
-  var r = e.record;
-  var token = r.get('view_token');
-  if (!token) return;
-  var existing = r.get('view_shorturl') || '';
-  // Nur generieren wenn noch kein Short-URL gesetzt oder Token sich geändert hat
-  if (existing && existing.indexOf('is.gd') !== -1) return;
-  try {
-    var fullUrl = 'https://crewplanner.nyxlightwork.de/view.html?token=' + token;
-    var res = $http.send({
-      url: 'https://is.gd/create.php?format=simple&url=' + encodeURIComponent(fullUrl),
-      method: 'GET'
-    });
-    if (res.statusCode === 200 && res.raw && res.raw.indexOf('is.gd') !== -1) {
-      r.set('view_shorturl', res.raw.trim());
-      $app.save(r);
-      console.log('[hook] Short-URL generiert: ' + res.raw.trim());
-    }
-  } catch(err) {
-    console.error('[hook] Short-URL Fehler:', err.message);
-  }
-}, 'plans');
+// ── 4. Kurzlink über is.gd — ENTFERNT in v4.16 ───────────────────────────────
+// Der Hook schickte bei jeder view_token-Änderung die VOLLSTÄNDIGE Ansichts-URL
+// inklusive Token an is.gd. Der Token soll ein Geheimnis sein — ihn an einen fremden
+// Dienst zu übertragen, der ihn dauerhaft speichert (und dessen kurze Adressen
+// durchprobierbar sind), untergräbt genau das. Zudem funktionierte der Aufruf vom
+// Server aus zuletzt ohnehin nicht mehr (Kurzlinks blieben leer, auch nach erneutem
+// Anstoßen; is.gd ist von außen erreichbar, vom Server offenbar nicht).
+//
+// Die Konsole fällt sauber auf die lange URL zurück (admin.html: `view_shorturl || fullUrl`),
+// der Booker-Link funktioniert also unverändert — nur länger.
+// Das Feld `view_shorturl` bleibt im Schema, damit alte Datensätze nichts verlieren.
 
 
 // ── 5. Kalender-Feed-Token: Backfill bestehender User (v4.9) ──────────────────
@@ -520,6 +507,78 @@ onBootstrap(function(e) {
 // bestätigte Einsätze als STATUS:CONFIRMED, noch offene Anfragen als STATUS:TENTATIVE.
 // Kalender-Apps holen die URL periodisch → automatische Aktualisierung. Goja-Isolation:
 // alle Helfer + Literale INNERHALB des Handlers (kein Zugriff auf äußeren Scope).
+// ── 7c. Pläne für angemeldete Crew (v4.16) ───────────────────────────────────
+// GET /myplans        → [{id, name}] der Touren, in denen der Anmeldete Crew ist
+// GET /myplan/{id}    → { id, name, plan_data } EINER Tour
+//
+// Warum nicht direkt über die plans-REST-API: Dort kommt der komplette Datensatz
+// zurück — inklusive `view_token`. Der soll ein echtes Geheimnis sein, und ein
+// Crew-Mitglied hat keinen Grund, den öffentlichen Link seiner Tour zu kennen.
+// Als verstecktes Feld geht es nicht: die Konsole braucht den Token, läuft aber als
+// App-Rolle `superadmin`, nicht als PocketBase-Superuser.
+//
+// Zugriff: Owner ODER App-Rolle superadmin ODER als crew_members in DIESER Tour.
+// Dieselbe Logik wie die plans-Regel — nur dass die Antwort hier gefiltert ist.
+// Goja-Isolation: alle Helfer/Literale INNERHALB der Handler.
+routerAdd('GET', '/myplans', function(e) {
+  var auth = e.auth;
+  if (!auth) return e.string(401, 'unauthorized');
+  var mail = (auth.getString('email') || '').toLowerCase();
+  if (!mail) return e.string(401, 'unauthorized');
+
+  var rows = [];
+  try { rows = $app.findRecordsByFilter('crew_members', 'email = {:m}', '', 500, 0, { m: mail }); }
+  catch (err) { rows = []; }
+
+  var seen = {}, out = [];
+  for (var i = 0; i < rows.length; i++) {
+    var pid = rows[i].getString('plan_id');
+    if (!pid || pid === '__pool__' || seen[pid]) continue;
+    seen[pid] = true;
+    try {
+      var p = $app.findRecordById('plans', pid);
+      if (p) out.push({ id: p.id, name: p.getString('name') || 'Tour Plan' });
+    } catch (err2) { /* gelöschter Plan → überspringen */ }
+  }
+  out.sort(function(a, b) { return a.name < b.name ? -1 : (a.name > b.name ? 1 : 0); });
+
+  e.response.header().set('Content-Type', 'application/json; charset=utf-8');
+  return e.string(200, JSON.stringify(out));
+}, $apis.requireAuth());
+
+routerAdd('GET', '/myplan/{id}', function(e) {
+  var auth = e.auth;
+  if (!auth) return e.string(401, 'unauthorized');
+  var planId = e.request.pathValue('id');
+  if (!planId) return e.string(404, 'not found');
+
+  var plan;
+  try { plan = $app.findRecordById('plans', planId); } catch (err) { plan = null; }
+  if (!plan) return e.string(404, 'not found');
+
+  var mail = (auth.getString('email') || '').toLowerCase();
+  var darf = (plan.getString('owner') === auth.id) || (auth.getString('role') === 'superadmin');
+  if (!darf) {
+    try {
+      var m = $app.findFirstRecordByFilter('crew_members',
+        'plan_id = {:p} && email = {:m}', { p: planId, m: mail });
+      darf = !!m;
+    } catch (err2) { darf = false; }
+  }
+  // 404 statt 403 — verrät nicht, ob es die Tour überhaupt gibt.
+  if (!darf) return e.string(404, 'not found');
+
+  var pdText = '';
+  try { pdText = plan.getString('plan_data') || ''; } catch (err3) { pdText = ''; }
+  var pd = null;
+  if (pdText) { try { pd = JSON.parse(pdText); } catch (err4) { pd = null; } }
+  if (!pd) { try { pd = plan.get('plan_data') || null; } catch (err5) { pd = null; } }
+
+  e.response.header().set('Content-Type', 'application/json; charset=utf-8');
+  return e.string(200, JSON.stringify({ id: plan.id, name: plan.getString('name'), plan_data: pd }));
+}, $apis.requireAuth());
+
+
 // ── 7a. Plan für die öffentliche Ansicht (v4.15) ─────────────────────────────
 // GET /viewplan/{token}  (unauthentifiziert — der view_token löst den Plan auf).
 //

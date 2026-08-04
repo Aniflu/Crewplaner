@@ -109,6 +109,78 @@ async function pruefeInstanz(name, inst) {
   const anon = await fetch(`${inst.base_url}/api/collections/plans/records?perPage=50`)
     .then(r => r.text()).catch(() => '');
   pruef(!/"view_token"\s*:\s*"[^"]+"/.test(anon), 'Tokens sind anonym NICHT auffindbar');
+
+  // 6) Crew-Durchlauf: legt ein temporäres Konto für ein echtes crew_members-Mitglied an,
+  //    prüft die Routen aus dessen Sicht und räumt danach wieder auf. Genau dieses Muster
+  //    hat die Regel-Semantik schon einmal zuverlässig geklärt.
+  console.log('   ▸ Crew-Sicht');
+  const crewRows = await fetch(`${inst.base_url}/api/collections/crew_members/records?perPage=500`,
+    { headers: { Authorization: token } }).then(r => r.json()).catch(() => ({}));
+  const proPerson = {};
+  for (const c of (crewRows.items || [])) {
+    if (!c.email || c.plan_id === '__pool__') continue;
+    (proPerson[c.email] = proPerson[c.email] || new Set()).add(c.plan_id);
+  }
+  // Jemanden nehmen, der NICHT in allen Touren steckt — sonst prüft „fremde Tour" nichts —
+  // und der noch KEIN Konto hat, damit wir keinem echten Nutzer das Passwort überschreiben
+  // und ihn hinterher löschen.
+  const bestehende = await fetch(`${inst.base_url}/api/collections/users/records?perPage=500`,
+    { headers: { Authorization: token } }).then(r => r.json()).catch(() => ({}));
+  const hatKonto = new Set((bestehende.items || []).map(u => (u.email || '').toLowerCase()));
+  const alle = mitToken.length;
+  const kandidat = Object.entries(proPerson)
+    .find(([m, ps]) => ps.size > 0 && ps.size < alle && !hatKonto.has(m.toLowerCase()));
+  if (!kandidat) {
+    console.log('     — übersprungen: niemand ist in nur einem Teil der Touren');
+    return;
+  }
+  const [mail, eigene] = kandidat;
+  const pw = 'PruefLauf-' + Math.random().toString(36).slice(2, 10);
+  let uid = null;
+  try {
+    const cr = await fetch(`${inst.base_url}/api/collections/users/records`, {
+      method: 'POST', headers: { Authorization: token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: mail, password: pw, passwordConfirm: pw,
+                             role: 'crew', emailVisibility: true, verified: true }),
+    }).then(r => r.json());
+    if (!cr.id) { console.log('     — übersprungen: Konto für ' + mail + ' existiert schon oder ist nicht anlegbar'); return; }
+    uid = cr.id;
+
+    const ut = await fetch(`${inst.base_url}/api/collections/users/auth-with-password`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identity: mail, password: pw }),
+    }).then(r => r.json());
+    if (!pruef(!!ut.token, `Anmeldung als ${mail}`)) return;
+    const H = { Authorization: 'Bearer ' + ut.token };
+
+    const meine = await fetch(`${inst.base_url}/myplans`, { headers: H }).then(r => r.json()).catch(() => null);
+    pruef(Array.isArray(meine) && meine.length === eigene.size,
+      'sieht genau die eigenen Touren', `${Array.isArray(meine) ? meine.length : '?'} von ${alle}`);
+    pruef(!/view_token/.test(JSON.stringify(meine || {})), 'kein view_token in /myplans');
+
+    const eigeneId = [...eigene][0];
+    const fremde = mitToken.find(p => !eigene.has(p.id));
+    const r1 = await fetch(`${inst.base_url}/myplan/${eigeneId}`, { headers: H });
+    pruef(r1.ok, 'eigene Tour ist ladbar', 'HTTP ' + r1.status);
+    if (r1.ok) {
+      const t1 = await r1.text();
+      pruef(!/view_token/.test(t1), 'kein view_token in /myplan');
+      pruef(!/"owner"/.test(t1), 'keine Owner-ID in /myplan');
+    }
+    if (fremde) {
+      const r2 = await fetch(`${inst.base_url}/myplan/${fremde.id}`, { headers: H });
+      pruef(r2.status === 404, 'fremde Tour → 404', 'HTTP ' + r2.status);
+    }
+    // Gegenprobe: der direkte REST-Weg muss der Crew verschlossen sein
+    const r3 = await fetch(`${inst.base_url}/api/collections/plans/records/${eigeneId}`, { headers: H });
+    pruef(r3.status === 404, 'plans-REST ist für Crew zu', 'HTTP ' + r3.status);
+  } finally {
+    if (uid) {
+      const del = await fetch(`${inst.base_url}/api/collections/users/records/${uid}`,
+        { method: 'DELETE', headers: { Authorization: token } });
+      pruef(del.ok, 'Prüfkonto wieder entfernt', 'HTTP ' + del.status);
+    }
+  }
 }
 
 let cred;

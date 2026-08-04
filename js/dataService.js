@@ -9,6 +9,22 @@ import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert,
 import { showToast, sameCrew, getVal, dedupKnownCrew } from './utils.js';
 import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex } from './plans.js';
 
+// ── Authentifizierte Hook-Route abrufen ───────────────────────────────────────
+// Die Routen des Hooks (/myplans, /myplan/{id}) liegen am Root, nicht unter /api —
+// pbGet passt also nicht. Anmeldung wie überall per Bearer-Token aus dem localStorage.
+async function _pbRoute(path) {
+  const token = localStorage.getItem('pb_token');
+  const res = await fetch(POCKETBASE_URL + path, {
+    headers: token ? { Authorization: 'Bearer ' + token } : {},
+  });
+  if (!res.ok) {
+    const err = new Error('Route ' + path + ' → HTTP ' + res.status);
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
 function _showMailError(msg) {
   const t = document.getElementById('toast');
@@ -125,7 +141,11 @@ export async function loadPlanForCrew() {
   const planId = await _getActivePlanId();
   if (!planId) return;
   try {
-    const plan = await pbGet('/api/collections/plans/records/' + planId);
+    // Über die Hook-Route statt der plans-REST-API (v4.16): die liefert den kompletten
+    // Datensatz inkl. `view_token`, und der soll ein Geheimnis bleiben — ein Crew-Mitglied
+    // braucht den öffentlichen Link seiner Tour nicht. Die Route prüft serverseitig, dass
+    // der Anmeldete Owner, superadmin oder crew_member DIESER Tour ist.
+    const plan = await _pbRoute('/myplan/' + encodeURIComponent(planId));
     if (!plan?.plan_data) {
       console.warn('loadPlanForCrew: plan_data ist leer');
       if (typeof showToast === 'function') showToast('Plan noch nicht gespeichert — Admin kontaktieren', '#e84a4a');
@@ -159,18 +179,10 @@ export async function loadPlanForCrew() {
 export async function loadCrewPlans() {
   if (!SUPABASE_ENABLED || !IS_CREW || !CURRENT_USER_ID) return [];
   try {
-    const email = (CURRENT_USER_EMAIL || '').toLowerCase();
-    const res = await pbList('crew_members', `email = "${pbEscapeFilter(email)}"`);
-    const planIds = [...new Set((res?.items || []).map(m => m.plan_id).filter(Boolean))];
-    const plans = [];
-    for (const id of planIds) {
-      try {
-        const plan = await pbGet('/api/collections/plans/records/' + id);
-        if (plan?.id) plans.push({ id: plan.id, name: plan.name || 'Tour Plan' });
-      } catch(_) { /* gelöschter/unzugänglicher Plan → überspringen */ }
-    }
-    plans.sort((a, b) => a.name.localeCompare(b.name));
-    return plans;
+    // Eine Anfrage statt N (v4.16): die Route ermittelt die Touren serverseitig aus
+    // crew_members und liefert nur id+name — kein `view_token` im Payload.
+    const plans = await _pbRoute('/myplans');
+    return Array.isArray(plans) ? plans : [];
   } catch(e) {
     console.warn('loadCrewPlans Fehler:', e.message);
     return [];
