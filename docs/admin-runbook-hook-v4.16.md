@@ -85,10 +85,23 @@ die Gegenprobe, dass der direkte REST-Weg für Crew **zu** ist — und räumt da
 Gegen den jetzigen Stand meldet er korrekt die zwei offenen Schritte (Routen 404, REST noch
 offen).
 
-## Schritt 5 — Live
+## Schritt 5 — Live (⚠️ korrigierte Reihenfolge)
 
-Schritte 1–4 auf Live wiederholen, nachdem Test grün ist. Danach macht Marco den Merge
-`main → live`.
+> **Korrektur.** Die ursprüngliche Fassung dieses Runbooks sagte hier „Schritte 1–4 auf Live
+> wiederholen, danach merged Marco" — das widerspricht der Regel oben (**Hook → Frontend →
+> Regel**) und hätte auf Live **allen 9 Crew-Konten sofort ihre Touren genommen**, weil dort
+> noch das v0.6.0-Frontend mit dem alten REST-Pfad lief. Der Admin hat den Widerspruch
+> bemerkt, nachgesehen und die Regel bewusst **nicht** gesetzt. Richtig ist:
+
+1. **Hook v4.16 auf Live** (Schritt 1) — kann jederzeit, ändert für sich nichts.
+2. **Frontend live**: Marco merged `main → live` (v0.6.1).
+3. **Vorher-Check** — der ausgelieferte Crew-Pfad muss die neuen Routen nutzen:
+   ```bash
+   curl -s https://crewplanner.nyxlightwork.de/js/dataService.js | grep -c 'myplan'
+   ```
+   Muss **> 0** sein. Ist es 0, liegt dort noch v0.6.0 → **Regel NICHT setzen.**
+4. **Erst dann die Regel** (Schritt 3) auf Live setzen.
+5. Nachkontrolle (Schritt 4).
 
 ## Rollback
 

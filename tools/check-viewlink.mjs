@@ -128,10 +128,14 @@ async function pruefeInstanz(name, inst) {
     { headers: { Authorization: token } }).then(r => r.json()).catch(() => ({}));
   const hatKonto = new Set((bestehende.items || []).map(u => (u.email || '').toLowerCase()));
   const alle = mitToken.length;
-  const kandidat = Object.entries(proPerson)
-    .find(([m, ps]) => ps.size > 0 && ps.size < alle && !hatKonto.has(m.toLowerCase()));
+  const teilweise = Object.entries(proPerson).filter(([, ps]) => ps.size > 0 && ps.size < alle);
+  const kandidat = teilweise.find(([m]) => !hatKonto.has(m.toLowerCase()));
   if (!kandidat) {
-    console.log('     — übersprungen: niemand ist in nur einem Teil der Touren');
+    // Beide Gründe auseinanderhalten — sonst behauptet die Ausgabe etwas Falsches.
+    console.log(teilweise.length
+      ? `     — übersprungen: alle ${teilweise.length} geeigneten Personen haben schon ein Konto`
+        + ' (kein Konto anlegen/löschen auf fremden Nutzern)'
+      : '     — übersprungen: niemand ist in nur einem Teil der Touren');
     return;
   }
   const [mail, eigene] = kandidat;

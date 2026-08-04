@@ -86,6 +86,11 @@ Das Werkzeug erkennt jetzt auch einen offenliegenden `view_token` und macht die 
 
 Schritte 1–4 auf Live wiederholen, nachdem Test grün ist.
 
+> **Merke, aus dem v4.16-Rollout gelernt:** „Schritte 1–4 wiederholen" ist nur dann richtig,
+> wenn das passende **Frontend auf Live schon ausgeliefert ist**. Betrifft eine Regel einen
+> Pfad, den das Live-Frontend noch alt bedient, muss der Merge **vor** die Regel. Sonst sperrt
+> man laufende Nutzer aus. Im Zweifel: erst am ausgelieferten JS prüfen, welchen Weg es geht.
+
 ## Schritt 6 — Tokens neu vergeben (macht Marco, kein SSH nötig)
 
 Die alten Tokens standen offen im Netz. Marco setzt sie per Superuser-API neu — zusammen mit

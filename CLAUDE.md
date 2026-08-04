@@ -634,6 +634,19 @@ activity_log    { plan_id, crew_name, crew_email, action, date, pos_label, ts } 
 > Booker-Link" in der Konsole, oder per PATCH). Gefunden 2026-07-04: Provinz 2027 hatte keinen →
 > Oliver Thomas sah sie nicht; per Superuser gesetzt.
 
+> ⚠️ **REIHENFOLGE-REGEL beim Verschärfen von Zugriffsregeln (Lehre aus dem v4.16-Rollout,
+> 2026-08-04).** „Hook → Frontend → **Regel**" — und „Frontend" heißt: das **auf der jeweiligen
+> Umgebung ausgelieferte** JS, nicht das im Repo. Mein v4.16-Runbook sagte oben korrekt
+> „Hook → Frontend → Regel", in Schritt 5 aber „Schritte 1–4 auf Live wiederholen, danach
+> merged Marco" — das dreht die letzten beiden um. Wäre es befolgt worden, hätten **alle 9
+> Crew-Konten auf Live sofort ihre Touren verloren**, weil dort noch v0.6.0 mit dem alten
+> REST-Pfad lief. Der Admin hat den Widerspruch bemerkt, am ausgelieferten `dataService.js`
+> nachgesehen und die Regel bewusst nicht gesetzt. **Vor jeder Regelverschärfung am
+> ausgelieferten JS prüfen, welchen Weg es geht** — z.B.
+> `curl -s https://crewplanner.nyxlightwork.de/js/dataService.js | grep -c 'myplan'`.
+> Am 2026-08-03 war die umgekehrte Reihenfolge harmlos, weil nur die Booker-Ansicht betroffen
+> war, die niemand benutzte — das ist die Ausnahme, nicht die Regel.
+
 > 🚨 **`plans` war anonym auflistbar INKL. `view_token` (gefunden 2026-08-04, behoben in v0.6.0).**
 > Die Regel endete auf `|| view_token != ""` — dieser Zweig trifft auf JEDEN Plan mit Token zu, weil
 > PB-Regeln pro Datensatz filtern und den Token aus dem Request nicht an EINEN Datensatz binden können.
