@@ -26,16 +26,41 @@
 
 ---
 
-## 2. Aktueller Stand (Stand 2026-07-30) — v0.31.0
+## 2. Aktueller Stand (Stand 2026-08-05) — v0.6.1
 
 > ⚠️ **SEIT v0.31.0 — ZWEI GETRENNTE UMGEBUNGEN (zuerst lesen!):**
 > - **Branch `main` = TEST** → GitHub Pages `aniflu.github.io/Crewplaner` → **Test-**PocketBase `api-test.crewplanner.nyxlightwork.de` (eigene, leere DB, **kein** Mailversand).
 > - **Branch `live` = PRODUKTION** → Coolify-nginx `crewplanner.nyxlightwork.de` → **Live-**PocketBase `api.crewplanner.nyxlightwork.de` (echte Tourdaten).
 > - **`git push origin main` = auf TEST veröffentlichen** (NICHT live!). **Go-Live = `main → live` pushen** (Coolify baut den Live-Container automatisch).
 > - Das Frontend wählt die API **automatisch nach Hostname** (`pickApiUrl`, js/pure.js) — derselbe Code in beiden Umgebungen.
-> - **Hook `main.pb.js` v4.11** läuft auf **BEIDEN** Backends → Hook-Änderungen immer an beide deployen (erst Test, dann Live).
-> - Runbooks: `docs/admin-runbook-umzug.md`, `docs/admin-runbook-golive.md`, `docs/admin-runbook-pb-upgrade.md`.
-> - **Offen (optional):** PocketBase-Versions-Upgrade beider Instanzen (Live noch auf altem Mai-Image) — Backup + Test-first, siehe pb-upgrade-Runbook.
+> - **Hook `main.pb.js` v4.16** läuft auf **BEIDEN** Backends → Hook-Änderungen immer an beide deployen (erst Test, dann Live).
+> - Runbooks: `docs/admin-runbook-*.md` (die erledigten tragen oben einen ✅-Vermerk).
+> - **Versionsreihe:** Nach v0.31.0 wurde bewusst auf kleine Nummern zurückgesetzt, um schrittweise auf 1.0 zuzugehen. Reihenfolge: v0.31.0 → v0.5.0 → v0.5.1 → v0.5.2 → v0.6.0 → v0.6.1.
+> - **Offen (optional):** PocketBase-Versions-Upgrade beider Instanzen (Live noch auf altem Mai-Image) — Backup + Test-first, siehe pb-upgrade-Runbook. Außerdem der CORS-Platzhalter `*` für unbekannte Herkünfte (`docs/admin-runbook-cors.md`).
+
+> 🔒 **Sicherheitsrunde 3.–5. August 2026 — bitte vor Änderungen an Zugriffsregeln lesen.**
+> In vier Tagen kamen drei Löcher ans Licht, alle derselben Fehlerklasse: *eine Ansicht liest
+> direkt aus einer Collection, und die Zugriffsregel wird so weit geöffnet, bis das geht.*
+> 1. `assignments.listRule` war **leer** → 913 Einsätze inkl. **10 Crew-Mailadressen** ohne Login abrufbar.
+> 2. `plans.listRule` endete auf `|| view_token != ""` → **alle** Pläne anonym lesbar, **inklusive der Tokens im Klartext**.
+> 3. Angemeldete Crew bekam den `view_token` ihrer eigenen Tour im Payload.
+>
+> **Gegenmittel, jetzt durchgängig umgesetzt:** Was öffentlich oder eingeschränkt sichtbar sein
+> soll, läuft über eine **Hook-Route**, die gezielt nur die nötigen Felder herausgibt —
+> `/viewplan/{token}`, `/viewstatus/{token}`, `/myplans`, `/myplan/{id}`. Die Collection-Regeln
+> bleiben dadurch eng: **keine** Collection ist ohne Anmeldung lesbar.
+>
+> **Zwei Werkzeuge prüfen das nach jeder Änderung** (Zugangsdaten kommen aus einer lokalen Datei,
+> nicht aus dem Repo):
+> ```bash
+> node tools/check-pb-rules.mjs     # gehärtete Regeln + Gegenprobe von außen; --fix repariert
+> node tools/check-viewlink.mjs     # öffentlicher Link Ende-zu-Ende, inkl. Crew-Sicht
+> ```
+> ⚠️ **Coolify-Redeploy/Schema-Reimport setzt Zugriffsregeln zurück** — nach jedem Redeploy
+> `check-pb-rules.mjs` laufen lassen.
+> ⚠️ **Reihenfolge beim Verschärfen einer Regel: Hook → Frontend → Regel.** „Frontend" heißt das
+> auf der Umgebung **ausgelieferte** JS, nicht das im Repo. Ein Runbook von uns drehte das
+> einmal um; der Admin bemerkte es und verhinderte, dass 9 Crew-Konten ausgesperrt wurden.
 
 > **Juni 2026 (v0.10):** Die ES6-Modul-Migration (v0.9.3) hatte bare Cross-Modul-Referenzen
 > hinterlassen → stille `ReferenceError`s (5-Tage-„Bounce"). In v0.10.0–v0.10.6 bereinigt.
@@ -62,7 +87,7 @@
 > - **Dauerhafte Cache-Lösung (v0.19.0):** Service Worker `sw.js` liefert JS/CSS/HTML network-first (`no-cache`) → kein „stale Sub-Modul"/Hard-Reload mehr.
 > - **Crew-Features:** bekannte Crew aus früheren Touren übernehmen (v0.18.0), eigene bestätigte Termine als .ics/PDF exportieren (v0.20.1), zwischen mehreren Touren wechseln (v0.21.0).
 > - **Scoping (v0.20.0):** Crew kann nur eigene Einsätze bestätigen/absagen; ICS nur bestätigte Termine. Damals nur app-seitig — die **server-seitigen PB-Regeln sind seit v0.26.0 aktiv** (s. v0.24–v0.26-Block).
-> - **Wichtig (plans-viewRule):** Crew kann einen Plan-Record nur lesen, wenn er einen nicht-leeren `view_token` hat (sonst 404 → leere Tour). Jede Tour, die Crew sehen soll, braucht einen view_token („Öffentlicher Booker-Link").
+> - ~~**Wichtig (plans-viewRule):** Crew kann einen Plan-Record nur lesen, wenn er einen nicht-leeren `view_token` hat.~~ **Gilt seit v0.6.1 NICHT mehr** — Crew lädt über `/myplans` bzw. `/myplan/{id}`, der Zugriff hängt allein am `crew_members`-Eintrag. Der `view_token` dient nur noch dem öffentlichen Booker-Link.
 
 > **v0.22–v0.23.5 (08.–09.07.):** Crew-Verwaltung & Registrierung. Wichtigste Punkte (Details: CHANGELOG.md / CLAUDE.md):
 > - **Test-Guards jetzt 74 grün** (`node tests/run.mjs`). Neu u.a. `crewpool.test.mjs`, `directory.test.mjs`, `logic.test.mjs` (esc escaped `"`/`'`).
@@ -108,7 +133,10 @@
 - Hell/Dunkel-Umschalter + neues Markendesign „Crew Pass" auf allen 4 Seiten (v0.28.0), helle Palette „Sage" (v0.28.1)
 - Dritter Zell-Status „Vorgemerkt" (✎, kein Mailversand) für Fernzukunft-Vorplanung (v0.29.0)
 - Vereinheitlichte „Es gab Änderungen"-Mail (neue + entfernte Termine in einer Mail) mit Soft-Cancel + Aktivitäts-Log/-Tab (v0.30.0)
-- Alle Custom-Mails via Resend HTTP API (Hook **v4.10 deployt** seit 2026-07-22)
+- Sammel-Statuswechsel „bestätigt ⇄ vorgemerkt" (Person → Tourblock → Tag) + vorgemerkte Termine im Kalender mit Status im Infofeld (v0.5.0)
+- Registrierung nur für vorab freigegebene E-Mail-Adressen, Rolle kommt aus `crew_members` (v0.5.1)
+- Öffentliche Ansicht und Crew-Ladepfad laufen über Hook-Routen statt über Collections (v0.5.2/v0.6.0/v0.6.1)
+- Alle Custom-Mails via Resend HTTP API (Hook **v4.16 deployt** seit 2026-08-05)
 - System-Mails (Passwort-Reset) via PB SMTP → Resend SMTP-Gateway
 - Passwortloses User-Anlegen: Admin gibt E-Mail + Rolle ein → Account angelegt → Reset-Link per Mail
 - Auto-Verify: Hook setzt `verified=true` serverseitig bei User-Create
@@ -223,9 +251,9 @@ GitHub Pages aktualisiert sich automatisch ~1 Minute nach dem Push.
 
 ```
 users           { id, email, role(superadmin/manager/booker/crew), verified, feed_token }   // feed_token seit v0.27.0 (Kalender-Abo)
-plans           { id, name, owner(→users), plan_data(JSON), view_token }
+plans           { id, name, owner(→users), plan_data(JSON), view_token, view_shorturl }   // view_token = Geheimnis, verlässt den Server nur über /viewplan; view_shorturl seit v0.6.1 ungenutzt (is.gd entfernt)
 plan_members    { plan_id(→plans), user_id(→users), role }
-crew_members    { plan_id, name, email, sort_order, user_id, role }   // plan_id="__pool__" = globaler Pool; role = Konto-Rolle beim Erst-Login (seit Hook v4.8, aktuell v4.10)
+crew_members    { plan_id, name, email, sort_order, user_id, role }   // plan_id="__pool__" = globaler Pool; role = Konto-Rolle beim Erst-Login; ZUGLEICH die Freigabeliste: nur hier eingetragene Adressen dürfen sich registrieren (v0.5.1)
 assignments     { plan_id, date, pos_id, pos_label, crew_name, crew_email, status, proposed_by, responded_at }
 crew_invites    { plan_id, crew_name, crew_email, type, plan_name, app_url, custom_message }
 email_log       { plan_id, crew_name, crew_email, email_type, sent_at, success }
@@ -234,9 +262,13 @@ activity_log    { plan_id, crew_name, crew_email, action, date, pos_label, ts } 
 
 Assignment-Status-Werte: `proposed` → `confirmed` | `declined` | `pencilled` (v0.29.0, „vorgemerkt", kein Mailversand) | `cancelled` → `cancel_acked` (v0.30.0, Soft-Cancel statt Löschen — beide werden aus allen Zellen-Ladepfaden gefiltert)
 
-> 🔒 **Server-Regeln gehärtet (v0.26.0):** `assignments.updateRule` (Crew nur eigene Einsätze) +
-> `crew_invites.createRule` (nur Owner/superadmin lösen Fremd-Mails aus). **⚠️ Coolify-Redeploy/Reimport
-> setzt sie auf `auth != ""` zurück → neu setzen** (exakte Regeln: docs/security.md · docs/database-schema.md · CLAUDE.md).
+> 🔒 **Server-Regeln gehärtet — Stand 2026-08-05.** Keine Collection ist ohne Anmeldung lesbar.
+> Wichtigste Regeln: `plans` list/view = `owner || superadmin` (Crew liest über `/myplans`,
+> `/myplan/{id}`); `assignments.listRule` = `auth != ""` (war einmal LEER = weltöffentlich);
+> `assignments.updateRule` (Crew nur eigene Einsätze); `crew_invites.createRule` (nur
+> Owner/superadmin lösen Fremd-Mails aus); `users.createRule` = nur vorab freigegebene Adressen.
+> **⚠️ Coolify-Redeploy/Reimport setzt sie zurück → `node tools/check-pb-rules.mjs` laufen lassen,
+> `--fix` repariert.** Exakte Regeln: docs/security.md · docs/database-schema.md · CLAUDE.md.
 
 > ⚠️ **Schema-Falle (nach Coolify-Wipe/Reimport):** `assignments.proposed_by` MUSS Feldtyp **text**
 > sein (die App schreibt `'bulk'`/`'update'`/`'manual'`). Wird es als **relation** angelegt → jeder

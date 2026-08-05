@@ -1,6 +1,6 @@
 # Crewplanner — Erste Schritte
 
-Stand: v0.30.2
+Stand: v0.6.1 (2026-08-05)
 
 ---
 
@@ -9,6 +9,10 @@ Stand: v0.30.2
 ### 1. Einladung erhalten
 
 Du bekommst eine E-Mail mit einem Link zum Setzen deines Passworts. Klick den Link — er öffnet die Login-Seite mit einem Formular "Passwort festlegen". Gib dein gewünschtes Passwort ein (mind. 8 Zeichen) und speichere.
+
+> **Seit v0.5.1:** Ein Konto lässt sich nur mit einer E-Mail-Adresse anlegen, die der Planer
+> vorher eingetragen hat. Steht „Diese E-Mail-Adresse ist nicht freigegeben", melde dich bei
+> deinem Planer — er trägt dich ein, dann klappt es.
 
 ### 2. Einloggen
 
@@ -37,7 +41,12 @@ Stehst du in mehr als einer Tour (z.B. AMK + Provinz), erscheinen in der Seitenl
 
 ### 6. Eigene Termine exportieren
 
-In der Seitenleiste: **„📅 Meine Termine (.ics)"** (einmaliger Download für den Kalender) und **„📄 Meine Termine (PDF)"**. Exportiert werden ausschließlich deine **eigenen bestätigten** Tage.
+In der Seitenleiste: **„📅 Meine Termine (.ics)"** (einmaliger Download für den Kalender) und **„📄 Meine Termine (PDF)"**. Exportiert werden ausschließlich deine **eigenen** Tage.
+
+Seit v0.5.0 sind auch **vorgemerkte** Termine dabei — sie tragen im Infofeld „Status: Vorgemerkt"
+statt „Status: Bestätigt". Vorgemerkt heißt: grob eingeplant, noch nicht verbindlich; du musst
+nichts tun. Wird daraus ein fester Termin, ändert sich der Status beim nächsten Abruf von selbst
+(auch im abonnierten Kalender — derselbe Termin, kein zweiter Eintrag).
 
 ### 7. Kalender abonnieren (aktualisiert sich automatisch)
 
@@ -75,6 +84,24 @@ Anfrage.
 Entfernst du eine bereits bestätigte oder angefragte Person aus einem Tag, landet das
 automatisch in der Sidebar unter **„↻ Updates"** — von dort verschickst du gesammelt die
 „Es gab Änderungen"-Mail (siehe Crew-Abschnitt oben).
+
+### Status am Stück umstellen (seit v0.5.0)
+
+Einzelne Zellen umzustellen ist bei 30–60 Tourtagen mühsam. Der Sidebar-Knopf
+**„✎ Status umstellen"** zeigt alle bestätigten Einsätze nach **Person → Tourblock → Tag**
+gruppiert, mit „alle/keine" auf jeder Ebene — anhaken, umstellen, fertig. Der Umschalter oben
+im Dialog geht auch zurück (vorgemerkt → bestätigt). Aus einer Zelle heraus geht derselbe
+Dialog über „✎ Termine von {Name} umstellen…", dann ist die Person schon vorausgewählt.
+
+Die Crew wird **nicht** sofort benachrichtigt: Die Änderungen landen in „↻ Updates" und gehen
+erst per Knopfdruck raus.
+
+### Öffentlicher Link für Booker/Veranstalter
+
+Admin-Konsole → Plan auswählen → **„Öffentlicher Booker-Link"**. Der Link zeigt die Tour
+read-only (Termine, Orte, Besetzung mit Namen, Status-Farben) — **ohne Login**. Wer den Link
+hat, sieht die Tour; behandle ihn also wie ein Geheimnis. E-Mail-Adressen deiner Crew stehen
+**nicht** darin.
 
 ### Crew einladen
 

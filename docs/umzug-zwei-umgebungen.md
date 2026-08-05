@@ -1,5 +1,7 @@
 # Zwei getrennte Umgebungen — Anleitung für den Server-Admin
 
+> ✅ **Erledigt am 2026-07-30** — beide Umgebungen laufen getrennt. Dieses Dokument bleibt als Verlauf stehen.
+
 **Ziel:** GitHub wird eine **echte, isolierte Testumgebung**, Live läuft getrennt und wird
 nur per bewusstem „Go-Live" aktualisiert. Marco hat **keinen SSH-/Server-Zugang** — die hier
 beschriebenen Schritte auf dem Hetzner-Server kann nur der Admin ausführen.

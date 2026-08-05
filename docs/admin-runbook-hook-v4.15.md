@@ -1,5 +1,7 @@
 # Admin-Runbook — Hook v4.15 + `plans`-Regel schließen (v0.6.0)
 
+> ✅ **Erledigt am 2026-08-04** — Hook v4.15 + Regel auf beiden Backends. Dieses Dokument bleibt als Verlauf stehen.
+
 Behebt den Befund vom 2026-08-04: [befund-plans-listrule-2026-08-04.md](befund-plans-listrule-2026-08-04.md).
 Kurz: `plans.listRule` endete auf `|| view_token != ""` — ein Zweig, der auf **jeden** Plan mit
 Token zutrifft. Dadurch waren alle Pläne anonym abrufbar, **inklusive der `view_token` im

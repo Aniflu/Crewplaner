@@ -1,6 +1,6 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v0.30.2
+PocketBase-Collections (SQLite). Stand: v0.6.1 (2026-08-05)
 
 ---
 
@@ -34,9 +34,10 @@ PocketBase-Collections (SQLite). Stand: v0.30.2
 | `plan_data` | JSON / Text | Serialisierter Plan (Positionen, Tage, etc.) |
 | `view_token` | Text | Token für öffentlichen Read-only-Link (view.html) |
 
-**API Rules:**
-- List/View: `@request.auth.id = owner || @request.auth.role = "superadmin" || view_token != ""`
-  → ⚠️ Crew (weder Owner noch superadmin) kann einen Plan nur lesen, wenn `view_token` **nicht leer** ist. Fehlt er → 404 → leere Tour. Jede Tour, die Crew sehen soll, braucht einen view_token („Öffentlicher Booker-Link").
+**API Rules (Stand 2026-08-05):**
+- List/View: `@request.auth.id = owner || @request.auth.role = "superadmin"`
+  → Crew liest Pläne **nicht** über diese Collection, sondern über die authentifizierten Hook-Routen `/myplans` und `/myplan/{id}` (v4.16) — die geben weder `view_token` noch `owner` heraus. Die öffentliche Ansicht nutzt `/viewplan/{token}`.
+  → ⚠️ Die frühere Fassung endete auf `|| view_token != ""`. Das machte **alle** Pläne anonym lesbar, inklusive der Tokens im Klartext (Befund 2026-08-04) — eine PB-Regel filtert pro Datensatz und kann den Token aus dem Request nicht an *einen* Datensatz binden.
 - Update: `@request.auth.id = owner || @request.auth.role = "superadmin"`
 
 ---
@@ -102,7 +103,7 @@ PocketBase-Collections (SQLite). Stand: v0.30.2
 → Crew ändert nur EIGENE Einsätze; Owner/superadmin alles. create/deleteRule unverändert (`auth != ""`).
 ⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen (Details: docs/security.md · CLAUDE.md).
 
-**Hook-Trigger (Stand Hook v4.10, deployt 2026-07-22):**
+**Hook-Trigger (Stand Hook v4.16, deployt 2026-08-04/05):**
 - assignments-CREATE-Hook **entfernt** (v4.2) — keine per-Slot-Mails mehr. Mails laufen über `crew_invites` (Einladung/Erinnerung/Update/Absage, konsolidiert).
 - UPDATE (status=declined) → Hook informiert den Admin („Abgelehnt").
 - users-CREATE (v4.8+) → Auto-Verify **+** übernimmt die Rolle aus dem Crew-Pool (`crew_members` mit `plan_id="__pool__"`, gleiche E-Mail), falls dort ≠ `crew`; vergibt zusätzlich `feed_token` falls leer (v4.9).

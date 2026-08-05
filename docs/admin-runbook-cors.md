@@ -1,5 +1,7 @@
 # Admin-Runbook — CORS-Härtung Live (GitHub-Origin entfernen)
 
+> ⏳ **OFFEN — der einzige verbliebene Admin-Punkt (Stand 2026-08-05).** Braucht SSH-Zugang zur Traefik-Konfiguration. Nicht kritisch: PocketBase verlangt für alle Daten weiterhin Anmeldung, und der Preflight gibt fremden Herkünften keine Freigabe.
+
 **Ziel:** Die **Live**-PocketBase (`api.crewplanner.nyxlightwork.de`) soll nur noch Anfragen
 vom Live-Frontend (`https://crewplanner.nyxlightwork.de`) beantworten. Die GitHub-Testseite
 (`https://aniflu.github.io`) fliegt aus der **Live**-CORS-Liste.

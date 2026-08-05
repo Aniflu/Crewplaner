@@ -1,5 +1,7 @@
 # Befund: `plans.listRule` machte Pläne + `view_token` öffentlich
 
+> ✅ **Behoben in v0.6.0/v0.6.1** — Hook-Routen statt offener Collection, Regel final auf `owner || superadmin`, Tokens neu vergeben. Dieses Dokument bleibt als Verlauf stehen.
+
 **Datum:** 2026-08-04 · **Gefunden vom:** Server-Admin, beim Gegenprüfen der Annahme
 „der geheime `view_token` IST die Auth" nach dem Deploy von Hook v4.14
 **Betroffen:** Live und Test gleichermaßen · **Verursacht durch v4.14?** Nein, vorbestehend

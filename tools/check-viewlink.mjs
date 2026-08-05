@@ -194,7 +194,11 @@ catch { console.error(`Zugangsdaten nicht lesbar: ${CRED}\n(Pfad via PB_CRED set
 const instanzen = Object.entries(cred.instances || {}).filter(([n]) => !ONLY || n === ONLY);
 if (!instanzen.length) { console.error('Keine passende Instanz in der Zugangsdatei.'); process.exit(2); }
 
-for (const [name, inst] of instanzen) await pruefeInstanz(name, inst);
+for (const [name, inst] of instanzen) {
+  // Absturz vermeiden: ein Aussetzer soll als Problem gemeldet werden, nicht als Werkzeugfehler.
+  try { await pruefeInstanz(name, inst); }
+  catch (e) { console.log(`   ✗ ${name}: Prüfung abgebrochen — ${e.message}`); fehler++; }
+}
 
 console.log(fehler === 0
   ? '\nErgebnis: der öffentliche Link funktioniert vollständig.'

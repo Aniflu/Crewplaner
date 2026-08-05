@@ -1,5 +1,7 @@
 # Admin-Runbook — Go-Live (Live-seitige Schritte)
 
+> ✅ **Erledigt am 2026-07-30** — der erste Go-Live ist durch; der Ablauf ist inzwischen Routine (siehe CLAUDE.md, Abschnitt „Deploy"). Dieses Dokument bleibt als Verlauf stehen.
+
 Die Testumgebung steht (siehe [admin-runbook-umzug.md](admin-runbook-umzug.md)). Dieses
 Runbook betrifft **nur den ersten Go-Live** von v0.31.0 auf Live und ist danach die Vorlage
 für künftige Go-Lives.

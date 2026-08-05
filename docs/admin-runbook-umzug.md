@@ -1,5 +1,7 @@
 # Admin-Runbook — Testumgebung aufsetzen (Stand 2026-07-28)
 
+> ✅ **Erledigt am 2026-07-30** — die Testumgebung steht. Dieses Dokument bleibt als Verlauf stehen.
+
 Konkrete „mach jetzt das"-Anleitung für den Server-Admin. Ausführliche Hintergründe:
 [umzug-zwei-umgebungen.md](umzug-zwei-umgebungen.md). Marco hat **keinen** SSH-/Server-Zugang.
 

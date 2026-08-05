@@ -1,5 +1,7 @@
 # Admin-Runbook — Registrierungs-Sperre scharfschalten (v0.5.1, Hook v4.13)
 
+> ✅ **Erledigt am 2026-08-03** — Regel und Hook v4.13 auf beiden Backends. Dieses Dokument bleibt als Verlauf stehen.
+
 ## Warum
 
 `users.createRule` ist derzeit **leer** — auf Test **und** Live kann sich **jede beliebige

@@ -4,6 +4,21 @@ Stand: v0.30.2
 
 ---
 
+## ⚠️ Kompromittierter Resend-Schlüssel (2026-08-05)
+
+Beim Aufräumen gefunden: In `CHANGELOG.md` stand seit **v0.9.3 (Commit `37b414d`)** ein
+vollständiger Resend-API-Schlüssel im Klartext — in einem **öffentlichen** GitHub-Repository.
+
+- Aus der aktuellen Fassung entfernt.
+- **Das genügt NICHT:** Der Schlüssel steht weiterhin im Git-Verlauf und ist über jeden Klon
+  und die GitHub-Oberfläche abrufbar.
+- **Erforderlich:** Schlüssel im Resend-Dashboard **löschen**, neuen erzeugen und in Coolify als
+  `RESEND_KEY` hinterlegen (beide Instanzen prüfen — die Test-Instanz hat bewusst **keinen**).
+- Ein fremder Zugriff auf diesen Schlüssel erlaubt Mailversand **über eure verifizierte Domain**
+  (`crewplanner.nyxlightwork.de`) — Missbrauch würde eurer Domain-Reputation schaden.
+
+---
+
 ## Zugänge & Credentials
 
 | Was | Wo gespeichert | Rotieren wenn |
@@ -90,19 +105,34 @@ muss über den PocketBase-Superuser rein (siehe `admin-runbook-registrierungs-sp
 
 ---
 
-## Öffentlich lesbare Daten (Stand 2026-08-03)
+## Öffentlich lesbare Daten (Stand 2026-08-05)
 
-Ohne Anmeldung erreichbar ist **nur** die `plans`-Collection (Regel `view_token != ""`) — das ist
-der öffentliche Booker-Link. Dort stehen Tourdaten, Positionen und Crew-**Namen**, aber
-**keine E-Mail-Adressen** (geprüft).
+**Ohne Anmeldung ist keine einzige Collection mehr lesbar.** Gegengeprüft auf Live und Test:
+`plans`, `assignments`, `crew_members`, `users`, `email_log`, `activity_log` → jeweils
+`totalItems: 0`.
 
-Gesperrt (0 Datensätze ohne Anmeldung): `assignments`, `crew_members`, `users`, `email_log`,
-`activity_log`.
+> ⚠️ **Nicht am HTTP-Status festmachen.** PocketBase antwortet bei einer *Filter*-Regel mit
+> **200 und leerer Liste**; nur eine `null`-Regel liefert 403. Maßgeblich ist `totalItems`.
+> (Hinweis des Server-Admins, 2026-08-04.)
 
-> **Vorher war das anders:** `assignments.listRule` war leer und damit weltöffentlich — 913
-> Datensätze inkl. 10 Crew-E-Mail-Adressen waren ohne Login und ohne den geheimen Link abrufbar.
-> Am 2026-08-03 auf beiden Instanzen geschlossen (`@request.auth.id != ""`). Die öffentliche
-> Ansicht verliert dadurch die Status-Farben; Termine und Besetzung zeigt sie weiterhin.
+Öffentliche Daten fließen ausschließlich über die token-geschützten Hook-Routen (siehe unten),
+die gezielt filtern, was sie herausgeben.
+
+**Prüfen:** `node tools/check-pb-rules.mjs` (Regeln + Gegenprobe von außen) und
+`node tools/check-viewlink.mjs` (öffentlicher Link Ende-zu-Ende, inkl. Crew-Sicht).
+
+### Historie — drei Löcher in vier Tagen
+
+| Datum | Was offen lag | Ursache |
+|---|---|---|
+| 2026-08-03 | 913 Einsätze inkl. **10 Crew-E-Mail-Adressen**, ohne Login und ohne Link | `assignments.listRule` war **leer** — nötig, damit `view.html` Status-Farben anzeigen konnte |
+| 2026-08-04 | **alle Tourpläne** inkl. der `view_token` im Klartext | `plans.listRule` endete auf `\|\| view_token != ""`; der Zweig trifft auf *jeden* Plan mit Token zu |
+| 2026-08-04 | `view_token` im Payload für angemeldete Crew der eigenen Tour | Crew las den Plan direkt über die Collection |
+
+**Gemeinsame Fehlerklasse:** Eine Ansicht liest direkt aus einer Collection, und die
+Zugriffsregel wird so weit geöffnet, bis das geht. **Gegenmittel:** Was öffentlich oder
+eingeschränkt sichtbar sein soll, läuft über eine Hook-Route, die nur die nötigen Felder
+herausgibt — dann kann die Regel eng bleiben.
 
 ---
 
@@ -159,17 +189,32 @@ Zwei Ebenen, seit v0.26.0 **beide** aktiv:
 
 ---
 
-## Öffentliche, unauthentifizierte Routen
+## Server-Routen (Hook)
 
-Zwei Server-Routen sind bewusst **ohne** Login erreichbar — Sicherheit läuft hier über einen
-nicht-erratbaren Token statt über Auth:
+**Ohne Login, durch Token geschützt** — die Sicherheit hängt am nicht-erratbaren Token:
 
-- **`plans` mit `view_token`** (öffentlicher Booker-Link, `view.html`): Read-only, liest nur `plan_data`.
-- **`/ics/{token}/{plan}`** (Kalender-Abo-Feed, Hook v4.9.2, seit v0.27.0): `users.feed_token`
-  (`$security.randomString(40)`) identifiziert die Person, das zweite Pfadsegment grenzt auf EINE
-  Tour ein (v0.27.1 — vorher lieferte ein Token alle Touren gemischt, eine Person in zwei Touren
-  sah beide vermengt). Beide Tokens sind lang genug, um praktisch nicht erratbar zu sein; ein
-  kompromittierter Token gibt nur Lesezugriff auf Tourdaten/Termine preis, keine Schreibrechte.
+- **`GET /viewplan/{token}`** (v4.15) — öffentlicher Booker-Link: liefert **nur** `name` +
+  `plan_data`. Kein `view_token`, kein `owner`, kein `view_shorturl`.
+- **`GET /viewstatus/{token}`** (v4.14) — Status-Farben derselben Ansicht: **nur** Datum,
+  Position, Status, Anzeigename. Keine E-Mail-Adressen.
+- **`GET /ics/{token}/{plan}`** (v4.9.2) — persönlicher Kalender-Feed: `users.feed_token`
+  identifiziert die Person, das Plan-Segment grenzt auf **eine** Tour ein.
+
+**Mit Login, serverseitig geprüft:**
+
+- **`GET /myplans`**, **`GET /myplan/{id}`** (v4.16, `$apis.requireAuth()`) — die Touren der
+  angemeldeten Crew. Zugriff nur für Owner, superadmin oder `crew_members` *dieser* Tour;
+  Ablehnung als **404** (verrät nicht, ob die Tour existiert). Antwort **ohne** `view_token`,
+  `view_shorturl`, `owner`.
+
+> **Warum Hook-Routen statt Collection-Regeln:** PocketBase-Regeln filtern pro Datensatz und
+> können einen Token aus dem Request nicht an *einen* Datensatz binden. `view_token != ""` gibt
+> deshalb **alle** Pläne mit Token frei, nicht den einen. Eine Hook-Route löst den Token selbst
+> auf und bestimmt, welche Felder zurückgehen.
+
+> **Kein URL-Kürzer mehr.** Bis v0.6.0 schickte ein Hook die Ansichts-URL **inklusive Token** an
+> is.gd — ein fremder Dienst, der sie dauerhaft speichert, bei kurzen und durchprobierbaren
+> Adressen. In v0.6.1 entfernt; die Konsole zeigt die lange URL.
 
 ## Datenschutz (DSGVO)
 

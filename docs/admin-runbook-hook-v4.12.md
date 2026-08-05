@@ -1,5 +1,7 @@
 # Admin-Runbook — Hook v4.12 deployen (v0.5.0)
 
+> ✅ **Erledigt am 2026-08-03** — Hook v4.12 ist auf beiden Backends deployt. Dieses Dokument bleibt als Verlauf stehen.
+
 **Was v4.12 bringt** (zu v0.5.0 „Status am Stück umstellen"):
 
 1. **Kalender-Feed**: vorgemerkte Einsätze (`status = "pencilled"`) bleiben jetzt im

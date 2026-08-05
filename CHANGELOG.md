@@ -2,6 +2,42 @@
 
 > **v0.10.7 – v0.14.13 (Juni 2026)** — kondensiert. Vollständige, ausführliche Einträge: `CLAUDE.md` → Abschnitt „Versionierung".
 
+## v0.6.1 — 2026-08-04 — Der geheime Ansichts-Link bleibt geheim
+- **fix/security:** Ein **angemeldetes Crew-Mitglied** bekam beim Laden seiner eigenen Tour weiterhin den `view_token` im Payload. Als verstecktes PocketBase-Feld ging es nicht — die Konsole braucht ihn für den Booker-Link und läuft als App-Rolle `superadmin`, nicht als PB-Superuser.
+- **Hook v4.16:** zwei **authentifizierte** Routen `GET /myplans` und `GET /myplan/{id}` (`$apis.requireAuth()`) liefern der Crew ihre Touren **ohne** `view_token`/`view_shorturl`/`owner`. Prüfung serverseitig (Owner ODER superadmin ODER crew_member dieser Tour), Ablehnung als 404.
+- **Regel final:** `plans` list+view = `@request.auth.id = owner || @request.auth.role = "superadmin"` — der crew_members-Zweig aus v0.6.0 wurde überflüssig, weil Crew die Collection nicht mehr anfasst.
+- **is.gd-Kurzlinks entfernt:** Der Hook schickte die Ansichts-URL **inklusive Token** an einen fremden Dienst, der sie dauerhaft speichert — und funktionierte vom Server ohnehin nicht mehr. Die Konsole fällt auf die lange URL zurück.
+- **Rollout (2026-08-04/05, mit Admin):** Hook v4.16 + Regel auf **beiden** Instanzen, verifiziert. Der Admin fand dabei einen **Reihenfolge-Widerspruch in unserem Runbook** und setzte die Live-Regel bewusst nicht, solange dort noch v0.6.0 lief — das hätte alle 9 Crew-Konten ausgesperrt. Runbooks korrigiert.
+- 128 Tests grün. `docs/admin-runbook-hook-v4.16.md`
+
+## v0.6.0 — 2026-08-04 — Tourpläne und Ansichts-Links waren öffentlich
+- **fix/security:** `plans.listRule` endete auf `|| view_token != ""` — ein Zweig, der auf **jeden** Plan mit Token zutrifft (PB-Regeln filtern pro Datensatz und können den Token aus dem Request nicht an *einen* Datensatz binden). Folge: **alle Pläne anonym vollständig abrufbar**, inklusive der `view_token` im Klartext. Die Tokens waren damit aufzählbar statt geheim. **Gefunden vom Server-Admin**, der die Annahme „der geheime Token ist die Auth" gegengeprüft statt übernommen hat.
+- Keine E-Mail-Adressen betroffen; `assignments` blieb wirksam zu.
+- **Hook v4.15:** `GET /viewplan/{token}` liefert nur `name` + `plan_data`. `view-app.js` nutzt sie statt der REST-API.
+- **Neue Regel** mit crew_members-Zweig — der ursprüngliche Vorschlag (`owner || superadmin`) hätte die Crew ausgesperrt. Die `@collection`-Semantik wurde auf Test mit einem echten Crew-Konto **erprobt, nicht angenommen**.
+- **Tokens neu vergeben** (beide Instanzen); niemand hatte bis dahin einen Booker-Link. `docs/befund-plans-listrule-2026-08-04.md`
+
+## v0.5.2 — 2026-08-03 — Status-Farben zurück, ohne offene Daten
+- **fix/security:** Nacharbeit zum `assignments`-Leck. `view.html` las die Collection unauthentifiziert, um Status-Farben zu zeigen — dafür musste deren `listRule` offen sein.
+- **Hook v4.14:** `GET /viewstatus/{token}` liefert nur Datum/Position/Status/Anzeigename — keine Adressen.
+- **Neu `tools/check-pb-rules.mjs`:** prüft die gehärteten Zugriffsregeln auf beiden Instanzen samt Gegenprobe von außen. Hintergrund: Coolify-Redeploys setzen Regeln zurück — genau so entstand das Leck.
+- **Neu `tools/check-viewlink.mjs`:** prüft den öffentlichen Link Ende-zu-Ende. Die Ansicht war zuvor **dreimal still kaputt** (v0.27.2, 2026-07-04, v0.5.2) und fiel jedes Mal erst auf, als sie gezeigt werden sollte.
+
+## v0.5.1 — 2026-08-03 — Registrierung nur für freigegebene Adressen
+- **fix/security:** `users.createRule` war **leer** — jede beliebige Person konnte sich auf Test und Live selbst ein Konto anlegen.
+- Jetzt entsteht ein Konto nur für Adressen, die vorher in `crew_members` stehen (Pool **oder** Tour-Crew) — **mit der dort hinterlegten Rolle**. Abweisung mit klarem Hinweis, ohne zu verraten, ob die Adresse existiert.
+- **Zwei Ebenen:** `users.createRule` + Hook **v4.13** (`onRecordCreateRequest`), weil Regeln bei Redeploys zurückfallen, Hook-Dateien aber überleben. Die Prüfung steht bewusst **vor** `e.next()` — danach wäre der Datensatz schon angelegt.
+- **Nebenfund:** `js/pb-login-bundle.js` warf einen nackten Error ohne `data`/`status` — dadurch lief die „E-Mail schon vergeben"-Erkennung aus v0.23.5 auf der Login-Seite die ganze Zeit ins Leere. Behoben.
+- ⚠️ In einer leeren Datenbank sperrt die Regel alle aus — der erste `crew_members`-Eintrag muss über den Superuser rein. `docs/admin-runbook-registrierungs-sperre.md`
+
+## v0.5.0 — 2026-07-31 — Status am Stück umstellen (bestätigt ⇄ vorgemerkt)
+- **feat:** „Vorgemerkt" (✎) ließ sich nur Zelle für Zelle setzen — bei 30–60 Tourtagen unbrauchbar. Neu: Sidebar-Knopf **„✎ Status umstellen"** (und derselbe Dialog aus dem Zellen-Menü mit vorausgewählter Person) zeigt alle bestätigten Einsätze nach **Person → Tourblock → Tag**, mit „alle/keine" je Ebene. Umschalter geht auch zurück.
+- **Kalender:** Vorgemerkte Termine **bleiben** im Abo und tragen ihren Stand im Infofeld („Status: Vorgemerkt"/„Bestätigt"). Vorher fielen sie aus beiden Kalenderwegen heraus und verschwanden lautlos.
+- **Update-Queue:** dritte Sorte `kind:'status'`; Versand wie immer erst per Knopfdruck. Hook **v4.12** rendert den passenden Mail-Abschnitt.
+- **Tage-Zählung unverändert:** vorgemerkt zählt weiterhin nicht als bestätigter Tag.
+
+> **Hinweis zur Nummerierung:** Zwischen v0.31.0 und v0.5.0 wurde die Versionsreihe auf Wunsch bewusst **auf kleine Nummern zurückgesetzt**, um schrittweise auf 1.0 zuzugehen. Die zunächst als „v0.50.0" ausgelieferte Version wurde zu **v0.5.0** umbenannt (reine Anzeigetexte; Live hatte sie nie gesehen). Chronologisch gilt also: v0.31.0 → v0.5.0 → v0.5.1 → v0.5.2 → v0.6.0 → v0.6.1.
+
 ## v0.31.0 — 2026-07-30 — Zwei getrennte Umgebungen (Test/Live)
 - **feat:** GitHub ist jetzt eine **isolierte Testumgebung**, Live läuft getrennt auf Hetzner. Bisher redeten Test-Seite (GitHub Pages) und Live-Seite mit **derselben** Live-Datenbank — Tests wirkten auf echte Daten und konnten echte Mails auslösen. Jetzt: eigene Test-Datenbank (`api-test.crewplanner.nyxlightwork.de`, ohne Mailversand) + Branch-Trennung (`main` = Test, `live` = Produktion; Go-Live = `main → live` pushen).
 - **Kern-Code:** Frontend wählt die PocketBase-API automatisch nach Hostname — neue reine `pickApiUrl(host)` (js/pure.js), Sicherheits-Default „im Zweifel Test" (nur `crewplanner.nyxlightwork.de`/`www.` → Live-API, alles andere → Test-API). Ersetzt die zuvor an 5 Stellen hart verdrahtete `POCKETBASE_URL`. +2 Tests (110 grün).
@@ -376,7 +412,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
 
 ### Manuelle Schritte erforderlich
 
-1. **Resend API Key in PocketBase setzen:** PB Admin UI → Settings → Environment Variables → `RESEND_KEY` = `re_75ZvXHSz_2eCzUVHziYm6mj3sJwzavv2s`
+1. **Resend API Key in PocketBase setzen:** PB Admin UI → Settings → Environment Variables → `RESEND_KEY` = `re_…` (Wert aus dem Resend-Dashboard) — ⚠️ **hier stand der Schlüssel bis 2026-08-05 im Klartext; das Repo ist öffentlich. Der Schlüssel gilt als kompromittiert und muss bei Resend rotiert werden. Entfernen aus dieser Datei nimmt ihn NICHT aus dem Git-Verlauf.**
 2. **Alten Key rotieren:** Resend Dashboard → API Keys → alten Key löschen und neuen erstellen, dann in PB erneut setzen
 3. **Hook deployen:**
    ```bash

@@ -1,5 +1,7 @@
 # Admin-Runbook — Hook v4.16 + `plans`-Regel final zuschneiden (v0.6.1)
 
+> ✅ **Erledigt am 2026-08-04/05** — Hook v4.16 auf beiden Backends, `plans`-Regel auf Live und Test final zugeschnitten, gegengeprüft (kein Konto hat eine Tour verloren). Dieses Dokument bleibt als Verlauf stehen.
+
 Schließt deinen dritten Punkt vom 2026-08-04: *„ein eingeloggtes Crew-Mitglied sieht im Payload
 seiner eigenen Tour weiterhin den `view_token`."* Stimmt — und ist jetzt app-seitig behoben.
 

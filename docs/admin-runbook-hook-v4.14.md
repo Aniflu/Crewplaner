@@ -1,5 +1,7 @@
 # Admin-Runbook — Hook v4.14 deployen (v0.5.2)
 
+> ✅ **Erledigt am 2026-08-04** — Hook v4.14 ist auf beiden Backends deployt und verifiziert. Dieses Dokument bleibt als Verlauf stehen.
+
 ## Warum
 
 Am 3. August kam heraus, dass `assignments.listRule` **leer** war — alle 913 Einsätze inkl.

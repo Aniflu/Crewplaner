@@ -147,7 +147,12 @@ const instanzen = Object.entries(cred.instances || {}).filter(([n]) => !ONLY || 
 if (!instanzen.length) { console.error('Keine passende Instanz in der Zugangsdatei.'); process.exit(2); }
 
 let summe = 0;
-for (const [name, inst] of instanzen) summe += await pruefe(name, inst);
+for (const [name, inst] of instanzen) {
+  // Ein Aussetzer (Netz, nicht-JSON-Antwort) darf NICHT als Absturz enden — sonst sieht ein
+  // echtes Problem aus wie ein Werkzeugfehler. Lieber laut als Abweichung melden.
+  try { summe += await pruefe(name, inst); }
+  catch (e) { console.log(`   ✗ ${name}: Prüfung abgebrochen — ${e.message}`); summe++; }
+}
 
 if (FIX && summe > 0) {
   // Nach dem Reparieren zählt nur noch, was ÜBRIG bleibt — sonst meldet --fix Exit 1,
