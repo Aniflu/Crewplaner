@@ -4,18 +4,31 @@ Stand: v0.30.2
 
 ---
 
-## ⚠️ Kompromittierter Resend-Schlüssel (2026-08-05)
+## Resend-Schlüssel im Git-Verlauf (2026-08-05) — kein Handlungsbedarf
 
 Beim Aufräumen gefunden: In `CHANGELOG.md` stand seit **v0.9.3 (Commit `37b414d`)** ein
 vollständiger Resend-API-Schlüssel im Klartext — in einem **öffentlichen** GitHub-Repository.
+Aus der aktuellen Fassung entfernt; im Git-Verlauf bleibt er für immer lesbar.
 
-- Aus der aktuellen Fassung entfernt.
-- **Das genügt NICHT:** Der Schlüssel steht weiterhin im Git-Verlauf und ist über jeden Klon
-  und die GitHub-Oberfläche abrufbar.
-- **Erforderlich:** Schlüssel im Resend-Dashboard **löschen**, neuen erzeugen und in Coolify als
-  `RESEND_KEY` hinterlegen (beide Instanzen prüfen — die Test-Instanz hat bewusst **keinen**).
-- Ein fremder Zugriff auf diesen Schlüssel erlaubt Mailversand **über eure verifizierte Domain**
-  (`crewplanner.nyxlightwork.de`) — Missbrauch würde eurer Domain-Reputation schaden.
+**KORREKTUR (2026-08-05, vom Admin am echten Dienst nachgemessen — meine ursprüngliche
+Forderung „muss rotiert werden" war voreilig, weil ich nicht geprüft hatte, WELCHER Schlüssel
+dort steht):**
+
+- Es ist **nicht** der laufende Schlüssel: im Verlauf steht `re_75ZvX…`, auf dem Server läuft
+  `re_Suse3…`.
+- Der Schlüssel aus dem Verlauf ist bei Resend **bereits ungültig**:
+  `GET https://api.resend.com/domains` → `400 {"message":"API key is invalid"}`.
+- Der aktive Schlüssel ist gültig (`200`), Domain `crewplanner.nyxlightwork.de` verified,
+  Versand läuft.
+
+Also **keine Rotation nötig**. Der Eintrag im Verlauf ist wertlos. Wäre es der laufende
+Schlüssel gewesen, gälte: löschen, neu erzeugen, in Coolify als `RESEND_KEY` hinterlegen
+(die Test-Instanz hat bewusst **keinen**) — ein fremder Zugriff erlaubt Mailversand über die
+verifizierte Domain und schadet der Domain-Reputation.
+
+**Lehre:** „Steht ein Secret im Verlauf?" und „Ist DIESES Secret noch gültig?" sind zwei
+Fragen. Die zweite kostet einen einzigen API-Aufruf und entscheidet, ob überhaupt etwas zu
+tun ist.
 
 ---
 
@@ -143,8 +156,11 @@ Das galt hier lange als Reverse-Proxy-Einstellung und wurde deshalb als „brauc
 liegengelassen — ein Denkfehler: Der Header erscheint zusammen mit `Vary: Origin` und den
 PocketBase-Security-Headern, **auch auf reinen Hook-Routen**, die Traefik nicht anfasst.
 
-Seit **Hook v4.17** grenzt eine `routerUse`-Middleware das ein. Die erlaubte Herkunft ergibt
-sich aus dem eigenen Hostnamen:
+Eine `routerUse`-Middleware grenzt das ein — eingeführt in **v4.17**, aber **wirksam erst ab
+v4.18**: v4.17 setzte die Header nach `e.next()`, zu diesem Zeitpunkt ist die Antwort in Go
+längst geschrieben und jedes `Header().Set()` verpufft folgenlos. Der Hook lud, lief, meldete
+`v4.17 geladen` — und änderte keinen einzigen Header (vom Admin am 2026-08-05 gemessen; siehe
+`admin-runbook-hook-v4.18.md`). Die erlaubte Herkunft ergibt sich aus dem eigenen Hostnamen:
 
 | Instanz | erlaubt |
 |---|---|
@@ -161,7 +177,9 @@ das Token liegt origin-isoliert im Browser-Speicher, eine fremde Seite kommt nic
 widersprach aber der Doku — und „steht so in der Doku" ist kein Sicherheitsniveau.
 
 **Prüfen:** `node tools/check-pb-rules.mjs` (eigene CORS-Probe: eigene Herkunft freigegeben,
-fremde nicht).
+fremde nicht). ⚠️ **Nicht am Log festmachen:** `v4.xx geladen` beweist, dass der Hook LÄDT,
+nicht dass er WIRKT. Bei Header-Änderungen müssen die Header gemessen werden — genau daran
+ging v4.17 unbemerkt vorbei.
 
 ---
 

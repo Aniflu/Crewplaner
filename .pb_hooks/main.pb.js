@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.17
-console.log('[hook] main.pb.js v4.17 geladen');
+// Version: 4.18
+console.log('[hook] main.pb.js v4.18 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -520,7 +520,7 @@ onBootstrap(function(e) {
 // Zugriff: Owner ODER App-Rolle superadmin ODER als crew_members in DIESER Tour.
 // Dieselbe Logik wie die plans-Regel — nur dass die Antwort hier gefiltert ist.
 // Goja-Isolation: alle Helfer/Literale INNERHALB der Handler.
-// ── 7b. CORS eingrenzen (v4.17) ──────────────────────────────────────────────
+// ── 7b. CORS eingrenzen (v4.17, wirksam erst ab v4.18) ───────────────────────
 // PocketBase antwortet standardmäßig JEDER Herkunft mit `Access-Control-Allow-Origin: *`
 // (gemessen 2026-08-05: das `*` kommt zusammen mit `Vary: Origin` und den PB-Security-
 // Headern, auch auf Hook-Routen, die Traefik nicht anfasst — es stammt also aus PocketBase,
@@ -537,41 +537,61 @@ onBootstrap(function(e) {
 //
 // AUSNAHME: die token-geschützten öffentlichen Routen (/viewplan, /viewstatus, /ics) bleiben
 // bei `*` — sie sind bewusst für jeden abrufbar, dort IST der Token die Zugangsberechtigung.
+//
+// ⚠️ REIHENFOLGE (Korrektur in v4.18, vom Admin am 2026-08-05 gemessen und behoben):
+// Die Header müssen VOR `e.next()` gesetzt werden. `e.next()` arbeitet den kompletten Request
+// ab; sobald der Handler den Body schreibt, sind die Header in Go raus (`WriteHeader` ist
+// gefallen) und jedes spätere `Header().Set()`/`.Del()` läuft wirkungslos ins Leere — ohne
+// Fehler, ohne Log-Eintrag. Genau so war v4.17: geladen, gelaufen, ohne jede Wirkung.
+// Das ist DIESELBE Falle wie bei Hook v4.13: die Projektregel „e.next() zuerst" gilt nur für
+// BEOBACHTENDE Hooks (onRecord*Success). Wer den Request beeinflusst — abweisen wie v4.13,
+// Header setzen wie hier —, muss VOR e.next() handeln.
+//
+// Und die Falle IN der Korrektur: die Bedingungen dürfen nicht mit `return` abbrechen, sonst
+// überspringen sie das `e.next()` und der Request wird nie abgearbeitet (die öffentlichen
+// Routen wären als erste tot). Deshalb: eine Bedingung statt drei `return`s, und
+// `return e.next()` als letzte Zeile — auf jedem Weg genau einmal.
+//
+// Bestätigt: PocketBases eigene CORS-Middleware läuft VOR den routerUse-Hooks, ein set/del
+// davor gewinnt also gegen ihr `*`.
 routerUse(function(e) {
-  e.next();
   try {
     var pfad = '';
     try { pfad = String(e.request.url.path || ''); } catch (err0) { pfad = ''; }
-    if (pfad.indexOf('/viewplan/') === 0 || pfad.indexOf('/viewstatus/') === 0 || pfad.indexOf('/ics/') === 0) return;
+    var oeffentlich = (pfad.indexOf('/viewplan/') === 0 || pfad.indexOf('/viewstatus/') === 0 || pfad.indexOf('/ics/') === 0);
 
     var origin = '';
     try { origin = String(e.request.header.get('Origin') || ''); } catch (err1) { origin = ''; }
-    if (!origin) return;   // kein Browser-Aufruf (curl, Server) → CORS irrelevant
+    // Kein Origin = kein Browser-Aufruf (curl, Server) → CORS irrelevant, Header bleiben wie sie sind.
 
     var host = '';
     try { host = String(e.request.host || ''); } catch (err2) { host = ''; }
 
-    var erlaubt;
-    if (host.indexOf('api-test.') === 0) {
-      erlaubt = ['https://aniflu.github.io', 'http://localhost:8080', 'http://127.0.0.1:8080'];
-    } else {
-      erlaubt = ['https://crewplanner.nyxlightwork.de', 'https://www.crewplanner.nyxlightwork.de'];
-    }
+    if (!oeffentlich && origin) {
 
-    var ok = false;
-    for (var i = 0; i < erlaubt.length; i++) { if (erlaubt[i] === origin) { ok = true; break; } }
+      var erlaubt;
+      if (host.indexOf('api-test.') === 0) {
+        erlaubt = ['https://aniflu.github.io', 'http://localhost:8080', 'http://127.0.0.1:8080'];
+      } else {
+        erlaubt = ['https://crewplanner.nyxlightwork.de', 'https://www.crewplanner.nyxlightwork.de'];
+      }
 
-    if (ok) {
-      e.response.header().set('Access-Control-Allow-Origin', origin);
-    } else {
-      // Fremde Herkunft: Freigabe zurücknehmen. Der Browser blockiert das Auslesen dann.
-      e.response.header().del('Access-Control-Allow-Origin');
+      var ok = false;
+      for (var i = 0; i < erlaubt.length; i++) { if (erlaubt[i] === origin) { ok = true; break; } }
+
+      if (ok) {
+        e.response.header().set('Access-Control-Allow-Origin', origin);
+      } else {
+        // Fremde Herkunft: Freigabe zurücknehmen. Der Browser blockiert das Auslesen dann.
+        e.response.header().del('Access-Control-Allow-Origin');
+      }
+      e.response.header().set('Vary', 'Origin');
     }
-    e.response.header().set('Vary', 'Origin');
   } catch (err) {
     // Nie den Request scheitern lassen, nur weil die Header-Feinjustierung klemmt.
     console.error('[hook] CORS-Middleware:', err.message || String(err));
   }
+  return e.next();
 });
 
 

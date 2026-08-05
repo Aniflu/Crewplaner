@@ -126,7 +126,7 @@ async function pruefe(name, inst) {
     console.log(`     ${ok ? '✓' : '✗'} ${coll.padEnd(13)} ${n}`);
   }
 
-  // CORS: PocketBase antwortet ohne Zutun JEDER Herkunft mit `*`. Seit Hook v4.17 grenzt eine
+  // CORS: PocketBase antwortet ohne Zutun JEDER Herkunft mit `*`. Seit Hook v4.18 grenzt eine
   // routerUse-Middleware das auf die zur Instanz passende Frontend-Herkunft ein. Die
   // token-geschützten öffentlichen Routen (/viewplan, /viewstatus, /ics) bleiben bewusst offen.
   console.log('   CORS:');
@@ -142,7 +142,7 @@ async function pruefe(name, inst) {
   else console.log(`     ✓ eigenes Frontend freigegeben (${eigene})`);
   if (fremd === '*' || fremd === 'https://evil.example.com') {
     abweichungen++;
-    console.log(`     ✗ fremde Herkunft bekommt Freigabe — ${fremd}  (Hook v4.17 nicht aktiv?)`);
+    console.log(`     ✗ fremde Herkunft bekommt Freigabe — ${fremd}  (Hook v4.18 nicht aktiv?)`);
   } else console.log('     ✓ fremde Herkunft bekommt keine Freigabe');
 
   // Und: die öffentliche Ansicht darf ihre Daten nur noch über die Hook-Routen bekommen.
@@ -186,5 +186,5 @@ console.log(summe === 0
   ? '\nErgebnis: alle geprüften Regeln stehen richtig.'
   : `\nErgebnis: ${summe} Abweichung(en).`
     + (FIX ? ' — konnten NICHT behoben werden.'
-           : ' Regel-Abweichungen setzt --fix zurück; CORS hängt am Hook (v4.17) und braucht einen Deploy.'));
+           : ' Regel-Abweichungen setzt --fix zurück; CORS hängt am Hook (v4.18) und braucht einen Deploy.'));
 process.exit(summe === 0 ? 0 : 1);

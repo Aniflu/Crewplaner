@@ -412,8 +412,8 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
 
 ### Manuelle Schritte erforderlich
 
-1. **Resend API Key in PocketBase setzen:** PB Admin UI → Settings → Environment Variables → `RESEND_KEY` = `re_…` (Wert aus dem Resend-Dashboard) — ⚠️ **hier stand der Schlüssel bis 2026-08-05 im Klartext; das Repo ist öffentlich. Der Schlüssel gilt als kompromittiert und muss bei Resend rotiert werden. Entfernen aus dieser Datei nimmt ihn NICHT aus dem Git-Verlauf.**
-2. **Alten Key rotieren:** Resend Dashboard → API Keys → alten Key löschen und neuen erstellen, dann in PB erneut setzen
+1. **Resend API Key in PocketBase setzen:** PB Admin UI → Settings → Environment Variables → `RESEND_KEY` = `re_…` (Wert aus dem Resend-Dashboard) — ⚠️ **hier stand bis 2026-08-05 ein Schlüssel im Klartext; das Repo ist öffentlich, und aus dem Git-Verlauf bekommt man ihn nie wieder heraus.** **KORREKTUR 2026-08-05 (nachgemessen statt angenommen):** Es ist **nicht** der laufende Schlüssel (Verlauf `re_75ZvX…`, Server `re_Suse3…`), und der Schlüssel aus dem Verlauf ist bei Resend **bereits ungültig** (`GET /domains` → `400 API key is invalid`). **Keine Rotation nötig** — der Eintrag ist wertlos. Details: docs/security.md.
+2. **Key rotieren — nur falls doch einmal ein AKTIVER Schlüssel austritt:** Resend Dashboard → API Keys → alten löschen, neuen erstellen, in PB erneut setzen. (2026-08-05 geprüft: hier nicht der Fall.)
 3. **Hook deployen:**
    ```bash
    ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"

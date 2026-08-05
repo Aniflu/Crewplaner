@@ -1,5 +1,12 @@
 # Admin-Runbook — Hook v4.17: CORS eingrenzen (löst den letzten offenen Punkt)
 
+> ⛔ **ÜBERHOLT — nicht mehr nach dieser Anleitung deployen.**
+> Der hier beschriebene Hook **wirkt nicht**: v4.17 setzte die Header nach `e.next()`, zu diesem
+> Zeitpunkt ist die Antwort längst geschrieben. Er lädt, läuft, meldet `v4.17 geladen` — und
+> ändert keinen einzigen Header (Admin-Messung 2026-08-05).
+> **→ `admin-runbook-hook-v4.18.md`.** Die Begründung unten (das `*` kommt aus PocketBase, nicht
+> aus Traefik) bleibt richtig und ist weiterhin lesenswert.
+
 ## Warum — und warum es doch KEIN SSH braucht
 
 Der CORS-Punkt stand tagelang als „braucht Zugriff auf die Traefik-Datei" auf der Liste. **Das
