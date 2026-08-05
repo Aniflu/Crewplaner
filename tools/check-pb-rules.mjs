@@ -126,6 +126,25 @@ async function pruefe(name, inst) {
     console.log(`     ${ok ? '✓' : '✗'} ${coll.padEnd(13)} ${n}`);
   }
 
+  // CORS: PocketBase antwortet ohne Zutun JEDER Herkunft mit `*`. Seit Hook v4.17 grenzt eine
+  // routerUse-Middleware das auf die zur Instanz passende Frontend-Herkunft ein. Die
+  // token-geschützten öffentlichen Routen (/viewplan, /viewstatus, /ics) bleiben bewusst offen.
+  console.log('   CORS:');
+  const eigene = inst.base_url.includes('api-test.')
+    ? 'https://aniflu.github.io' : 'https://crewplanner.nyxlightwork.de';
+  const acao = async (origin, pfad = '/api/health') => {
+    const r = await fetch(inst.base_url + pfad, { headers: { Origin: origin } });
+    return r.headers.get('access-control-allow-origin');
+  };
+  const eigen = await acao(eigene);
+  const fremd = await acao('https://evil.example.com');
+  if (eigen !== eigene) { abweichungen++; console.log(`     ✗ eigenes Frontend nicht freigegeben — ${eigen}`); }
+  else console.log(`     ✓ eigenes Frontend freigegeben (${eigene})`);
+  if (fremd === '*' || fremd === 'https://evil.example.com') {
+    abweichungen++;
+    console.log(`     ✗ fremde Herkunft bekommt Freigabe — ${fremd}  (Hook v4.17 nicht aktiv?)`);
+  } else console.log('     ✓ fremde Herkunft bekommt keine Freigabe');
+
   // Und: die öffentliche Ansicht darf ihre Daten nur noch über die Hook-Routen bekommen.
   // Wenn plans wieder anonym liefert, taucht dort auch der view_token auf — genau das
   // war der Befund vom 2026-08-04.
@@ -165,5 +184,7 @@ if (FIX && summe > 0) {
 
 console.log(summe === 0
   ? '\nErgebnis: alle geprüften Regeln stehen richtig.'
-  : `\nErgebnis: ${summe} Abweichung(en).` + (FIX ? ' — konnten NICHT behoben werden.' : ' Mit --fix zurücksetzen.'));
+  : `\nErgebnis: ${summe} Abweichung(en).`
+    + (FIX ? ' — konnten NICHT behoben werden.'
+           : ' Regel-Abweichungen setzt --fix zurück; CORS hängt am Hook (v4.17) und braucht einen Deploy.'));
 process.exit(summe === 0 ? 0 : 1);

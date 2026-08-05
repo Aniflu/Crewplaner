@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.16
-console.log('[hook] main.pb.js v4.16 geladen');
+// Version: 4.17
+console.log('[hook] main.pb.js v4.17 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -520,6 +520,61 @@ onBootstrap(function(e) {
 // Zugriff: Owner ODER App-Rolle superadmin ODER als crew_members in DIESER Tour.
 // Dieselbe Logik wie die plans-Regel — nur dass die Antwort hier gefiltert ist.
 // Goja-Isolation: alle Helfer/Literale INNERHALB der Handler.
+// ── 7b. CORS eingrenzen (v4.17) ──────────────────────────────────────────────
+// PocketBase antwortet standardmäßig JEDER Herkunft mit `Access-Control-Allow-Origin: *`
+// (gemessen 2026-08-05: das `*` kommt zusammen mit `Vary: Origin` und den PB-Security-
+// Headern, auch auf Hook-Routen, die Traefik nicht anfasst — es stammt also aus PocketBase,
+// nicht aus dem Reverse-Proxy). Die Doku behauptete seit jeher, nur zwei Herkünfte seien
+// erlaubt; das stimmte nicht.
+//
+// Praktisch war der Schaden gering (alle Collections verlangen Anmeldung, das Token liegt
+// origin-isoliert im Browser-Speicher), aber „steht so in der Doku" ist kein Sicherheitsniveau.
+//
+// Die erlaubte Herkunft ergibt sich aus dem eigenen Hostnamen — so braucht es weder eine
+// Umgebungsvariable noch unterschiedliche Hook-Dateien je Instanz:
+//   api.crewplanner…      → nur  https://crewplanner.nyxlightwork.de (+ www)
+//   api-test.crewplanner… → nur  https://aniflu.github.io  (+ localhost fürs Entwickeln)
+//
+// AUSNAHME: die token-geschützten öffentlichen Routen (/viewplan, /viewstatus, /ics) bleiben
+// bei `*` — sie sind bewusst für jeden abrufbar, dort IST der Token die Zugangsberechtigung.
+routerUse(function(e) {
+  e.next();
+  try {
+    var pfad = '';
+    try { pfad = String(e.request.url.path || ''); } catch (err0) { pfad = ''; }
+    if (pfad.indexOf('/viewplan/') === 0 || pfad.indexOf('/viewstatus/') === 0 || pfad.indexOf('/ics/') === 0) return;
+
+    var origin = '';
+    try { origin = String(e.request.header.get('Origin') || ''); } catch (err1) { origin = ''; }
+    if (!origin) return;   // kein Browser-Aufruf (curl, Server) → CORS irrelevant
+
+    var host = '';
+    try { host = String(e.request.host || ''); } catch (err2) { host = ''; }
+
+    var erlaubt;
+    if (host.indexOf('api-test.') === 0) {
+      erlaubt = ['https://aniflu.github.io', 'http://localhost:8080', 'http://127.0.0.1:8080'];
+    } else {
+      erlaubt = ['https://crewplanner.nyxlightwork.de', 'https://www.crewplanner.nyxlightwork.de'];
+    }
+
+    var ok = false;
+    for (var i = 0; i < erlaubt.length; i++) { if (erlaubt[i] === origin) { ok = true; break; } }
+
+    if (ok) {
+      e.response.header().set('Access-Control-Allow-Origin', origin);
+    } else {
+      // Fremde Herkunft: Freigabe zurücknehmen. Der Browser blockiert das Auslesen dann.
+      e.response.header().del('Access-Control-Allow-Origin');
+    }
+    e.response.header().set('Vary', 'Origin');
+  } catch (err) {
+    // Nie den Request scheitern lassen, nur weil die Header-Feinjustierung klemmt.
+    console.error('[hook] CORS-Middleware:', err.message || String(err));
+  }
+});
+
+
 routerAdd('GET', '/myplans', function(e) {
   var auth = e.auth;
   if (!auth) return e.string(401, 'unauthorized');

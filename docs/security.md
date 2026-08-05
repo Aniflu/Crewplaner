@@ -136,6 +136,35 @@ herausgibt — dann kann die Regel eng bleiben.
 
 ---
 
+## CORS
+
+PocketBase antwortet von Haus aus **jeder** Herkunft mit `Access-Control-Allow-Origin: *`.
+Das galt hier lange als Reverse-Proxy-Einstellung und wurde deshalb als „braucht SSH"
+liegengelassen — ein Denkfehler: Der Header erscheint zusammen mit `Vary: Origin` und den
+PocketBase-Security-Headern, **auch auf reinen Hook-Routen**, die Traefik nicht anfasst.
+
+Seit **Hook v4.17** grenzt eine `routerUse`-Middleware das ein. Die erlaubte Herkunft ergibt
+sich aus dem eigenen Hostnamen:
+
+| Instanz | erlaubt |
+|---|---|
+| `api.crewplanner…` | `https://crewplanner.nyxlightwork.de` (+ `www.`) |
+| `api-test.crewplanner…` | `https://aniflu.github.io`, `localhost:8080` |
+
+Fremde Herkünfte bekommen **keinen** Header → der Browser verweigert das Auslesen.
+
+**Bewusste Ausnahme:** `/viewplan/…`, `/viewstatus/…`, `/ics/…` behalten `*` — dort ist der
+Token die Zugangsberechtigung, und ein Kalender-Abo muss von überall abrufbar sein.
+
+**Einordnung:** Der praktische Schaden des `*` war gering (alle Collections verlangen Anmeldung;
+das Token liegt origin-isoliert im Browser-Speicher, eine fremde Seite kommt nicht daran). Es
+widersprach aber der Doku — und „steht so in der Doku" ist kein Sicherheitsniveau.
+
+**Prüfen:** `node tools/check-pb-rules.mjs` (eigene CORS-Probe: eigene Herkunft freigegeben,
+fremde nicht).
+
+---
+
 ## Infrastruktur-Sicherheit
 
 ### Server

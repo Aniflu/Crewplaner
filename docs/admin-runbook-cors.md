@@ -1,6 +1,11 @@
 # Admin-Runbook — CORS-Härtung Live (GitHub-Origin entfernen)
 
-> ⏳ **OFFEN — der einzige verbliebene Admin-Punkt (Stand 2026-08-05).** Braucht SSH-Zugang zur Traefik-Konfiguration. Nicht kritisch: PocketBase verlangt für alle Daten weiterhin Anmeldung, und der Preflight gibt fremden Herkünften keine Freigabe.
+> ⚠️ **ÜBERHOLT (2026-08-05).** Dieses Runbook ging davon aus, dass die CORS-Freigabe in der
+> Traefik-Datei sitzt und deshalb SSH braucht. **Das war ein Denkfehler:** Nachgemessen kommt das
+> `Access-Control-Allow-Origin: *` aus **PocketBase selbst** (es erscheint zusammen mit
+> `Vary: Origin` und den PB-Security-Headern, auch auf reinen Hook-Routen, die Traefik nicht
+> anfasst). Gelöst wird es deshalb im Hook — siehe **`admin-runbook-hook-v4.17.md`**.
+> Dieses Dokument bleibt nur als Verlauf stehen.
 
 **Ziel:** Die **Live**-PocketBase (`api.crewplanner.nyxlightwork.de`) soll nur noch Anfragen
 vom Live-Frontend (`https://crewplanner.nyxlightwork.de`) beantworten. Die GitHub-Testseite
