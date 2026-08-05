@@ -75,17 +75,27 @@ Reihenfolge-Abhängigkeit zum Frontend (die Middleware betrifft nur Antwort-Head
 
 **Erst Test, dann Live.**
 
-```bash
-# TEST
-ssh hetzner "curl -s -o <TEST-HOOKS-VOLUME>/main.pb.js \
-  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart <TEST-CONTAINER>"
+⚠️ **Nicht `curl -o` direkt ins Volume.** Ohne `-f` schreibt curl bei einem GitHub-Ausfall
+oder 404 die **Fehlerseite** in die Hook-Datei, und das nachfolgende `&&` sieht nur den
+Exit-Code von curl — der Restart läuft trotzdem, PocketBase startet mit kaputtem Hook. Der
+Umweg über `/tmp` mit zwei Gates kostet nichts (Formulierung vom Admin, 2026-08-05):
 
-# LIVE
-ssh hetzner "curl -s -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
-  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+```bash
+SHA=573d85b45ecd48f68a5a48ac68b4094a67c22fd8dad300b577684d3cf245ecd5
+
+curl -sf -o /tmp/main.pb.js.new \
+  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js
+grep -q 'v4.18 geladen' /tmp/main.pb.js.new
+echo "$SHA  /tmp/main.pb.js.new" | sha256sum -c -
+
+# erst wenn BEIDE Gates durch sind:
+cp /tmp/main.pb.js.new <VOLUME>/main.pb.js && docker restart <CONTAINER>
 ```
+
+| | Volume / Container |
+|---|---|
+| LIVE | `/var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/` · `pocketbase-ad9adhhkygjreidi79i4v5eb` |
+| TEST | Volume + Container-Name beim Admin (Coolify-Service `pocketbase-test`) |
 
 Danach im Log: `[hook] main.pb.js v4.18 geladen`. Da der laufende `v4.17-fix` inhaltlich
 identisch ist, darf sich am gemessenen Verhalten **nichts** ändern — der Deploy ist die
@@ -128,12 +138,19 @@ curl -s -D - -o /dev/null -H "Origin: https://evil.example.com" \
 → access-control-allow-origin: *
 ```
 
-**Und automatisiert:**
+**Und automatisiert** — beide Werkzeuge laufen bei **Marco** (sie brauchen die lokale
+Superuser-Datei), nicht auf dem Server:
 
 ```bash
-node tools/check-pb-rules.mjs     # eigene CORS-Probe gegen beide Instanzen
-node tools/check-viewlink.mjs     # öffentlicher Booker-Link Ende-zu-Ende
+node tools/check-pb-rules.mjs     # nur lesend — CORS-Probe + Regeln gegen beide Instanzen
+node tools/check-viewlink.mjs     # ⚠️ SCHREIBT (siehe unten) — Booker-Link Ende-zu-Ende
 ```
+
+⚠️ **`check-viewlink.mjs` ist kein reiner Messlauf.** Er legt für eine echte Crew-Adresse
+ohne Konto vorübergehend einen `users`-Datensatz an und löscht ihn im `finally` wieder.
+Bei hartem Abbruch bleibt das Konto stehen; währenddessen existiert in den Produktivdaten
+ein Konto auf den Namen einer echten Person. Gegen Live also bewusst starten — für eine
+reine Deploy-Kontrolle reichen die curl-Proben oben. `--only=test` ist gefahrlos.
 
 ## Rollback
 

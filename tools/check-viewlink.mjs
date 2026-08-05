@@ -1,6 +1,17 @@
 #!/usr/bin/env node
 // Prüft den öffentlichen Booker-Link Ende-zu-Ende gegen das echte Backend.
 //
+// ⚠️ ACHTUNG: DIESER LAUF SCHREIBT — es ist KEINE reine Messung.
+// Der Crew-Durchlauf legt für eine echte Adresse aus `crew_members`, die noch kein Konto
+// hat, VORÜBERGEHEND einen `users`-Datensatz an, meldet sich damit an und löscht ihn im
+// `finally` wieder. Bestehende Konten bleiben unangetastet. Zwei Folgen, die man vor
+// einem Lauf gegen LIVE kennen muss (vom Admin am 2026-08-05 zu Recht angemerkt):
+//   • Bei hartem Abbruch (Netzabriss, SIGKILL, Strom) kommt das `finally` nicht mehr
+//     durch → das Konto bleibt stehen und muss von Hand entfernt werden.
+//   • Während des Laufs existiert in den Produktivdaten ein Konto auf den Namen einer
+//     echten Person.
+// Gegen Live also bewusst starten, nicht nebenbei. `--only=test` läuft gefahrlos.
+//
 // Warum es das gibt: Die öffentliche Ansicht ist die einzige Oberfläche, die niemand
 // täglich benutzt — sie bricht bei Änderungen an Zugriffsregeln oder Datenpfaden und
 // fällt erst auf, wenn man sie jemandem zeigen will. Sie war schon dreimal kaputt:
