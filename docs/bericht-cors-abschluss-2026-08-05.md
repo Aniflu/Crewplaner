@@ -174,7 +174,7 @@ durch `-f` + Umweg über `/tmp` + `grep`- und `sha256`-Gate vor dem Kopieren.
   **nur Live** (Test kommt nicht vor → ein `main`-Push ginge ungetestet in Produktion), und er
   triggert auf den **Repo-HEAD** statt auf die Hook-Datei (jeder Frontend-Commit löst ein
   `docker restart` der Live-PocketBase aus). Solange er aus ist, passiert nichts — er darf nur
-  nicht unbedacht wieder angehen. Entscheidung offen, siehe `bericht-cors-nachtrag-2026-08-06.md`.
+  nicht unbedacht wieder angehen. **Entschieden 2026-08-06: wird gelöscht** (`rm /usr/local/bin/deploy-pb-hook.sh`), keine Wiederbelebung.
 - Der Hinweis „kein Deploy blind von `main`" aus dem Zwischenzustand gilt **nicht mehr**.
 
 ## 8. Was hängenbleibt
