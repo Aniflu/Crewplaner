@@ -27,6 +27,23 @@ aus PocketBase und ist im Hook lösbar, ohne Server-Zugriff.
 
 Der Befund und der Lösungsweg waren richtig. Die Umsetzung nicht.
 
+> **Präzisierung (Admin, 2026-08-06) — damit daraus nicht die falsche Aufräumaktion folgt:**
+> Die Traefik-CORS-Middleware **existiert weiterhin und tut auch etwas.** In
+> `/data/coolify/proxy/dynamic/pocketbase-fix.yaml` steht auf Live genau eine erlaubte
+> Herkunft (`https://crewplanner.nyxlightwork.de`). Der Denkfehler war nicht „Traefik macht
+> CORS", sondern die **Umkehrung**: dass damit auch festgelegt sei, wer **keinen** Header
+> bekommt. Traefik setzte den Header für die eine konfigurierte Herkunft; für alle anderen
+> lief PocketBases `*` einfach durch.
+>
+> Zwei Folgen für den Betrieb:
+> - **`https://www.crewplanner.nyxlightwork.de` steht NICHT in der Traefik-Liste** und hängt
+>   damit **allein an der Hook-Positivliste**. Fliegt die Herkunft dort raus, bricht `www.` —
+>   Traefik fängt das nicht auf.
+> - Wo beide Ebenen dieselbe Herkunft setzen, kommt trotzdem **genau ein** Header an (Traefiks
+>   `headers`-Middleware überschreibt statt anzuhängen). Die Traefik-Seite **nicht** anfassen:
+>   sie schadet nicht und ist die einzige Ebene, die auch dann noch greift, wenn ein
+>   Hook-Deploy schiefgeht.
+
 ## 2. Fehler 1 — v4.17 tat nichts
 
 ```js
@@ -108,7 +125,7 @@ erst Test, dann Live.
 
 | | |
 |---|---|
-| Log | `[hook] main.pb.js v4.18 geladen` (Test 19:52:41, Live 19:53:34) |
+| Log | `[hook] main.pb.js v4.18 geladen` (Test 19:52:52, Live 19:53:34) |
 | sha256, beide Instanzen | `573d85b45ecd48f68a5a48ac68b4094a67c22fd8dad300b577684d3cf245ecd5` = GitHub `main` |
 | Container | beide `healthy`, `RestartCount: 0`, keine Hook-Fehler im Log |
 
@@ -150,6 +167,14 @@ durch `-f` + Umweg über `/tmp` + `grep`- und `sha256`-Gate vor dem Kopieren.
 - `main` gepusht; `live` hinkt bewusst hinterher (keine Frontend-Änderung, und der Hook wird
   ohnehin von `main` gezogen).
 - Der Auto-Deploy-Cron für die Hook-Datei ist weiterhin **aus** — Hook-Deploys von Hand.
+  ⚠️ **Nachtrag 2026-08-06:** Das Script `/usr/local/bin/deploy-pb-hook.sh` liegt seit Mai
+  unverändert auf dem Server (nicht in `crontab -l`, nicht in `/etc/cron.d`, letzter Lauf
+  16.05.) und bringt genau die Schwächen mit, die im Runbook eben behoben wurden: kein
+  Inhalts-Gate (`curl -sf -o` direkt ins Live-Volume, kein `/tmp`, kein `grep`, kein `sha256`),
+  **nur Live** (Test kommt nicht vor → ein `main`-Push ginge ungetestet in Produktion), und er
+  triggert auf den **Repo-HEAD** statt auf die Hook-Datei (jeder Frontend-Commit löst ein
+  `docker restart` der Live-PocketBase aus). Solange er aus ist, passiert nichts — er darf nur
+  nicht unbedacht wieder angehen. Entscheidung offen, siehe `bericht-cors-nachtrag-2026-08-06.md`.
 - Der Hinweis „kein Deploy blind von `main`" aus dem Zwischenzustand gilt **nicht mehr**.
 
 ## 8. Was hängenbleibt

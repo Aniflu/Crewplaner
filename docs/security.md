@@ -169,6 +169,15 @@ längst geschrieben und jedes `Header().Set()` verpufft folgenlos. Der Hook lud,
 
 Fremde Herkünfte bekommen **keinen** Header → der Browser verweigert das Auslesen.
 
+⚠️ **Die Traefik-Ebene existiert weiterhin und bleibt unangetastet.** In
+`/data/coolify/proxy/dynamic/pocketbase-fix.yaml` steht auf Live genau **eine** erlaubte
+Herkunft (`https://crewplanner.nyxlightwork.de`). Sie schadet nicht (wo beide Ebenen dieselbe
+Herkunft setzen, kommt trotzdem genau ein Header an — Traefik überschreibt statt anzuhängen)
+und ist die einzige Ebene, die auch dann noch greift, wenn ein Hook-Deploy schiefgeht.
+**Folge, die man kennen muss:** `https://www.crewplanner.nyxlightwork.de` steht dort **nicht**
+und hängt damit **allein an der Hook-Positivliste** — fliegt die Herkunft aus dem Hook, bricht
+`www.`, und Traefik fängt das nicht auf.
+
 **Bewusste Ausnahme:** `/viewplan/…`, `/viewstatus/…`, `/ics/…` behalten `*` — dort ist der
 Token die Zugangsberechtigung, und ein Kalender-Abo muss von überall abrufbar sein.
 
