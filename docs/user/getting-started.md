@@ -1,6 +1,6 @@
 # Crewplanner — Erste Schritte
 
-Stand: v0.6.1 (2026-08-05)
+Stand: v0.6.1 (2026-08-07)
 
 ---
 

@@ -26,17 +26,17 @@
 
 ---
 
-## 2. Aktueller Stand (Stand 2026-08-05) — v0.6.1
+## 2. Aktueller Stand (Stand 2026-08-07) — v0.6.1
 
 > ⚠️ **SEIT v0.31.0 — ZWEI GETRENNTE UMGEBUNGEN (zuerst lesen!):**
 > - **Branch `main` = TEST** → GitHub Pages `aniflu.github.io/Crewplaner` → **Test-**PocketBase `api-test.crewplanner.nyxlightwork.de` (eigene, leere DB, **kein** Mailversand).
 > - **Branch `live` = PRODUKTION** → Coolify-nginx `crewplanner.nyxlightwork.de` → **Live-**PocketBase `api.crewplanner.nyxlightwork.de` (echte Tourdaten).
 > - **`git push origin main` = auf TEST veröffentlichen** (NICHT live!). **Go-Live = `main → live` pushen** (Coolify baut den Live-Container automatisch).
 > - Das Frontend wählt die API **automatisch nach Hostname** (`pickApiUrl`, js/pure.js) — derselbe Code in beiden Umgebungen.
-> - **Hook `main.pb.js` v4.16** läuft auf **BEIDEN** Backends → Hook-Änderungen immer an beide deployen (erst Test, dann Live).
+> - **Hook `main.pb.js` v4.18** läuft auf **BEIDEN** Backends → Hook-Änderungen immer an beide deployen (erst Test, dann Live).
 > - Runbooks: `docs/admin-runbook-*.md` (die erledigten tragen oben einen ✅-Vermerk).
 > - **Versionsreihe:** Nach v0.31.0 wurde bewusst auf kleine Nummern zurückgesetzt, um schrittweise auf 1.0 zuzugehen. Reihenfolge: v0.31.0 → v0.5.0 → v0.5.1 → v0.5.2 → v0.6.0 → v0.6.1.
-> - **Offen (optional):** PocketBase-Versions-Upgrade beider Instanzen (Live noch auf altem Mai-Image) — Backup + Test-first, siehe pb-upgrade-Runbook. Außerdem der CORS-Platzhalter `*` für unbekannte Herkünfte (`docs/admin-runbook-cors.md`).
+> - **Offen (optional):** PocketBase-Versions-Upgrade beider Instanzen (Live noch auf altem Mai-Image) — Backup + Test-first, siehe pb-upgrade-Runbook. **Das war es auch schon** — CORS ist seit Hook v4.18 erledigt (2026-08-05, beide Instanzen, gemessen).
 
 > 🔒 **Sicherheitsrunde 3.–5. August 2026 — bitte vor Änderungen an Zugriffsregeln lesen.**
 > In vier Tagen kamen drei Löcher ans Licht, alle derselben Fehlerklasse: *eine Ansicht liest

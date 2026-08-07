@@ -10,6 +10,15 @@
 - **Rollout (2026-08-04/05, mit Admin):** Hook v4.16 + Regel auf **beiden** Instanzen, verifiziert. Der Admin fand dabei einen **Reihenfolge-Widerspruch in unserem Runbook** und setzte die Live-Regel bewusst nicht, solange dort noch v0.6.0 lief — das hätte alle 9 Crew-Konten ausgesperrt. Runbooks korrigiert.
 - 128 Tests grün. `docs/admin-runbook-hook-v4.16.md`
 
+### Nachtrag 5.–6. August — CORS eingegrenzt (Hook v4.17 → v4.18, keine App-Änderung)
+- **Befund:** PocketBase antwortete **jeder** Herkunft mit `Access-Control-Allow-Origin: *`. Das galt lange als Traefik-Sache („braucht SSH") — ein Denkfehler: Der Header erscheint auch auf reinen Hook-Routen, die der Reverse-Proxy nicht anfasst, stammt also aus PocketBase und ist im Hook lösbar.
+- **Hook v4.17 war wirkungslos:** Die Header wurden **nach** `e.next()` gesetzt; da ist die Antwort längst geschrieben. Der Hook lud, lief, loggte `v4.17 geladen` — und änderte keinen Header. **Vom Server-Admin durch Nachmessen gefunden**, nicht durch das Log. Dieselbe Falle wie bei Hook v4.13: „`e.next()` zuerst" gilt nur für **beobachtende** Hooks.
+- **Hook v4.18:** Header vor `e.next()`, die drei `return`s durch eine Bedingung ersetzt (sonst hätten sie das abschließende `e.next()` übersprungen und jeden Request getötet), `return e.next()` als letzte Zeile. Positivliste aus dem eigenen Hostnamen; `/viewplan`, `/viewstatus`, `/ics` behalten bewusst `*`.
+- **Gemessen vor und nach dem Deploy** (beide Instanzen): eigene Herkunft genau ein Header, fremde keiner, Preflight unverändert, keine Regressionen.
+- **Korrektur:** Die Forderung, den Resend-Schlüssel aus dem Git-Verlauf zu rotieren, war voreilig — es ist nicht der laufende Schlüssel, und der aus dem Verlauf ist bei Resend längst ungültig. Kein Handlungsbedarf.
+- **Werkzeuge nachgeschärft:** `check-viewlink.mjs` ist als **schreibender** Lauf gekennzeichnet (legt temporär ein Konto an); das Deploy-Kommando im Runbook hat jetzt `-f`, `/tmp`-Umweg und `grep`/`sha256`-Gate.
+- +`tests/cors.test.mjs` (4 Guards, mutationsgeprüft). 132 Tests grün. `docs/admin-runbook-hook-v4.18.md`, `docs/bericht-cors-abschluss-2026-08-05.md`
+
 ## v0.6.0 — 2026-08-04 — Tourpläne und Ansichts-Links waren öffentlich
 - **fix/security:** `plans.listRule` endete auf `|| view_token != ""` — ein Zweig, der auf **jeden** Plan mit Token zutrifft (PB-Regeln filtern pro Datensatz und können den Token aus dem Request nicht an *einen* Datensatz binden). Folge: **alle Pläne anonym vollständig abrufbar**, inklusive der `view_token` im Klartext. Die Tokens waren damit aufzählbar statt geheim. **Gefunden vom Server-Admin**, der die Annahme „der geheime Token ist die Auth" gegengeprüft statt übernommen hat.
 - Keine E-Mail-Adressen betroffen; `assignments` blieb wirksam zu.

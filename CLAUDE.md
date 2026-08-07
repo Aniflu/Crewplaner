@@ -346,7 +346,7 @@ TZ=UTC           node tests/run.mjs
 ```
 
 - `js/pure.js` = dependency-freies Leaf-Modul (Datums-/Namens-Helfer) → direkt testbar.
-- **74 Tests grün** (Stand v0.23.5). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
+- **132 Tests grün** (Stand v0.6.1 / Hook v4.18). Test-Dateien (`tests/*.test.mjs`, auto-discovered von `run.mjs`):
   - `pure.test.mjs` — reine Logik ohne Stubs (Datums-Bereiche TZ-sicher, Namens-Helfer).
   - `crewimport.test.mjs` — `dedupKnownCrew` führt tour-übergreifende Crew zusammen (doppelte Namen, E-Mail-Bevorzugung, Sortierung).
   - `logic.test.mjs` + `flows.test.mjs` + `dataservice.test.mjs` — laden den echten Modulgraphen via `tests/_graph.mjs` (Stubs in `tests/_setup.mjs`); decken getVal/isPending/sortInsert, Crew-CRUD, Slot-Diffing, getMyCrewName, Plan-Roundtrip, confirm/decline (fetch-gemockt) ab.
@@ -360,6 +360,8 @@ TZ=UTC           node tests/run.mjs
     - `queue.test.mjs` — `_queueGlobalCrewUpdate(desc, dates)` befüllt die Queue aus `getVal` nur für die übergebenen (neuen) Tage; `_updateCrewUpdateBar` Self-Heal entfernt nicht-mehr-eingeplante Slots.
     - `adminmodal.test.mjs` — admin.html hat die Aufdeck-Regel `.modal-bg.open{display:flex}` (sonst öffnet KEIN Admin-Modal; eigenes inline-CSS, kein styles.css).
     - `serviceworker.test.mjs` — `sw.js` existiert, revalidiert (no-cache) & cached nichts stale; index/admin/login/view.html registrieren ihn (dauerhafte Cache-Lösung).
+    - `registration.test.mjs` — Registrierungs-Sperre: Hook prüft gegen `crew_members` und zwar **VOR** `e.next()`; login.html zeigt den freundlichen Hinweis (inkl. 400-mit-leerem-`data`).
+    - `cors.test.mjs` — CORS-Middleware: Positivliste vorhanden, **Header werden VOR `e.next()` gesetzt** (daran scheiterte v4.17 unbemerkt), kein Weg überspringt `e.next()`, `/viewplan`+`/viewstatus`+`/ics` bleiben ausgenommen.
 - **Nicht** abgedeckt (braucht echtes PocketBase): Login, E-Mail-Versand, echte PB-Schreibpfade.
 - Mini-Framework: `tests/_assert.mjs` (`test`/`eq`/`deepEq`/`ok`, Exit-Code 1). `js/userView.test.js` ist Jest-Stil-Altlast (kein Runner).
 - **Reine, testbare Logik gehört nach `js/pure.js`** (import-freies Leaf), nicht in `utils.js`.

@@ -1,6 +1,6 @@
 # Sicherheitsrichtlinie — Crewplanner
 
-Stand: v0.30.2
+Stand: v0.6.1 (2026-08-07) · Hook v4.18
 
 ---
 
@@ -50,7 +50,7 @@ tun ist.
 
 | Operation | Rule |
 |---|---|
-| Create | *(leer — erlaubt Selbstregistrierung)* |
+| Create | `@collection.crew_members.email ?= email` *(seit v0.5.1 — vorher leer = jede Adresse konnte sich registrieren)* |
 | Update | `@request.auth.role = "superadmin"` |
 | Delete | `@request.auth.role = "superadmin"` |
 
@@ -65,7 +65,7 @@ Invite-Create=blockiert; Superadmin=200):
 |---|---|
 | `assignments` · Update | `@request.auth.role = "superadmin" || (@request.auth.id != "" && crew_email = @request.auth.email) || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)` |
 | `crew_invites` · Create | `@request.auth.role = "superadmin" || (@request.auth.id != "" && type = "availability") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)` |
-| `plans` · List/View | `@request.auth.id = owner || @request.auth.role = "superadmin" || view_token != ""` |
+| `plans` · List/View | `@request.auth.id = owner \|\| @request.auth.role = "superadmin"` — **der frühere Zweig `\|\| view_token != ""` ist seit v0.6.0 RAUS**, er machte alle Pläne inkl. Tokens anonym lesbar (siehe Historie unten) |
 | `activity_log` · List/View/Create | `auth != ""` (jeder Eingeloggte, seit v0.30.0) |
 | `activity_log` · Delete | `@request.auth.role = "superadmin"` |
 
@@ -84,7 +84,7 @@ Invite-Create=blockiert; Superadmin=200):
 
 ### verified-Feld
 
-Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js, **aktuell v4.10, deployt seit 2026-07-22**). Derselbe users-Create-Hook übernimmt zusätzlich die Rolle aus dem Crew-Pool (`crew_members.role`, Sentinel `plan_id="__pool__"`) und vergibt einen `feed_token` für den Kalender-Abo-Feed (`/ics/{token}/{plan}`, seit v0.27.0).
+Das `verified`-Feld kann **nicht** per Collections-API gesetzt werden — auch nicht mit superadmin-Auth-Token. Es wird serverseitig via `onRecordAfterCreateSuccess`-Hook gesetzt (main.pb.js, **aktuell v4.18, deployt 2026-08-05 auf beide Instanzen**). Derselbe users-Create-Hook übernimmt zusätzlich die Rolle aus dem Crew-Pool (`crew_members.role`, Sentinel `plan_id="__pool__"`) und vergibt einen `feed_token` für den Kalender-Abo-Feed (`/ics/{token}/{plan}`, seit v0.27.0).
 
 ---
 

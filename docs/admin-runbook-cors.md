@@ -6,6 +6,13 @@
 > `Vary: Origin` und den PB-Security-Headern, auch auf reinen Hook-Routen, die Traefik nicht
 > anfasst). Gelöst wird es deshalb im Hook — siehe **`admin-runbook-hook-v4.18.md`**.
 > Dieses Dokument bleibt nur als Verlauf stehen.
+>
+> **ERLEDIGT seit 2026-08-05:** Hook v4.18 läuft auf beiden Instanzen; fremde Herkünfte
+> bekommen gar keinen `Access-Control-Allow-Origin` mehr, `aniflu.github.io` auf Live also
+> auch nicht — das Ziel dieses Runbooks ist damit erreicht, ohne die Traefik-Datei anzufassen.
+> **Die Traefik-Ebene bleibt bewusst stehen** (sie führt genau eine Herkunft und greift auch
+> dann noch, wenn ein Hook-Deploy schiefgeht); ⚠️ `www.crewplanner.nyxlightwork.de` steht dort
+> **nicht** und hängt allein an der Hook-Positivliste. Nichts mehr zu tun.
 
 **Ziel:** Die **Live**-PocketBase (`api.crewplanner.nyxlightwork.de`) soll nur noch Anfragen
 vom Live-Frontend (`https://crewplanner.nyxlightwork.de`) beantworten. Die GitHub-Testseite
