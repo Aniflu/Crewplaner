@@ -21,9 +21,9 @@ den Live-Mailversand**). Rückwärtskompatibel — kann auch schon vor dem Front
 deployt werden.
 
 ```bash
-ssh hetzner "curl -s -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+ssh «SERVER» "curl -s -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+  && docker restart «PB-CONTAINER-LIVE»"
 ```
 
 **Prüfen** (Docker-Logs Live-PB): `[hook] main.pb.js v4.11 geladen`

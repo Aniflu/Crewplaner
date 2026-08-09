@@ -28,7 +28,7 @@ seiner eigenen Tour weiterhin den `view_token`."* Stimmt — und ist jetzt app-s
 ## Schritt 1 — Hook v4.16 (Test zuerst)
 
 ```bash
-ssh hetzner "curl -s -o /tmp/main.pb.js \
+ssh «SERVER» "curl -s -o /tmp/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
   && grep -q 'v4.16 geladen' /tmp/main.pb.js \
   && cp <HOOKS-PFAD>/main.pb.js /root/backups/pb-hooks/main.pb.js.\$(date +%s) \

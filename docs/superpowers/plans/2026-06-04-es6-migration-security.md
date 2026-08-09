@@ -955,7 +955,7 @@ Open `http://localhost:8080` in browser.
 - [ ] **Check DevTools → Network:** You should see `app.js` loading, then individual module files (not 24 script tags). No 404 errors.
 
 - [ ] **Smoke test checklist:**
-  - [ ] Login as manager (`madmaxmail@web.de`) — redirects to app
+  - [ ] Login as manager (`«SUPERADMIN-MAIL»`) — redirects to app
   - [ ] Tour table renders with correct data
   - [ ] Click a crew slot → dropdown opens
   - [ ] Admin console (`admin.html`) opens without errors

@@ -131,14 +131,14 @@ Für jede der 4 Collections in der Admin-UI unter **API Rules**:
 ### Schritt 1.5: Admin-User anlegen
 
 - [ ] In der Admin-UI unter **Users** → New Record:
-  - email: `madmaxmail@web.de`
+  - email: `«SUPERADMIN-MAIL»`
   - password: sicheres Passwort wählen
   - verified: true (manuell setzen)
 
 - [ ] **Test:** In neuem Browser-Tab:
 ```
 POST https://deinserver:8090/api/collections/users/auth-with-password
-{"identity": "madmaxmail@web.de", "password": "..."}
+{"identity": "«SUPERADMIN-MAIL»", "password": "..."}
 ```
 Erwartung: `{"token": "eyJ...", "record": {...}}` ✓
 
@@ -261,7 +261,7 @@ const POCKETBASE_URL = 'https://pb.deinedomain.de'; // ← ANPASSEN
 const SUPABASE_ENABLED = true;
 
 // Admin-E-Mail — hat vollen Zugriff (Vorschlagen, Direkt besetzen, Crew verknüpfen)
-const ADMIN_EMAIL = 'madmaxmail@web.de';
+const ADMIN_EMAIL = '«SUPERADMIN-MAIL»';
 ```
 
 ### Schritt 3.2: Testen
@@ -381,7 +381,7 @@ git commit -m "config: replace Supabase constants with POCKETBASE_URL"
 ### Schritt 4.3: Testen
 
 - [ ] `http://localhost:8080/login.html` öffnen
-- [ ] Mit `madmaxmail@web.de` + Passwort einloggen
+- [ ] Mit `«SUPERADMIN-MAIL»` + Passwort einloggen
 - [ ] Erwartung: Weiterleitung zu `index.html` ✓
 - [ ] `localStorage.getItem('pb_token')` in Konsole → JWT-String ✓
 - [ ] Falsches Passwort → Fehlermeldung sichtbar ✓
@@ -479,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 - [ ] Browser-Tab öffnen: `http://localhost:8080`
 - [ ] Erwartung: nach Login wird `index.html` geladen, App startet normal ✓
-- [ ] Konsole: kein Fehler, `CURRENT_USER_EMAIL` = `madmaxmail@web.de` ✓
+- [ ] Konsole: kein Fehler, `CURRENT_USER_EMAIL` = `«SUPERADMIN-MAIL»` ✓
 - [ ] Logout-Button klicken → zurück zu `login.html` ✓
 
 - [ ] Commit:
@@ -764,7 +764,7 @@ async function saveCrewLink(crewName, email) {
 ### Schritt 6.2: Testen
 
 - [ ] Lokalen Server starten: `python3 -m http.server 8080`
-- [ ] Einloggen als Admin (`madmaxmail@web.de`)
+- [ ] Einloggen als Admin (`«SUPERADMIN-MAIL»`)
 - [ ] Konsole: `await loadCrewMeta()` → kein Fehler ✓
 - [ ] Konsole: `await loadAssignmentStatuses()` → kein Fehler ✓
 - [ ] Einem Slot eine Crew zuweisen → Dropdown öffnet sich, Crew wählen → kein Fehler in Konsole ✓
@@ -943,9 +943,9 @@ Erwartung: keine Fehler beim Start ✓
 
 ### Schritt 7.3: Testen
 
-- [ ] Crew-Mitglied in der App mit `emailanmadmax@gmail.com` verknüpfen
+- [ ] Crew-Mitglied in der App mit `«MARCO-MAIL-PRIVAT»` verknüpfen
 - [ ] Diesem Crew-Mitglied einen Slot zuweisen
-- [ ] Erwartung: E-Mail kommt an `emailanmadmax@gmail.com` an ✓
+- [ ] Erwartung: E-Mail kommt an `«MARCO-MAIL-PRIVAT»` an ✓
 - [ ] Pocketbase-Logs prüfen: kein "Mail-Fehler" ✓
 
 - [ ] Commit:
@@ -986,7 +986,7 @@ Erwartung: Nur Kommentare oder `SUPABASE_ENABLED` (das Feature-Flag bleibt) ✓
 - [ ] Zeile löschen → `showConfirm` (roter Streifen) ✓
 - [ ] Crew zuweisen → kein JS-Fehler, Pocketbase-Eintrag angelegt ✓
 - [ ] Anfrage zurückziehen → kein JS-Fehler, Pocketbase-Eintrag gelöscht ✓
-- [ ] E-Mail an `emailanmadmax@gmail.com` kommt an ✓
+- [ ] E-Mail an `«MARCO-MAIL-PRIVAT»` kommt an ✓
 - [ ] Logout → `login.html` ✓
 - [ ] Direktlink `index.html` ohne Login → Redirect zu `login.html` ✓
 - [ ] PDF-Export funktioniert ✓

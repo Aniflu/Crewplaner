@@ -75,7 +75,7 @@ function primeCrew(g, email){
 
 test('confirmAssignment: Crew darf FREMDEN Slot NICHT bestätigen', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
-  resetState(g); primeCrew(g, 'marco@hoch-online.com');
+  resetState(g); primeCrew(g, 'crew@example.com');
   let patched = false;
   mockFetch((url, method) => {
     if (method === 'GET' && url.includes('/crew_members/records')) return res({ items: [{ plan_id: 'PLAN1' }] });
@@ -91,12 +91,12 @@ test('confirmAssignment: Crew darf FREMDEN Slot NICHT bestätigen', async () => 
 
 test('confirmAssignment: Crew darf EIGENEN Slot bestätigen', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
-  resetState(g); primeCrew(g, 'marco@hoch-online.com');
+  resetState(g); primeCrew(g, 'crew@example.com');
   g.state.setStatus('2026-07-01', 'gl', { status: 'proposed', crewName: 'Marco Hoch' });
   let patched = false;
   mockFetch((url, method) => {
     if (method === 'GET' && url.includes('/crew_members/records')) return res({ items: [{ plan_id: 'PLAN1' }] });
-    if (method === 'GET' && url.includes('/assignments/records')) return res({ items: [{ id: 'rec1', crew_email: 'marco@hoch-online.com' }] });
+    if (method === 'GET' && url.includes('/assignments/records')) return res({ items: [{ id: 'rec1', crew_email: 'crew@example.com' }] });
     if (method === 'PATCH') { patched = true; return res({ id: 'rec1', status: 'confirmed' }); }
     return res({});
   });

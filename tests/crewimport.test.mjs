@@ -7,13 +7,13 @@ import { dedupKnownCrew } from '../js/pure.js';
 
 test('dedupKnownCrew: gleiche Namen, VERSCHIEDENE Mails bleiben getrennt', () => {
   const out = dedupKnownCrew([
-    { name: 'Marco Hoch', email: 'madmaxmail@web.de' },   // Admin
-    { name: 'Marco Hoch', email: 'marco@hoch-online.com' }, // GL-Crew — andere Person
-    { name: 'Marco Hoch', email: 'marco@hoch-online.com' }, // Duplikat gleicher Mail → merge
+    { name: 'Marco Hoch', email: 'admin@example.com' },   // Admin
+    { name: 'Marco Hoch', email: 'crew@example.com' }, // GL-Crew — andere Person
+    { name: 'Marco Hoch', email: 'crew@example.com' }, // Duplikat gleicher Mail → merge
   ]);
   eq(out.length, 2, 'zwei verschiedene Personen (per Mail unterschieden)');
   const mails = out.map(x => x.email).sort();
-  deepEq(mails, ['madmaxmail@web.de', 'marco@hoch-online.com'], 'beide Mails erhalten');
+  deepEq(mails, ['admin@example.com', 'crew@example.com'], 'beide Mails erhalten');
 });
 
 test('dedupKnownCrew: gleiche Mail (abweichende Schreibweise) → ein Eintrag', () => {

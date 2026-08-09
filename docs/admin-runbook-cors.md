@@ -38,7 +38,7 @@ Erst durchführen, wenn der Go-Live von v0.31.0 gelaufen ist und geprüft wurde,
 ## Schritt 1 — Die richtige Datei finden
 
 ```bash
-ssh hetzner "grep -rl 'aniflu.github.io' /data/coolify/proxy/dynamic/"
+ssh «SERVER» "grep -rl 'aniflu.github.io' /data/coolify/proxy/dynamic/"
 ```
 
 Erwartet: `/data/coolify/proxy/dynamic/pocketbase-fix.yaml` (ggf. zusätzlich eine eigene
@@ -47,7 +47,7 @@ Datei für die **Test**-PB — die **bleibt unverändert**).
 Inhalt ansehen, um die richtige Middleware zu identifizieren:
 
 ```bash
-ssh hetzner "grep -n -A6 'accessControlAllowOriginList' /data/coolify/proxy/dynamic/pocketbase-fix.yaml"
+ssh «SERVER» "grep -n -A6 'accessControlAllowOriginList' /data/coolify/proxy/dynamic/pocketbase-fix.yaml"
 ```
 
 Dort steht eine Liste in der Art:
@@ -61,7 +61,7 @@ Dort steht eine Liste in der Art:
 ## Schritt 2 — Backup
 
 ```bash
-ssh hetzner "cp /data/coolify/proxy/dynamic/pocketbase-fix.yaml \
+ssh «SERVER» "cp /data/coolify/proxy/dynamic/pocketbase-fix.yaml \
   /data/coolify/proxy/dynamic/pocketbase-fix.yaml.bak-$(date +%F)"
 ```
 
@@ -73,7 +73,7 @@ ssh hetzner "cp /data/coolify/proxy/dynamic/pocketbase-fix.yaml \
 Datei bearbeiten:
 
 ```bash
-ssh hetzner "nano /data/coolify/proxy/dynamic/pocketbase-fix.yaml"
+ssh «SERVER» "nano /data/coolify/proxy/dynamic/pocketbase-fix.yaml"
 ```
 
 Die Zeile mit `aniflu.github.io` **innerhalb von `accessControlAllowOriginList` löschen**, so
@@ -95,7 +95,7 @@ Traefik lädt die Datei innerhalb weniger Sekunden selbst neu. Dann:
 **a) Live-Frontend darf weiterhin** — muss den Origin-Header zurückgeben:
 
 ```bash
-ssh hetzner "curl -s -I -H 'Origin: https://crewplanner.nyxlightwork.de' \
+ssh «SERVER» "curl -s -I -H 'Origin: https://crewplanner.nyxlightwork.de' \
   https://api.crewplanner.nyxlightwork.de/api/health | grep -i 'access-control-allow-origin'"
 ```
 
@@ -104,7 +104,7 @@ Erwartet: `access-control-allow-origin: https://crewplanner.nyxlightwork.de`
 **b) GitHub darf nicht mehr** — es darf **kein** `access-control-allow-origin` kommen:
 
 ```bash
-ssh hetzner "curl -s -I -H 'Origin: https://aniflu.github.io' \
+ssh «SERVER» "curl -s -I -H 'Origin: https://aniflu.github.io' \
   https://api.crewplanner.nyxlightwork.de/api/health | grep -i 'access-control-allow-origin'"
 ```
 
@@ -113,7 +113,7 @@ Erwartet: **keine Ausgabe** (leer).
 **c) API lebt weiter:**
 
 ```bash
-ssh hetzner "curl -s -o /dev/null -w '%{http_code}\n' https://api.crewplanner.nyxlightwork.de/api/health"
+ssh «SERVER» "curl -s -o /dev/null -w '%{http_code}\n' https://api.crewplanner.nyxlightwork.de/api/health"
 ```
 
 Erwartet: `200`
@@ -121,7 +121,7 @@ Erwartet: `200`
 **d) Test-Umgebung unbeeinträchtigt** — die Testseite muss weiter funktionieren:
 
 ```bash
-ssh hetzner "curl -s -I -H 'Origin: https://aniflu.github.io' \
+ssh «SERVER» "curl -s -I -H 'Origin: https://aniflu.github.io' \
   https://api-test.crewplanner.nyxlightwork.de/api/health | grep -i 'access-control-allow-origin'"
 ```
 
@@ -133,7 +133,7 @@ laden — muss normal laufen (keine CORS-Fehler in der Konsole).
 ## Rollback (falls etwas klemmt)
 
 ```bash
-ssh hetzner "cp /data/coolify/proxy/dynamic/pocketbase-fix.yaml.bak-<DATUM> \
+ssh «SERVER» "cp /data/coolify/proxy/dynamic/pocketbase-fix.yaml.bak-<DATUM> \
   /data/coolify/proxy/dynamic/pocketbase-fix.yaml"
 ```
 

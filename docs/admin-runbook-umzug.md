@@ -47,7 +47,7 @@ Konkrete „mach jetzt das"-Anleitung für den Server-Admin. Ausführliche Hinte
 7. **Hook v4.11 deployen** (Container-Name + Hooks-Volume-Pfad der neuen Instanz einsetzen):
 
    ```bash
-   ssh hetzner "curl -s -o <TEST-HOOKS-VOLUME>/main.pb.js \
+   ssh «SERVER» "curl -s -o <TEST-HOOKS-VOLUME>/main.pb.js \
      https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
      && docker restart <TEST-PB-CONTAINER>"
    ```
@@ -57,7 +57,7 @@ Konkrete „mach jetzt das"-Anleitung für den Server-Admin. Ausführliche Hinte
 
 ## Schritt B — Live-Container auf `live`-Branch umstellen (No-Op für Live)
 
-1. Coolify → bestehende **Crewplaner-Frontend-App** (`od48m2ubvy7rqq55fofbqgph-154940502903`).
+1. Coolify → bestehende **Crewplaner-Frontend-App** (`«FRONTEND-CONTAINER-LIVE»`).
 2. **Build-Branch** `main` → **`live`** umstellen, **Auto-Deploy on push** anlassen, einmal
    **Redeploy**. Da `live` = aktueller Live-Stand ist, baut Coolify identisch → Live ändert
    sich funktional nicht.

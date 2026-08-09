@@ -88,8 +88,8 @@ export function renderHead(){
   h+='<th rowspan="2" style="left:213px;text-align:left;vertical-align:middle;z-index:12;">Ort / Venue</th>';
   POSITIONS.forEach((p,i)=>{
     h+=IS_MANAGER
-      ?`<th class="pos-h" style="cursor:pointer;" onclick="openPosMenu(event,${i})">${p.short} <span style="font-size:.5rem;opacity:.4;">▼</span></th>`
-      :`<th class="pos-h">${p.short}</th>`;
+      ?`<th class="pos-h" style="cursor:pointer;" onclick="openPosMenu(event,${i})">${esc(p.short)} <span style="font-size:.5rem;opacity:.4;">▼</span></th>`
+      :`<th class="pos-h">${esc(p.short)}</th>`;
   });
   h+=IS_MANAGER?`<th class="pos-h" style="cursor:pointer;color:var(--muted);min-width:44px;" onclick="openAddPos()" rowspan="2" title="Position hinzufügen">+</th>`:'<th rowspan="2"></th>';
   h+='</tr><tr>';
@@ -105,7 +105,7 @@ export function renderHead(){
     if(IS_MANAGER){
       h+=`<th style="background:#12141a;border:1px solid var(--border);border-top:none;padding:3px;">
         <button onclick="openDefaultDD(event,'${p.id}')" style="width:100%;background:${def?'rgba(79,129,189,.14)':'transparent'};border:1px dashed ${def?'#4f81bd':'#2e3a45'};color:${def?'#a0c0e0':'#2e3a50'};padding:3px 5px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;border-radius:3px;cursor:pointer;display:flex;align-items:center;gap:4px;justify-content:center;">
-          ${def?`<div style="width:5px;height:5px;border-radius:50%;background:${dot};flex-shrink:0;"></div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:85px;">${def}</span>`:'<span style="opacity:.4;font-size:.58rem;">● Standard…</span>'}
+          ${def?`<div style="width:5px;height:5px;border-radius:50%;background:${dot};flex-shrink:0;"></div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:85px;">${esc(def)}</span>`:'<span style="opacity:.4;font-size:.58rem;">● Standard…</span>'}
         </button>
         ${hasAny?`<button onclick="requestForPos(event,'${p.id}')" style="margin-top:3px;width:100%;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);color:#4ae8a0;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:.58rem;border-radius:3px;cursor:pointer;">↓ Übernehmen</button>`:''}
         ${hasOpen?`<button onclick="bulkCancelPos(event,'${p.id}')" style="margin-top:3px;width:100%;background:rgba(232,74,74,.1);border:1px solid rgba(232,74,74,.3);color:#e84a4a;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:.58rem;border-radius:3px;cursor:pointer;">↩ Zurückziehen</button>`:''}
@@ -192,7 +192,7 @@ export function renderBody(){
           const _ps=_isPending?'background:rgba(232,74,74,.12);border-color:rgba(232,74,74,.4);color:var(--warn);text-decoration:line-through;':'color:var(--show);border-color:var(--show-wash-2);background:var(--show-wash);';
           b+=`<button class="assign-btn" style="${_ps}" onclick="toggleCancellation('${row.date}','${p.id}')">${_isPending?'Absagen?':'✓ '+esc(si.crewName||myName)}</button>`;
         }else{
-          b+=`<span class="${cls}" style="${style};cursor:default;">${icHtml?icHtml+' ':''}${display}</span>`;
+          b+=`<span class="${cls}" style="${style};cursor:default;">${icHtml?icHtml+' ':''}${esc(display)}</span>`;
         }
       }else if(IS_CREW&&!si&&val&&val!==OFFEN&&val!==OFFDAY&&val!==REISE_TAG&&val!==AUSSCHREIBEN){
         b+=`<span style="font-size:.6rem;color:#5a6070;display:block;text-align:center;">${esc(val)}</span>`;

@@ -276,7 +276,7 @@ Zwei Ebenen, seit v0.26.0 **beide** aktiv:
 
 Gespeicherte personenbezogene Daten: Name, E-Mail, Einsatz-Daten.
 Zweck: Crew-Planung für Tourneen.
-Verantwortlich: Betreiber (madmaxmail@web.de).
+Verantwortlich: Betreiber («SUPERADMIN-MAIL»).
 
 Daten können jederzeit über PB Admin UI gelöscht werden.
 

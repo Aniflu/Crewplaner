@@ -94,7 +94,7 @@ cp /tmp/main.pb.js.new <VOLUME>/main.pb.js && docker restart <CONTAINER>
 
 | | Volume / Container |
 |---|---|
-| LIVE | `/var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/` · `pocketbase-ad9adhhkygjreidi79i4v5eb` |
+| LIVE | `/var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/` · `«PB-CONTAINER-LIVE»` |
 | TEST | Volume + Container-Name beim Admin (Coolify-Service `pocketbase-test`) |
 
 Danach im Log: `[hook] main.pb.js v4.18 geladen`. Da der laufende `v4.17-fix` inhaltlich
@@ -155,9 +155,9 @@ reine Deploy-Kontrolle reichen die curl-Proben oben. `--only=test` ist gefahrlos
 ## Rollback
 
 ```bash
-ssh hetzner "cp /root/backups/pb-hooks/main.pb.js.live.20260805-110118 \
-  /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+ssh «SERVER» "cp /root/backups/pb-hooks/main.pb.js.live.20260805-110118 \
+  /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
+  && docker restart «PB-CONTAINER-LIVE»"
 ```
 
 Zurück auf v4.16: CORS steht dann wieder auf `*` für alle, alles andere bleibt unverändert.

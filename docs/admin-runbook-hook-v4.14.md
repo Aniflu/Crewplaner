@@ -25,7 +25,7 @@ Status und Anzeigename heraus — **keine E-Mail-Adressen**, und nur für den ei
 **Test** (Container/Pfad wie beim letzten Mal):
 
 ```bash
-ssh hetzner "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
+ssh «SERVER» "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
   && docker restart <TEST-CONTAINER>"
 ```
@@ -33,9 +33,9 @@ ssh hetzner "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
 **Live:**
 
 ```bash
-ssh hetzner "curl -s -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+ssh «SERVER» "curl -s -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+  && docker restart «PB-CONTAINER-LIVE»"
 ```
 
 **Prüfen:** Log zeigt `[hook] main.pb.js v4.14 geladen`, `/api/health` → `200`.
@@ -78,7 +78,7 @@ Das Werkzeug prüft beide Instanzen und macht zusätzlich die Gegenprobe von au�
 ## Rollback
 
 ```bash
-ssh hetzner "curl -s -o <HOOKS-PFAD>/main.pb.js \
+ssh «SERVER» "curl -s -o <HOOKS-PFAD>/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/dd8aec8/.pb_hooks/main.pb.js \
   && docker restart <CONTAINER>"
 ```

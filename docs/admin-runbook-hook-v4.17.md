@@ -52,7 +52,7 @@ schlägt kein einziger Request fehl — es bleibt beim bisherigen Verhalten und 
 ## Deploy (Test zuerst)
 
 ```bash
-ssh hetzner "curl -s -o /tmp/main.pb.js \
+ssh «SERVER» "curl -s -o /tmp/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
   && grep -q 'v4.17 geladen' /tmp/main.pb.js \
   && cp <HOOKS-PFAD>/main.pb.js /root/backups/pb-hooks/main.pb.js.\$(date +%s) \

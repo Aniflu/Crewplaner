@@ -83,7 +83,7 @@ ausschließlich über den `view_token`-Zweig durch. Deshalb der dritte Zweig obe
 
 Ob PocketBase beide `@collection`-Bedingungen an **denselben** crew_members-Datensatz bindet,
 war offen. Auf der Testinstanz mit einem echten Crew-Konto geprüft
-(`thomas.haine@gmx.de`, ausschließlich Crew in AMK Tour 2026):
+(`«CREW-MAIL-THOMAS-H»`, ausschließlich Crew in AMK Tour 2026):
 
 | Prüfung | Ergebnis |
 |---|---|

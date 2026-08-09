@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
 // Version: 4.18
-console.log('[hook] main.pb.js v4.18 geladen');
+console.log('[hook] main.pb.js v4.19 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -159,7 +159,16 @@ onRecordAfterCreateSuccess(function(e) {
       avRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+esc(s.posLabel)+'</td>'+
         '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">'+fdv+'</td></tr>';
     }
-    var avAdmin = $os.getenv('ADMIN_EMAIL') || 'madmaxmail@web.de';
+    // v0.8.0: Die Adresse stand hier fest verdrahtet — und die Hook-Datei wird über
+    // crewplanner.nyxlightwork.de/.pb_hooks/main.pb.js öffentlich ausgeliefert. Zusammen mit
+    // dem fehlenden Rate-Limiting am Login war das ein benanntes Angriffsziel. Jetzt kommt sie
+    // ausschließlich aus der Umgebung. ⚠️ Ohne gesetztes ADMIN_EMAIL geht diese Mail NICHT
+    // raus — die Variable muss in Coolify auf BEIDEN Instanzen gesetzt sein.
+    var avAdmin = $os.getenv('ADMIN_EMAIL');
+    if (!avAdmin) {
+      console.error('[hook] ADMIN_EMAIL ist nicht gesetzt — Bereitschafts-Mail an den Planer entfaellt');
+      return;
+    }
     sendMail(avAdmin, 'BEREITSCHAFT · ' + name + ' · ' + plan, wrap(
       '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Bereit.</h1>'+
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">BEREITSCHAFTSMELDUNG · '+ePlan+'</p>'+
@@ -230,19 +239,6 @@ onRecordAfterCreateSuccess(function(e) {
     }
     sendMail(email, 'ÄNDERUNG · ' + plan, wrap(upBody));
     console.log('[hook] update email sent to '+email+' ('+upNew.length+' neu, '+upRem.length+' entfernt, '+upPen.length+' vorgemerkt, '+upCnf.length+' bestätigt)');
-  } else if (type === 'love_invite') {
-    var _lGuide = 'https://crewplanner.nyxlightwork.de/docs/guide-admin.html';
-    sendMail(email, '♥ Du wirst gebraucht · ' + plan, wrap(
-      '<div style="text-align:center;padding:8px 0 24px 0;"><div style="font-size:64px;line-height:1;">♥</div></div>' +
-      '<h1 style="font-size:32px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;text-align:center;">Ich hab dich lieb.</h1>' +
-      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;text-align:center;">EINLADUNG · ' + ePlan + '</p>' +
-      '<p style="font-size:13px;color:#555570;line-height:1.9;margin:0 0 24px 0;">Hey ' + eName + ',<br><br>' +
-      'ich hab dich lieb &mdash; und deswegen will ich, dass du dabei bist. ♥<br><br>' +
-      'Du wirst Superadmin bei <strong style="color:#1a1a2e;">' + ePlan + '</strong>. ' +
-      'Erstell dir ein Konto und ich zeig dir den Rest:</p>' +
-      mkBtn(appUrl, 'KONTO ERSTELLEN &rarr;') +
-      mkBtn(_lGuide, 'ANLEITUNG &rarr;', '#f8f9fb', '#555570')
-    ));
   } else if (type === 'staff_invite') {
     var _guideUrl = 'https://crewplanner.nyxlightwork.de/docs/guide-admin.html';
     sendMail(email, 'EINLADUNG · ' + plan, wrap(
@@ -353,7 +349,13 @@ onRecordAfterUpdateSuccess(function(e) {
 
   var crewName = r.get('crew_name');
   var eCrewName3 = esc(crewName);
-  var adminEmail = $os.getenv('ADMIN_EMAIL') || 'madmaxmail@web.de';
+  // v0.8.0: siehe Begründung beim Bereitschafts-Versand — keine fest verdrahtete Adresse
+  // mehr in einer öffentlich ausgelieferten Datei.
+  var adminEmail = $os.getenv('ADMIN_EMAIL');
+  if (!adminEmail) {
+    console.error('[hook] ADMIN_EMAIL ist nicht gesetzt — Absage-Meldung an den Planer entfaellt');
+    return;
+  }
   sendMail(adminEmail, 'ABGELEHNT · ' + posLabel + ' · ' + fdate,
     '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
     '<body style="margin:0;padding:0;background:#f8f9fb;font-family:\'Courier New\',Courier,monospace;">' +

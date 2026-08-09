@@ -1,21 +1,22 @@
-MIT License
+Copyright (c) 2026 Marco Hoch. Alle Rechte vorbehalten.
 
-Copyright (c) 2021 Supabase, Inc. and contributors
+Crewplanner ist urheberrechtlich geschützte Software.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Es wird KEIN Nutzungsrecht eingeräumt. Ohne ausdrückliche, schriftliche Zustimmung des
+Rechteinhabers ist es insbesondere untersagt, diese Software oder Teile davon zu
+vervielfältigen, zu verbreiten, zu verändern, öffentlich zugänglich zu machen oder für
+eigene Zwecke — kommerziell oder nicht — zu betreiben.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Die Software wird ohne Gewähr bereitgestellt. Eine Haftung für Schäden aus ihrer Nutzung
+wird, soweit gesetzlich zulässig, ausgeschlossen.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Kontakt für Anfragen: über den Rechteinhaber.
+
+---
+
+Hinweis zur Vorgeschichte: Bis Version 0.8.0 (2026-08-09) stand hier versehentlich eine
+MIT-Lizenz mit dem Vermerk "Copyright (c) 2021 Supabase, Inc. and contributors" — ein
+Überbleibsel der Projektvorlage, aus der auch das inzwischen entfernte Verzeichnis
+`supabase/` stammte. Sie hat nie den Willen des Rechteinhabers wiedergegeben. Frühere
+Fassungen im Git-Verlauf können sich weiterhin auf diesen Text berufen; maßgeblich ist
+ab Version 0.8.0 ausschließlich die vorliegende Fassung.

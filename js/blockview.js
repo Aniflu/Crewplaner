@@ -118,7 +118,7 @@ export function renderBlockView(){
         const suffix=openDays>0?` <span class="bc-open" style="color:#e07060;margin-left:5px;">⚠${openDays}</span>`:'';
         valHtml=`<div class="bc-pos-val mixed">${parts}${suffix}</div>`;
       }
-      return `<div class="bc-pos-row"><div class="bc-pos-lbl">${p.short}</div>${valHtml}</div>`;
+      return `<div class="bc-pos-row"><div class="bc-pos-lbl">${esc(p.short)}</div>${valHtml}</div>`;
     }).join('');
 
     const rangeStr=days.length===1

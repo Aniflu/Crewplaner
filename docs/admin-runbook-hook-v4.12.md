@@ -21,10 +21,10 @@ App vollständig; nur Mail-Wortlaut und Kalender-Status hinken hinterher.
 ## Schritt 1 — Test-Backend
 
 Container-Name und Hooks-Volume-Pfad der Test-PB einsetzen (Coolify-Service `pocketbase-test`,
-`jl1phsvsusxnqzah6ip20qlc`):
+`«PB-SERVICE-TEST»`):
 
 ```bash
-ssh hetzner "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
+ssh «SERVER» "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
   && docker restart <TEST-CONTAINER>"
 ```
@@ -32,8 +32,8 @@ ssh hetzner "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
 **Prüfen:**
 
 ```bash
-ssh hetzner "docker logs <TEST-CONTAINER> --tail 20 | grep 'v4.12 geladen'"
-ssh hetzner "curl -s -o /dev/null -w '%{http_code}\n' https://api-test.crewplanner.nyxlightwork.de/api/health"
+ssh «SERVER» "docker logs <TEST-CONTAINER> --tail 20 | grep 'v4.12 geladen'"
+ssh «SERVER» "curl -s -o /dev/null -w '%{http_code}\n' https://api-test.crewplanner.nyxlightwork.de/api/health"
 ```
 
 Erwartet: `[hook] main.pb.js v4.12 geladen` und `200`.
@@ -43,7 +43,7 @@ Erwartet: `[hook] main.pb.js v4.12 geladen` und `200`.
 Mit einem Feed-Token + einer Plan-ID aus der Test-DB:
 
 ```bash
-ssh hetzner "curl -s https://api-test.crewplanner.nyxlightwork.de/ics/<TOKEN>/<PLAN-ID> | grep -E 'STATUS:|Status:'"
+ssh «SERVER» "curl -s https://api-test.crewplanner.nyxlightwork.de/ics/<TOKEN>/<PLAN-ID> | grep -E 'STATUS:|Status:'"
 ```
 
 Erwartet: Zeilen `STATUS:CONFIRMED` bzw. `STATUS:TENTATIVE` und im Infofeld
@@ -58,16 +58,16 @@ absichtlich gleich, damit Kalender-Apps ersetzen statt anzulegen.
 Erst nachdem Schritt 1+2 sauber sind:
 
 ```bash
-ssh hetzner "curl -s -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+ssh «SERVER» "curl -s -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+  && docker restart «PB-CONTAINER-LIVE»"
 ```
 
 **Prüfen:**
 
 ```bash
-ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 20 | grep 'v4.12 geladen'"
-ssh hetzner "curl -s -o /dev/null -w '%{http_code}\n' https://api.crewplanner.nyxlightwork.de/api/health"
+ssh «SERVER» "docker logs «PB-CONTAINER-LIVE» --tail 20 | grep 'v4.12 geladen'"
+ssh «SERVER» "curl -s -o /dev/null -w '%{http_code}\n' https://api.crewplanner.nyxlightwork.de/api/health"
 ```
 
 > Der Container-Neustart verursacht einen kurzen API-Blip (Sekunden) — am besten in einem
@@ -78,7 +78,7 @@ ssh hetzner "curl -s -o /dev/null -w '%{http_code}\n' https://api.crewplanner.ny
 Die Vorgängerversion aus dem Git-Verlauf zurückholen und neu starten:
 
 ```bash
-ssh hetzner "curl -s -o <HOOKS-PFAD>/main.pb.js \
+ssh «SERVER» "curl -s -o <HOOKS-PFAD>/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/58dc113/.pb_hooks/main.pb.js \
   && docker restart <CONTAINER>"
 ```

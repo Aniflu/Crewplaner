@@ -1,0 +1,13 @@
+# Betriebsdaten, die NICHT ins öffentliche Repo gehören (v0.8.0, Audit-Befund K-1).
+# Bis dahin standen Server-Kennungen und die echten Mailadressen aller Beteiligten in
+# CLAUDE.md — und crewplanner.nyxlightwork.de liefert jede Repo-Datei ohne Anmeldung aus.
+.claude.local.md
+
+# PocketBase-Superuser-Zugang für tools/check-pb-rules.mjs (PB_CRED)
+pb-cred.json
+*.pb-cred
+
+# Betriebssystem / Editor
+.DS_Store
+Thumbs.db
+*.swp

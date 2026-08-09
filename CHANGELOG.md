@@ -2,6 +2,20 @@
 
 > **v0.10.7 – v0.14.13 (Juni 2026)** — kondensiert. Vollständige, ausführliche Einträge: `CLAUDE.md` → Abschnitt „Versionierung".
 
+## v0.8.0 — 2026-08-09 — Gesamt-Audit umgesetzt
+- **Auftrag:** Prüfung von Logik, Sinnhaftigkeit, Sicherheit, Schutz vor Codeklau, Codestruktur und Programmierung. Vollständiger Befund: `docs/audit-2026-08-09.md` (3 kritisch, 6 wichtig, 5 kosmetisch).
+- **Kerneinsicht:** Alle Härtungen aus v0.5.1–v0.6.1 richteten sich gegen *anonyme* Zugriffe. Die Innensicht — was darf ein legitim Angemeldeter — war nie geprüft. Dort liegen alle drei kritischen Befunde.
+- **Bestätigt (gemessen, Live + Test):** anonym liefern alle acht Collections 0 Datensätze; kein Rückschluss auf existierende Konten beim Passwort-Reset.
+- **K-1 Auslieferung:** Die Live-Domain liefert jede Repo-Datei ohne Anmeldung aus (`/CLAUDE.md` 164 KB, `/.pb_hooks/main.pb.js`, `/HANDOFF.md`, `/tools/`, `/debug.html` — alle 200). Repo-Teil erledigt: **14 echte Mailadressen** (neun davon Crew-Mitglieder) sowie Container-Namen, Volume-Pfade und SSH-Alias durch Platzhalter ersetzt (23 Dateien), echte Werte in der nicht eingecheckten `.claude.local.md`. Server-Teil braucht den Admin.
+- **Hook v4.19:** Superadmin-Adresse nur noch aus `ADMIN_EMAIL` statt fest verdrahtet in einer öffentlich ausgelieferten Datei. ⚠️ Variable muss vor dem Deploy gesetzt sein. Toter `love_invite`-Zweig entfernt.
+- **Lizenz:** `MIT License · Copyright (c) 2021 Supabase, Inc.` — ein Vorlagen-Überbleibsel, das jedem erlaubte, den Code legal zu kopieren und kommerziell zu betreiben. Ersetzt durch „Alle Rechte vorbehalten".
+- **XSS-Härtung:** 5 Stellen in `render.js`/`blockview.js` schrieben Namen ungeschützt ins HTML — 14 Zeilen unter dem eigenen Kommentar, der genau das verbietet. Dieselbe Klasse wie v0.29.1.
+- **Guard war blind:** `tests/cors.test.mjs` (nach dem v4.17-Debakel geschrieben) ließ die komplett stillgelegte CORS-Middleware durchgehen — alle 132 Tests blieben grün. Repariert, gegen 5 Mutationen geprüft. **Lehre: Ein Guard gilt erst als wirksam, wenn eine Mutation ihn rot gemacht hat.**
+- **Neue Guards:** `privacy.test.mjs`, `escaping.test.mjs` (fand beim ersten Lauf zwei weitere echte Stellen), `apiurl.test.mjs`. 132 → **147 grün**.
+- **Aufgeräumt:** `supabase/`, `debug.html`, `pocketbase/pb_schema.json` und ⚠️ `pb_schema_live_2026-07-28.json` — ein öffentlich abrufbarer Abzug der Live-Regeln *vor* der Härtung, mit `assignments.listRule: ""`; eine Wiederherstellung daraus hätte die weltöffentliche Lücke neu aufgerissen.
+- **Offen (Admin):** `docs/admin-runbook-audit-v0.8.0.md` — `ADMIN_EMAIL`, Hook v4.19, **K-3 `crew_members`-Regeln** (jedes Konto kann sich Zugriff auf fremde Touren verschaffen), Auslieferung begrenzen, Sicherheits-Header + Rate-Limiting.
+- **Nicht umgesetzt (eigener Stand):** **K-2** — `assignments` und `crew_members` sind für jedes angemeldete Konto vollständig lesbar (~913 Zuweisungen, alle Mailadressen in zwei Aufrufen).
+
 ## v0.6.1 — 2026-08-04 — Der geheime Ansichts-Link bleibt geheim
 - **fix/security:** Ein **angemeldetes Crew-Mitglied** bekam beim Laden seiner eigenen Tour weiterhin den `view_token` im Payload. Als verstecktes PocketBase-Feld ging es nicht — die Konsole braucht ihn für den Booker-Link und läuft als App-Rolle `superadmin`, nicht als PB-Superuser.
 - **Hook v4.16:** zwei **authentifizierte** Routen `GET /myplans` und `GET /myplan/{id}` (`$apis.requireAuth()`) liefern der Crew ihre Touren **ohne** `view_token`/`view_shorturl`/`owner`. Prüfung serverseitig (Owner ODER superadmin ODER crew_member dieser Tour), Ablehnung als 404.
@@ -156,7 +170,7 @@
 - **fix:** Crew mit **Firefox** sah nie einen Plan (leere Tabelle). Ursache: ungültige Zuweisung `getActivePlanId()=id;` in persistence.js — V8/Chrome parst tolerant durch, SpiderMonkey/Firefox wirft `SyntaxError` und reißt den ganzen Modulgraphen mit → kein App-Init. Fix: `setActivePlanId(id);`. Neuer Test-Guard `syntax.test.mjs`. app.js?v=18→19. 39 grün.
 
 ## v0.15.0 — 2026-06-18
-- **fix:** Crew mit groß/klein gemischter E-Mail (z.B. `LivLights@gmx.de`) sah keinen Plan — der case-sensitive PocketBase-`=`-Filter im `crew_members`-Lookup fand 0 Treffer. login.html normalisiert E-Mails jetzt bei Login + Registrierung auf Kleinschreibung; Wolfs `users.email` per Superuser auf `livlights@gmx.de` korrigiert.
+- **fix:** Crew mit groß/klein gemischter E-Mail (z.B. `«CREW-MAIL-WOLF»`) sah keinen Plan — der case-sensitive PocketBase-`=`-Filter im `crew_members`-Lookup fand 0 Treffer. login.html normalisiert E-Mails jetzt bei Login + Registrierung auf Kleinschreibung; Wolfs `users.email` per Superuser auf `«crew-mail-wolf»` korrigiert.
 
 ## v0.14.13 — 2026-06-17
 - **fix:** Logout im Crew-View tat nichts (`onclick="logout()"` hing an `window.logout`, das bei hängendem App-Init fehlt). Beide Abmelden-Buttons jetzt selbstständig inline (Token löschen + `location.href='login.html'`). `window.logout` entfernt (war orphan).
@@ -319,9 +333,9 @@
 ### Deploy erforderlich
 
 ```bash
-ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+ssh «SERVER» "curl -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+  && docker restart «PB-CONTAINER-LIVE»"
 ```
 
 ### Optional: ADMIN_EMAIL in Coolify setzen
@@ -352,9 +366,9 @@ ADMIN_EMAIL=deine@email.de
 ### Deploy erforderlich
 
 ```bash
-ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+ssh «SERVER» "curl -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+  && docker restart «PB-CONTAINER-LIVE»"
 ```
 
 ---
@@ -425,7 +439,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
 2. **Key rotieren — nur falls doch einmal ein AKTIVER Schlüssel austritt:** Resend Dashboard → API Keys → alten löschen, neuen erstellen, in PB erneut setzen. (2026-08-05 geprüft: hier nicht der Fall.)
 3. **Hook deployen:**
    ```bash
-   ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+   ssh «SERVER» "curl -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js && docker restart «PB-CONTAINER-LIVE»"
    ```
 
 ---
@@ -489,7 +503,7 @@ ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase
 
 ### Manuelle PocketBase-Schritte erforderlich
 1. `users` Collection: Feld `role` (select: superadmin/manager/booker/crew, Default: crew) hinzufügen
-2. `madmaxmail@web.de` auf `superadmin` setzen
+2. `«SUPERADMIN-MAIL»` auf `superadmin` setzen
 3. API Rule für `users`: updateRule = `@request.auth.role = "superadmin"`
 
 ---

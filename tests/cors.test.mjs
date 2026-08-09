@@ -61,6 +61,49 @@ test('Hook: kein Weg durch die CORS-Middleware überspringt e.next()', () => {
   ok(/return e\.next\(\);\s*$/m.test(mw), 'e.next() steht nicht als Abschluss der Middleware');
 });
 
+// ⚠️ DIESE LÜCKE HATTE DER GUARD BIS v0.8.0 (Audit 2026-08-09): Die Prüfungen oben belegen,
+// dass der Code DASTEHT und in der richtigen REIHENFOLGE steht — nicht, dass er ERREICHT wird.
+// Im Audit wurde die gesamte Middleware mit `if (false && !oeffentlich && origin)` stillgelegt:
+// alle 132 Tests blieben grün. Damit wiederholte ausgerechnet der Guard, der nach dem
+// v4.17-Debakel geschrieben wurde, dessen Denkfehler — „geladen" ist nicht „wirksam".
+//
+// Merke fürs ganze Projekt: Ein Guard gilt erst als wirksam, wenn eine Mutation ihn rot
+// gemacht hat. Diese drei Mutationen sind geprüft und werden erkannt:
+//   (a) `if (false && …)`            (b) `… && false)`            (c) Bedingung entkernt
+test('Hook: die CORS-Prüfung ist nicht stillgelegt', () => {
+  const mw = middleware();
+
+  ok(!/\b(?:false|0|null|undefined)\s*&&/.test(mw),
+    'konstant-falscher Torwächter am Anfang der Bedingung — die Middleware läuft nie');
+  ok(!/&&\s*(?:false|0|null|undefined)\b/.test(mw),
+    'konstant-falscher Torwächter am Ende der Bedingung — die Middleware läuft nie');
+  ok(!/if\s*\(\s*(?:false|0|null|undefined)\s*\)/.test(mw),
+    'Bedingung ist konstant falsch');
+
+  // Die Freigabe darf nur greifen, wenn BEIDE Größen geprüft werden: die öffentlichen Routen
+  // müssen ausgenommen bleiben (sonst sterben Booker-Link und Kalender-Abo), und ohne
+  // `Origin` ist es kein Browser-Aufruf. Fehlt eine davon, ist die Logik entkernt.
+  const gate = mw.match(/if\s*\(([^)]*oeffentlich[^)]*)\)/);
+  ok(gate, 'Torwächter-Bedingung um die Header-Logik nicht gefunden');
+  ok(/origin/.test(gate[1]),
+    `Bedingung prüft die Herkunft nicht mehr: "${gate[1].trim()}"`);
+  // Die öffentlichen Routen müssen AUSGESCHLOSSEN werden (`!oeffentlich`), und beide
+  // Bedingungen müssen gemeinsam gelten. Ein `||` statt `&&` — oder ein `oeffentlich` ohne
+  // Verneinung — würde /viewplan, /viewstatus und /ics der Einschränkung unterwerfen und
+  // damit Booker-Link und Kalender-Abo abwürgen.
+  ok(/!\s*oeffentlich/.test(gate[1]),
+    `öffentliche Routen werden nicht mehr ausgenommen: "${gate[1].trim()}"`);
+  ok(gate[1].includes('&&') && !gate[1].includes('||'),
+    `Bedingungen müssen gemeinsam gelten (&&, nicht ||): "${gate[1].trim()}"`);
+
+  // Beide Zweige müssen INNERHALB des Torwächters liegen, nicht davor.
+  const posGate = mw.indexOf(gate[0]);
+  ok(mw.indexOf("set('Access-Control-Allow-Origin'") > posGate,
+    'die Freigabe wird außerhalb des Torwächters gesetzt');
+  ok(mw.indexOf('.del(') > posGate,
+    'die Rücknahme für fremde Herkünfte liegt außerhalb des Torwächters');
+});
+
 // Die token-geschützten öffentlichen Routen müssen von der Einschränkung ausgenommen
 // bleiben — dort IST der Token die Zugangsberechtigung, und ein Kalender-Abo muss von
 // überall abrufbar sein.

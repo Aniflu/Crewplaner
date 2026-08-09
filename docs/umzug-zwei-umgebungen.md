@@ -66,7 +66,7 @@ Damit Test-Pushes auf `main` **nicht** mehr automatisch live gehen.
 > neue v0.31.0-Frontend kommt erst später per bewusstem `main → live`-Merge (Go-Live).
 
 1. In Coolify die bestehende **Crewplaner-Frontend-App** öffnen
-   (`od48m2ubvy7rqq55fofbqgph-154940502903`).
+   (`«FRONTEND-CONTAINER-LIVE»`).
 2. **Build-Branch** von `main` auf **`live`** umstellen.
    ⚠️ **Wichtig — Reihenfolge:** Solange die App noch `main` baut, geht jeder Test-Push
    sofort live. Diese Umstellung daher **bevor** Marco v0.31.0 auf `main` pusht.
@@ -84,7 +84,7 @@ dann Live.** Der Hook liegt im GitHub-Repo unter `.pb_hooks/main.pb.js`.
 **Test-Backend** (Container-Name/Volume vom Admin einsetzen — aus Schritt 1):
 
 ```bash
-ssh hetzner "curl -s -o <TEST-HOOKS-VOLUME>/main.pb.js \
+ssh «SERVER» "curl -s -o <TEST-HOOKS-VOLUME>/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
   && docker restart <TEST-PB-CONTAINER>"
 ```
@@ -92,9 +92,9 @@ ssh hetzner "curl -s -o <TEST-HOOKS-VOLUME>/main.pb.js \
 **Live-Backend** (wie bisher, siehe `CLAUDE.md`):
 
 ```bash
-ssh hetzner "curl -s -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+ssh «SERVER» "curl -s -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+  && docker restart «PB-CONTAINER-LIVE»"
 ```
 
 **Prüfen** (in den Docker-Logs beider Container): `[hook] main.pb.js v4.11 geladen`

@@ -160,9 +160,9 @@
 | PocketBase API | https://api.crewplanner.nyxlightwork.de |
 | PocketBase Admin UI | https://api.crewplanner.nyxlightwork.de/_/ |
 | GitHub Repo | https://github.com/Aniflu/Crewplaner (main = Production) |
-| Server SSH | `ssh hetzner` (Alias in ~/.ssh/config) |
-| PocketBase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` (Coolify-managed) |
-| pb_hooks Pfad | `/var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/` |
+| Server SSH | `ssh «SERVER»` (Alias in ~/.ssh/config) |
+| PocketBase Container | `«PB-CONTAINER-LIVE»` (Coolify-managed) |
+| pb_hooks Pfad | `/var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/` |
 | E-Mail-Provider | Resend (HTTP API für Custom-Mails, SMTP-Gateway für System-Mails) |
 | Resend Absender | `noreply@crewplanner.nyxlightwork.de` |
 
@@ -173,12 +173,12 @@
 ## 4. Hook deployen
 
 ```bash
-ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+ssh «SERVER» "curl -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+  && docker restart «PB-CONTAINER-LIVE»"
 ```
 
-Danach prüfen: `ssh hetzner "docker logs pocketbase-ad9adhhkygjreidi79i4v5eb --tail 20"`
+Danach prüfen: `ssh «SERVER» "docker logs «PB-CONTAINER-LIVE» --tail 20"`
 Erwartete Ausgabe: `[hook] main.pb.js v4.10 geladen` (Repo-Stand = deployt = **v4.10**, seit 2026-07-22)
 
 ---
@@ -281,7 +281,7 @@ Assignment-Status-Werte: `proposed` → `confirmed` | `declined` | `pencilled` (
 ## 9. Test-Checkliste nach Deploy
 
 - [ ] https://crewplanner.nyxlightwork.de öffnet sich
-- [ ] Login mit `madmaxmail@web.de` funktioniert → landet auf admin.html
+- [ ] Login mit `«SUPERADMIN-MAIL»` funktioniert → landet auf admin.html
 - [ ] admin.html → "Neuer Benutzer" → E-Mail eingeben → Erstellen → Toast grün, keine Fehler
 - [ ] Docker-Logs zeigen `[hook] User auto-verified: <email>`
 - [ ] Reset-E-Mail kommt an → Link → login.html zeigt Passwort-Formular
@@ -294,7 +294,7 @@ Assignment-Status-Werte: `proposed` → `confirmed` | `declined` | `pencilled` (
 
 | Was | Wert |
 |---|---|
-| Admin-Login | `madmaxmail@web.de` |
+| Admin-Login | `«SUPERADMIN-MAIL»` |
 | GitHub | https://github.com/Aniflu/Crewplaner |
 | Resend API-Key | in Coolify als `RESEND_KEY` (nicht im Code!) |
-| PocketBase Container | `pocketbase-ad9adhhkygjreidi79i4v5eb` |
+| PocketBase Container | `«PB-CONTAINER-LIVE»` |

@@ -26,7 +26,7 @@ Mit aktiver Sperre kann sich in einer **leeren** Datenbank **niemand** mehr regi
 Vor dem Scharfschalten muss mindestens ein Eintrag existieren.
 
 - **Live**: unkritisch, 23 `crew_members` vorhanden (Stand 2026-08-01), darunter
-  `madmaxmail@web.de`. Nichts zu tun.
+  `«SUPERADMIN-MAIL»`. Nichts zu tun.
 - **Test**: Datenbank ist leer → **zwingend zuerst** anlegen. Im Test-PocketBase-Admin
   (`https://api-test.crewplanner.nyxlightwork.de/_/`) → Collection `crew_members` → **New record**:
 
@@ -34,7 +34,7 @@ Vor dem Scharfschalten muss mindestens ein Eintrag existieren.
 |---|---|
 | `plan_id` | `__pool__` |
 | `name` | Marco Hoch |
-| `email` | `madmaxmail@web.de` |
+| `email` | `«SUPERADMIN-MAIL»` |
 | `role` | `superadmin` |
 
 Danach registriert sich Marco normal über die Login-Seite und ist sofort Superadmin
@@ -48,7 +48,7 @@ Danach registriert sich Marco normal über die Login-Seite und ist sofort Supera
 **Test** (Container-Name und Hooks-Pfad der Test-PB einsetzen):
 
 ```bash
-ssh hetzner "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
+ssh «SERVER» "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
   && docker restart <TEST-CONTAINER>"
 ```
@@ -56,9 +56,9 @@ ssh hetzner "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
 **Live:**
 
 ```bash
-ssh hetzner "curl -s -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
+ssh «SERVER» "curl -s -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
+  && docker restart «PB-CONTAINER-LIVE»"
 ```
 
 **Prüfen:** Log zeigt `[hook] main.pb.js v4.13 geladen`, `/api/health` → `200`.
@@ -103,7 +103,7 @@ Sperre vorübergehend aufheben:
 1. `users.createRule` wieder leeren (PB-Admin).
 2. Hook zurücksetzen — die Vorgängerversion (v4.12) aus dem Git-Verlauf holen:
    ```bash
-   ssh hetzner "curl -s -o <HOOKS-PFAD>/main.pb.js \
+   ssh «SERVER» "curl -s -o <HOOKS-PFAD>/main.pb.js \
      https://raw.githubusercontent.com/Aniflu/Crewplaner/ad0ff86/.pb_hooks/main.pb.js \
      && docker restart <CONTAINER>"
    ```
