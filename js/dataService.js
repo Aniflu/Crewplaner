@@ -49,8 +49,14 @@ async function _getActivePlanId() {
   if (IS_CREW) {
     try {
       const email = (CURRENT_USER_EMAIL || '').toLowerCase();
-      const res = await pbList('crew_members', `email = "${pbEscapeFilter(email)}"`);
-      const planIds = [...new Set((res?.items || []).map(m => m.plan_id).filter(Boolean))];
+      // v0.8.1: über die Hook-Route statt der crew_members-REST-API. Der direkte Zugriff war
+      // der Grund, warum die Collection für jedes angemeldete Konto offen stehen musste —
+      // und damit lagen die Mailadressen aller Crew-Mitglieder aller Touren offen. Die Route
+      // ermittelt die eigenen Touren serverseitig und liefert nur id+name.
+      // ⚠️ Diese Umstellung MUSS vor dem Zumachen der Regel ausgerollt sein, sonst findet
+      // kein Crew-Mitglied mehr seine Tour (dieselbe Falle wie beim v4.16-Rollout).
+      const plans = await _pbRoute('/myplans');
+      const planIds = [...new Set((Array.isArray(plans) ? plans : []).map(p => p.id).filter(Boolean))];
       let chosen = planIds[0] || null;
       // Von der Crew bewusst gewählter Plan (Sidebar-Umschalter switchCrewPlan) hat Vorrang —
       // aber nur, wenn er noch zu den Plänen der Crew gehört (sonst stale → verwerfen).
@@ -239,6 +245,35 @@ export async function loadCrewMeta() {
   const planId = await _getActivePlanId();
   if (!planId) return;
 
+  // ── CREW: nur der EIGENE Eintrag ──────────────────────────────────────────
+  // Vorgabe des Users (2026-08-10): „die crewmitglieder dürfen AUSSCHLIESSLICH nur die
+  // Namen sehen sonst nichts." Bis v0.8.0 lud diese Funktion für JEDEN — auch für Crew —
+  // alle crew_members des Plans MIT Mailadressen in den Browser.
+  //
+  // Gebraucht wird davon im Crew-Pfad genau eines: der eigene Anzeigename, damit
+  // `getMyCrewName` (userView.js) die eigenen Slots erkennt. Den liefert `/myplan/{id}`
+  // seit Hook v4.20 als `myName` mit. Alle übrigen crewMeta-Nutzungen (dropdown.js,
+  // bulkStatus.js, crewNotify.js, crew.js) sind Manager-Pfade — geprüft.
+  //
+  // Die Namen der Kolleginnen und Kollegen sieht die Crew weiterhin: sie stehen in
+  // `plan_data` (crew/defaultCrew/assignments) und in den Status-Daten. Nur die Adressen
+  // kommen nicht mehr an.
+  if (IS_CREW && !IS_MANAGER) {
+    try {
+      const plan = await _pbRoute('/myplan/' + encodeURIComponent(planId));
+      Object.keys(crewMeta).forEach(k => delete crewMeta[k]);
+      if (plan?.myName) {
+        crewMeta[plan.myName] = { email: CURRENT_USER_EMAIL || '', userId: CURRENT_USER_ID || '' };
+      }
+    } catch (e) {
+      console.warn('loadCrewMeta (Crew) Fehler:', e.message);
+    }
+    return;
+  }
+
+  // ── MANAGER/Owner: unverändert ────────────────────────────────────────────
+  // Er braucht die Adressen zum Einladen, Erinnern und Benachrichtigen und ist
+  // Eigentümer der Tour.
   try {
     const data = await pbList('crew_members', `plan_id = "${pbEscapeFilter(planId)}"`);
     Object.keys(crewMeta).forEach(k => delete crewMeta[k]);
@@ -258,6 +293,26 @@ export async function loadAssignmentStatuses() {
   const planId = await _getActivePlanId();
   if (!planId) return;
 
+  // ── CREW: über die Hook-Route, ohne Mailadressen ──────────────────────────
+  // Der direkte assignments-Zugriff zwang die listRule auf `@request.auth.id != ""` —
+  // damit konnte jedes angemeldete Konto ALLE Einsätze ALLER Touren abrufen, inklusive
+  // `crew_email` jeder Person (Audit-Befund K-2). Eine PB-Regel kann das nicht enger
+  // fassen: Regeln filtern Datensätze, nicht Felder.
+  //
+  // `/planstatus/{id}` (v4.20) liefert Datum, Position, Status und Anzeigename — genau
+  // das, was die Tabelle einfärbt — und nur für DIESE Tour.
+  if (IS_CREW && !IS_MANAGER) {
+    try {
+      const res = await _pbRoute('/planstatus/' + encodeURIComponent(planId));
+      Object.keys(assignmentStatuses).forEach(k => delete assignmentStatuses[k]);
+      Object.assign(assignmentStatuses, res?.statuses || {});
+    } catch (e) {
+      console.warn('loadAssignmentStatuses (Crew) Fehler:', e.message);
+    }
+    return;
+  }
+
+  // ── MANAGER/Owner: unverändert über die REST-API ──────────────────────────
   try {
     const data = await pbListAll('assignments',
       `plan_id = "${pbEscapeFilter(planId)}" && status != "assigned" && status != "cancelled" && status != "cancel_acked"`);

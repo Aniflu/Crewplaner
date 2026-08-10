@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.18
-console.log('[hook] main.pb.js v4.19 geladen');
+// Version: 4.20
+console.log('[hook] main.pb.js v4.20 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -651,8 +651,84 @@ routerAdd('GET', '/myplan/{id}', function(e) {
   if (pdText) { try { pd = JSON.parse(pdText); } catch (err4) { pd = null; } }
   if (!pd) { try { pd = plan.get('plan_data') || null; } catch (err5) { pd = null; } }
 
+  // v4.20: Zusätzlich der EIGENE Anzeigename. Im Crew-Pfad war das der einzige Grund, warum
+  // `loadCrewMeta` die ganze crew_members-Collection des Plans lud — samt der Mailadressen
+  // aller Kolleginnen und Kollegen. Die kommen damit gar nicht mehr beim Browser an.
+  var myName = '';
+  try {
+    var me = $app.findFirstRecordByFilter('crew_members',
+      'plan_id = {:p} && email = {:m}', { p: planId, m: mail });
+    if (me) myName = me.getString('name') || '';
+  } catch (err6) { myName = ''; }
+
   e.response.header().set('Content-Type', 'application/json; charset=utf-8');
-  return e.string(200, JSON.stringify({ id: plan.id, name: plan.getString('name'), plan_data: pd }));
+  return e.string(200, JSON.stringify({
+    id: plan.id, name: plan.getString('name'), plan_data: pd, myName: myName
+  }));
+}, $apis.requireAuth());
+
+
+// ── 6c. Status EINER Tour für Angemeldete (v4.20) ────────────────────────────
+// GET /planstatus/{id}  (authentifiziert)
+//
+// Warum: `loadAssignmentStatuses` las die assignments-Collection direkt. Deren listRule
+// stand auf `@request.auth.id != ""` — jedes angemeldete Konto konnte damit ALLE Einsätze
+// ALLER Touren abrufen, inklusive `crew_email` jeder Person (Audit-Befund K-2, ~913
+// Datensätze in zwei Anfragen). Eine PB-Regel kann das nicht enger fassen: Regeln filtern
+// DATENSÄTZE, nicht FELDER — „lesen ja, Mailadresse nein" ist als Regel nicht ausdrückbar.
+// Deshalb, wie schon bei /viewstatus und /myplan: eine Route, die nur herausgibt, was die
+// Anzeige braucht.
+//
+// Geliefert wird Datum, Position, Status und ANZEIGENAME. Bewusst NICHT: crew_email,
+// Datensatz-IDs, responded_at — und ausschließlich für die EINE angefragte Tour.
+// Zugriffsprüfung wortgleich zu /myplan, Ablehnung ebenfalls als 404.
+// Goja-Isolation: alle Helfer/Literale INNERHALB des Handlers.
+routerAdd('GET', '/planstatus/{id}', function(e) {
+  var auth = e.auth;
+  if (!auth) return e.string(401, 'unauthorized');
+  var planId = e.request.pathValue('id');
+  if (!planId) return e.string(404, 'not found');
+
+  var plan;
+  try { plan = $app.findRecordById('plans', planId); } catch (err) { plan = null; }
+  if (!plan) return e.string(404, 'not found');
+
+  var mail = (auth.getString('email') || '').toLowerCase();
+  var darf = (plan.getString('owner') === auth.id) || (auth.getString('role') === 'superadmin');
+  if (!darf) {
+    try {
+      var m = $app.findFirstRecordByFilter('crew_members',
+        'plan_id = {:p} && email = {:m}', { p: planId, m: mail });
+      darf = !!m;
+    } catch (err2) { darf = false; }
+  }
+  if (!darf) return e.string(404, 'not found');
+
+  var rows;
+  try {
+    rows = $app.findRecordsByFilter(
+      'assignments',
+      'plan_id = {:p} && status != "assigned" && status != "cancelled" && status != "cancel_acked"',
+      'date', 5000, 0, { p: plan.id }
+    );
+  } catch (err3) { rows = []; }
+
+  var statuses = {};
+  for (var i = 0; i < rows.length; i++) {
+    var d = rows[i].getString('date');
+    var pos = rows[i].getString('pos_id');
+    if (!d || !pos) continue;
+    if (!statuses[d]) statuses[d] = {};
+    // Genau diese drei Felder. crew_email gehört nicht dazu.
+    statuses[d][pos] = {
+      status: rows[i].getString('status'),
+      crewName: rows[i].getString('crew_name'),
+      proposedBy: rows[i].getString('proposed_by')
+    };
+  }
+
+  e.response.header().set('Content-Type', 'application/json; charset=utf-8');
+  return e.string(200, JSON.stringify({ plan: plan.id, statuses: statuses }));
 }, $apis.requireAuth());
 
 

@@ -26,14 +26,14 @@ es fällt auch nicht auf. Deshalb: erst setzen, dann deployen.
 Auf **beiden** Instanzen (Live und Test) als Umgebungsvariable eintragen:
 
 ```
-ADMIN_EMAIL=madmaxmail@web.de
+ADMIN_EMAIL=«SUPERADMIN-MAIL»
 ```
 
 Danach Container neu starten und prüfen:
 
 ```bash
 ssh «SERVER» "docker exec «PB-CONTAINER-LIVE» printenv ADMIN_EMAIL"
-# erwartet: madmaxmail@web.de
+# erwartet: die Superadmin-Adresse (steht in .claude.local.md)
 ```
 
 ---

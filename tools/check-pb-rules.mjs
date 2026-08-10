@@ -29,6 +29,18 @@ const CRED = process.env.PB_CRED || join(homedir(),
 // gewollt und zeigt genau den offenen Schritt an.
 const PLANS_RULE = '@request.auth.id = owner || @request.auth.role = "superadmin"';
 
+// v0.8.1 — „Crew sieht nur Namen": superadmin und Tour-Eigentümer sehen alles, ein
+// Crew-Konto nur die EIGENEN Einsätze (nötig zum Bestätigen/Absagen).
+const OWN_OR_OWNER =
+  '@request.auth.role = "superadmin" || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id) || crew_email = @request.auth.email';
+
+// Für crew_members: die Crew braucht die Collection gar nicht mehr (Namen kommen aus
+// plan_data und /planstatus, der eigene Name aus /myplan). Deshalb ohne Eigen-Zweig —
+// und dieselbe Regel auch für create/update/delete, sonst kann sich jedes Konto per
+// Selbstbedienung Zugriff auf fremde Touren verschaffen (Audit K-3).
+const OWNER_ONLY =
+  '@request.auth.role = "superadmin" || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)';
+
 // ── Soll-Regeln (Stand 2026-08-04, nach dem Schließen von assignments UND plans) ──
 // Nur sicherheitsrelevante Regeln. Was hier NICHT steht, wird nicht geprüft.
 const SOLL = {
@@ -41,8 +53,16 @@ const SOLL = {
   },
   assignments: {
     // 2026-08-03: war LEER = weltöffentlich (Mailadressen!). Nie wieder leer lassen.
-    listRule:   '@request.auth.id != ""',
-    viewRule:   '@request.auth.id != ""',
+    //
+    // v0.8.1: `@request.auth.id != ""` reichte nicht — damit konnte JEDES angemeldete Konto
+    // ALLE Einsätze ALLER Touren abrufen, inklusive crew_email jeder Person (Audit K-2).
+    // Vorgabe des Users: „Crew-Mitglieder dürfen AUSSCHLIESSLICH die Namen sehen, sonst
+    // nichts." Die Namen liefert jetzt die Hook-Route /planstatus/{id} (v4.20) ohne
+    // Adressen; über die Collection darf die Crew nur noch die EIGENEN Datensätze sehen —
+    // das braucht sie zum Bestätigen/Absagen (confirmAssignment sucht per pbFirst).
+    listRule:   OWN_OR_OWNER,
+    viewRule:   OWN_OR_OWNER,
+    // createRule bleibt `auth != ""`: Crew legt beim Bestätigen ggf. den eigenen Record an.
     // v0.26.0 — Crew ändert nur EIGENE Einsätze
     updateRule: '@request.auth.role = "superadmin" || (@request.auth.id != "" && crew_email = @request.auth.email) || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)',
   },
@@ -62,8 +82,28 @@ const SOLL = {
     deleteRule: '@request.auth.id = owner || @request.auth.role = "superadmin"',
   },
   crew_members: {
-    listRule: '@request.auth.id != ""',
-    viewRule: '@request.auth.id != ""',
+    // v0.8.1: war `auth != ""` für list/view und komplett offen für create/update/delete.
+    // Letzteres war Rechteausweitung: `/myplan/{id}` gewährt Zugriff, wenn ein
+    // crew_members-Eintrag mit der eigenen Adresse und der Tour-ID existiert — und den
+    // durfte sich jedes Konto selbst anlegen (Audit K-3).
+    // ⚠️ Pool-Einträge tragen `plan_id="__pool__"`, was kein plans-Record ist → der
+    // @collection-Zweig trifft nicht zu, Pool-Pflege läuft damit nur noch als superadmin.
+    // Das entspricht der Praxis (Konsole), muss nach dem Setzen aber einmal durchgespielt
+    // werden: „+ Neues Crew-Mitglied" muss weiter funktionieren.
+    listRule:   OWNER_ONLY,
+    viewRule:   OWNER_ONLY,
+    createRule: OWNER_ONLY,
+    updateRule: OWNER_ONLY,
+    deleteRule: OWNER_ONLY,
+  },
+  // Reine Protokolle — die Konsole liest sie, die Crew hat dort nichts zu suchen.
+  email_log: {
+    listRule: OWNER_ONLY,
+    viewRule: OWNER_ONLY,
+  },
+  activity_log: {
+    listRule: OWNER_ONLY,
+    viewRule: OWNER_ONLY,
   },
 };
 

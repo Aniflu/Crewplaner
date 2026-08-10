@@ -78,7 +78,9 @@ test('confirmAssignment: Crew darf FREMDEN Slot NICHT bestätigen', async () => 
   resetState(g); primeCrew(g, 'crew@example.com');
   let patched = false;
   mockFetch((url, method) => {
-    if (method === 'GET' && url.includes('/crew_members/records')) return res({ items: [{ plan_id: 'PLAN1' }] });
+    // v0.8.1: Die Crew ermittelt ihre Touren über die Hook-Route, nicht mehr über
+    // crew_members-REST — sonst müsste die Collection für jedes Konto offen stehen.
+    if (method === 'GET' && url.includes('/myplans')) return res([{ id: 'PLAN1', name: 'Tour' }]);
     if (method === 'GET' && url.includes('/assignments/records')) return res({ items: [{ id: 'rec1', crew_email: 'someone@else.de' }] });
     if (method === 'PATCH') { patched = true; return res({}); }
     return res({});
@@ -95,7 +97,9 @@ test('confirmAssignment: Crew darf EIGENEN Slot bestätigen', async () => {
   g.state.setStatus('2026-07-01', 'gl', { status: 'proposed', crewName: 'Marco Hoch' });
   let patched = false;
   mockFetch((url, method) => {
-    if (method === 'GET' && url.includes('/crew_members/records')) return res({ items: [{ plan_id: 'PLAN1' }] });
+    // v0.8.1: Die Crew ermittelt ihre Touren über die Hook-Route, nicht mehr über
+    // crew_members-REST — sonst müsste die Collection für jedes Konto offen stehen.
+    if (method === 'GET' && url.includes('/myplans')) return res([{ id: 'PLAN1', name: 'Tour' }]);
     if (method === 'GET' && url.includes('/assignments/records')) return res({ items: [{ id: 'rec1', crew_email: 'crew@example.com' }] });
     if (method === 'PATCH') { patched = true; return res({ id: 'rec1', status: 'confirmed' }); }
     return res({});

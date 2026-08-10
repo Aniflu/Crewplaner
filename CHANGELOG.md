@@ -2,6 +2,17 @@
 
 > **v0.10.7 – v0.14.13 (Juni 2026)** — kondensiert. Vollständige, ausführliche Einträge: `CLAUDE.md` → Abschnitt „Versionierung".
 
+## v0.8.1 — 2026-08-10 — Crew sieht ausschließlich Namen
+- **Vorgabe des Users:** „Die Crewmitglieder dürfen AUSSCHLIESSLICH nur die Namen sehen, sonst nichts." Umfang geklärt: ganze Tour sichtbar wie bisher, aber nur als Namen.
+- **Nicht über Zugriffsregeln lösbar:** PocketBase-Regeln filtern *Datensätze*, nicht *Felder*. „Lesen ja, Mailadresse nein" ist als Regel nicht ausdrückbar → Hook-Routen, wie schon dreimal zuvor.
+- **Kritischer Fund vor dem Bauen:** `_getActivePlanId` ermittelte die Tour eines Crew-Mitglieds über einen direkten `crew_members`-Zugriff. Nur die Collection zuzumachen hätte **jedem Crew-Mitglied sofort die Tour genommen** — exakt die Falle aus dem v4.16-Rollout.
+- **Hook v4.20:** neue Route `GET /planstatus/{id}` (authentifiziert) liefert Datum, Position, Status und **Anzeigename** einer Tour — ohne `crew_email`, ohne Record-IDs. `/myplan/{id}` liefert zusätzlich `myName`.
+- **Frontend:** drei Crew-Ladepfade auf die Routen umgestellt (`_getActivePlanId`, `loadCrewMeta`, `loadAssignmentStatuses`). Der Manager bleibt überall auf dem REST-Weg — er ist Eigentümer und braucht die Adressen.
+- **K-3 empirisch bestätigt** (im Audit noch offen): `crew_members.createRule/updateRule/deleteRule` stehen auf Live tatsächlich auf `@request.auth.id != ""`.
+- **Soll-Regelwerk erweitert:** `assignments` auf superadmin/Owner/eigene Adresse; `crew_members`, `email_log`, `activity_log` auf superadmin/Owner.
+- **Drei Guard-Schwächen beim Mutationstest gefunden und behoben**, bevor sie etwas durchgelassen hätten — zweimal las ein Guard über seine Blockgrenze hinaus in die Folgefunktion. Danach alle **sieben** Mutationen rot. 147 → **152 grün**.
+- **Offen (Admin), Reihenfolge zwingend Hook → ausgeliefertes Frontend → Regeln:** `docs/admin-runbook-crew-nur-namen-v0.8.1.md`.
+
 ## v0.8.0 — 2026-08-09 — Gesamt-Audit umgesetzt
 - **Auftrag:** Prüfung von Logik, Sinnhaftigkeit, Sicherheit, Schutz vor Codeklau, Codestruktur und Programmierung. Vollständiger Befund: `docs/audit-2026-08-09.md` (3 kritisch, 6 wichtig, 5 kosmetisch).
 - **Kerneinsicht:** Alle Härtungen aus v0.5.1–v0.6.1 richteten sich gegen *anonyme* Zugriffe. Die Innensicht — was darf ein legitim Angemeldeter — war nie geprüft. Dort liegen alle drei kritischen Befunde.
