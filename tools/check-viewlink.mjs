@@ -181,6 +181,29 @@ async function pruefeInstanz(name, inst) {
       const t1 = await r1.text();
       pruef(!/view_token/.test(t1), 'kein view_token in /myplan');
       pruef(!/"owner"/.test(t1), 'keine Owner-ID in /myplan');
+      // v0.8.1: der eigene Anzeigename ersetzt das Laden ALLER crew_members samt Adressen.
+      // Fehlt er, findet getMyCrewName die eigenen Slots nicht mehr.
+      pruef(/"myName"\s*:\s*"[^"]+"/.test(t1), 'eigener Name (myName) kommt mit');
+    }
+
+    // ── /planstatus (v4.20) ───────────────────────────────────────────────
+    // Die Route, an der die Status-Farben der Crew hängen. Sie ist der Grund, warum die
+    // assignments-Collection zugemacht werden kann — also muss sie NACHWEISLICH liefern,
+    // BEVOR die Regel verschärft wird. Sonst sitzt die Crew vor einer farblosen Tabelle.
+    const rs = await fetch(`${inst.base_url}/planstatus/${eigeneId}`, { headers: H });
+    pruef(rs.ok, 'Status der eigenen Tour abrufbar', 'HTTP ' + rs.status);
+    if (rs.ok) {
+      const ts = await rs.text();
+      let anzahl = 0;
+      try { anzahl = Object.keys(JSON.parse(ts).statuses || {}).length; } catch (_) {}
+      pruef(anzahl > 0, 'Status-Farben werden geliefert', anzahl + ' Tage');
+      pruef(!/@/.test(ts), 'keine E-Mail-Adresse im Status-Payload');
+      pruef(!/"crew_email"/.test(ts), 'kein crew_email-Feld im Status-Payload');
+      pruef(/"crewName"/.test(ts), 'Anzeigenamen sind enthalten (Crew soll Namen sehen)');
+    }
+    if (fremde) {
+      const rf = await fetch(`${inst.base_url}/planstatus/${fremde.id}`, { headers: H });
+      pruef(rf.status === 404, 'Status einer fremden Tour → 404', 'HTTP ' + rf.status);
     }
     if (fremde) {
       const r2 = await fetch(`${inst.base_url}/myplan/${fremde.id}`, { headers: H });
