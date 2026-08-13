@@ -3,6 +3,27 @@
 # CLAUDE.md — und crewplanner.nyxlightwork.de liefert jede Repo-Datei ohne Anmeldung aus.
 .claude.local.md
 
+# Interne Doku — bleibt LOKAL (v0.8.2, Audit-Befund K-1, zweite Hälfte).
+# Das Dockerfile nimmt diese Dateien von der Live-Domain. Solange das Repo aber öffentlich ist,
+# blieben sie über github.com und raw.githubusercontent.com mit einem Klick lesbar — samt der
+# Chronik jeder je gefundenen Lücke. Deshalb hier heraus statt nur aus der Auslieferung.
+#
+# ⚠️ Das entfernt sie NUR aus dem aktuellen Stand. Die Git-HISTORIE bleibt abrufbar, und die
+# Commits VOR v0.8.0 enthalten die 14 echten Mailadressen im Klartext. Wirklich weg wären sie
+# erst durch ein Umschreiben der Historie (git filter-repo + Force-Push) — eigene Entscheidung,
+# bewusst nicht Teil von v0.8.2.
+#
+# Bewusst NICHT hier: .pb_hooks/ (der Hook-Deploy zieht die Datei über raw.githubusercontent.com),
+# tools/ und tests/ (der Admin führt sie aus), docs/admin-runbook-*.md (Arbeitsgrundlage des
+# Admins, durchgehend mit Platzhaltern «…»). Alle drei liegen nach v0.8.2 ohnehin nicht mehr
+# auf der Live-Domain.
+CLAUDE.md
+CHANGELOG.md
+HANDOFF.md
+docs/audit-*.md
+docs/befund-*.md
+docs/bericht-*.md
+
 # PocketBase-Superuser-Zugang für tools/check-pb-rules.mjs (PB_CRED)
 pb-cred.json
 *.pb-cred

@@ -59,6 +59,30 @@ test('keine Server-Kennungen in ausgelieferten Dateien', () => {
   ok(fund.length === 0, 'Server-Kennungen im Repo:\n      ' + fund.join('\n      '));
 });
 
+// v0.8.2: Die interne Doku ist aus der Git-Verfolgung genommen (siehe .gitignore). Damit ist
+// sie über github.com/raw.githubusercontent.com nicht mehr abrufbar — das Dockerfile allein
+// hätte sie nur von der Live-Domain genommen, nicht aus dem öffentlichen Repo.
+//
+// Dieser Guard ersetzt für diese Dateien die Inhaltsprüfung oben: die kann sie nach dem
+// Untracken gar nicht mehr sehen (`git ls-files`). Ohne ihn wäre ein `git add CLAUDE.md`
+// unbemerkt — und CLAUDE.md ist die Datei, die den größten Teil von K-1 ausgemacht hat.
+test('interne Doku ist nicht eingecheckt', () => {
+  const verfolgt = execSync('git ls-files', { cwd: root, encoding: 'utf8' }).split('\n');
+  const MUSTER = [
+    [/^CLAUDE\.md$/, 'Arbeitsanweisung inkl. Chronik aller gefundenen Lücken'],
+    [/^CHANGELOG\.md$/, 'Entwicklungschronik'],
+    [/^HANDOFF\.md$/, 'interner Übergabestand'],
+    [/^docs\/audit-.*\.md$/, 'Audit-Bericht'],
+    [/^docs\/befund-.*\.md$/, 'Befund-Doku'],
+    [/^docs\/bericht-.*\.md$/, 'Abschlussbericht'],
+  ];
+  const fund = [];
+  for (const f of verfolgt)
+    for (const [rx, was] of MUSTER) if (rx.test(f)) fund.push(`${f} (${was})`);
+  ok(fund.length === 0,
+    'interne Doku wieder eingecheckt — über GitHub öffentlich lesbar:\n      ' + fund.join('\n      '));
+});
+
 // Die Adresse des Planers darf nur aus der Umgebung kommen. Stünde sie als Rückfall im Code,
 // wäre sie über /.pb_hooks/main.pb.js wieder öffentlich — genau der Zustand vor v0.8.0.
 test('Hook holt die Planer-Adresse ausschließlich aus ADMIN_EMAIL', () => {
