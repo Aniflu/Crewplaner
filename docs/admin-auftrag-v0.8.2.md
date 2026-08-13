@@ -81,6 +81,44 @@ die Abos der Crew, und zwar lautlos: In der Kalender-App fehlen dann einfach Ter
 Bitte außerdem prüfen, ob PocketBase v0.38 eine eigene Drosselung mitbringt und ob sie aktiv
 ist — das wäre die sauberere Ebene, weil sie den Endpunkt kennt statt nur den Pfad.
 
+### Vorschlag zum Einfügen
+
+⚠️ **Ungetestet und blind geschrieben** — ich habe keinen Server-Zugang und kenne die
+vorhandenen Router-/Service-Namen in deiner `pocketbase-fix.yaml` nicht. Bitte an den dortigen
+Bestand anpassen, besonders `<DEIN-PB-SERVICE>` und die Priorität (der strip-api-Fix liegt auf
+1000, dieser Router muss **darüber** liegen, sonst greift er nicht).
+
+```yaml
+http:
+  middlewares:
+    login-ratelimit:
+      rateLimit:
+        average: 5        # 5 Anfragen pro Minute im Schnitt
+        period: 1m
+        burst: 10         # kurze Spitzen erlaubt (Vertipper, Autofill)
+        sourceCriterion:
+          ipStrategy:
+            depth: 1      # ⚠️ hinter Traefik/Proxy: sonst zählt ALLES auf eine IP
+                          #    und der erste Fehlversuch sperrt alle aus
+
+  routers:
+    pb-login-ratelimit:
+      rule: "Host(`api.crewplanner.nyxlightwork.de`) && PathPrefix(`/api/collections/users/auth-with-password`)"
+      priority: 2000      # über dem strip-api-Fix (1000)
+      entryPoints: [https]
+      service: <DEIN-PB-SERVICE>
+      middlewares: [login-ratelimit]
+      tls: {}
+```
+
+Der eigene Router ist Absicht: So trifft die Bremse **nur** den Login-Endpunkt. `/viewplan/`,
+`/viewstatus/` und `/ics/` laufen weiter über den bestehenden Router und bleiben ungedrosselt —
+das ist billiger und sicherer, als am Hauptrouter zu filtern.
+
+Falls `depth: 1` bei euch nicht passt (je nachdem, ob noch etwas vor Traefik hängt), lieber
+`requestHeaderName: X-Forwarded-For` prüfen. Ein falsch gesetztes `sourceCriterion` ist der
+wahrscheinlichste Weg, wie diese Änderung den Login für alle sperrt.
+
 ### Danach messen
 
 ```bash
