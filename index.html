@@ -75,7 +75,7 @@
           <div style="text-align:left;">
             <h1>Crewplanner</h1>
             <div class="subtitle-row">
-              <span class="tour-tag">Personalplan · v0.8.2</span>
+              <span class="tour-tag">Personalplan · v0.8.3</span>
               <span class="active-plan-name" id="activePlanName"></span>
             </div>
           </div>
@@ -390,12 +390,12 @@
       <div>
         <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;" id="crewHeading">Crew</div>
         <div id="crewList" style="margin-bottom:8px;"></div>
-        <div class="add-row manager-only">
-          <input type="text" id="newCrewName" placeholder="Name…" onkeydown="if(event.key==='Enter')addCrew()">
-          <button class="primary sm" onclick="addCrew()">+</button>
-        </div>
+        <!-- Kein Freitextfeld mehr (v0.8.3): Personen entstehen einmal global im Crew-Pool und
+             werden hier nur ausgewählt. Ein Name ohne crew_members-Datensatz bekäme keine
+             Anfrage und sähe die Tour nicht (/myplan prüft genau darauf) — der Zustand kann so
+             gar nicht erst entstehen. Neu anlegen geht im Dialog selbst („+ Neue Person"). -->
         <div class="sb-actions manager-only" style="margin-top:8px;">
-          <button class="sm manager-only" onclick="openImportCrewModal()"><span class="sb-gl">＋</span>Aus Crew-Pool wählen</button>
+          <button class="sm manager-only" onclick="openImportCrewModal()"><span class="sb-gl">＋</span>Crew hinzufügen</button>
         </div>
       </div>
       <div>
@@ -417,7 +417,7 @@
   <div class="modal-box" style="width:460px;display:flex;flex-direction:column;max-height:82vh;">
     <div class="modal-title">Crew-Pool</div>
     <div style="font-size:.62rem;color:var(--muted);line-height:1.5;margin-bottom:10px;">
-      Anhaken → in diese Tour übernehmen (inkl. E-Mail). Der Pool = alle je in einer Tour angelegten Crew-Mitglieder.
+      Anhaken → in diese Tour übernehmen (inkl. E-Mail). Der Pool = alle angelegten Crew-Mitglieder, tourübergreifend.
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
       <span style="color:var(--muted);font-size:.58rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
@@ -425,6 +425,33 @@
       <button onclick="_importSelectAll(false)" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
     </div>
     <div id="crewImportBody" style="overflow-y:auto;flex:1;margin-bottom:12px;padding-right:4px;"></div>
+
+    <!-- Neue Person anlegen — der einzige Weg, auf dem jemand NEU entsteht (neben der Konsole).
+         Schreibt einen Pool-Record (crew_members, plan_id="__pool__") und übernimmt direkt in
+         diese Tour. Die Adresse ist zugleich die Registrierungsfreigabe: users.createRule ist
+         `@collection.crew_members.email ?= email`. -->
+    <button id="newPersonToggle" class="mbtn" style="margin-bottom:10px;" onclick="_showNewPersonForm(true)">+ Neue Person anlegen</button>
+    <div id="newPersonForm" style="display:none;border:1px solid var(--rule-2);border-radius:4px;padding:10px;margin-bottom:10px;">
+      <div style="font-size:.58rem;color:var(--muted);line-height:1.5;margin-bottom:8px;">
+        Landet im globalen Pool (jede Tour kann sie übernehmen) und kommt sofort in diese Tour.
+        <strong>Kein Login-Konto</strong> — das entsteht erst, wenn die Person sich über den Einladungslink anmeldet.
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <input type="text"  id="npName"  class="mi" placeholder="Vor- und Nachname" style="flex:1 1 100%;font-size:.62rem;padding:5px 8px;">
+        <input type="email" id="npEmail" class="mi" placeholder="name@beispiel.de" style="flex:1 1 60%;font-size:.62rem;padding:5px 8px;"
+               onkeydown="if(event.key==='Enter')createAndTakeCrew()">
+        <select id="npRole" class="mi" style="flex:1;font-size:.62rem;padding:5px 8px;">
+          <option value="crew">Crew</option>
+          <option value="booker">Booker</option>
+          <option value="manager">Manager</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="mbtn primary sm" onclick="createAndTakeCrew()">Anlegen &amp; übernehmen</button>
+        <button class="mbtn sm" onclick="_showNewPersonForm(false)">Abbrechen</button>
+      </div>
+    </div>
+
     <div class="mactions">
       <button class="mbtn" onclick="_closeImportCrew()">Abbrechen</button>
       <button class="mbtn primary" onclick="confirmImportCrew()">Übernehmen</button>
@@ -450,7 +477,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=48"></script>
+<script type="module" src="js/app.js?v=49"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">

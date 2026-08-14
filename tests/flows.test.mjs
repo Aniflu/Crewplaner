@@ -31,23 +31,131 @@ test('removeCrew: entfernt Person + räumt Zuweisungen auf', async () => {
   eq(assignments['2026-07-01']?.st, 'Oliver Thomas', 'Olivers Zuweisung bleibt');
 });
 
-// ── Crew anlegen + Duplikat-Schutz ────────────────────────────────────────────
-test('addCrew: legt Person an, verhindert Duplikate', async () => {
-  const g = await loadGraph(); if(!g) return 'SKIP';
-  resetState(g);
-  const { crew } = g.state;
+// ── Crew in eine Tour bekommen (v0.8.3: nur noch über den Pool) ───────────────
+// Es gibt kein Freitextfeld mehr. Eine Person entsteht einmal global (createPoolMember) und
+// wird von dort übernommen — beides schreibt einen crew_members-Datensatz. Ohne den bekommt
+// sie keine Anfrage (der Hook steigt bei leerer crew_email still aus) und sieht die Tour
+// nicht (/myplan und /myplans prüfen genau darauf).
+
+// Der Pool-Dialog liest die Auswahl über querySelectorAll('#crewImportBody input[…][data-i]').
+// Der Stub aus _setup.mjs liefert dort [] — also hier eine Auswahl vortäuschen.
+function fakeAuswahl(indizes){
+  const realQSA = globalThis.document.querySelectorAll;
+  globalThis.document.querySelectorAll = () =>
+    indizes.map(i => ({ checked: true, dataset: { i: String(i) } }));
+  return () => { globalThis.document.querySelectorAll = realQSA; };
+}
+
+function fakeNeuePerson(name, email, role='crew'){
   const realGet = globalThis.document.getElementById;
-  // nur das Namensfeld faken — andere IDs (z.B. crewList in renderCrew) normal lassen
-  globalThis.document.getElementById = (id) =>
-    id === 'newCrewName' ? Object.assign(realGet(id), { value:'Neue Person' }) : realGet(id);
+  globalThis.document.getElementById = (id) => {
+    if (id === 'npName')  return Object.assign(realGet(id) || {}, { value: name });
+    if (id === 'npEmail') return Object.assign(realGet(id) || {}, { value: email });
+    if (id === 'npRole')  return Object.assign(realGet(id) || {}, { value: role });
+    return realGet(id);
+  };
+  return () => { globalThis.document.getElementById = realGet; };
+}
+
+function alsManager(g){
+  g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager');
+  globalThis.localStorage.setItem('pb_token', 't');
+  globalThis.localStorage.setItem('tourplan_pb_default', 'PLAN1');
+}
+
+// ⚠️ Der Pool darf NUR beim Laden der Kandidatenliste geliefert werden. saveCrewLink läuft über
+// pbUpsert, das zuerst SUCHT — bekäme es dieselbe Liste zurück, fände es immer einen Treffer
+// und würde patchen statt anzulegen. Der Test liefe grün, ohne je einen Datensatz anzulegen.
+// `POOL_GELADEN` schaltet nach dem ersten Listen-Abruf auf „nichts gefunden" um.
+function mockPB(pool, onPost){
+  let poolGeladen = false;
+  globalThis.fetch = async (url, opts) => {
+    if ((opts && opts.method) === 'POST') {
+      const body = JSON.parse(opts.body || '{}');
+      return onPost ? onPost(body) : { status:200, ok:true, json: async () => ({ id:'rec1' }) };
+    }
+    const items = poolGeladen ? [] : (poolGeladen = true, pool);
+    return { status:200, ok:true, json: async () => ({ items, page:1, perPage:200, totalPages:1 }) };
+  };
+}
+
+const POOL = [
+  { name:'Wolf Geffenius', email:'wolf@example.com' },
+  { name:'Kerrin Gall',    email:'kerrin@example.com' },
+];
+
+test('confirmImportCrew: übernimmt Ausgewählte mit Adresse in die Tour', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); alsManager(g);
+  const { crew, crewMeta } = g.state;
+  const posts = [];
+  // Kandidatenliste über den echten Weg füllen: loadAllKnownCrew liefert den gemockten Pool.
+  mockPB(POOL, body => { posts.push(body); return { status:200, ok:true, json: async () => ({ id:'rec1' }) }; });
+  await g.crew.openImportCrewModal();
+  const restore = fakeAuswahl([0, 1]);
   try {
-    g.crew.addCrew();
-    eq(crew.filter(n => n==='Neue Person').length, 1, 'einmal angelegt');
-    g.crew.addCrew(); // gleicher Name → kein Duplikat
-    eq(crew.filter(n => n==='Neue Person').length, 1, 'kein Duplikat');
-  } finally {
-    globalThis.document.getElementById = realGet;
-  }
+    await g.crew.confirmImportCrew();
+    eq(crew.length, 2, 'beide übernommen');
+    eq(crewMeta['Wolf Geffenius']?.email, 'wolf@example.com', 'Adresse mitgenommen');
+    ok(posts.length >= 2, 'für jede Person ein crew_members-Datensatz geschrieben');
+  } finally { restore(); }
+});
+
+test('confirmImportCrew: Fehlschlag nimmt NUR diesen Namen zurück', async () => {
+  // Der teuerste Fall: Ohne Rückbau bliebe genau der Zustand zurück, den v0.8.3 beseitigt —
+  // Name in der Tabelle, kein Datensatz dahinter, und niemand merkt es. Die anderen dürfen
+  // deswegen aber nicht mit verlorengehen.
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); alsManager(g);
+  const { crew } = g.state;
+  mockPB(POOL, body => body.name === 'Kerrin Gall'
+    ? { status:500, ok:false, json: async () => ({ message:'boom' }) }
+    : { status:200, ok:true,  json: async () => ({ id:'rec1' }) });
+  await g.crew.openImportCrewModal();
+  const restore = fakeAuswahl([0, 1]);
+  try {
+    await g.crew.confirmImportCrew();
+    ok(crew.includes('Wolf Geffenius'), 'die erfolgreiche Person bleibt');
+    ok(!crew.includes('Kerrin Gall'), 'die fehlgeschlagene ist wieder draußen');
+  } finally { restore(); }
+});
+
+test('createAndTakeCrew: legt im Pool an UND übernimmt in die Tour', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); alsManager(g);
+  const { crew } = g.state;
+  const posts = [];
+  globalThis.fetch = async (url, opts) => {
+    if ((opts && opts.method) === 'POST') { posts.push(JSON.parse(opts.body || '{}')); return { status:200, ok:true, json: async () => ({ id:'rec1' }) }; }
+    return { status:200, ok:true, json: async () => ({ items: [], page:1, perPage:200, totalPages:1 }) };
+  };
+  const restore = fakeNeuePerson('Neue Person', 'Neue.Person@Example.com');
+  try {
+    await g.crew.createAndTakeCrew();
+    eq(crew.filter(n => n==='Neue Person').length, 1, 'in der Tour');
+    const pool = posts.find(p => p.plan_id === '__pool__');
+    ok(pool, 'Pool-Datensatz geschrieben — sonst wäre die Person nur in dieser Tour bekannt');
+    eq(pool.email, 'neue.person@example.com',
+       'Adresse kleingeschrieben: PocketBases `=` ist case-sensitiv (v0.15.0)');
+    ok(posts.some(p => p.plan_id !== '__pool__'), 'zusätzlich der plan-bezogene Datensatz');
+  } finally { restore(); }
+});
+
+test('createAndTakeCrew: ohne Adresse entsteht NIEMAND', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); alsManager(g);
+  const { crew } = g.state;
+  let posted = false;
+  globalThis.fetch = async (url, opts) => {
+    if ((opts && opts.method) === 'POST') posted = true;
+    return { status:200, ok:true, json: async () => ({ items: [], page:1, perPage:200, totalPages:1 }) };
+  };
+  const restore = fakeNeuePerson('Ohne Adresse', '');
+  try {
+    await g.crew.createAndTakeCrew();
+    eq(crew.filter(n => n==='Ohne Adresse').length, 0, 'nicht in der Tour');
+    eq(posted, false, 'und auch kein Datensatz angelegt');
+  } finally { restore(); }
 });
 
 // ── Slot-Diffing: welche Slots sind für Crew NEU (anfragen/update) ────────────

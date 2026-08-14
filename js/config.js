@@ -13,3 +13,11 @@ export const POCKETBASE_URL =
   : 'https://api.crewplanner.nyxlightwork.de';
 
 export const SUPABASE_ENABLED = true;
+
+// Der globale Crew-Pool ist eine Pseudo-Tour: crew_members-Records mit dieser plan_id gehören
+// keiner Tour, sondern sind die Stammdaten, aus denen jede Tour auswählt. Kein echter
+// plans-Record — deshalb greift in den PB-Regeln der Eigentümer-Zweig hier NICHT, und der
+// Zugriff läuft über einen eigenen Rollen-Zweig (siehe tools/check-pb-rules.mjs).
+// Stand hier zentral, weil sowohl der Tour-Dialog (js/crew.js) als auch die Konsole
+// (admin.html) darauf schreiben — zwei Schreibweisen wären zwei getrennte Pools.
+export const POOL_PLAN_ID = '__pool__';

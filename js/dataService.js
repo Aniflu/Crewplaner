@@ -1,4 +1,4 @@
-import { POCKETBASE_URL, SUPABASE_ENABLED } from './config.js';
+import { POCKETBASE_URL, SUPABASE_ENABLED, POOL_PLAN_ID } from './config.js';
 import {
   POSITIONS, crew, defaultCrew, assignments, crewMeta,
   assignmentStatuses, TOUR_DATES, IS_CREW, IS_MANAGER,
@@ -7,6 +7,7 @@ import {
 } from './state.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
 import { showToast, sameCrew, getVal, dedupKnownCrew } from './utils.js';
+import { normEmail } from './pure.js';
 import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex } from './plans.js';
 
 // ── Authentifizierte Hook-Route abrufen ───────────────────────────────────────
@@ -665,6 +666,28 @@ export async function loadAllKnownCrew() {
   if (!SUPABASE_ENABLED) return [];
   const data = await pbListAll('crew_members', '');
   return dedupKnownCrew((data?.items || []).map(m => ({ name: m.name, email: m.email || '' })));
+}
+
+// ── Neue Person im globalen Crew-Pool anlegen ─────────────────────────────────
+// Der EINZIGE Weg, auf dem eine Person überhaupt entsteht — sowohl aus dem Tour-Dialog
+// (js/crew.js) als auch aus der Konsole (admin.html). Vorher gab es die Logik nur inline in
+// admin.html; als der Tour-Dialog dazukam, wäre sie sonst ein zweites Mal dagestanden.
+//
+// Die Adresse ist zugleich die Registrierungsfreigabe: users.createRule ist
+// `@collection.crew_members.email ?= email`. Wer hier hereinkommt, darf sich anmelden —
+// deshalb der Dublettencheck über ALLE crew_members (Pool wie Touren), nicht nur den Pool.
+export async function createPoolMember(name, email, role = 'crew') {
+  if (!SUPABASE_ENABLED) return null;
+  const n = String(name ?? '').trim();
+  const mail = normEmail(email);
+  if (!n)    throw new Error('Bitte Namen eingeben.');
+  if (!mail) throw new Error('Bitte E-Mail eingeben.');
+
+  const existing = await pbFirst('crew_members', `email = "${pbEscapeFilter(mail)}"`);
+  if (existing) throw new Error('E-Mail bereits vergeben.');
+
+  return pbPost('/api/collections/crew_members/records',
+    { plan_id: POOL_PLAN_ID, name: n, email: mail, role });
 }
 
 export async function saveCrewLink(crewName, email) {

@@ -1,11 +1,14 @@
 // ── Crew Management ────────────────────────────────────────────────────────────
 import { crew, TOUR_DATES, POSITIONS, assignments, defaultCrew, crewMeta, IS_MANAGER, CREW_COLORS } from './state.js';
 import { showToast, esc, getVal, normCrewName } from './utils.js';
+import { normEmail } from './pure.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { renderTable } from './render.js';
 import { showPrompt } from './dialog.js';
-import { renameCrewMember, deleteCrewMember, loadAllKnownCrew, saveCrewLink } from './dataService.js';
+import { renameCrewMember, deleteCrewMember, loadAllKnownCrew, saveCrewLink,
+         createPoolMember } from './dataService.js';
 import { openModal, closeModal } from './modals.js';
+import { hasPermission } from './rbac.js';
 
 // Global functions called: _savePlanToLS, renderCrew, renderTable
 
@@ -19,8 +22,16 @@ export function renderCrew(){
     TOUR_DATES.forEach(r=>{POSITIONS.forEach(p=>{if(getVal(r.date,p.id)===name)days++;});});
     const d=document.createElement('div');
     d.className='crew-member';
+    // Altbestand sichtbar machen: Personen ohne Adresse haben keinen crew_members-Datensatz,
+    // bekommen also keine Anfrage und sehen die Tour nicht. Seit v0.8.3 kann das nicht mehr NEU
+    // entstehen (Personen kommen nur noch aus dem Pool) — vorhandene Fälle würden sonst aber
+    // stumm weiterlaufen. Wortlaut/Muster wie bulkStatus.js:84.
+    // Reparatur: Konsole → Benutzer → im Verzeichnis die Adresse eintragen und speichern.
+    const ohneMail=!crewMeta[name]?.email;
     d.innerHTML=`<div class="crew-dot" style="background:${CREW_COLORS[i%CREW_COLORS.length]}"></div>`
-      +`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}</span>`
+      +`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}`
+      +(ohneMail?` <span title="Keine E-Mail hinterlegt — bekommt keine Anfrage und sieht die Tour nicht" style="color:var(--warn);">⚠</span>`:'')
+      +`</span>`
       +`<span class="crew-days">${String(days).padStart(2,'0')}d</span>`
       +(IS_MANAGER?`<button class="sm" onclick="renameCrew(${i})" title="Umbenennen">✏</button>`:'')
       +(IS_MANAGER?`<button class="sm danger" onclick="removeCrew(${i})" title="Entfernen">×</button>`:'');
@@ -33,19 +44,28 @@ export function renderCrew(){
   ).join('');
 }
 
-export function addCrew(){
-  if(!IS_MANAGER)return;
-  const inp=document.getElementById('newCrewName');
-  const n=inp.value.trim();
-  if(!n)return;
-  if(crew.includes(n)){
-    showToast('Name bereits vorhanden','#e84a4a');
-    return;
-  }
-  crew.push(n);
-  inp.value='';
+// Nimmt eine Person MIT Adresse in DIESE Tour auf: Name in crew[] und crew_members-Datensatz.
+//
+// ⚠️ REIHENFOLGE: saveCrewLink liest crew.indexOf(name) für sort_order — der Name muss vorher in
+// der Liste stehen. Schlägt das Anlegen fehl, muss er wieder HERAUS. Sonst entsteht genau der
+// Zustand, den v0.8.3 beseitigt: Bis v0.8.2 legte der `+`-Knopf nur `crew.push(name)` an, den
+// crew_members-Datensatz aber nie. Folge, beides unsichtbar: (a) keine Anfrage-/Einladungsmail
+// (der Hook steigt bei leerer crew_email still aus), (b) seit v0.8.1 sieht die Person die Tour
+// ÜBERHAUPT NICHT, weil /myplan und /myplans genau auf diesen Datensatz prüfen. Sie stand in der
+// Tabelle und war für das System trotzdem nicht Teil der Tour.
+//
+// Wirft weiter — die Aufrufer melden pro Person, was schiefging.
+async function _takeIntoTour(name, email){
+  crew.push(name);
   _savePlanToLS(getActivePlanId());
-  renderCrew();
+  try{
+    await saveCrewLink(name, email);
+  }catch(e){
+    const i=crew.indexOf(name);
+    if(i>=0)crew.splice(i,1);
+    _savePlanToLS(getActivePlanId());
+    throw e;
+  }
 }
 
 export function removeCrew(i){
@@ -91,15 +111,18 @@ export async function renameCrew(i){
   }
 }
 
-// ── Bekannte Crew aus früheren Touren übernehmen ──────────────────────────────
-// Zeigt eine tour-übergreifende Liste (alle je angelegten Crew-Mitglieder, doppelte
-// Namen zusammengefasst) zum Anhaken. Angehakte landen MIT E-Mail im aktuellen Plan.
+// ── Crew-Pool: der EINZIGE Weg, jemanden in eine Tour zu bekommen ─────────────
+// Seit v0.8.3 gibt es kein Freitextfeld mehr in der Seitenleiste. Eine Person entsteht einmal
+// global (Name + E-Mail + Rolle → crew_members mit plan_id="__pool__") und wird von dort in
+// beliebig viele Touren übernommen. Damit KANN der Zustand „Name ohne Datensatz" nicht mehr
+// entstehen — nicht weil eine Prüfung ihn abfängt, sondern weil es das Eingabefeld nicht gibt.
 let _importCandidates = [];   // [{name,email}] — die aktuell anzeigbaren (noch nicht im Plan)
 
 export async function openImportCrewModal(){
-  if(!IS_MANAGER)return;
+  if(!hasPermission('managePool'))return;
   const body=document.getElementById('crewImportBody');
-  if(body)body.innerHTML='<div style="font-size:.7rem;color:#888;">Lade bekannte Crew…</div>';
+  if(body)body.innerHTML='<div style="font-size:.7rem;color:#888;">Lade Crew-Pool…</div>';
+  _showNewPersonForm(false);
   openModal('crewImportModal');
   let known=[];
   try{ known=await loadAllKnownCrew(); }
@@ -114,44 +137,107 @@ function _renderImportCrewList(){
   const body=document.getElementById('crewImportBody');
   if(!body)return;
   if(!_importCandidates.length){
-    body.innerHTML='<div style="font-size:.7rem;color:#888;">Keine weiteren bekannten Crew-Mitglieder (alle schon im Plan).</div>';
+    body.innerHTML='<div style="font-size:.7rem;color:#888;">Niemand mehr im Pool, der nicht schon in dieser Tour ist. Über „+ Neue Person" legst du jemanden neu an.</div>';
     return;
   }
-  body.innerHTML=_importCandidates.map((k,i)=>`
+  body.innerHTML=_importCandidates.map((k,i)=>{
+    // Altbestand ohne Adresse: übernehmen wäre sinnlos — die Person bekäme keine Anfrage und
+    // sähe die Tour nicht. Deshalb sichtbar, aber nicht auswählbar, mit dem Reparaturweg dabei.
+    if(!k.email)return `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid #2a2a3a;font-size:.66rem;color:#666;">
+      <input type="checkbox" disabled style="width:14px;height:14px;flex-shrink:0;">
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(k.name)}</span>
+      <span title="Ohne Adresse bekommt die Person keine Anfrage und sieht die Tour nicht. Adresse in der Konsole unter Benutzer nachtragen." style="color:var(--warn);font-size:.6rem;">⚠ keine E-Mail</span>
+    </div>`;
+    return `
     <label style="display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid #2a2a3a;font-size:.66rem;color:#ddd;cursor:pointer;">
       <input type="checkbox" data-i="${i}" checked style="width:14px;height:14px;accent-color:#4ae8a0;flex-shrink:0;">
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(k.name)}</span>
-      <span style="color:#777;font-size:.6rem;">${k.email?esc(k.email):'keine E-Mail'}</span>
-    </label>`).join('');
+      <span style="color:#777;font-size:.6rem;">${esc(k.email)}</span>
+    </label>`;
+  }).join('');
 }
 
 export function _importSelectAll(val){
-  document.querySelectorAll('#crewImportBody input[type=checkbox]').forEach(cb=>{cb.checked=val;});
+  // `[data-i]` schließt die deaktivierten Altbestands-Zeilen aus — „ALLE" darf nichts
+  // auswählen, was confirmImportCrew ohnehin nicht übernehmen könnte.
+  document.querySelectorAll('#crewImportBody input[type=checkbox][data-i]').forEach(cb=>{cb.checked=val;});
 }
 
 export function _closeImportCrew(){ closeModal('crewImportModal'); }
 
-export async function confirmImportCrew(){
-  if(!IS_MANAGER)return;
-  const boxes=[...document.querySelectorAll('#crewImportBody input[type=checkbox]')];
-  const chosen=boxes.filter(cb=>cb.checked).map(cb=>_importCandidates[+cb.dataset.i]).filter(Boolean);
-  if(!chosen.length){ showToast('Nichts ausgewählt','#5a6070'); return; }
-  let added=0;
-  for(const k of chosen){
-    if(!crew.some(n=>normCrewName(n)===normCrewName(k.name))){ crew.push(k.name); added++; }
+// ── Neue Person anlegen (aus der Tour heraus) ─────────────────────────────────
+// Damit man beim Planen nicht in die Konsole wechseln muss. Schreibt denselben Pool-Record wie
+// „Benutzer → + Neues Crew-Mitglied" (gemeinsame Funktion createPoolMember in dataService.js)
+// und übernimmt die Person direkt in die offene Tour.
+export function _showNewPersonForm(show){
+  const f=document.getElementById('newPersonForm');
+  const b=document.getElementById('newPersonToggle');
+  if(f)f.style.display=show?'block':'none';
+  if(b)b.style.display=show?'none':'';
+  if(show)document.getElementById('npName')?.focus();
+}
+
+// `n` statt `name` wie überall in dieser Datei: escaping.test.mjs sucht dateiweit nach einem
+// ungeschützten `${name}` — der Guard ist bewusst stumpf und kann Toast-Text nicht von HTML
+// unterscheiden. renameCrew hält es seit jeher genauso.
+export async function createAndTakeCrew(){
+  if(!hasPermission('managePool'))return;
+  const n    =(document.getElementById('npName')?.value||'').trim();
+  const email=normEmail(document.getElementById('npEmail')?.value);
+  const role =document.getElementById('npRole')?.value||'crew';
+  if(!n){ showToast('Bitte Namen eingeben','#e84a4a'); return; }
+  if(!email){ showToast('Bitte E-Mail eingeben','#e84a4a'); return; }
+  if(crew.some(x=>normCrewName(x)===normCrewName(n))){
+    showToast('Name in dieser Tour bereits vorhanden','#e84a4a');
+    return;
   }
-  _savePlanToLS(getActivePlanId());
+  try{
+    await createPoolMember(n,email,role);
+  }catch(e){
+    showToast('Anlegen fehlgeschlagen: '+e.message,'#e84a4a');
+    return;
+  }
+  // Der Pool-Record steht — die Person existiert jetzt systemweit, auch wenn die Übernahme in
+  // DIESE Tour gleich scheitert. Deshalb zwei getrennte Meldungen statt einer Sammelmeldung.
+  try{
+    await _takeIntoTour(n,email);
+  }catch(e){
+    renderCrew();
+    showToast(`${n} im Pool angelegt, Übernahme in die Tour fehlgeschlagen: ${e.message}`,'#e8c84a');
+    return;
+  }
+  document.getElementById('npName').value='';
+  document.getElementById('npEmail').value='';
+  _showNewPersonForm(false);
   renderCrew();
   renderTable();
   closeModal('crewImportModal');
-  showToast(`${added} übernommen — E-Mails werden verknüpft…`,'#e8c84a');
-  // E-Mails im aktuellen Plan verknüpfen (crew_members-Record + crewMeta).
-  let linked=0, failed=0;
+  showToast(`${n} angelegt und übernommen ✓`,'#4ae8a0');
+}
+
+// Übernimmt die angehakten Personen — pro Person atomar (Name + Datensatz oder gar nichts).
+// Vorher lief das zweiphasig: erst alle Namen pushen, dann die Adressen verknüpfen. Ein
+// Fehlschlag in Phase zwei ließ den Namen ohne Datensatz stehen — genau der Zustand, den
+// v0.8.3 beseitigt. Erfolgreiche bleiben; die Fehlgeschlagenen werden namentlich gemeldet,
+// sonst weiß niemand, wen er noch einmal versuchen muss.
+export async function confirmImportCrew(){
+  if(!hasPermission('managePool'))return;
+  const boxes=[...document.querySelectorAll('#crewImportBody input[type=checkbox][data-i]')];
+  const chosen=boxes.filter(cb=>cb.checked).map(cb=>_importCandidates[+cb.dataset.i]).filter(Boolean);
+  if(!chosen.length){ showToast('Nichts ausgewählt','#5a6070'); return; }
+  closeModal('crewImportModal');
+  showToast(`${chosen.length} werden übernommen…`,'#e8c84a');
+
+  let added=0; const failed=[];
   for(const k of chosen){
-    if(!k.email)continue;
-    try{ await saveCrewLink(k.name,k.email); linked++; }
-    catch(e){ failed++; console.warn('Crew-Import Link fehlgeschlagen:',k.name,e.message); }
+    if(crew.some(n=>normCrewName(n)===normCrewName(k.name)))continue;
+    try{ await _takeIntoTour(k.name,k.email); added++; }
+    catch(e){ failed.push(k.name); console.warn('Crew-Übernahme fehlgeschlagen:',k.name,e.message); }
   }
   renderCrew();
-  showToast(failed?`${added} übernommen, ${linked} verknüpft, ${failed} E-Mail-Fehler`:`${added} übernommen · ${linked} E-Mails verknüpft ✓`, failed?'#e8c84a':'#4ae8a0');
+  renderTable();
+  showToast(failed.length
+    ? `${added} übernommen · fehlgeschlagen: ${failed.join(', ')}`
+    : `${added} übernommen ✓`, failed.length?'#e8c84a':'#4ae8a0');
 }

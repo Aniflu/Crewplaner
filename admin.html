@@ -17,7 +17,7 @@
 <script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="theme.css?v=2">
-<script type="module" src="js/admin-app.js?v=16"></script>
+<script type="module" src="js/admin-app.js?v=17"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -429,13 +429,6 @@ body {
   margin-top: 2px;
 }
 
-.crew-link-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
 .crew-notify-row {
   display: flex;
   align-items: center;
@@ -548,7 +541,7 @@ body {
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.8.2</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.8.3</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -610,12 +603,10 @@ body {
 
       <div class="tool-grid">
 
-        <!-- Crew verknüpfen -->
-        <div class="tool-card">
-          <div class="tool-card-title">Crew verknüpfen</div>
-          <div class="tool-card-sub">E-Mail-Adresse pro Crew-Mitglied hinterlegen</div>
-          <div id="wrkCrewLinkList"></div>
-        </div>
+        <!-- „Crew verknüpfen" ist mit v0.8.3 entfallen: Adressen stehen seit dem Crew-Pool schon
+             beim Anlegen fest (Benutzer → + Neues Crew-Mitglied bzw. der Pool-Dialog in der Tour)
+             und werden im Verzeichnis unter Benutzer gepflegt. Ein eigenes Nachtrag-Werkzeug
+             hätte den Zustand „Name ohne Adresse" nur weiter am Leben gehalten. -->
 
         <!-- Crew benachrichtigen -->
         <div class="tool-card">
@@ -761,7 +752,7 @@ body {
           </select>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-primary btn-sm" onclick="createPoolMember()">Erstellen</button>
+          <button class="btn btn-primary btn-sm" onclick="submitNewPoolMember()">Erstellen</button>
           <button class="btn btn-ghost btn-sm" onclick="toggleNewUserForm(false)">Abbrechen</button>
         </div>
       </div>
@@ -1053,10 +1044,15 @@ function adminLogout() {
 
 // ── Crew-Pool: neues Mitglied anlegen (global, kein Login-Konto) ─────────────────
 // Pool-Mitglieder = crew_members-Records mit Sentinel plan_id="__pool__". Sie sind
-// tour-übergreifend („Aus Crew-Pool wählen"). Ein Login-Konto (users) entsteht ERST,
+// tour-übergreifend („Crew hinzufügen" in der Tour). Ein Login-Konto (users) entsteht ERST,
 // wenn die Person zu einer Tour eingeladen wird und sich über den Link einloggt
 // (login.html doRegister übernimmt dann die hier gesetzte Rolle).
-const POOL_PLAN_ID = '__pool__';
+//
+// Sentinel und Anlege-Logik liegen seit v0.8.3 in js/config.js bzw. js/dataService.js und
+// kommen über admin-app.js als window.POOL_PLAN_ID / window.createPoolMember herein — der
+// Tour-Dialog benutzt dieselben. Zwei Schreibweisen wären zwei getrennte Pools.
+// ⚠️ Nur INNERHALB von Funktionen lesen: dieses Skript läuft beim Parsen, das Modul erst
+// danach. Auf oberster Ebene wäre window.POOL_PLAN_ID noch undefined.
 
 function toggleNewUserForm(show) {
   document.getElementById('newUserForm').style.display = show ? 'block' : 'none';
@@ -1075,24 +1071,20 @@ function _showFormError(msg) {
   errEl.style.display = 'block';
 }
 
-async function createPoolMember() {
+// Nur noch Formular-Anbindung — Dublettencheck und Anlegen stecken in createPoolMember
+// (js/dataService.js), damit die Konsole und der Tour-Dialog nachweislich dasselbe tun.
+async function submitNewPoolMember() {
   const name  = (document.getElementById('newUserName').value || '').trim();
-  const email = window.normEmail(document.getElementById('newUserEmail').value);
+  const email = document.getElementById('newUserEmail').value;
   const role  = document.getElementById('newUserRole').value || 'crew';
   document.getElementById('newUserError').style.display = 'none';
-  if (!name)  { _showFormError('Bitte Namen eingeben.'); return; }
-  if (!email) { _showFormError('Bitte E-Mail eingeben.'); return; }
-  const emailFilter = email.replace(/["\\]/g, ''); // Mails haben keine Quotes; Filter-Guard
   try {
-    // Dublettencheck: E-Mail schon irgendwo als crew_member (Pool oder Tour) vergeben?
-    const existing = await pbGet('/api/collections/crew_members/records?perPage=1&filter=' + encodeURIComponent(`email="${emailFilter}"`));
-    if ((existing.items || []).length) { _showFormError('E-Mail bereits vergeben.'); return; }
-    await pbPost('/api/collections/crew_members/records', { plan_id: POOL_PLAN_ID, name, email, role });
+    await window.createPoolMember(name, email, role);
     adminToast(`${name} zum Crew-Pool hinzugefügt ✓`, 'var(--show)');
     toggleNewUserForm(false);
     loadDirectory();
   } catch(e) {
-    _showFormError('Fehler: ' + (e.message || 'Unbekannter Fehler'));
+    _showFormError(e.message || 'Unbekannter Fehler');
   }
 }
 
@@ -1181,7 +1173,7 @@ async function saveDirectoryEntry(i) {
       // damit er persistiert und die Person tour-übergreifend verfügbar ist.
       if (!e.pool && e.tours.length === 0) {
         await pbPost('/api/collections/crew_members/records', {
-          plan_id: POOL_PLAN_ID, name: newName, email: (newEmail || window.normEmail(e.email)), role: newRole
+          plan_id: window.POOL_PLAN_ID, name: newName, email: (newEmail || window.normEmail(e.email)), role: newRole
         });
       }
     }
@@ -1506,7 +1498,6 @@ async function loadSelectedPlan() {
     document.getElementById('wrkInfoCrew').textContent = crew.length;
     document.getElementById('wrkInfoPos').textContent = POSITIONS.length;
 
-    renderAdminCrewLink();
     renderAdminNotify();
 
     // Gespeicherten View-Link anzeigen
@@ -1522,52 +1513,6 @@ async function loadSelectedPlan() {
     loadingEl.style.display = 'none';
     errEl.textContent = 'Fehler: ' + e.message;
     errEl.style.display = 'block';
-  }
-}
-
-// ── Werkzeuge: Crew verknüpfen ─────────────────────────────────────────────────
-function renderAdminCrewLink() {
-  const container = document.getElementById('wrkCrewLinkList');
-  if (!crew.length) {
-    container.innerHTML = '<div style="font-size:.65rem;color:var(--muted);">Keine Crew-Mitglieder in diesem Plan.</div>';
-    return;
-  }
-  container.innerHTML = crew.map((name, i) => {
-    const meta = _wrkCrewMeta[name] || {};
-    const dot = CREW_COLORS[i % CREW_COLORS.length];
-    const safeId = 'wcl_' + i;
-    return `<div class="crew-link-row">
-      <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
-      <span style="min-width:110px;font-size:.63rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(name)}</span>
-      <input type="email" id="${safeId}" placeholder="E-Mail…" value="${esc(meta.email || '')}"
-             class="tool-input" style="flex:2;font-size:.6rem;padding:4px 8px;"
-             onkeydown="if(event.key==='Enter')saveAdminCrewLink(${i})">
-      <button class="btn btn-primary btn-sm" onclick="saveAdminCrewLink(${i})">✓</button>
-    </div>`;
-  }).join('');
-}
-
-async function saveAdminCrewLink(i) {
-  const name  = crew[i];
-  const email = (document.getElementById('wcl_' + i)?.value || '').trim().toLowerCase();
-  if (!email) return;
-  try {
-    const existing = _wrkCrewMeta[name];
-    if (existing?.id) {
-      await pbPatch('/api/collections/crew_members/records/' + existing.id, { email });
-    } else {
-      const rec = await pbPost('/api/collections/crew_members/records', {
-        plan_id: _wrkPbPlanId, name, email, sort_order: i
-      });
-      if (!_wrkCrewMeta[name]) _wrkCrewMeta[name] = {};
-      _wrkCrewMeta[name].id = rec.id;
-    }
-    if (!_wrkCrewMeta[name]) _wrkCrewMeta[name] = {};
-    _wrkCrewMeta[name].email = email;
-    adminToast(`${name} verknüpft ✓`, 'var(--show)');
-    renderAdminNotify();
-  } catch(e) {
-    adminToast('Fehler: ' + e.message, 'var(--warn)');
   }
 }
 
@@ -1863,7 +1808,6 @@ async function onAdminImportFile(event) {
     document.getElementById('wrkInfoDates').textContent = TOUR_DATES.length;
     document.getElementById('wrkInfoCrew').textContent = crew.length;
     document.getElementById('wrkInfoPos').textContent = POSITIONS.length;
-    renderAdminCrewLink();
     renderAdminNotify();
     adminToast('Import gespeichert ✓', 'var(--show)');
   } catch(e) {

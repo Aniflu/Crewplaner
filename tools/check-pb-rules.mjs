@@ -41,6 +41,21 @@ const OWN_OR_OWNER =
 const OWNER_ONLY =
   '@request.auth.role = "superadmin" || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)';
 
+// v0.8.3 — Crew-Pool: Manager brauchen volle Personalhoheit. Wer eine Tour mit Personal plant,
+// muss das Personal auch anlegen können; bis hierher ging das nur als superadmin, weil
+// Pool-Einträge `plan_id="__pool__"` tragen und damit auf keinen plans-Record zeigen.
+//
+// Der Manager-Zweig ist bewusst auf Pool-Einträge BEGRENZT: Manager bekommen den Pool
+// vollständig (lesen, anlegen, ändern, löschen), aber keinen Zugriff auf die crew_members
+// fremder Touren — sonst wäre K-3 wieder offen. Crew- und Booker-Konten ändert sich nichts,
+// „Crew sieht nur Namen" (v0.8.1) bleibt unangetastet.
+//
+// ⚠️ Folge, die bewusst in Kauf genommen wird: users.createRule ist
+// `@collection.crew_members.email ?= email`. Ein Manager, der jemanden in den Pool legt,
+// erteilt damit die Registrierungsfreigabe. Das ist die direkte Bedeutung von Personalhoheit.
+const POOL_OR_OWNER =
+  '@request.auth.role = "superadmin" || (plan_id = "__pool__" && @request.auth.role = "manager") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)';
+
 // ── Soll-Regeln (Stand 2026-08-04, nach dem Schließen von assignments UND plans) ──
 // Nur sicherheitsrelevante Regeln. Was hier NICHT steht, wird nicht geprüft.
 const SOLL = {
@@ -86,15 +101,14 @@ const SOLL = {
     // Letzteres war Rechteausweitung: `/myplan/{id}` gewährt Zugriff, wenn ein
     // crew_members-Eintrag mit der eigenen Adresse und der Tour-ID existiert — und den
     // durfte sich jedes Konto selbst anlegen (Audit K-3).
-    // ⚠️ Pool-Einträge tragen `plan_id="__pool__"`, was kein plans-Record ist → der
-    // @collection-Zweig trifft nicht zu, Pool-Pflege läuft damit nur noch als superadmin.
-    // Das entspricht der Praxis (Konsole), muss nach dem Setzen aber einmal durchgespielt
-    // werden: „+ Neues Crew-Mitglied" muss weiter funktionieren.
-    listRule:   OWNER_ONLY,
-    viewRule:   OWNER_ONLY,
-    createRule: OWNER_ONLY,
-    updateRule: OWNER_ONLY,
-    deleteRule: OWNER_ONLY,
+    // v0.8.3: Pool-Zweig für Manager ergänzt (siehe POOL_OR_OWNER). Nach dem Setzen einmal
+    // durchspielen — und zwar mit einem echten `manager`-Konto, nicht nur als superadmin:
+    // „+ Neues Crew-Mitglied" in der Konsole UND „Crew hinzufügen" in der Tour.
+    listRule:   POOL_OR_OWNER,
+    viewRule:   POOL_OR_OWNER,
+    createRule: POOL_OR_OWNER,
+    updateRule: POOL_OR_OWNER,
+    deleteRule: POOL_OR_OWNER,
   },
   // Reine Protokolle — die Konsole liest sie, die Crew hat dort nichts zu suchen.
   email_log: {

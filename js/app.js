@@ -24,14 +24,12 @@ import './calendar.js';
 import './plans.js';
 import './persistence.js';
 import './crewNotify.js';
-import './crewLink.js';
 import './userView.js';
 import './dialog.js';
 
 // ── Explicit imports for window.* registrations (onclick handlers) ──
 import { saveJSON, savePlan, loadJSON, onFileLoad } from './persistence.js';
 import { openCrewModal, toggleSidebar, toggleDrawer } from './sidebar.js';
-import { addCrew } from './crew.js';
 import { closeDD } from './dropdown.js';
 import { setView, scrollToToday } from './render.js';
 import { handleLogoUpload, removeLogo } from './logos.js';
@@ -55,8 +53,7 @@ import { confirmNewPlan, confirmRenamePlan, deletePlan, renamePlan, switchPlan }
 import { _confirmTypeModal, deleteType, openEditType } from './types.js';
 import { adSetMode, confirmAddDate } from './dates.js';
 import { removeCrew, renameCrew, openImportCrewModal, confirmImportCrew,
-         _importSelectAll, _closeImportCrew } from './crew.js';
-import { saveCrewLinkRow } from './crewLink.js';
+         _importSelectAll, _closeImportCrew, _showNewPersonForm, createAndTakeCrew } from './crew.js';
 import { sendCancellationSummary, sendInvite, sendUpdate } from './crewNotify.js';
 import { tbChangeLoc, tbChangeType } from './tourblock.js';
 import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
@@ -101,7 +98,6 @@ window.openCrewModal = openCrewModal;
 window.toggleSidebar = toggleSidebar;
 window.toggleDrawer = toggleDrawer;
 window.scrollToToday = scrollToToday;
-window.addCrew = addCrew;
 window.closeDD = closeDD;
 window.setView = setView;
 window.handleLogoUpload = handleLogoUpload;
@@ -158,7 +154,8 @@ window.openImportCrewModal = openImportCrewModal;
 window.confirmImportCrew = confirmImportCrew;
 window._importSelectAll = _importSelectAll;
 window._closeImportCrew = _closeImportCrew;
-window.saveCrewLinkRow = saveCrewLinkRow;
+window._showNewPersonForm = _showNewPersonForm;
+window.createAndTakeCrew = createAndTakeCrew;
 window.sendCancellationSummary = sendCancellationSummary;
 window.sendInvite = sendInvite;
 window.sendUpdate = sendUpdate;

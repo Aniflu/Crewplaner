@@ -18,7 +18,10 @@ export function hasPermission(action) {
     case 'sendReminder':
     case 'sendCancellation':
     case 'cancelAssignment':
-    case 'linkCrewEmail':
+    // v0.8.3: war 'linkCrewEmail' (Werkzeug „Crew verknüpfen", entfallen). Deckt jetzt den
+    // Crew-Pool ab — auswählen UND neu anlegen. Manager brauchen volle Personalhoheit: Wer
+    // eine Tour mit Personal plant, muss das Personal auch anlegen können.
+    case 'managePool':
       return IS_MANAGER;
     case 'viewAllAssignments':
     case 'viewStats':
