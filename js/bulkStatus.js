@@ -1,29 +1,54 @@
-// ── Sammel-Statuswechsel: bestätigt ⇄ vorgemerkt (v0.5.0) ────────────────────
-// Der Manager wählt Personen → Tourblöcke → einzelne Tage und schaltet deren Einsätze
-// in einem Rutsch um. Ersetzt das Zelle-für-Zelle-Vormerken, das bei 30–60 Tourtagen
-// praktisch unbenutzbar war.
+// ── Dialog „Status ändern" (v0.9.0) ──────────────────────────────────────────
+// Ablauf: oben die AKTION wählen → Personen/Blöcke/Tage anhaken → AUSFÜHREN.
+//
+// Vorgeschichte, damit niemand zurückbaut: Bis v0.8.6 gab es zwei feste Modi
+// („bestätigt → vorgemerkt" und zurück), und die Modus-Knöpfe setzten beim Klick die
+// Auswahl zurück. Zwei Fehler daraus, beide von Marco gemeldet:
+//   · Ein Klick auf den zweiten Modus sammelte nichts (es war noch nichts vorgemerkt) —
+//     der Knopf stand auf 0 und tat beim Klicken nichts, ohne jeden Hinweis.
+//   · Ein erneuter Klick auf den aktiven Modus verwarf die getroffene Auswahl und hakte
+//     stillschweigend alles Offene an; das nächste AUSFÜHREN traf dann die ganze Tour.
+// Beide sind mit dem Prüfstand tools/dialog-harness.mjs nachgestellt — er fährt echte
+// Klicks im echten DOM. Reine Markup-Vergleiche (tests/bulkstatus.test.mjs) sahen sie nicht.
 //
 // Auswahl-Muster (alle/keine je Block und je Person, globales ALLE/KEINE) bewusst
 // identisch zum Update-Queue-Modal in userView.js — der Manager kennt es von dort.
-// Anders als die Queue wird hier NICHTS persistiert: eine Einmal-Aktion, der
-// Auswahlzustand lebt nur solange der Dialog offen ist.
+// Es wird NICHTS persistiert: eine Einmal-Aktion, die Auswahl lebt nur im offenen Dialog.
 import { TOUR_DATES, POSITIONS, assignmentStatuses, crewMeta, IS_MANAGER, OFFEN } from './state.js';
 import { esc, showToast, getVal } from './utils.js';
-import { pencilInAssignment, confirmAssignment, loadAssignmentStatuses } from './dataService.js';
+import { pencilInAssignment, confirmAssignment, loadAssignmentStatuses,
+         proposeAssignmentBulk, removeAssignmentSlot } from './dataService.js';
 import { renderTable } from './render.js';
 import { openModal, closeModal } from './modals.js';
-import { _queueStatusSlot, _dateBlockId } from './userView.js';
+import { _queueStatusSlot, _queueRemovedSlot, _dateBlockId } from './userView.js';
 
-// Modus → { von, nach }.
-//
-// `pencil` hat bewusst KEIN `from`: Seit v0.8.6 lässt sich JEDER geplante Einsatz vormerken,
-// nicht nur ein bestätigter. Vorher sammelte der Dialog ausschließlich `confirmed` — frisch
-// geplante Zellen ohne Statusdatensatz erschienen gar nicht, und genau die will man bei einer
-// neuen Tour am Stück vormerken. Übrig blieb das Zelle-für-Zelle-Klicken, das dieser Dialog
-// eigentlich abschaffen sollte.
-const MODES = {
-  pencil:  {              to: 'pencilled', label: '→ ✎ vorläufig vormerken' },
-  confirm: { from: 'pencilled', to: 'confirmed', label: '✎ vorgemerkt → ✓ bestätigt' },
+// Die vier Aktionen.
+//   ueberspringen  → dieser Slot steht bei der Aktion nicht zur Auswahl (nichts zu tun)
+//   brauchtMail    → ohne hinterlegte Adresse nicht auswählbar (der Hook steigt still aus)
+//   melden         → wann ein Eintrag in die Update-Queue gehört:
+//                    'nie' | 'immer' | 'wenn-kommuniziert' (vorher proposed/confirmed/declined)
+const AKTIONEN = {
+  pencil: {
+    label: '✎ VORMERKEN', titel: 'vorläufig vormerken', knopf: '✎ %n VORMERKEN',
+    ueberspringen: (s) => s === 'pencilled',
+    melden: 'wenn-kommuniziert',
+  },
+  confirm: {
+    label: '✓ BESTÄTIGEN', titel: 'bestätigen', knopf: '✓ %n BESTÄTIGEN',
+    ueberspringen: (s) => s === 'confirmed',
+    melden: 'wenn-kommuniziert',
+  },
+  request: {
+    label: '⏳ ANFRAGEN', titel: 'anfragen', knopf: '⏳ %n ANFRAGEN',
+    ueberspringen: (s) => s === 'proposed',
+    brauchtMail: true,
+    melden: 'immer',
+  },
+  remove: {
+    label: '✕ AUFHEBEN', titel: 'Besetzung aufheben', knopf: '✕ %n AUFHEBEN',
+    ueberspringen: () => false,
+    melden: 'wenn-kommuniziert',
+  },
 };
 
 // Zustand eines Einsatzes für Anzeige und Vorauswahl. `null` = geplant, aber nie kommuniziert.
@@ -35,16 +60,16 @@ const ZUSTAND = {
 };
 const _zustand = (s) => ZUSTAND[s == null ? 'null' : s] || ZUSTAND.null;
 
-let _mode = 'pencil';
+let _mode = 'pencil';          // Schlüssel in AKTIONEN
 let _sel = new Set();          // ausgewählte Slots als 'name|date|posId'
 let _onlyCrew = null;          // gesetzt beim Einstieg übers Zellen-Menü
 
 const _key = (name, date, posId) => `${name}|${date}|${posId}`;
 
-// Alle Slots im aktuellen Quellstatus einsammeln — gruppiert Person → Block → Tag.
-// Rückgabe: { people: [{name, email, blocks: [{bid, label, slots:[…]}]}], total }
+// Alle Slots einsammeln, die für die aktuelle Aktion in Frage kommen — gruppiert
+// Person → Block → Tag. Rückgabe: { people: [{name, email, blocks:[{bid,label,slots}]}], total }
 function _collect() {
-  const from = MODES[_mode].from;
+  const akt = AKTIONEN[_mode];
   const blockLabel = {}; const blockOrder = []; const seen = new Set();
   TOUR_DATES.forEach(r => {
     const bid = r.blockId || '';
@@ -57,21 +82,14 @@ function _collect() {
     POSITIONS.forEach(p => {
       const si = (assignmentStatuses[r.date] || {})[p.id];
       const status = si?.status ?? null;
-      let name;
 
-      if (from) {
-        // Modus „bestätigen": nur was schon vorgemerkt ist.
-        if (!si || status !== from || !si.crewName) return;
-        name = si.crewName;
-      } else {
-        // Modus „vormerken": alles, was besetzt ist — auch ohne Statusdatensatz.
-        // Die Besetzung kommt aus getVal (schließt defaultCrew ein), NICHT aus
-        // assignmentStatuses; sonst fehlten genau die frisch geplanten Zellen.
-        // Dieselbe Sicht benutzt crewNotify.js — beide Wege sehen so dieselben Slots.
-        name = getVal(r.date, p.id);
-        if (!name || name === OFFEN) return;
-        if (status === 'pencilled') return;   // schon vorgemerkt → nichts zu tun
-      }
+      // Die Besetzung kommt aus getVal (schließt defaultCrew ein), NICHT aus
+      // assignmentStatuses — sonst fehlten genau die frisch geplanten Zellen ohne Record.
+      // Dieselbe Sicht benutzt crewNotify.js; beide Wege sehen so dieselben Slots.
+      const name = getVal(r.date, p.id);
+      if (!name || name === OFFEN) return;
+      if (akt.ueberspringen(status)) return;      // schon im Zielzustand → nichts zu tun
+      if (akt.brauchtMail && !crewMeta[name]?.email) return;
 
       if (_onlyCrew && name !== _onlyCrew) return;
       (byName[name] = byName[name] || {})[_dateBlockId(r.date)] =
@@ -100,13 +118,17 @@ function _render() {
   const body = document.getElementById('bulkStatusBody');
   if (!body) return;
   const { people, total } = _collect();
-  const m = MODES[_mode];
+  const akt = AKTIONEN[_mode];
 
   if (!total) {
-    const was = m.from === 'pencilled' ? 'vorgemerkten' : 'offenen, noch nicht vorgemerkten';
+    // Sagen, WARUM nichts dasteht. Vorher stand hier „Keine vorgemerkten Einsätze" — der
+    // Manager las das als „Dialog kaputt", weil der Knopf trotzdem klickbar aussah.
     const wer = _onlyCrew ? ' für ' + esc(_onlyCrew) : '';
-    body.innerHTML = `<div style="color:var(--muted);font-size:.68rem;padding:16px 0;">
-      Keine ${was} Einsätze${wer} in dieser Tour.</div>`;
+    const grund = akt.brauchtMail
+      ? ' Möglich ist auch, dass die Adressen fehlen — ohne E-Mail lässt sich niemand anfragen.'
+      : '';
+    body.innerHTML = `<div style="color:var(--muted);font-size:.68rem;padding:16px 0;line-height:1.6;">
+      Kein Einsatz${wer}, den man ${esc(akt.titel)} könnte — alles ist schon in diesem Zustand.${grund}</div>`;
     _updateApplyButton(0);
     return;
   }
@@ -127,9 +149,9 @@ function _render() {
       </div>`;
       for (const s of b.slots) {
         const k = _key(p.name, s.date, s.posId);
-        // Das Zustandszeichen ist im Modus „vormerken" nicht schmückend, sondern die
-        // Sicherung: Ein grauer Einsatz ist harmlos, ein grüner nicht — dort hat jemand
-        // fest zugesagt und erfährt von der Rücknahme nichts (es geht keine Mail raus).
+        // Das Zustandszeichen ist nicht schmückend, sondern die Sicherung: Ein grauer
+        // Einsatz ist harmlos, ein grüner nicht — dort hat jemand fest zugesagt und erfährt
+        // von der Rücknahme nichts (es geht keine Mail raus).
         const z = _zustand(s.status);
         html += `<div style="display:flex;align-items:center;gap:8px;padding:2px 0 2px 14px;border-bottom:1px solid var(--rule);font-size:.64rem;color:var(--ink-2);">
           <input type="checkbox" data-key="${esc(k)}" ${_sel.has(k) ? 'checked' : ''}
@@ -145,28 +167,33 @@ function _render() {
   _updateApplyButton(_sel.size);
 
   const lbl = document.getElementById('bulkStatusMode');
-  if (lbl) lbl.textContent = m.label;
+  if (lbl) lbl.textContent = `${total} Einsatz/Einsätze zur Auswahl · Aktion: ${akt.titel}`;
 }
 
+// ⚠️ Der Knopf trägt IMMER die Zahl der Auswahl. Ein Knopf, der eine Zahl zeigt, aber nichts
+// tut, hat den Manager glauben lassen, der Dialog hänge (v0.8.6).
 function _updateApplyButton(n) {
   const btn = document.getElementById('btnBulkStatusApply');
   if (!btn) return;
-  btn.textContent = (_mode === 'pencil' ? `✎ ${n} VORMERKEN` : `✓ ${n} BESTÄTIGEN`) + ' →';
+  btn.textContent = AKTIONEN[_mode].knopf.replace('%n', String(n)) + ' →';
   btn.disabled = n === 0;
   btn.style.opacity = n === 0 ? '.45' : '1';
 }
 
-// Vorauswahl im Modus „vormerken": NUR die Einsätze ohne Status. Bestätigte, angefragte und
-// abgelehnte muss man bewusst dazuwählen — sonst wäre einmal Öffnen und Anwenden ein stiller
-// Rückzug aller Zusagen der ganzen Tour, ohne dass jemand davon erfährt.
-// Im Modus „bestätigen" bleibt es bei leerer Vorauswahl (dort ist jeder Slot gleichwertig).
-function _vorauswahl() {
-  if (_mode !== 'pencil') return;
+// „nur offene" — hakt gezielt die Einsätze ohne Status an.
+//
+// Ersetzt die automatische Vorauswahl aus v0.8.6. Die war der falsche Standard: Wer den Dialog
+// öffnete, hatte ungefragt die halbe Tour angehakt, und ein Klick auf AUSFÜHREN traf alles.
+// In einem Dialog, der Zusagen zurücknehmen kann, soll man sagen was man will — nicht
+// widerrufen, was man nicht will.
+export function _bulkStatusSelectOpen() {
+  _sel = new Set();
   const { people } = _collect();
   for (const p of people)
     for (const b of p.blocks)
       for (const s of b.slots)
         if (s.status == null) _sel.add(_key(p.name, s.date, s.posId));
+  _render();
 }
 
 // ── Auswahl-Helfer (window-registriert, von den Knöpfen im Markup gerufen) ─────
@@ -199,17 +226,23 @@ export function _bulkStatusSelectAll(on) {
   _render();
 }
 
+// Aktion wechseln. Die Menge auswählbarer Slots ändert sich dabei, deshalb wird die Auswahl
+// verworfen — aber NICHT stillschweigend: Genau das hat den Manager Arbeit gekostet, als ein
+// erneuter Klick auf den aktiven Modus-Knopf seine Auswahl verwarf und er es nicht merkte.
+// Ein Klick auf die bereits aktive Aktion tut deshalb gar nichts.
 export function _bulkStatusSetMode(mode) {
-  if (!MODES[mode]) return;
+  if (!AKTIONEN[mode]) return;
+  if (mode === _mode && _sel.size) return;    // schon aktiv → Auswahl nicht wegwerfen
+  const hatteAuswahl = _sel.size;
   _mode = mode;
-  _sel = new Set();                 // Quellstatus wechselt → alte Auswahl ist gegenstandslos
-  _vorauswahl();
+  _sel = new Set();
   document.querySelectorAll('[data-bsmode]').forEach(el => {
     const active = el.dataset.bsmode === mode;
     el.style.background = active ? 'var(--accent)' : 'var(--panel2)';
     el.style.color      = active ? 'var(--on-accent)' : 'var(--muted)';
   });
   _render();
+  if (hatteAuswahl) showToast('Aktion gewechselt — Auswahl zurückgesetzt', '#e8c84a');
 }
 
 // ── Öffnen / Schließen ────────────────────────────────────────────────────────
@@ -227,11 +260,21 @@ export function openBulkStatusModal(prefillCrew) {
 export function closeBulkStatusModal() { closeModal('bulkStatusModal'); }
 
 // ── Anwenden ──────────────────────────────────────────────────────────────────
+const FERTIG = {
+  pencil:  { text: 'vorgemerkt ✎',        farbe: '#7A5FB3' },
+  confirm: { text: 'bestätigt ✓',         farbe: '#4ae8a0' },
+  request: { text: 'angefragt ⏳ — Mail geht über „Updates senden" raus', farbe: '#e8c84a' },
+  remove:  { text: 'aufgehoben ✕',        farbe: '#4ae8a0' },
+};
+
 export async function applyBulkStatus() {
   const n = _sel.size;
-  if (!n) return;
-  const { to } = MODES[_mode];
-  // Zustand VOR der Umstellung mitnehmen — danach ist er überschrieben, und er entscheidet,
+  // ⚠️ NICHT stumm zurückkehren. Genau das ließ den Dialog „hängen" aussehen (v0.8.6):
+  // Klick auf den Knopf, nichts passiert, keine Erklärung.
+  if (!n) { showToast('Nichts ausgewählt', '#5a6070'); return; }
+
+  const akt = AKTIONEN[_mode];
+  // Zustand VOR der Änderung mitnehmen — danach ist er überschrieben, und er entscheidet,
   // ob die Person überhaupt etwas zu erfahren hat (siehe unten).
   const targets = [];
   for (const k of _sel) {
@@ -239,27 +282,38 @@ export async function applyBulkStatus() {
     targets.push({ name, date, posId, vorher: (assignmentStatuses[date] || {})[posId]?.status ?? null });
   }
 
-  showToast(`${n} Einsätze werden umgestellt…`, '#e8c84a');
+  showToast(`${n} Einsätze werden geändert…`, '#e8c84a');
   let done = 0;
   try {
     for (const t of targets) {
       const email = crewMeta[t.name]?.email || '';
-      if (to === 'pencilled') await pencilInAssignment(t.date, t.posId, t.name, email);
-      else                    await confirmAssignment(t.date, t.posId);
-      // Benachrichtigung nur vormerken — versendet wird erst per „Updates senden".
-      //
-      // ⚠️ NUR wenn vorher überhaupt etwas kommuniziert war. Ein Einsatz ohne Status ist nie
-      // rausgegangen: Die Person kennt diesen Tag nicht und bekäme eine Meldung über die
-      // Änderung an etwas, von dem sie nie wusste. Der Einzelklick im Zellen-Menü reiht dort
-      // ebenfalls nichts ein — beide Wege verhalten sich damit gleich.
-      if (t.vorher != null) {
-        const posLabel = POSITIONS.find(p => p.id === t.posId)?.label || t.posId;
-        _queueStatusSlot(t.name, email, t.date, t.posId, posLabel, to);
+      const posLabel = POSITIONS.find(p => p.id === t.posId)?.label || t.posId;
+
+      if (_mode === 'remove') {
+        const { wasActive, rec } = await removeAssignmentSlot(t.date, t.posId);
+        // Die Person war schon benachrichtigt → sie muss erfahren, dass der Tag entfällt.
+        // Das Einreihen macht der Aufrufer, nicht dataService (sonst Import-Zyklus).
+        if (wasActive && rec) _queueRemovedSlot(t.name, email, t.date, t.posId, posLabel, rec.id);
+      } else {
+        if      (_mode === 'pencil')  await pencilInAssignment(t.date, t.posId, t.name, email);
+        else if (_mode === 'confirm') await confirmAssignment(t.date, t.posId);
+        else                          await proposeAssignmentBulk(t.date, t.posId, t.name, email);
+
+        // Benachrichtigung nur vormerken — versendet wird erst per „Updates senden".
+        //
+        // ⚠️ Bei 'wenn-kommuniziert' NUR, wenn vorher überhaupt etwas rausgegangen war. Ein
+        // Einsatz ohne Status kennt die Person nicht; sie bekäme eine Meldung über die
+        // Änderung an etwas, von dem sie nie wusste. Der Einzelklick im Zellen-Menü reiht
+        // dort ebenfalls nichts ein — beide Wege verhalten sich gleich.
+        // Bei 'immer' (Anfragen) ist der Eintrag der ganze Zweck: Er trägt die gebündelte
+        // Anfrage-Mail, weil der Hook wegen proposed_by='bulk' keine Einzelmail schickt.
+        const melden = akt.melden === 'immer' || (akt.melden === 'wenn-kommuniziert' && t.vorher != null);
+        if (melden) _queueStatusSlot(t.name, email, t.date, t.posId, posLabel,
+                                     _mode === 'request' ? 'proposed' : (_mode === 'pencil' ? 'pencilled' : 'confirmed'));
       }
       done++;
     }
-    showToast(`${done} Einsätze ${to === 'pencilled' ? 'vorgemerkt ✎' : 'bestätigt ✓'}`,
-              to === 'pencilled' ? '#7A5FB3' : '#4ae8a0');
+    showToast(`${done} Einsätze ${FERTIG[_mode].text}`, FERTIG[_mode].farbe);
   } catch (err) {
     // Teilerfolg ist möglich — deshalb Resync statt optimistischem Weiterlaufen.
     showToast(`Fehler nach ${done} von ${n}: ${err.message}`, '#e84a4a');

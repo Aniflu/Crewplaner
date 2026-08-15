@@ -36,17 +36,25 @@ function aufbauen({ status = {}, assign = {}, defaults = {} } = {}) {
   state.crewMeta['Wolf Geffenius'] = { email: 'wolf@example.com' };
 }
 
-// Fängt das gerenderte Markup des Dialogs ab.
-function render() {
+// Fängt Markup und Knopf-Beschriftung ab. Geöffnet wird über den ECHTEN Weg
+// (openBulkStatusModal) — _bulkStatusSetMode allein tut nichts mehr, wenn die Aktion schon
+// aktiv ist, und der Modulzustand überlebt zwischen den Tests.
+let _knopf = '';
+function fangen(fn) {
   let html = '';
   const realGet = globalThis.document.getElementById;
   globalThis.document.getElementById = (id) => {
     if (id === 'bulkStatusBody') return { set innerHTML(v) { html = v; }, get innerHTML() { return html; } };
+    if (id === 'btnBulkStatusApply') return { set textContent(v) { _knopf = v; }, get textContent() { return _knopf; },
+                                              disabled: false, style: {} };
     return realGet(id);
   };
-  try { bulk._bulkStatusSetMode('pencil'); } finally { globalThis.document.getElementById = realGet; }
+  try { fn(); } finally { globalThis.document.getElementById = realGet; }
   return html;
 }
+
+const render = () => fangen(() => bulk.openBulkStatusModal());
+const _knopfText = () => _knopf;
 
 const zeilen = (html) => [...html.matchAll(/data-key="([^"]+)"([^>]*)/g)]
   .map(m => ({ key: m[1], angehakt: /checked/.test(m[2]) }));
@@ -81,19 +89,27 @@ test('vormerken: offene Zellen zählen nicht als besetzt', () => {
   eq(zeilen(render()).length, 0, 'OFFEN ist keine Person');
 });
 
-test('Vorauswahl: nur statuslose angehakt, bestätigte NICHT', () => {
-  // Der teure Fall: Wäre alles vorausgewählt, wäre einmal Öffnen und Anwenden ein stiller
-  // Rückzug aller Zusagen der Tour — ohne dass irgendjemand davon erfährt.
+test('nach dem Öffnen ist NICHTS angehakt', () => {
+  // v0.8.6 hakte die statuslosen automatisch an. Beim zweiten Öffnen stellte ein Klick dann
+  // die halbe Tour um, ohne dass der Manager das gewählt hätte. In einem Dialog, der Zusagen
+  // zurücknehmen kann, ist eine Vorauswahl die falsche Voreinstellung.
   aufbauen({
     assign: { '2026-09-01': { gl: 'Wolf Geffenius' }, '2026-09-02': { gl: 'Wolf Geffenius' } },
     status: { '2026-09-02': { gl: { status: 'confirmed', crewName: 'Wolf Geffenius' } } },
   });
   const z = zeilen(render());
   eq(z.length, 2, 'beide stehen zur Auswahl');
-  const ohneStatus = z.find(x => x.key.includes('2026-09-01'));
-  const bestaetigt = z.find(x => x.key.includes('2026-09-02'));
-  eq(ohneStatus.angehakt, true,  'der statuslose ist vorausgewählt');
-  eq(bestaetigt.angehakt, false, 'der bestätigte muss bewusst dazugewählt werden');
+  eq(z.filter(x => x.angehakt).length, 0, 'nichts darf vorausgewählt sein');
+});
+
+test('„nur offene" hakt die statuslosen an, die bestätigten nicht', () => {
+  aufbauen({
+    assign: { '2026-09-01': { gl: 'Wolf Geffenius' }, '2026-09-02': { gl: 'Wolf Geffenius' } },
+    status: { '2026-09-02': { gl: { status: 'confirmed', crewName: 'Wolf Geffenius' } } },
+  });
+  const z = zeilen(fangen(() => { bulk.openBulkStatusModal(); bulk._bulkStatusSelectOpen(); }));
+  eq(z.find(x => x.key.includes('2026-09-01')).angehakt, true,  'der statuslose ist angehakt');
+  eq(z.find(x => x.key.includes('2026-09-02')).angehakt, false, 'der bestätigte bleibt frei');
 });
 
 test('Anzeige: jeder Einsatz trägt sein Zustandszeichen', () => {
@@ -118,7 +134,9 @@ async function anwenden() {
   globalThis.fetch = async (url, opts) => ((opts && opts.method) === 'POST' || (opts && opts.method) === 'PATCH')
     ? { status: 200, ok: true, json: async () => ({ id: 'rec1' }) }
     : { status: 200, ok: true, json: async () => ({ items: [], page: 1, perPage: 200, totalPages: 1 }) };
-  render();                       // Modus pencil + Vorauswahl
+  // ⚠️ Seit v0.9.0 ist NICHTS vorausgewählt. Ohne dieses SelectAll liefe applyBulkStatus in
+  // „Nichts ausgewählt" und der Test wäre grün, ohne je etwas geprüft zu haben.
+  fangen(() => { bulk.openBulkStatusModal(); bulk._bulkStatusSelectAll(true); });
   await bulk.applyBulkStatus();
   try { return JSON.parse(globalThis.localStorage.getItem('crewplan_updates_PLAN1') || '{}'); }
   catch { return {}; }
@@ -137,8 +155,8 @@ test('vorher bestätigter Einsatz landet SCHON in der Update-Queue', async () =>
     assign: { '2026-09-01': { gl: 'Wolf Geffenius' } },
     status: { '2026-09-01': { gl: { status: 'confirmed', crewName: 'Wolf Geffenius' } } },
   });
-  // Der bestätigte ist NICHT vorausgewählt — für diesen Test bewusst dazuwählen.
-  bulk._bulkStatusSelectAll(true);
+  // Nichts ist vorausgewählt (v0.9.0) — für diesen Test bewusst auswählen.
+  fangen(() => { bulk.openBulkStatusModal(); bulk._bulkStatusSelectAll(true); });
   globalThis.localStorage.setItem('pb_token', 't');
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
   globalThis.localStorage.removeItem('crewplan_updates_PLAN1');
@@ -151,18 +169,57 @@ test('vorher bestätigter Einsatz landet SCHON in der Update-Queue', async () =>
   eq(q['Wolf Geffenius'].slots.length, 1, 'ein Slot eingereiht');
 });
 
-test('bestätigen-Modus sammelt unverändert nur vorgemerkte', () => {
+test('AUSFÜHREN ohne Auswahl sagt etwas, statt still zu sein', async () => {
+  // Der Auslöser der ganzen Meldung: Klick auf den Knopf, nichts passiert, keine Erklärung.
+  // Der Manager hielt den Dialog für hängengeblieben.
+  aufbauen({ assign: { '2026-09-01': { gl: 'Wolf Geffenius' } } });
+  let gemeldet = '';
+  const realGet = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) =>
+    id === 'toast' ? { set textContent(v) { gemeldet = v; }, get textContent() { return gemeldet; }, style: {} }
+                   : realGet(id);
+  try {
+    render();                       // öffnet, wählt nichts aus
+    await bulk.applyBulkStatus();
+  } finally { globalThis.document.getElementById = realGet; }
+  ok(/nichts ausgewählt/i.test(gemeldet), 'kein Hinweis bei leerer Auswahl, gemeldet wurde: ' + JSON.stringify(gemeldet));
+});
+
+// ── Die vier Aktionen sammeln je das Richtige ────────────────────────────────────────
+const rendernMit = (aktion) => fangen(() => { bulk.openBulkStatusModal(); bulk._bulkStatusSetMode(aktion); });
+
+test('jede Aktion überspringt, was schon im Zielzustand ist', () => {
+  // Sonst stünde Arbeit in der Liste, die nichts bewirkt — und der Knopf zählte sie mit.
   aufbauen({
     assign: { '2026-09-01': { gl: 'Wolf Geffenius' }, '2026-09-02': { gl: 'Wolf Geffenius' } },
     status: { '2026-09-02': { gl: { status: 'pencilled', crewName: 'Wolf Geffenius' } } },
   });
-  let html = '';
-  const realGet = globalThis.document.getElementById;
-  globalThis.document.getElementById = (id) =>
-    id === 'bulkStatusBody' ? { set innerHTML(v) { html = v; }, get innerHTML() { return html; } } : realGet(id);
-  try { bulk._bulkStatusSetMode('confirm'); } finally { globalThis.document.getElementById = realGet; }
-  const z = zeilen(html);
-  eq(z.length, 1, 'nur der vorgemerkte Einsatz');
-  ok(z[0].key.includes('2026-09-02'));
-  eq(z[0].angehakt, false, 'im bestätigen-Modus wird nichts vorausgewählt');
+  eq(zeilen(rendernMit('pencil')).length, 1, 'vormerken: der schon vorgemerkte fällt raus');
+  eq(zeilen(rendernMit('confirm')).length, 2, 'bestätigen: beide, keiner ist bestätigt');
+  eq(zeilen(rendernMit('request')).length, 2, 'anfragen: beide, keiner ist angefragt');
+  eq(zeilen(rendernMit('remove')).length,  2, 'aufheben: immer alle Besetzten');
+});
+
+test('anfragen: ohne hinterlegte E-Mail nicht auswählbar', () => {
+  // Der Hook steigt ohne crew_email still aus — die Anfrage ginge ins Leere, und niemand
+  // würde es merken.
+  aufbauen({ assign: { '2026-09-01': { gl: 'Ohne Adresse' } } });
+  delete globalThis.__x;  // (kein Zustand nötig — crewMeta['Ohne Adresse'] existiert nicht)
+  eq(zeilen(rendernMit('request')).length, 0, 'ohne Adresse steht die Person nicht zur Wahl');
+  eq(zeilen(rendernMit('pencil')).length,  1, 'vormerken geht auch ohne Adresse');
+});
+
+test('Klick auf die AKTIVE Aktion verwirft die Auswahl nicht', () => {
+  // Der Fehler aus v0.8.6: Ein erneuter Klick auf den aktiven Knopf setzte die Auswahl
+  // zurück und hakte stillschweigend alles Offene an — das nächste AUSFÜHREN traf die
+  // ganze Tour. Vom Prüfstand tools/dialog-harness.mjs zusätzlich im echten DOM geprüft.
+  aufbauen({ assign: { '2026-09-01': { gl: 'Wolf Geffenius' }, '2026-09-02': { gl: 'Wolf Geffenius' } } });
+  fangen(() => {
+    bulk.openBulkStatusModal();
+    bulk._bulkStatusToggle({ dataset: { key: 'Wolf Geffenius|2026-09-01|gl' }, checked: true });
+    bulk._bulkStatusSetMode('pencil');          // erneut die AKTIVE Aktion
+  });
+  // Gemessen wird die Knopf-Beschriftung — das ist die Zahl, die der Manager sieht.
+  // (Der no-op rendert bewusst nicht neu, deshalb taugt das Markup hier nicht als Maß.)
+  ok(/1 VORMERKEN/.test(_knopfText()), 'die eine Auswahl muss erhalten bleiben, Knopf zeigt: ' + _knopfText());
 });

@@ -64,7 +64,7 @@ import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
 import { startLocEdit } from './render.js';
 import { openBulkStatusModal, closeBulkStatusModal, applyBulkStatus,
          _bulkStatusToggle, _bulkStatusGrpSel, _bulkStatusSelectAll,
-         _bulkStatusSetMode } from './bulkStatus.js';
+         _bulkStatusSelectOpen, _bulkStatusSetMode } from './bulkStatus.js';
 
 // ── Hell/Dunkel-Umschalter (data-theme am <html>, Schlüssel cp_mode) ──
 // Anfangswert steht schon (Inline-Script im <head>). Hier nur Knopf + Persistenz.
@@ -177,6 +177,7 @@ window.applyBulkStatus = applyBulkStatus;
 window._bulkStatusToggle = _bulkStatusToggle;
 window._bulkStatusGrpSel = _bulkStatusGrpSel;
 window._bulkStatusSelectAll = _bulkStatusSelectAll;
+window._bulkStatusSelectOpen = _bulkStatusSelectOpen;
 window._bulkStatusSetMode = _bulkStatusSetMode;
 window._updatePreviewSend = _updatePreviewSend;
 window._updatePreviewSkip = _updatePreviewSkip;

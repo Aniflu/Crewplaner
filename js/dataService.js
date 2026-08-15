@@ -515,6 +515,52 @@ export async function promotePencilledToProposed(dateStr, posId) {
   if (assignmentStatuses[dateStr]?.[posId]) assignmentStatuses[dateStr][posId].status = 'proposed';
 }
 
+// ── Anfrage am Stück (v0.9.0) ─────────────────────────────────────────────────
+// Wie promotePencilledToProposed, aber mit `proposed_by: 'bulk'`. Genau daran erkennt der
+// Hook eine Sammel-Aktion und lässt die Einzelmail weg (main.pb.js: „UPDATE re-proposed via
+// bulk/plan-change, kein Anfrage-Mail"). Ohne diese Kennzeichnung ginge pro Tag eine eigene
+// Anfrage-Mail raus — bei einer 30-Tage-Tour also 30 Mails an dieselbe Person.
+// Die eine, gebündelte Mail verschickt danach „Updates senden".
+//
+// Legt den Record an, falls noch keiner existiert (frisch geplante Tage haben keinen).
+export async function proposeAssignmentBulk(dateStr, posId, crewName, crewEmail) {
+  if (!SUPABASE_ENABLED) return;
+  const planId = await _getActivePlanId();
+  if (!planId) throw new Error('Plan nicht gefunden – bitte neu einloggen');
+  const pos = (POSITIONS || []).find(p => p.id === posId);
+  await pbUpsert(
+    'assignments',
+    `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`,
+    { plan_id: planId, date: dateStr, pos_id: posId, pos_label: pos?.label || posId,
+      crew_name: crewName, crew_email: crewEmail || '', status: 'proposed', proposed_by: 'bulk' },
+    { crew_name: crewName, pos_label: pos?.label || posId, crew_email: crewEmail || '',
+      status: 'proposed', proposed_by: 'bulk' }
+  );
+  if (!assignmentStatuses[dateStr]) assignmentStatuses[dateStr] = {};
+  assignmentStatuses[dateStr][posId] = { status: 'proposed', proposedBy: 'bulk', crewName };
+}
+
+// ── Besetzung eines Slots aufheben (v0.9.0) ───────────────────────────────────
+// Vorher eine Closure in dropdown.js. Herausgelöst, damit Zellen-Menü und Sammel-Dialog
+// nachweislich dasselbe tun — die beiden Wege liefen sonst auseinander.
+//
+// War die Person schon benachrichtigt (confirmed/proposed), bleibt der Record als
+// `cancelled` stehen: Nur so hat der „GESEHEN ✓"-Knopf in der Änderungs-Mail ein Ziel.
+// Sonst (vorgemerkt, abgelehnt, ohne Record) wird hart gelöscht — da gab es nie eine Mail.
+//
+// Das Einreihen in die Update-Queue macht der AUFRUFER: dataService darf userView nicht
+// importieren (userView importiert bereits dataService — das wäre ein Zyklus).
+// Rückgabe: { wasActive, rec, crewName } — genau das, was die Queue braucht.
+export async function removeAssignmentSlot(dateStr, posId) {
+  const si = assignmentStatuses[dateStr]?.[posId];
+  const wasActive = !!(si && (si.status === 'confirmed' || si.status === 'proposed'));
+  let rec = null;
+  if (wasActive)   rec = await softCancelAssignment(dateStr, posId);
+  else if (si)     await cancelProposal(dateStr, posId);
+  if (assignmentStatuses[dateStr]) delete assignmentStatuses[dateStr][posId];
+  return { wasActive, rec, crewName: si?.crewName || '' };
+}
+
 // ── Soft-Cancel: Zuweisung entfernen, Record BEHALTEN (v0.30.0) ────────────────
 // Statt zu löschen wird status='cancelled' gesetzt — nur so hat der „GESEHEN ✓"-
 // Button in der Änderungs-Mail ein Ziel (aid). Liefert den gepatchten Record

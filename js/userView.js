@@ -469,7 +469,10 @@ export function _queueStatusSlot(crewName, email, dateStr, posId, posLabel, to) 
   _saveCrewUpdateQueue(q);
   _updateCrewUpdateBar();
 }
-const _STATUS_CHANGE_LABEL = { pencilled: 'Jetzt vorgemerkt', confirmed: 'Wieder bestätigt' };
+// 'proposed' seit v0.9.0: Der Sammel-Dialog kann anfragen. Ohne Eintrag hier stünde in der
+// Mail nur „Status geändert" — die Person wüsste nicht, dass sie antworten soll.
+const _STATUS_CHANGE_LABEL = { pencilled: 'Jetzt vorgemerkt', confirmed: 'Wieder bestätigt',
+                               proposed: 'Angefragt — bitte bestätigen oder ablehnen' };
 
 export function _updateCrewUpdateBar() {
   const q = _getCrewUpdateQueue();

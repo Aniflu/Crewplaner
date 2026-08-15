@@ -8,7 +8,7 @@ import { getVal, isPending, isPencilled, esc, showToast, sortInsert, fmtD, sameC
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
 import { renderTable } from './render.js';
 import { pbDelete } from './pb.js';
-import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses, confirmAssignment, pencilInAssignment, promotePencilledToProposed, softCancelAssignment } from './dataService.js';
+import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses, confirmAssignment, pencilInAssignment, promotePencilledToProposed, softCancelAssignment, removeAssignmentSlot } from './dataService.js';
 import { openBulkStatusModal } from './bulkStatus.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { showPrompt, showConfirm } from './dialog.js';
@@ -143,11 +143,11 @@ export function openCrewDD(e,dateStr,posId){
       renderTable();
     }});
   }
-  // Sammel-Umstellung für DIESE Person (v0.5.0) — öffnet den Auswahl-Dialog mit
-  // Personen-Vorfilter, statt Zelle für Zelle durchzuklicken.
+  // Sammel-Dialog für DIESE Person — Aktion wählen, Tage anhaken, ausführen (v0.9.0),
+  // statt Zelle für Zelle durchzuklicken.
   if(planned && planned!==OFFEN){
     const who=(si && si.crewName) || planned;
-    items.push({label:`✎ Termine von ${who} umstellen…`,color:'var(--pencilled)',action:()=>{
+    items.push({label:`✎ Status ändern (${who})…`,color:'var(--pencilled)',action:()=>{
       closeDD();
       openBulkStatusModal(who);
     }});
@@ -226,18 +226,19 @@ export function openCrewDD(e,dateStr,posId){
   // Zuweisung entfernen (v0.30.0): War die Person bestätigt/angefragt (also schon
   // benachrichtigt) → Soft-Cancel (Record bleibt für die „GESEHEN ✓"-Quittung) +
   // Eintrag in die Updates-Queue („➖ entfernt"). Sonst (pencilled/declined/ohne
-  // Record) → hartes Löschen wie bisher, keine Benachrichtigung nötig.
+  // Record) → hartes Löschen, keine Benachrichtigung nötig.
+  //
+  // Das Schreiben steckt seit v0.9.0 in removeAssignmentSlot (dataService.js) — der
+  // Sammel-Dialog benutzt dieselbe Funktion. Vorher lag die Logik nur hier als Closure;
+  // die beiden Wege wären beim nächsten Eingriff auseinandergelaufen.
+  // Das Einreihen bleibt hier: dataService darf userView nicht importieren (Zyklus).
   const _removeAssignment=async()=>{
-    const wasActive=si && (si.status==='confirmed' || si.status==='proposed');
-    if(wasActive){
-      const rec=await softCancelAssignment(dateStr,posId);
-      const _email=crewMeta?.[si.crewName]?.email||rec?.crew_email||'';
+    const { wasActive, rec, crewName }=await removeAssignmentSlot(dateStr,posId);
+    if(wasActive && rec && crewName){
+      const _email=crewMeta?.[crewName]?.email||rec?.crew_email||'';
       const _lbl=(POSITIONS||[]).find(p=>p.id===posId)?.label||posId;
-      if(rec && si.crewName)_queueRemovedSlot(si.crewName,_email,dateStr,posId,_lbl,rec.id);
-    }else if(si){
-      await cancelProposal(dateStr,posId);
+      _queueRemovedSlot(crewName,_email,dateStr,posId,_lbl,rec.id);
     }
-    if(assignmentStatuses[dateStr])delete assignmentStatuses[dateStr][posId];
   };
   // Anfragen ausschließlich über Crew-Notify-Modal (Einladen-Button)
   const _applyState=async(val)=>{
