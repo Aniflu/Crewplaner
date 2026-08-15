@@ -14,10 +14,16 @@ export function closeModal(id){
   if(!document.querySelector('.modal-bg.open')) document.body.classList.remove('modal-open');
 }
 
+// Klick auf den Hintergrund schließt diese Modals.
+//
+// ⚠️ `el` MUSS geprüft werden: modals.js wird von allen Oberflächen geladen, aber nicht jede
+// hat alle drei Modals. admin.html kennt weder sharedModal noch logoModal, view.html keines —
+// dort warf dieser Listener bei JEDEM Klick „Cannot read properties of null" und brach ab,
+// bevor die übrigen IDs geprüft wurden (gefunden mit tools/dialog-harness.mjs, v0.9.1).
 document.addEventListener('click',e=>{
   ['sharedModal','pdfModal','logoModal'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el.classList.contains('open')&&e.target===el)closeModal(id);
+    if(el&&el.classList.contains('open')&&e.target===el)closeModal(id);
   });
 });
 

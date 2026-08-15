@@ -317,8 +317,24 @@ export async function applyBulkStatus() {
   } catch (err) {
     // Teilerfolg ist möglich — deshalb Resync statt optimistischem Weiterlaufen.
     showToast(`Fehler nach ${done} von ${n}: ${err.message}`, '#e84a4a');
-    await loadAssignmentStatuses();
+    try { await loadAssignmentStatuses(); } catch (_) { /* Resync darf den Abschluss nicht kippen */ }
+  } finally {
+    // ⚠️ Der Abschluss gehört in `finally`, und das Neuzeichnen in ein EIGENES try.
+    //
+    // Vorher standen beide ungeschützt hintereinander: Warf das Schließen, lief das
+    // Neuzeichnen nie — und warf irgendetwas dahinter, blieb der Dialog stehen, obwohl die
+    // Arbeit erledigt war. Gemeldet zu v0.9.0: Erfolgsmeldung kam, Dialog ging nicht zu,
+    // Tabelle blieb alt; nach einem Neuladen war alles korrekt gespeichert.
+    // Ein Dialog, den man nach getaner Arbeit nur noch per „Abbrechen" loswird, ist kaputt —
+    // egal, was ihn festhält.
+    try { closeBulkStatusModal(); } catch (e) { console.error('closeBulkStatusModal:', e); }
+    try {
+      renderTable();
+    } catch (e) {
+      console.error('renderTable nach applyBulkStatus:', e);
+      // Nicht verschlucken: Die Daten stimmen, nur die Ansicht nicht. Wer das nicht erfährt,
+      // hält die Änderung für verloren und macht sie ein zweites Mal.
+      showToast('Gespeichert — die Ansicht konnte nicht aktualisiert werden. Bitte neu laden.', '#e8c84a');
+    }
   }
-  closeBulkStatusModal();
-  renderTable();
 }

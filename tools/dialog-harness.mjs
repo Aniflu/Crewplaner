@@ -80,21 +80,48 @@ for (const [k,v] of Object.entries(bulk)) window[k] = v;   // onclick=… im Mar
 
 const aus = document.getElementById('ergebnis');
 const log = (s) => { aus.textContent += s + '\\n'; };
+
+// ⚠️ applyBulkStatus ist async und hängt an einem onclick. Eine Ausnahme darin wird zu einer
+// STILLEN Promise-Ablehnung — im Fenster sieht man nichts, der Dialog bleibt einfach stehen.
+// Genau so ist der Fehler aus v0.9.0 durchgerutscht. Deshalb hier beides abfangen.
+let unbehandelt = [];
+window.addEventListener('error', (e) => unbehandelt.push('error: ' + (e.message || e)));
+window.addEventListener('unhandledrejection', (e) =>
+  unbehandelt.push('unhandledrejection: ' + ((e.reason && (e.reason.stack || e.reason.message)) || e.reason)));
 const kaesten = () => [...document.querySelectorAll('#bulkStatusBody input[type=checkbox]')];
 const knopf   = () => document.getElementById('btnBulkStatusApply');
 const klick   = (el) => { el.checked = !el.checked; el.dispatchEvent(new Event('change',{bubbles:true})); };
 
 async function folge(name, schritte, erwartet) {
   posts = 0;
+  unbehandelt = [];
+  document.getElementById('tBody').innerHTML = '';     // damit „wurde neu gezeichnet?" messbar ist
   bulk.openBulkStatusModal();
   await schritte();
   const label = knopf().textContent;
   const aktiv = !knopf().disabled;
+
   await bulk.applyBulkStatus();
-  const ok = posts === erwartet;
+  // Der Klick löst eine async-Funktion aus; eine Ablehnung kommt erst im nächsten Tick an.
+  await new Promise(r => setTimeout(r, 0));
+
+  // Mehr als nur die Schreibvorgänge prüfen. ⚠️ Ohne Auswahl SOLL der Dialog offen bleiben —
+  // sonst wäre man nach einem Fehlklick raus und müsste von vorn anfangen. Geschlossen sein
+  // muss er nur, wenn tatsächlich etwas geändert wurde.
+  const offen       = document.getElementById('bulkStatusModal').classList.contains('open');
+  const gezeichnet  = document.getElementById('tBody').innerHTML.length > 0;
+  const etwasGetan  = erwartet > 0;
+  const ok = posts === erwartet
+          && (etwasGetan ? (!offen && gezeichnet) : offen)
+          && !unbehandelt.length;
+
   log((ok ? 'OK   ' : 'FEHL ') + name
       + ' | Knopf: "' + label + '" aktiv=' + aktiv
-      + ' | Schreibvorgaenge: ' + posts + ' erwartet: ' + erwartet);
+      + ' | Schreibvorgaenge: ' + posts + '/' + erwartet
+      + ' | Dialog: ' + (offen ? 'OFFEN GEBLIEBEN' : 'zu')
+      + ' | Tabelle: ' + (gezeichnet ? 'neu gezeichnet' : 'nicht gezeichnet'));
+  for (const u of unbehandelt) log('      ⤷ ' + u.split('\\n').slice(0, 3).join(' | '));
+
   // Zustand zwischen den Folgen zuruecksetzen
   for (const d of Object.keys(state.assignmentStatuses)) delete state.assignmentStatuses[d];
   localStorage.removeItem('crewplan_updates_PLAN1');
@@ -113,6 +140,27 @@ try {
   await folge('aktive Aktion erneut',      async () => { klick(kaesten()[0]); document.querySelector('[data-bsmode=pencil]').click(); }, 1);
   // Wechsel auf eine ANDERE Aktion verwirft die Auswahl — bewusst, mit Hinweis.
   await folge('Aktion gewechselt',         async () => { klick(kaesten()[0]); document.querySelector('[data-bsmode=confirm]').click(); }, 0);
+  // ── Größenordnung wie in der echten Tour ──────────────────────────────────────
+  // Gemeldet wurde der Fehler bei 59 Einsätzen über mehrere Personen und Blöcke; der
+  // 4-Slot-Fall oben lief durch. Menge ist also der Unterschied.
+  state.TOUR_DATES.length = 0;
+  state.POSITIONS.length = 0;
+  for (const k of Object.keys(state.assignments)) delete state.assignments[k];
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(2026, 8, 1 + i);
+    const iso = d.toISOString().slice(0, 10);
+    state.TOUR_DATES.push({ date: iso, type: 'show', typeLabel: 'Show', loc: 'Ort ' + i,
+                            blockId: 'B' + Math.floor(i / 20), blockName: 'Block ' + Math.floor(i / 20) });
+  }
+  state.POSITIONS.push({ id: 'gl', label: 'Gruppenleitung' }, { id: 'lt', label: 'Licht' });
+  const leute = ['Wolf Geffenius', 'Kerrin Gall', 'Thomas Haine'];
+  leute.forEach((n, i) => { state.crewMeta[n] = { email: 'p' + i + '@example.com' }; });
+  state.TOUR_DATES.forEach((r, i) => {
+    state.assignments[r.date] = { gl: leute[i % 3], lt: leute[(i + 1) % 3] };
+  });
+
+  await folge('60 Tage x 2 Positionen, ALLE', async () => { bulk._bulkStatusSelectAll(true); }, 120);
+
   // Gegenprobe: Diese Zeile MUSS fehlschlagen. Steht sie auf OK, misst der Prüfstand nichts.
   await folge('GEGENPROBE (muss FEHL sein)', async () => { bulk._bulkStatusSelectAll(true); }, 99);
 } catch (e) {

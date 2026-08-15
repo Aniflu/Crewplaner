@@ -334,8 +334,11 @@ export async function loadAssignmentStatuses() {
 // ── Slot bestätigen (Crew-Mitglied) ───────────────────────────────────────────
 export async function confirmAssignment(dateStr, posId) {
   if (!SUPABASE_ENABLED) return;
+  // ⚠️ WERFEN, nicht still zurückkehren (v0.9.1). Der Sammel-Dialog zählt jeden Durchlauf als
+  // Erfolg — ohne Plan-ID meldete er „59 Einsätze bestätigt", während nichts geschrieben wurde.
+  // Eine Erfolgsmeldung, die lügt, ist schlimmer als ein Fehler: Man merkt es erst viel später.
   const planId = await _getActivePlanId();
-  if (!planId) return;
+  if (!planId) throw new Error('Plan nicht gefunden – bitte neu einloggen');
 
   const _myEmail = (CURRENT_USER_EMAIL || '').toLowerCase();
   try {
@@ -484,8 +487,9 @@ export async function bulkProposeCrew(slots) {
 // Einzelslot + eigener Status.
 export async function pencilInAssignment(dateStr, posId, crewName, crewEmail) {
   if (!SUPABASE_ENABLED) return;
+  // ⚠️ WERFEN, nicht still zurückkehren — siehe confirmAssignment (v0.9.1).
   const planId = await _getActivePlanId();
-  if (!planId) return;
+  if (!planId) throw new Error('Plan nicht gefunden – bitte neu einloggen');
   const pos = (POSITIONS || []).find(p => p.id === posId);
   await pbUpsert(
     'assignments',

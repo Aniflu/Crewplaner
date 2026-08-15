@@ -191,3 +191,26 @@ test('ackCancelledAssignments: quittiert NUR Records mit status=cancelled', asyn
   ok(patched.length===1 && patched[0].includes('rec_c'), 'PATCH nur auf rec_c');
   ok(posts.some(u=>u.includes('activity_log')), 'logActivity POST abgesetzt');
 });
+
+// ── Schreibfunktionen dürfen nicht still aufgeben (v0.9.1) ───────────────────────────
+// Gemeldet zu v0.9.0: „59 Einsätze vorgemerkt" — geschrieben wurde nichts. Möglich war das,
+// weil pencilInAssignment/confirmAssignment ohne aktive Plan-ID einfach `return` machten.
+// applyBulkStatus zählt jeden Durchlauf als Erfolg und meldet am Ende die volle Zahl.
+// Eine Erfolgsmeldung, die lügt, ist schlimmer als ein Fehler: Man merkt es erst viel später.
+test('ohne Plan-ID werfen die Schreibfunktionen, statt still zurückzukehren', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g);
+  // Kein angemeldetes Konto → _getActivePlanId liefert null (prüft CURRENT_USER_ID).
+  g.state.setAuthState(null, '', 'manager');
+  globalThis.localStorage.removeItem('tourplan_active_pb_id');
+  globalThis.localStorage.removeItem('tourplan_pb_default');
+
+  for (const [name, fn] of [
+    ['pencilInAssignment', () => g.dataService.pencilInAssignment('2026-09-01', 'gl', 'Wolf', 'w@x.de')],
+    ['confirmAssignment',  () => g.dataService.confirmAssignment('2026-09-01', 'gl')],
+  ]) {
+    let geworfen = false;
+    try { await fn(); } catch { geworfen = true; }
+    ok(geworfen, `${name} kehrt still zurück — der Aufrufer meldet dann fälschlich Erfolg`);
+  }
+});

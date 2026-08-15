@@ -185,6 +185,42 @@ test('AUSFÜHREN ohne Auswahl sagt etwas, statt still zu sein', async () => {
   ok(/nichts ausgewählt/i.test(gemeldet), 'kein Hinweis bei leerer Auswahl, gemeldet wurde: ' + JSON.stringify(gemeldet));
 });
 
+test('der Dialog schließt auch dann, wenn das Neuzeichnen scheitert', async () => {
+  // Gemeldet zu v0.9.0: Erfolgsmeldung kam, Dialog ging nicht zu, Tabelle blieb alt — nach
+  // einem Neuladen war alles korrekt gespeichert. Ursache war die Form: closeModal und
+  // renderTable standen ungeschützt hintereinander. Egal was dahinter kippt, der Dialog muss
+  // aufgehen — sonst hält man die Arbeit für verloren und macht sie ein zweites Mal.
+  aufbauen({ assign: { '2026-09-01': { gl: 'Wolf Geffenius' } } });
+  globalThis.localStorage.setItem('pb_token', 't');
+  globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  globalThis.fetch = async (url, opts) => (opts && opts.method && opts.method !== 'GET')
+    ? { status: 200, ok: true, json: async () => ({ id: 'rec1' }) }
+    : { status: 200, ok: true, json: async () => ({ items: [], page: 1, perPage: 200, totalPages: 1 }) };
+
+  // renderTable stolpern lassen: tBody fehlt → der echte Renderer wirft.
+  let geschlossen = false, gemeldet = '';
+  const realGet = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === 'tBody' || id === 'tHead') return null;          // lässt renderTable werfen
+    if (id === 'bulkStatusModal') return { classList: { add(){}, remove(k){ if (k === 'open') geschlossen = true; },
+                                                        contains(){ return false; } } };
+    if (id === 'toast') return { set textContent(v) { gemeldet += v + '|'; }, get textContent() { return gemeldet; }, style: {} };
+    return realGet(id);
+  };
+  try {
+    fangen(() => { bulk.openBulkStatusModal(); bulk._bulkStatusSelectAll(true); });
+    await bulk.applyBulkStatus();
+  } finally { globalThis.document.getElementById = realGet; }
+
+  ok(geschlossen, 'der Dialog muss geschlossen worden sein, auch wenn renderTable wirft');
+  // ⚠️ Der schärfere Teil: Es reicht nicht, dass der Dialog zugeht — der Fehler beim
+  // Neuzeichnen muss GEMELDET werden. Sonst sieht man eine Erfolgsmeldung, eine unveränderte
+  // Tabelle und hält die Arbeit für verloren. Ohne diese Zusicherung war der Test wertlos:
+  // im alten Code lief closeBulkStatusModal ohnehin vor renderTable.
+  ok(/nicht aktualisiert/i.test(gemeldet),
+     'kein Hinweis auf die veraltete Ansicht, gemeldet wurde: ' + JSON.stringify(gemeldet));
+});
+
 // ── Die vier Aktionen sammeln je das Richtige ────────────────────────────────────────
 const rendernMit = (aktion) => fangen(() => { bulk.openBulkStatusModal(); bulk._bulkStatusSetMode(aktion); });
 
