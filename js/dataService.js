@@ -662,10 +662,17 @@ export async function sendCrewInvite(crewName, crewEmail, type) {
 // ── Alle je angelegten Crew-Mitglieder tour-übergreifend laden (für Import) ──────
 // Kein plan_id-Filter: genau die planübergreifende Liste ist gewünscht. Single-Owner-
 // Setup (listRule = auth). De-Dup + E-Mail-Bevorzugung in dedupKnownCrew (pure).
+// ⚠️ `pool` MUSS mitgereicht werden: dedupKnownCrew entscheidet damit, welcher Datensatz bei
+// gleicher Adresse überlebt. Ohne die Markierung gewann ein beliebiger — und eine frisch im
+// Pool angelegte Person konnte hinter einem älteren Tour-Eintrag verschwinden (v0.8.5).
 export async function loadAllKnownCrew() {
   if (!SUPABASE_ENABLED) return [];
   const data = await pbListAll('crew_members', '');
-  return dedupKnownCrew((data?.items || []).map(m => ({ name: m.name, email: m.email || '' })));
+  return dedupKnownCrew((data?.items || []).map(m => ({
+    name: m.name,
+    email: m.email || '',
+    pool: m.plan_id === POOL_PLAN_ID,
+  })));
 }
 
 // ── Neue Person im globalen Crew-Pool anlegen ─────────────────────────────────

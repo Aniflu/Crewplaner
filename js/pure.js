@@ -40,14 +40,25 @@ export function normEmail(s){ return String(s==null?'':s).trim().toLowerCase(); 
 // früher wurden sie über den Namen verschmolzen und die falsche Mail übernommen (v0.19.1).
 // Gleiche Mail (auch bei abweichender Schreibweise) → ein Eintrag. Rückgabe: [{name, email}]
 // alphabetisch.
+// ⚠️ `pool:true` markiert den Stammdatensatz (crew_members mit plan_id="__pool__"). Er gewinnt
+// IMMER gegen einen Tour-Eintrag derselben Adresse.
+//
+// Ohne diesen Vorrang hing es an der Reihenfolge, die der Server liefert — und die kam aus
+// `sort=-id`. PocketBase-IDs sind Zufallsketten, keine laufenden Nummern: Welcher Datensatz
+// überlebte, war damit Würfeln. Folge (gemeldet am 15.08.2026): Eine frisch unter „Benutzer"
+// angelegte Person war im Pool-Dialog der Tour nicht zu finden, weil ein älterer Tour-Eintrag
+// mit derselben Adresse und einem anderen Namen sie verdeckte.
 export function dedupKnownCrew(records){
   const byKey = new Map();
   for(const r of (records||[])){
     const name=String(r&&r.name!=null?r.name:'').trim();
     if(!name) continue;
     const email=String(r&&r.email!=null?r.email:'').trim();
+    const pool=!!(r&&r.pool);
     const key = email ? ('e:'+email.toLowerCase()) : ('n:'+normCrewName(name));
-    if(!byKey.has(key)) byKey.set(key,{name,email});   // erster Treffer bleibt
+    const da = byKey.get(key);
+    // Erster Treffer bleibt — außer der neue ist der Pool-Eintrag und der bisherige nicht.
+    if(!da || (pool && !da.pool)) byKey.set(key,{name,email,pool});
   }
   return [...byKey.values()].sort((a,b)=>normCrewName(a.name)<normCrewName(b.name)?-1:normCrewName(a.name)>normCrewName(b.name)?1:0);
 }

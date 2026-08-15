@@ -140,7 +140,14 @@ function _renderImportCrewList(){
     body.innerHTML='<div style="font-size:.7rem;color:#888;">Niemand mehr im Pool, der nicht schon in dieser Tour ist. Über „+ Neue Person" legst du jemanden neu an.</div>';
     return;
   }
-  body.innerHTML=_importCandidates.map((k,i)=>{
+  // Zählung sichtbar machen: „wird nicht angezeigt" war bisher nicht von „kam nichts an" zu
+  // unterscheiden — der Dialog sah in beiden Fällen gleich aus. Steht hier 0 im Pool, obwohl
+  // gerade jemand angelegt wurde, liegt es an der Abfrage und nicht am Suchen.
+  const imPool=_importCandidates.filter(k=>k.pool).length;
+  const kopf=`<div style="font-size:.58rem;color:var(--muted);margin-bottom:8px;">`
+    +`${imPool} im Pool · ${_importCandidates.length-imPool} aus anderen Touren</div>`;
+
+  body.innerHTML=kopf+_importCandidates.map((k,i)=>{
     // Altbestand ohne Adresse: übernehmen wäre sinnlos — die Person bekäme keine Anfrage und
     // sähe die Tour nicht. Deshalb sichtbar, aber nicht auswählbar, mit dem Reparaturweg dabei.
     if(!k.email)return `
