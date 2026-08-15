@@ -45,8 +45,39 @@ const PDF_COLORS={
 function pdfTypeColor(t){return ({show:PDF_COLORS.show,reise:PDF_COLORS.reise,prep:PDF_COLORS.prep,off:PDF_COLORS.off})[t]||PDF_COLORS.ink;}
 function pdfAbbr(n){if(!n)return '';const parts=n.trim().split(/\s+/);if(parts.length===1)return parts[0].slice(0,4).toUpperCase();return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();}
 
+// Schriften für das Druckfenster.
+//
+// ⚠️ ABSOLUTE URLs sind Pflicht: Das Fenster entsteht aus `window.open('')` (unten) und ist ein
+// about:blank-Dokument ohne Basis-URL — relative Pfade wie 'assets/fonts/…' laufen dort ins
+// Leere. Man sieht das dem PDF nicht an, es sähe nur unerklärlich anders aus.
+//
+// Bis v0.8.3 kamen diese Schriften per <link> von fonts.googleapis.com. Das ist entfallen:
+// Die CSP steht auf `font-src 'self'` (dieselbe Herkunft ist damit erlaubt, ein fremder Host
+// nicht), und außerdem meldete sich bisher jeder, der ein PDF erzeugte, bei Google.
+// theme.css ist hier NICHT geladen — die @font-face-Regeln müssen deshalb mit ins Druck-CSS.
+function pdfFontCSS(){
+  const b = location.origin + '/assets/fonts/';
+  const LAT = 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD';
+  const EXT = 'U+0100-024F,U+0259,U+1E00-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF';
+  const face = (fam, datei, gewicht, bereich) =>
+    `@font-face{font-family:'${fam}';font-style:normal;font-weight:${gewicht};font-display:swap;`
+    + `src:url('${b}${datei}.woff2') format('woff2');unicode-range:${bereich};}`;
+  let css = '';
+  for (const g of [500, 700, 800]) {
+    css += face('Archivo', `archivo-${g}`,     g, LAT);
+    css += face('Archivo', `archivo-${g}-ext`, g, EXT);
+  }
+  for (const g of [400, 500, 600]) {
+    css += face('IBM Plex Mono', `ibm-plex-mono-${g}`,     g, LAT);
+    css += face('IBM Plex Mono', `ibm-plex-mono-${g}-ext`, g, EXT);
+    css += face('JetBrains Mono', `jetbrains-mono-${g}`,   g, LAT);
+  }
+  return css;
+}
+
 function pdfSharedCSS(){
-  return `*{box-sizing:border-box;margin:0;padding:0;}
+  return `${pdfFontCSS()}
+*{box-sizing:border-box;margin:0;padding:0;}
 @page{size:A4 landscape;margin:10mm;}
 html,body{background:#fff;color:${PDF_COLORS.ink};font-family:'JetBrains Mono','IBM Plex Mono',ui-monospace,monospace;font-size:9pt;}
 .page{padding:8mm 10mm;min-height:100vh;display:flex;flex-direction:column;page-break-after:always;}
@@ -430,7 +461,6 @@ export async function generatePDF(){
 
     const planName=(()=>{try{const p=(typeof getPlansIndex==='function')?getPlansIndex():[];const a=p.find(x=>x.id===getActivePlanId());return a?a.name:'';}catch(e){return '';}})();
     const html=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Tour/Crew Plan</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>${pdfSharedCSS()}${viewResult.css}</style></head><body>
 <div class="page">
   ${pdfHeaderHTML(planName,rangeStr,1,1)}

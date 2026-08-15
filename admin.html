@@ -17,7 +17,7 @@
 <script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="theme.css?v=2">
-<script type="module" src="js/admin-app.js?v=17"></script>
+<script type="module" src="js/admin-app.js?v=18"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -541,7 +541,7 @@ body {
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.8.3</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.8.4</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -1381,17 +1381,16 @@ async function generateViewLink() {
     .map(b => b.toString(16).padStart(2, '0')).join('');
   try {
     const fullUrl = 'https://crewplanner.nyxlightwork.de/view.html?token=' + token;
-    // Kurzlink via is.gd API (CORS-fähig)
-    let shortUrl = fullUrl;
-    try {
-      const res = await fetch('https://is.gd/create.php?format=simple&url=' + encodeURIComponent(fullUrl));
-      if (res.ok) shortUrl = (await res.text()).trim();
-    } catch(_) { /* Fallback auf vollen Link */ }
+    // ⚠️ Hier stand bis v0.8.3 ein Kurzlink über is.gd — dabei ging der frisch gewürfelte
+    // view_token an einen fremden Dienst. Genau das wurde im Hook mit v4.16 entfernt („der
+    // Token soll ein Geheimnis sein"); dieser Weg im Browser wurde damals übersehen.
+    // Nicht wieder einbauen: Wer Kurzlinks will, braucht sie im eigenen System (kurze ID in
+    // plans + eine Hook-Route, die weiterleitet), nicht bei einem Dritten.
     await pbPatch('/api/collections/plans/records/' + _wrkPbPlanId, {
       view_token: token,
-      view_shorturl: shortUrl
+      view_shorturl: fullUrl
     });
-    _showViewLink(fullUrl, shortUrl);
+    _showViewLink(fullUrl, fullUrl);
     adminToast('Link generiert ✓', 'var(--show)');
   } catch(e) { adminToast('Fehler: ' + e.message, 'var(--warn)'); }
   finally { if (btn) btn.textContent = 'Neu generieren'; }
