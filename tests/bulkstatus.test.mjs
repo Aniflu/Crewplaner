@@ -259,3 +259,26 @@ test('Klick auf die AKTIVE Aktion verwirft die Auswahl nicht', () => {
   // (Der no-op rendert bewusst nicht neu, deshalb taugt das Markup hier nicht als Maß.)
   ok(/1 VORMERKEN/.test(_knopfText()), 'die eine Auswahl muss erhalten bleiben, Knopf zeigt: ' + _knopfText());
 });
+
+// ── Sperre gegen den zweiten Klick (v0.9.2) ──────────────────────────────────────────
+// Bei 59 Einsätzen dauert der Lauf spürbar. Wer in der Zeit noch einmal drückt, startete
+// bisher einen ZWEITEN, überlappenden Lauf und schrieb alles doppelt. Gemeldet als „beim
+// zweiten Klick geht der Dialog weg" — in Wahrheit war der erste Lauf inzwischen fertig.
+test('ein zweiter Klick während des Laufs schreibt nichts', async () => {
+  aufbauen({ assign: { '2026-09-01': { gl: 'Wolf Geffenius' }, '2026-09-02': { gl: 'Wolf Geffenius' } } });
+  globalThis.localStorage.setItem('pb_token', 't');
+  globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  let schreib = 0;
+  globalThis.fetch = async (url, opts) => {
+    const m = (opts && opts.method) || 'GET';
+    if (m !== 'GET') schreib++;
+    // Kurz verzögern, damit der zweite Aufruf wirklich MITTEN im ersten landet.
+    await new Promise(r => setTimeout(r, 5));
+    return { status: 200, ok: true, json: async () => ({ items: [], page: 1, perPage: 200, totalPages: 1, id: 'r1' }) };
+  };
+  fangen(() => { bulk.openBulkStatusModal(); bulk._bulkStatusSelectAll(true); });
+  const ersterLauf = bulk.applyBulkStatus();     // absichtlich nicht awaiten
+  await bulk.applyBulkStatus();                  // der zweite Klick
+  await ersterLauf;
+  eq(schreib, 2, 'genau zwei Schreibvorgänge — beim Doppelklick wären es vier');
+});

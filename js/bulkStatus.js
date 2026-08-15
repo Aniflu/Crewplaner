@@ -16,8 +16,7 @@
 // Es wird NICHTS persistiert: eine Einmal-Aktion, die Auswahl lebt nur im offenen Dialog.
 import { TOUR_DATES, POSITIONS, assignmentStatuses, crewMeta, IS_MANAGER, OFFEN } from './state.js';
 import { esc, showToast, getVal } from './utils.js';
-import { pencilInAssignment, confirmAssignment, loadAssignmentStatuses,
-         proposeAssignmentBulk, removeAssignmentSlot } from './dataService.js';
+import { loadAssignmentStatuses, applyStatusToSlots, removeAssignmentSlots } from './dataService.js';
 import { renderTable } from './render.js';
 import { openModal, closeModal } from './modals.js';
 import { _queueStatusSlot, _queueRemovedSlot, _dateBlockId } from './userView.js';
@@ -63,6 +62,7 @@ const _zustand = (s) => ZUSTAND[s == null ? 'null' : s] || ZUSTAND.null;
 let _mode = 'pencil';          // Schlüssel in AKTIONEN
 let _sel = new Set();          // ausgewählte Slots als 'name|date|posId'
 let _onlyCrew = null;          // gesetzt beim Einstieg übers Zellen-Menü
+let _laeuft = false;           // Sperre gegen einen zweiten, überlappenden Lauf
 
 const _key = (name, date, posId) => `${name}|${date}|${posId}`;
 
@@ -170,6 +170,22 @@ function _render() {
   if (lbl) lbl.textContent = `${total} Einsatz/Einsätze zur Auswahl · Aktion: ${akt.titel}`;
 }
 
+// Fortschritt während des Laufs — im Knopf UND in der Kopfzeile des Dialogs.
+//
+// Vorher war die einzige Rückmeldung ein Toast, der nach 2,2 Sekunden verblasste. Bei 59
+// Einsätzen lief der Vorgang danach noch zwanzig Sekunden weiter, ohne dass irgendetwas das
+// zeigte — der Dialog sah aus, als hinge er. Genau so wurde es gemeldet.
+function _fortschritt(fertig, gesamt) {
+  const btn = document.getElementById('btnBulkStatusApply');
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '.6';
+    btn.textContent = `${fertig} / ${gesamt} …`;
+  }
+  const lbl = document.getElementById('bulkStatusMode');
+  if (lbl) lbl.textContent = `Wird ausgeführt: ${fertig} von ${gesamt} — bitte warten`;
+}
+
 // ⚠️ Der Knopf trägt IMMER die Zahl der Auswahl. Ein Knopf, der eine Zahl zeigt, aber nichts
 // tut, hat den Manager glauben lassen, der Dialog hänge (v0.8.6).
 function _updateApplyButton(n) {
@@ -257,7 +273,18 @@ export function openBulkStatusModal(prefillCrew) {
   openModal('bulkStatusModal');
 }
 
-export function closeBulkStatusModal() { closeModal('bulkStatusModal'); }
+export function closeBulkStatusModal() {
+  if (_laeuft) return;                 // während des Schreibens nicht wegklicken lassen
+  closeModal('bulkStatusModal');
+}
+
+// Escape schließt den Dialog. Fehlte komplett — wer den Knopf nicht fand, saß fest.
+// Muster wie in js/dialog.js. Läuft gerade ein Vorgang, greift closeBulkStatusModal nicht.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const el = document.getElementById('bulkStatusModal');
+  if (el && el.classList.contains('open')) closeBulkStatusModal();
+});
 
 // ── Anwenden ──────────────────────────────────────────────────────────────────
 const FERTIG = {
@@ -267,7 +294,15 @@ const FERTIG = {
   remove:  { text: 'aufgehoben ✕',        farbe: '#4ae8a0' },
 };
 
+const ZIEL_STATUS = { pencil: 'pencilled', confirm: 'confirmed', request: 'proposed' };
+
 export async function applyBulkStatus() {
+  // ⚠️ Sperre gegen den zweiten Klick. Bei 59 Einsätzen dauert der Lauf spürbar; wer in der
+  // Zeit noch einmal drückt, startete bisher einen ZWEITEN, überlappenden Lauf und schrieb
+  // alles doppelt. Genau das ist passiert („beim zweiten Klick geht der Dialog weg" — in
+  // Wahrheit war der erste Lauf inzwischen fertig).
+  if (_laeuft) return;
+
   const n = _sel.size;
   // ⚠️ NICHT stumm zurückkehren. Genau das ließ den Dialog „hängen" aussehen (v0.8.6):
   // Klick auf den Knopf, nichts passiert, keine Erklärung.
@@ -279,39 +314,39 @@ export async function applyBulkStatus() {
   const targets = [];
   for (const k of _sel) {
     const [name, date, posId] = k.split('|');
-    targets.push({ name, date, posId, vorher: (assignmentStatuses[date] || {})[posId]?.status ?? null });
+    targets.push({ name, date, posId,
+                   email: crewMeta[name]?.email || '',
+                   posLabel: POSITIONS.find(p => p.id === posId)?.label || posId,
+                   vorher: (assignmentStatuses[date] || {})[posId]?.status ?? null });
   }
 
+  _laeuft = true;
+  _fortschritt(0, n);
   showToast(`${n} Einsätze werden geändert…`, '#e8c84a');
   let done = 0;
   try {
-    for (const t of targets) {
-      const email = crewMeta[t.name]?.email || '';
-      const posLabel = POSITIONS.find(p => p.id === t.posId)?.label || t.posId;
+    if (_mode === 'remove') {
+      const erg = await removeAssignmentSlots(targets, (f) => { done = f; _fortschritt(f, n); });
+      // Die Person war schon benachrichtigt → sie muss erfahren, dass der Tag entfällt.
+      // Das Einreihen macht der Aufrufer, nicht dataService (sonst Import-Zyklus).
+      for (const e of erg)
+        if (e.wasActive && e.rec) _queueRemovedSlot(e.name, e.email, e.date, e.posId, e.posLabel, e.rec.id);
+    } else {
+      const ziel = ZIEL_STATUS[_mode];
+      done = await applyStatusToSlots(targets, ziel, (f) => { done = f; _fortschritt(f, n); });
 
-      if (_mode === 'remove') {
-        const { wasActive, rec } = await removeAssignmentSlot(t.date, t.posId);
-        // Die Person war schon benachrichtigt → sie muss erfahren, dass der Tag entfällt.
-        // Das Einreihen macht der Aufrufer, nicht dataService (sonst Import-Zyklus).
-        if (wasActive && rec) _queueRemovedSlot(t.name, email, t.date, t.posId, posLabel, rec.id);
-      } else {
-        if      (_mode === 'pencil')  await pencilInAssignment(t.date, t.posId, t.name, email);
-        else if (_mode === 'confirm') await confirmAssignment(t.date, t.posId);
-        else                          await proposeAssignmentBulk(t.date, t.posId, t.name, email);
-
-        // Benachrichtigung nur vormerken — versendet wird erst per „Updates senden".
-        //
-        // ⚠️ Bei 'wenn-kommuniziert' NUR, wenn vorher überhaupt etwas rausgegangen war. Ein
-        // Einsatz ohne Status kennt die Person nicht; sie bekäme eine Meldung über die
-        // Änderung an etwas, von dem sie nie wusste. Der Einzelklick im Zellen-Menü reiht
-        // dort ebenfalls nichts ein — beide Wege verhalten sich gleich.
-        // Bei 'immer' (Anfragen) ist der Eintrag der ganze Zweck: Er trägt die gebündelte
-        // Anfrage-Mail, weil der Hook wegen proposed_by='bulk' keine Einzelmail schickt.
+      // Benachrichtigung nur vormerken — versendet wird erst per „Updates senden".
+      //
+      // ⚠️ Bei 'wenn-kommuniziert' NUR, wenn vorher überhaupt etwas rausgegangen war. Ein
+      // Einsatz ohne Status kennt die Person nicht; sie bekäme eine Meldung über die
+      // Änderung an etwas, von dem sie nie wusste. Der Einzelklick im Zellen-Menü reiht
+      // dort ebenfalls nichts ein — beide Wege verhalten sich gleich.
+      // Bei 'immer' (Anfragen) ist der Eintrag der ganze Zweck: Er trägt die gebündelte
+      // Anfrage-Mail, weil der Hook wegen proposed_by='bulk' keine Einzelmail schickt.
+      for (const t of targets) {
         const melden = akt.melden === 'immer' || (akt.melden === 'wenn-kommuniziert' && t.vorher != null);
-        if (melden) _queueStatusSlot(t.name, email, t.date, t.posId, posLabel,
-                                     _mode === 'request' ? 'proposed' : (_mode === 'pencil' ? 'pencilled' : 'confirmed'));
+        if (melden) _queueStatusSlot(t.name, t.email, t.date, t.posId, t.posLabel, ziel);
       }
-      done++;
     }
     showToast(`${done} Einsätze ${FERTIG[_mode].text}`, FERTIG[_mode].farbe);
   } catch (err) {
@@ -319,6 +354,7 @@ export async function applyBulkStatus() {
     showToast(`Fehler nach ${done} von ${n}: ${err.message}`, '#e84a4a');
     try { await loadAssignmentStatuses(); } catch (_) { /* Resync darf den Abschluss nicht kippen */ }
   } finally {
+    _laeuft = false;    // MUSS zuerst fallen, sonst greift closeBulkStatusModal nicht
     // ⚠️ Der Abschluss gehört in `finally`, und das Neuzeichnen in ein EIGENES try.
     //
     // Vorher standen beide ungeschützt hintereinander: Warf das Schließen, lief das

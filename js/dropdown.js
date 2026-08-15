@@ -147,7 +147,10 @@ export function openCrewDD(e,dateStr,posId){
   // statt Zelle für Zelle durchzuklicken.
   if(planned && planned!==OFFEN){
     const who=(si && si.crewName) || planned;
-    items.push({label:`✎ Status ändern (${who})…`,color:'var(--pencilled)',action:()=>{
+    // ⚠️ KEINE Statusfarbe hier. Der Eintrag öffnet nur einen Dialog, er setzt nichts.
+    // Vorher trug er var(--pencilled) — ausgerechnet das Violett, das im Plan „vorgemerkt"
+    // bedeutet. Ein Befehl, der die Farbe eines Zustands trägt, verspricht den falschen.
+    items.push({label:`✎ Status ändern (${who})…`,action:()=>{
       closeDD();
       openBulkStatusModal(who);
     }});

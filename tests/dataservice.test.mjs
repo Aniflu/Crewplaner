@@ -214,3 +214,30 @@ test('ohne Plan-ID werfen die Schreibfunktionen, statt still zurückzukehren', a
     ok(geworfen, `${name} kehrt still zurück — der Aufrufer meldet dann fälschlich Erfolg`);
   }
 });
+
+// ── Drosselung abfedern (v0.9.2) ────────────────────────────────────────────────────
+// Seit dem 14.08. läuft auf PocketBase eine Rate-Limit-Engine. Ein 429 heißt „zu schnell",
+// nicht „geht nicht" — ohne Wiederholung sähe ausgerechnet der Schutz von gestern wie
+// Datenverlust aus: halbe Tour geschrieben, Rest rot.
+test('ein 429 wird einmal wiederholt, statt den ganzen Lauf zu kippen', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g);
+  g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager');
+  globalThis.localStorage.setItem('pb_token', 't');
+  globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  g.state.POSITIONS.push({ id: 'gl', label: 'GL' });
+
+  let schreibversuche = 0;
+  globalThis.fetch = async (url, opts) => {
+    const m = (opts && opts.method) || 'GET';
+    if (m === 'GET') return { status:200, ok:true, json: async () => ({ items: [], page:1, perPage:200, totalPages:1 }) };
+    schreibversuche++;
+    if (schreibversuche === 1) return { status:429, ok:false, json: async () => ({ message:'Too Many Requests' }) };
+    return { status:200, ok:true, json: async () => ({ id:'r1' }) };
+  };
+
+  const ziele = [{ date:'2026-09-01', posId:'gl', name:'Wolf', email:'w@x.de' }];
+  await g.dataService.applyStatusToSlots(ziele, 'pencilled');
+  eq(schreibversuche, 2, 'nach dem 429 muss genau einmal wiederholt werden');
+  eq(g.state.assignmentStatuses['2026-09-01']?.gl?.status, 'pencilled', 'am Ende steht der Zielstatus');
+});

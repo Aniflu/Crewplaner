@@ -69,9 +69,10 @@ localStorage.setItem('tourplan_active_pb_id','PLAN1');
 localStorage.setItem('tourplan_pb_default','PLAN1');
 
 // Kein echter Server: jede Schreib-Anfrage gilt als erfolgreich, wir zählen sie.
-let posts = 0;
+let posts = 0, anfragen = 0;
 window.fetch = async (url, opts) => {
   const m = (opts && opts.method) || 'GET';
+  anfragen++;                       // ALLE Roundtrips — daran misst sich die Beschleunigung
   if (m !== 'GET') posts++;
   return {status:200, ok:true, json: async () => ({items:[],page:1,perPage:200,totalPages:1,id:'r1'})};
 };
@@ -93,7 +94,7 @@ const knopf   = () => document.getElementById('btnBulkStatusApply');
 const klick   = (el) => { el.checked = !el.checked; el.dispatchEvent(new Event('change',{bubbles:true})); };
 
 async function folge(name, schritte, erwartet) {
-  posts = 0;
+  posts = 0; anfragen = 0;
   unbehandelt = [];
   document.getElementById('tBody').innerHTML = '';     // damit „wurde neu gezeichnet?" messbar ist
   bulk.openBulkStatusModal();
@@ -118,6 +119,7 @@ async function folge(name, schritte, erwartet) {
   log((ok ? 'OK   ' : 'FEHL ') + name
       + ' | Knopf: "' + label + '" aktiv=' + aktiv
       + ' | Schreibvorgaenge: ' + posts + '/' + erwartet
+      + ' | Anfragen gesamt: ' + anfragen
       + ' | Dialog: ' + (offen ? 'OFFEN GEBLIEBEN' : 'zu')
       + ' | Tabelle: ' + (gezeichnet ? 'neu gezeichnet' : 'nicht gezeichnet'));
   for (const u of unbehandelt) log('      ⤷ ' + u.split('\\n').slice(0, 3).join(' | '));
@@ -160,6 +162,23 @@ try {
   });
 
   await folge('60 Tage x 2 Positionen, ALLE', async () => { bulk._bulkStatusSelectAll(true); }, 120);
+
+  // ⚠️ Doppelklick: Bei 59 Einsätzen dauert der Lauf spürbar. Wer in der Zeit noch einmal
+  // drückt, startete bisher einen ZWEITEN, überlappenden Lauf und schrieb alles doppelt.
+  // Hier wird NICHT auf den ersten Lauf gewartet — genau darum geht es.
+  posts = 0; anfragen = 0; unbehandelt = [];
+  document.getElementById('tBody').innerHTML = '';
+  bulk.openBulkStatusModal();
+  bulk._bulkStatusSelectAll(true);
+  const ersterLauf = bulk.applyBulkStatus();     // absichtlich nicht awaiten
+  bulk.applyBulkStatus();                        // der zweite Klick, mitten im ersten Lauf
+  await ersterLauf;
+  await new Promise(r => setTimeout(r, 0));
+  const doppeltOk = posts === 120;
+  log((doppeltOk ? 'OK   ' : 'FEHL ') + 'zweimal geklickt (kein Doppelschreiben)'
+      + ' | Schreibvorgaenge: ' + posts + '/120'
+      + ' | Anfragen gesamt: ' + anfragen);
+  for (const d of Object.keys(state.assignmentStatuses)) delete state.assignmentStatuses[d];
 
   // Gegenprobe: Diese Zeile MUSS fehlschlagen. Steht sie auf OK, misst der Prüfstand nichts.
   await folge('GEGENPROBE (muss FEHL sein)', async () => { bulk._bulkStatusSelectAll(true); }, 99);

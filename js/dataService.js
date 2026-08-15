@@ -519,6 +519,91 @@ export async function promotePencilledToProposed(dateStr, posId) {
   if (assignmentStatuses[dateStr]?.[posId]) assignmentStatuses[dateStr][posId].status = 'proposed';
 }
 
+// ── Viele Einsätze auf einmal schreiben (v0.9.2) ──────────────────────────────
+// Vorher lief der Sammel-Dialog Slot für Slot über pencilInAssignment/confirmAssignment.
+// Jeder Aufruf machte ZWEI Anfragen (pbUpsert sucht erst, dann schreibt), streng nacheinander:
+// 59 Einsätze = ~120 Roundtrips in Reihe, 25–40 Sekunden. Der Dialog blieb so lange offen und
+// sah aus, als hinge er — genau so wurde es gemeldet.
+//
+// Zwei Hebel: die Suche EINMAL für den ganzen Plan (statt pro Slot), und die Schreibvorgänge
+// in kleinen Gruppen nebenläufig.
+//
+// ⚠️ Höchstens 5 gleichzeitig. Seit dem 14.08. läuft auf PocketBase eine Drosselung
+// (docs/admin-auftrag-v0.8.3-rueckmeldung.md); ein unbegrenztes Promise.all über 59 Einsätze
+// würde sie auslösen und die Hälfte mit 429 zurückbekommen — der Schutz von gestern sähe dann
+// wie Datenverlust aus.
+const BULK_GLEICHZEITIG = 5;
+
+// Ein 429 heißt „zu schnell", nicht „geht nicht". Einmal kurz warten und wiederholen, bevor
+// der Vorgang als gescheitert gilt.
+async function _mitWiederholung(fn) {
+  try { return await fn(); }
+  catch (e) {
+    if (e && e.status === 429) {
+      await new Promise(r => setTimeout(r, 1200));
+      return fn();
+    }
+    throw e;
+  }
+}
+
+// Arbeitet die Liste in Gruppen ab und meldet den Fortschritt. Ein Fehler bricht ab —
+// Teilerfolg ist möglich, deshalb resynchronisiert der Aufrufer danach.
+async function _inGruppen(liste, arbeit, aufFortschritt) {
+  let fertig = 0;
+  for (let i = 0; i < liste.length; i += BULK_GLEICHZEITIG) {
+    await Promise.all(liste.slice(i, i + BULK_GLEICHZEITIG).map(async (x) => {
+      await _mitWiederholung(() => arbeit(x));
+      fertig++;
+      if (aufFortschritt) aufFortschritt(fertig);
+    }));
+  }
+  return fertig;
+}
+
+// targets: [{ date, posId, name, email }] · ziel: 'pencilled' | 'confirmed' | 'proposed'
+export async function applyStatusToSlots(targets, ziel, aufFortschritt) {
+  if (!SUPABASE_ENABLED) return 0;
+  const planId = await _getActivePlanId();
+  if (!planId) throw new Error('Plan nicht gefunden – bitte neu einloggen');
+
+  // EINE Abfrage statt einer pro Slot. `row.date` kommt als reines 'YYYY-MM-DD' zurück —
+  // dieselbe Form wie TOUR_DATES[].date, siehe loadAssignmentStatuses.
+  const alle = await pbListAll('assignments', `plan_id = "${pbEscapeFilter(planId)}"`);
+  const vorhanden = new Map();
+  for (const r of (alle?.items || [])) vorhanden.set(r.date + '|' + r.pos_id, r);
+
+  // 'proposed' aus dem Sammelweg trägt proposed_by='bulk' — daran erkennt der Hook die
+  // Sammel-Aktion und lässt die Einzelmail weg (main.pb.js). Sonst ginge pro Tag eine Mail raus.
+  const von = ziel === 'proposed' ? 'bulk' : 'manual';
+
+  const geschrieben = await _inGruppen(targets, async (t) => {
+    const pos = (POSITIONS || []).find(p => p.id === t.posId);
+    const feld = { crew_name: t.name, pos_label: pos?.label || t.posId,
+                   crew_email: t.email || '', status: ziel, proposed_by: von };
+    const da = vorhanden.get(t.date + '|' + t.posId);
+    if (da) await pbPatch('/api/collections/assignments/records/' + da.id, feld);
+    else    await pbPost('/api/collections/assignments/records',
+                         { plan_id: planId, date: t.date, pos_id: t.posId, ...feld });
+
+    if (!assignmentStatuses[t.date]) assignmentStatuses[t.date] = {};
+    assignmentStatuses[t.date][t.posId] = { status: ziel, proposedBy: von, crewName: t.name };
+  }, aufFortschritt);
+
+  return geschrieben;
+}
+
+// Dieselbe Gruppen-Mechanik für das Aufheben. Liefert je Slot, was die Update-Queue braucht;
+// das Einreihen macht der Aufrufer (dataService darf userView nicht importieren — Zyklus).
+export async function removeAssignmentSlots(targets, aufFortschritt) {
+  const ergebnisse = [];
+  await _inGruppen(targets, async (t) => {
+    const r = await removeAssignmentSlot(t.date, t.posId);
+    ergebnisse.push({ ...t, ...r });
+  }, aufFortschritt);
+  return ergebnisse;
+}
+
 // ── Anfrage am Stück (v0.9.0) ─────────────────────────────────────────────────
 // Wie promotePencilledToProposed, aber mit `proposed_by: 'bulk'`. Genau daran erkennt der
 // Hook eine Sammel-Aktion und lässt die Einzelmail weg (main.pb.js: „UPDATE re-proposed via
