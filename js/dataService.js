@@ -756,17 +756,52 @@ export async function sendAvailabilityNotice(crewName, crewEmail, slots) {
   }
 }
 
+// ⚠️ NUR die Felder mitschicken, die der Hook wirklich liest: `kind`, `to`, `aid`.
+//
+// `date`, `posId`, `posLabel` und `changes` sind Altlast aus der Zeit, als die Mail eine
+// Terminliste enthielt. Seit Hook v4.21 zählt sie nur noch die Arten und braucht die `aid`s
+// für die Quittung — der Rest wird nirgends gelesen, ging aber weiter mit.
+//
+// Das war kein Schönheitsfehler: Die Slots landen als JSON in `crew_invites.app_url`, und das
+// Feld ist bei 5000 Zeichen zu Ende. Bei 59 Einsätzen ergaben sich ~7700 Zeichen — PocketBase
+// wies den Datensatz ab, es kam ein roter Hinweis und die Mail ging gar nicht raus.
+// Schlank sind dieselben 59 Einsätze ~2400 Zeichen.
+//
+// Die lokale Warteschlange behält die vollen Daten — die Vorschau zeigt dir ja die Tage.
+function _schlankeSlots(slots) {
+  return (slots || []).map(s => {
+    const o = {};
+    if (s.kind) o.kind = s.kind;
+    if (s.to)   o.to   = s.to;
+    if (s.aid)  o.aid  = s.aid;   // trägt die Quittung — darf NIE wegfallen
+    return o;
+  });
+}
+
+const APP_URL_GRENZE = 5000;   // Feldlänge in crew_invites.app_url
+
 export async function sendUpdateNotice(crewName, crewEmail, slots, customMessage) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
+  const nutzlast = JSON.stringify(_schlankeSlots(slots));
+
+  // Sollte es je wieder eng werden, soll dastehen WAS zu tun ist — nicht die rohe
+  // Datenbankmeldung über eine Feldlänge, mit der niemand etwas anfangen kann.
+  if (nutzlast.length > APP_URL_GRENZE) {
+    const msg = `Zu viele Änderungen für eine Mail (${slots.length} Einsätze). `
+              + 'Bitte in zwei Durchgängen senden: erst einen Teil anhaken, dann den Rest.';
+    _showMailError(msg);
+    throw new Error(msg);
+  }
+
   try {
     await pbPost('/api/collections/crew_invites/records', {
       plan_id: planId, crew_name: crewName, crew_email: crewEmail,
       type: 'update', plan_name: planName,
-      app_url: JSON.stringify(slots),
+      app_url: nutzlast,
       ...(customMessage ? { custom_message: customMessage } : {})
     });
   } catch(e) {

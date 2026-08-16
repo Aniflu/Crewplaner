@@ -94,3 +94,49 @@ test('Update-Mail: Statuswechsel bekommen KEINEN Aktions-Knopf', () => {
   ok(!/ackcancel/.test(m.html) && !/TERMINE BEST/.test(m.html),
      'ein Aktions-Knopf steht bei einem reinen Statuswechsel');
 });
+
+// ── Nutzlast der Update-Mail (v0.9.6) ────────────────────────────────────────────────
+// Gemeldet: Beim Senden im Plan „Provinz 2027" kam ein roter Hinweis über 5000 Zeichen.
+// Die Slots landen als JSON in `crew_invites.app_url`, und das Feld ist dort zu Ende.
+// Mitgeschickt wurden aber Felder, die seit Hook v4.21 niemand mehr liest: `date`, `posId`,
+// `posLabel` und die Änderungstexte — Altlast aus der Zeit, als die Mail eine Terminliste
+// enthielt. 59 Einsätze ergaben so ~7700 Zeichen; PocketBase wies den Datensatz ab und die
+// Mail ging gar nicht erst raus.
+import { loadGraph, resetState } from './_graph.mjs';
+
+test('gesendet wird nur, was der Hook liest — und das passt ins Feld', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g);
+  g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager');
+  globalThis.localStorage.setItem('pb_token', 't');
+  globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+
+  // 59 Einsätze wie in einer echten Tour, mit allen Altlast-Feldern in der Queue.
+  const slots = [];
+  for (let i = 1; i <= 40; i++)
+    slots.push({ kind: 'removed', date: '2027-05-' + String(i % 28 + 1).padStart(2, '0'),
+                 posId: 'lt', posLabel: 'Lichttechnik', aid: 'r' + String(i).padStart(14, '0'),
+                 changes: ['Termin entfernt'] });
+  for (let i = 1; i <= 19; i++)
+    slots.push({ kind: 'status', to: 'pencilled', date: '2027-06-' + String(i % 28 + 1).padStart(2, '0'),
+                 posId: 'gl', posLabel: 'Gruppenleitung', changes: ['Jetzt vorgemerkt'] });
+
+  let gesendet = null;
+  globalThis.fetch = async (url, opts) => {
+    if ((opts && opts.method) === 'POST') gesendet = JSON.parse(opts.body || '{}');
+    return { status: 200, ok: true, json: async () => ({ items: [], page: 1, perPage: 200, totalPages: 1, id: 'r1' }) };
+  };
+  await g.dataService.sendUpdateNotice('Wolf', 'wolf@example.com', slots);
+
+  ok(gesendet, 'es wurde nichts gesendet');
+  ok(gesendet.app_url.length < 5000,
+     'Nutzlast über der Feldgrenze: ' + gesendet.app_url.length + ' Zeichen');
+
+  const raus = JSON.parse(gesendet.app_url);
+  eq(raus.length, 59, 'es müssen alle Einsätze mit — nur schlanker');
+  ok(!/posLabel|"date"|changes/.test(gesendet.app_url),
+     'ungenutzte Felder werden weiter mitgeschickt: ' + gesendet.app_url.slice(0, 200));
+  // Die aids tragen die Quittung — fällt eine weg, bleibt die Absage dauerhaft offen.
+  eq(raus.filter(s => s.aid).length, 40, 'aids unvollständig');
+  eq(raus.filter(s => s.to === 'pencilled').length, 19, 'Statuswechsel unvollständig');
+});
