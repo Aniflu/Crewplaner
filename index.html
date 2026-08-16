@@ -75,7 +75,7 @@
           <div style="text-align:left;">
             <h1>Crewplanner</h1>
             <div class="subtitle-row">
-              <span class="tour-tag">Personalplan · v0.9.4</span>
+              <span class="tour-tag">Personalplan · v0.9.5</span>
               <span class="active-plan-name" id="activePlanName"></span>
             </div>
           </div>
@@ -477,7 +477,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=57"></script>
+<script type="module" src="js/app.js?v=58"></script>
 
 <!-- UPDATE QUEUE MODAL -->
 <div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
@@ -548,17 +548,22 @@
 
 <!-- E-Mail-Vorschau (pro Person, vor dem Senden) -->
 <div id="updatePreviewModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
-  <div style="background:var(--panel2);border:1px solid var(--accent);padding:24px;max-width:520px;width:90%;font-family:var(--mono);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+  <!-- ⚠️ Flex-Spalte mit begrenzter Höhe. Vorher hatte diese Box WEDER max-height NOCH
+       overflow: Bei vielen Terminen wuchs sie über den Bildschirm hinaus, und weil das
+       Overlay mittig zentriert, ragte sie oben und unten heraus — nicht scrollbar, die
+       Knöpfe nicht erreichbar. Dasselbe Muster wie beim Warteschlangen-Fenster (v0.9.3),
+       nur wurde dieses hier übersehen. `min-height:0` am Inhalt ist der entscheidende Teil. -->
+  <div style="background:var(--panel2);border:1px solid var(--accent);padding:24px;max-width:520px;width:90%;max-height:85vh;display:flex;flex-direction:column;font-family:var(--mono);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0;">
       <span style="color:var(--accent);letter-spacing:2px;font-size:.75rem;">📧 E-MAIL-VORSCHAU</span>
       <span style="cursor:pointer;color:var(--muted);" onclick="_updatePreviewCancel()">✕</span>
     </div>
-    <div id="updatePreviewBody" style="font-size:.7rem;color:var(--ink-2);line-height:1.6;"></div>
-    <div style="margin-top:12px;">
+    <div id="updatePreviewBody" style="flex:1;min-height:0;overflow-y:auto;font-size:.7rem;color:var(--ink-2);line-height:1.6;"></div>
+    <div style="margin-top:12px;flex-shrink:0;">
       <label style="display:block;font-size:.58rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">PERSÖNLICHE NACHRICHT (optional)</label>
       <textarea id="updatePreviewText" rows="3" placeholder="Text, der in der E-Mail oben hervorgehoben wird…" style="resize:vertical;width:100%;background:var(--on-accent);border:1px solid var(--rule-2);border-radius:3px;color:var(--ink);padding:8px;font-family:var(--mono);font-size:.66rem;box-sizing:border-box;"></textarea>
     </div>
-    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap;">
       <button onclick="_updatePreviewCancel()" style="background:var(--panel2);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Abbrechen</button>
       <button onclick="_updatePreviewSkip()" style="background:var(--panel2);color:var(--accent);border:1px solid var(--rule-2);border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Überspringen</button>
       <button onclick="_updatePreviewSend()" style="background:var(--accent);color:var(--on-accent);border:none;border-radius:3px;padding:7px 16px;font-family:inherit;font-size:.66rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">Senden →</button>

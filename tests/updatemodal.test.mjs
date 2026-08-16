@@ -99,3 +99,58 @@ test('das Crew-Popup zeigt die entfallenen Tage samt Quittung', () => {
   ok(/ackCancelledAssignments/.test(userView),
      'die Quittung läuft nicht über den geprüften Weg (Server prüft dort die Adresse)');
 });
+
+// ── Jedes Dialogfenster muss sich begrenzen ──────────────────────────────────────────
+// Zweimal hintereinander dasselbe Muster: ein Fenster mit EIGENEM Kasten statt der Klasse
+// `modal-box` — und damit ohne deren `max-height:90vh; overflow-y:auto`. Bei vielen Einträgen
+// wächst so ein Kasten über den Bildschirm hinaus; weil das Overlay mittig zentriert, ragt er
+// oben UND unten heraus, lässt sich nicht rollen und die Knöpfe sind unerreichbar.
+// Betroffen waren crewUpdateModal (v0.9.3) und updatePreviewModal (v0.9.5) — beim ersten Mal
+// habe ich das zweite übersehen. Dieser Guard prüft deshalb ALLE auf einmal.
+test('jedes Dialogfenster begrenzt seine Höhe und kann rollen', () => {
+  // Per CSS gedeckelt statt inline — geprüft und in Ordnung, deshalb hier benannt statt
+  // stillschweigend übergangen.
+  const PER_CSS = {
+    tbModal: '#tbInner in styles.css (max-height:92vh; overflow-y:auto)',
+  };
+
+  // ⚠️ Kommentare VOR dem Ausschneiden entfernen, nicht danach: Ein ausführlicher
+  // Erklär-Kommentar zwischen Overlay und Kasten verbrauchte sonst das Messfenster.
+  const ohneKommentare = html.replace(/<!--[\s\S]*?-->/g, ' ');
+
+  // Je Fenster den ganzen Block betrachten (bis zum nächsten Fenster), nicht ein festes
+  // Zeichenfenster — die Knopfleisten sind lang, ein 700-Zeichen-Ausschnitt reichte nicht
+  // einmal bis zum Rollbereich und meldete deshalb Fehlalarm.
+  const treffer = [...ohneKommentare.matchAll(/id="([a-zA-Z]*[Mm]odal)"/g)];
+  const fund = [];
+  treffer.forEach((m, i) => {
+    const id = m[1];
+    if (PER_CSS[id]) return;
+    const block = ohneKommentare.slice(m.index, i + 1 < treffer.length ? treffer[i + 1].index : m.index + 6000);
+    if (/class="modal-box"/.test(block)) return;      // Klasse deckelt und rollt bereits
+
+    // 1) Der Kasten selbst — das erste <div> NACH dem Overlay — muss die Höhe begrenzen.
+    const nachOverlay = block.slice(block.indexOf('>') + 1);
+    const kasten = (nachOverlay.match(/<div[^>]*>/) || [''])[0];
+    const gedeckelt = /max-height/.test(kasten);
+
+    // 2) Irgendwo im Fenster muss ein Bereich rollen können.
+    const rollt = /overflow-y:\s*(auto|scroll)/.test(block);
+
+    if (!gedeckelt || !rollt) fund.push(id + (gedeckelt ? ' (rollt nicht)' : ' (keine Höhengrenze)'));
+  });
+
+  ok(fund.length === 0,
+    'ohne Höhenbegrenzung und Rollbereich: ' + fund.join(', ') +
+    ' — entweder class="modal-box" verwenden oder max-height + overflow selbst setzen');
+});
+
+test('die E-Mail-Vorschau zeigt, was WIRKLICH in der Mail steht', () => {
+  // Seit v0.9.3 zählt die Mail keine Tage mehr auf. Die Vorschau zeigte aber weiter eine
+  // Datumstabelle und versprach damit etwas, das beim Empfänger nicht ankommt.
+  const uv = readFileSync(join(root, 'js/userView.js'), 'utf8');
+  const fn = (uv.match(/function _openUpdatePreview\([\s\S]*?\n}/) || [''])[0];
+  ok(/SO KOMMT DIE MAIL AN/.test(fn), 'die Vorschau zeigt die Mail-Zusammenfassung nicht');
+  ok(/NICHT IN DER MAIL/.test(fn),
+     'die Tagesliste ist nicht als „nur für dich" gekennzeichnet — sie sieht sonst aus wie Mail-Inhalt');
+});

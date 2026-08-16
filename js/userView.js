@@ -863,15 +863,40 @@ function _openUpdatePreview(opts) {
       const _kindTxt = s => s.kind === 'removed' ? '➖ entfernt'
         : s.kind === 'status' ? (s.to === 'pencilled' ? '✎ vorgemerkt' : '✓ bestätigt')
         : '➕ neu';
-      const rows = (opts.slots || []).map(s =>
+
+      // ⚠️ Seit v0.9.3 zählt die Mail KEINE Tage mehr auf — sie nennt nur die Art der
+      // Änderung. Die Vorschau zeigte aber weiter eine Datumstabelle und versprach damit
+      // etwas, das beim Empfänger gar nicht ankommt. Deshalb zweigeteilt:
+      // oben das, was wirklich in der Mail steht, darunter die Tage als Kontrolle FÜR DICH.
+      const slots = opts.slots || [];
+      const zahl = { neu: 0, weg: 0, vor: 0, fest: 0 };
+      for (const s of slots) {
+        if (s.kind === 'removed') zahl.weg++;
+        else if (s.kind === 'status') (s.to === 'confirmed' ? zahl.fest++ : zahl.vor++);
+        else zahl.neu++;
+      }
+      const satz = (n, ein, viele) => (n === 1 ? ein : `${n} ${viele}`);
+      const mailZeilen = [];
+      if (zahl.neu)  mailZeilen.push(`➕ ${satz(zahl.neu, 'Ein neuer Termin', 'neue Termine')} — bitte bestätigen`);
+      if (zahl.weg)  mailZeilen.push(`➖ ${satz(zahl.weg, 'Ein Termin ist entfallen', 'Termine sind entfallen')}`);
+      if (zahl.vor)  mailZeilen.push(`✎ ${satz(zahl.vor, 'Ein Termin ist jetzt vorgemerkt', 'Termine sind jetzt vorgemerkt')}`);
+      if (zahl.fest) mailZeilen.push(`✓ ${satz(zahl.fest, 'Ein Termin ist wieder fest', 'Termine sind wieder fest')}`);
+
+      const rows = slots.map(s =>
         `<tr><td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(_fmtPrevDate(s.date))}</td>` +
         `<td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(s.posLabel || '')}</td>` +
         `<td style="padding:4px 8px;border-bottom:1px solid #2a2f3a;">${esc(_kindTxt(s))}</td></tr>`).join('');
+
       body.innerHTML =
         `<div><strong style="color:#9aa0aa;">An:</strong> ${esc(opts.email || '')}</div>
          <div><strong style="color:#9aa0aa;">Betreff:</strong> ${esc(opts.subject || '')}</div>
-         <div style="margin-top:8px;color:#9aa0aa;">${opts.intro || ''}</div>
-         ${rows ? `<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:.62rem;color:#9aa0aa;">${rows}</table>` : ''}`;
+         <div style="margin-top:10px;padding:10px;border:1px solid var(--rule-2);border-radius:3px;">
+           <div style="font-size:.58rem;color:var(--accent);letter-spacing:1px;margin-bottom:6px;">SO KOMMT DIE MAIL AN</div>
+           ${mailZeilen.map(z => `<div>${esc(z)}</div>`).join('')}
+           <div style="margin-top:6px;color:#9aa0aa;">…und der Hinweis, sich einzuloggen. Einzelne Tage stehen nicht in der Mail.</div>
+         </div>
+         ${rows ? `<div style="margin-top:12px;font-size:.58rem;color:var(--muted);letter-spacing:1px;">BETROFFENE TAGE — NUR FÜR DICH, NICHT IN DER MAIL (${slots.length})</div>
+         <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:.62rem;color:#9aa0aa;">${rows}</table>` : ''}`;
     }
     const ta = document.getElementById('updatePreviewText'); if (ta) ta.value = '';
     const m = document.getElementById('updatePreviewModal'); if (m) m.style.display = 'flex';
