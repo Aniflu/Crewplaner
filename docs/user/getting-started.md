@@ -135,6 +135,21 @@ jederzeit heraus.
 Die Crew wird **nicht** sofort benachrichtigt: Die Änderungen landen in „↻ Updates" und gehen
 erst per Knopfdruck raus.
 
+### Updates verschicken
+
+Der Weg hat zwei Stufen:
+
+1. **„↻ Updates"** in der Seitenleiste zeigt alle vorgemerkten Änderungen, nach Person
+   gruppiert. Anhaken, was raus soll → **„Auswahl senden"**.
+2. Danach öffnet sich **pro Person** eine **Vorschau**. Oben steht unter „So kommt die Mail an"
+   genau das, was verschickt wird — seit v0.9.3 nur noch die *Art* der Änderung, keine
+   einzelnen Tage. Darunter siehst du die betroffenen Tage als Kontrolle; die stehen
+   **nicht** in der Mail. Optional kannst du eine persönliche Nachricht ergänzen, die in der
+   Mail hervorgehoben wird. Dann **Senden**, **Überspringen** (diese Person auslassen) oder
+   **Abbrechen**.
+
+Wo die Crew die einzelnen Tage sieht: im Fenster „Meine Einsätze" nach dem Anmelden.
+
 ### Öffentlicher Link für Booker/Veranstalter
 
 Admin-Konsole → Plan auswählen → **„Öffentlicher Booker-Link"**. Der Link zeigt die Tour
