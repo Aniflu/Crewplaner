@@ -1,6 +1,33 @@
 # Sicherheitsrichtlinie — Crewplanner
 
-Stand: v0.6.1 (2026-08-07) · Hook v4.18
+Stand: v0.9.4 (2026-08-16) · Hook v4.21
+
+---
+
+## Stand der Härtung — das Audit vom 09.08.2026 ist abgeschlossen
+
+Alle Befunde sind zu, jeder mit einer Messung belegt (nicht mit einer Fertigmeldung):
+
+| Befund | Erledigt | Belegt durch |
+|---|---|---|
+| K-2 · Crew sah fremde Mailadressen | v0.8.1, Hook v4.20 | `/planstatus` ohne Adressen, mit Live-Crew-Konto abgenommen |
+| K-3 · Rechteausweitung über `crew_members` | v0.8.1 | PB-Regeln `OWNER_ONLY`, später `POOL_OR_OWNER` |
+| K-1 · Die Domain lieferte das ganze Repo aus | 2026-08-14 | Build Pack auf Dockerfile; `.pb_hooks/`, `tools/`, `tests/`, `*.md` → 404 |
+| W-2 · Keine Schutz-Header | 2026-08-14 | HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy` — auch auf Fehlerseiten |
+| W-4 · Token im `localStorage` ohne CSP | v0.8.4 | CSP aktiv, `connect-src` auf eigene API begrenzt |
+| Kein Rate-Limiting am Login | 2026-08-14 | PocketBase-eigene Drosselung + `trustedProxy`; gemessen: 429 ab dem dritten Fehlversuch, `/ics/` unbeeinflusst |
+
+Zwei Dinge, die dabei nebenbei geschlossen wurden und in keinem Befund standen:
+
+- **Kurzlink über is.gd** (v0.8.4): Beim Erzeugen des öffentlichen Ansichts-Links ging der
+  frisch gewürfelte `view_token` an einen fremden Dienst. Im Hook war dieser Weg mit v4.16
+  entfernt worden — der Weg im Browser wurde damals übersehen. Jetzt entfernt, nicht nur
+  durch die CSP blockiert.
+- **Schriften von Google** (v0.8.4): Die beiden Anleitungsseiten und das PDF-Fenster luden von
+  `fonts.googleapis.com`. Die Anleitung verlinkt der Hook in jeder Crew-Mail — damit meldete
+  sich jeder Leser bei Google. Alle Schriften liegen jetzt selbst im Projekt.
+
+**Offen:** nichts aus diesem Audit.
 
 ---
 

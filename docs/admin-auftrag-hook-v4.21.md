@@ -1,7 +1,19 @@
 # Auftrag an den Admin — Hook v4.21 deployen
 
+> ✅ **Erledigt am 2026-08-16.** v4.21 auf Test und Live, sha gegen GitHub `main` geprüft,
+> beide Container healthy, RestartCount 0. `/planstatus` ohne Token 401, mit Crew-Token 200 und
+> neuem Feld `cancelled`; **0 Mailadressen im Payload** (per Regex geprüft, nicht nur `grep '@'`).
+> Datenschutz mit vier echten Konten gegengeprüft: jedes bekam genau seine eigenen Absagen, die
+> vier fremden kamen nicht mit; Superadmin und ein unbeteiligtes Crew-Konto bekamen `[]`.
+> Der Mail-Pfad wurde auf Test einmal ausgelöst (dort ohne RESEND_KEY, es ging nichts raus) —
+> alle vier Zweige liefen sauber. Dieses Dokument bleibt als Verlauf stehen.
+>
+> ⚠️ **Erwartete Asymmetrie, kein Fehler:** Der Filter läuft auf `crew_email = eigene Adresse`.
+> Owner und Superadmin bekommen deshalb **immer** `cancelled: []`, auch auf Plänen mit Absagen —
+> beim Vergleich gegen DB-Zahlen sieht das nach einem Fehler aus. Ist keiner, wie bei `/myplans`.
+
 **Datum:** 2026-08-16 · **Betrifft:** `.pb_hooks/main.pb.js` (v4.20 → v4.21)
-**Frontend:** v0.9.3, bereits auf Test und Live — es wartet auf diesen Hook.
+**Frontend:** v0.9.3 (inzwischen v0.9.4), Test und Live.
 
 Ein einziger Schritt: den Hook auf beide Instanzen ziehen und PocketBase neu starten.
 Das Frontend läuft bereits, es fehlt nur die Gegenseite.

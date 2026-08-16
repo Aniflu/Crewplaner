@@ -1,7 +1,9 @@
 # Admin-Runbook — Crew-Pool für Manager öffnen (v0.8.3)
 
-> Status: **offen** — das Frontend ist ausgeliefert, diese Regel fehlt noch.
-> Ohne sie funktioniert der Crew-Pool nur für `superadmin`.
+> ✅ **Erledigt am 2026-08-14.** Regel auf Test und Live gesetzt (`POOL_OR_OWNER`),
+> Nachkontrolle 0 Abweichungen. Mit einem echten `manager`-Konto durchgespielt: Pool lesen,
+> anlegen, ändern, löschen geht — Gegenprobe auf fremde Touren `totalItems: 0`, Audit-Befund
+> K-3 bleibt zu. Dieses Dokument bleibt als Verlauf stehen.
 
 ## Warum
 

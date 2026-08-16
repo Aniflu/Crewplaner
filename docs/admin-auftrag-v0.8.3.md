@@ -1,5 +1,10 @@
 # Auftrag an den Admin — v0.8.3
 
+> ✅ **Alle drei Punkte erledigt am 2026-08-14**, mit Messausgaben belegt — siehe
+> `docs/admin-auftrag-v0.8.3-rueckmeldung.md`. D (Crew-Pool-Regel), B (Build Pack auf
+> Dockerfile) und C (Rate-Limiting, umgesetzt über PocketBases eigene Engine statt Traefik).
+> Dieses Dokument bleibt als Verlauf stehen.
+
 **Datum:** 2026-08-14 · **Ersetzt nicht:** `docs/admin-auftrag-v0.8.2.md` (B und C daraus sind
 weiterhin offen, siehe unten)
 

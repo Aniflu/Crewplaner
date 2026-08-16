@@ -27,9 +27,19 @@ Wenn der Admin dich für einen Einsatz einträgt, bekommst du eine E-Mail mit zw
 Du kannst auch direkt in der App auf deine Einsätze klicken und dort reagieren.
 
 Ändert sich später etwas an deinem Plan — egal ob ein Termin **hinzukommt** oder **wegfällt** —
-bekommst du dafür genau **eine** Mail „Es gab Änderungen": neue Termine bitten dich um eine
-Zusage, entfernte Termine bitten dich nur um eine kurze Bestätigung „gesehen" (Button
-„ÄNDERUNGEN GESEHEN ✓"). Es gibt also keine getrennten Wege mehr für „neu" und „abgesagt".
+bekommst du dafür genau **eine** Mail „Es gab Änderungen". Sie nennt seit v0.9.3 nur noch, *was*
+sich geändert hat („2 neue Termine", „Ein Termin ist entfallen"), **nicht mehr die einzelnen
+Tage**. Das ist Absicht: Bei einer langen Tour war die Mail unlesbar, und sie veraltet ohnehin —
+wer sie zwei Tage später öffnet, liest einen Stand von gestern. Der aktuelle Stand steht in der
+App.
+
+Nach dem Einloggen öffnet sich deshalb das Fenster **„Meine Einsätze"**. Dort stehen:
+
+- **offene Anfragen** — mit Haken bestätigen, Haken entfernen heißt „nicht verfügbar"
+- **entfallene Tage** — Tage, für die du nicht mehr eingeplant bist, mit einem „Gesehen"-Knopf
+
+Der Knopf **„ÄNDERUNGEN GESEHEN ✓"** in der Mail macht dasselbe wie „Gesehen" im Fenster; du
+brauchst also nur einen der beiden Wege.
 
 ### 4. Passwort vergessen
 
@@ -68,6 +78,21 @@ https://crewplanner.nyxlightwork.de → Login → du landest auf der Tour-Tabell
 
 In der Sidebar links: Plan auswählen oder neuen Plan erstellen. Ein Plan enthält alle Tourdaten, Positionen und Crew-Zuordnungen.
 
+### Crew anlegen (seit v0.8.3)
+
+Eine Person entsteht **einmal zentral**, nicht pro Tour: Konsole → **Benutzer** →
+„+ Neues Crew-Mitglied" (Name, E-Mail, Rolle). Sie landet im **Crew-Pool** und ist danach in
+jeder Tour auswählbar. Direkt aus einer Tour heraus geht es auch — im Dialog „Crew hinzufügen"
+über **„+ Neue Person anlegen"**.
+
+Die E-Mail-Adresse ist Pflicht, und zwar aus zwei Gründen, die man sonst erst spät merkt: Ohne
+sie bekommt die Person **keine Anfrage-Mail** und sie **sieht ihre Tour überhaupt nicht**. Bis
+v0.8.2 ließ sich in einer Tour einfach ein Name tippen — wer so hereinkam, existierte für das
+System nicht, ohne dass irgendetwas darauf hinwies. Deshalb gibt es das Freitextfeld nicht mehr.
+
+Die Adresse ist zugleich die **Registrierungsfreigabe**: Nur wer im Pool oder in einer Tour
+steht, kann sich überhaupt ein Konto anlegen — mit der Rolle, die du dabei festlegst.
+
 ### Crew zuweisen
 
 1. In der Tabelle auf eine Zelle (Position + Tag) klicken → Dropdown öffnet sich
@@ -85,13 +110,27 @@ Entfernst du eine bereits bestätigte oder angefragte Person aus einem Tag, land
 automatisch in der Sidebar unter **„↻ Updates"** — von dort verschickst du gesammelt die
 „Es gab Änderungen"-Mail (siehe Crew-Abschnitt oben).
 
-### Status am Stück umstellen (seit v0.5.0)
+### Status am Stück ändern (neu gebaut in v0.9.0)
 
 Einzelne Zellen umzustellen ist bei 30–60 Tourtagen mühsam. Der Sidebar-Knopf
-**„✎ Status umstellen"** zeigt alle bestätigten Einsätze nach **Person → Tourblock → Tag**
-gruppiert, mit „alle/keine" auf jeder Ebene — anhaken, umstellen, fertig. Der Umschalter oben
-im Dialog geht auch zurück (vorgemerkt → bestätigt). Aus einer Zelle heraus geht derselbe
-Dialog über „✎ Termine von {Name} umstellen…", dann ist die Person schon vorausgewählt.
+**„✎ Status ändern"** (oder aus einer Zelle heraus „✎ Status ändern (Name)…", dann ist die
+Person vorausgewählt) führt in drei Schritten:
+
+1. **Aktion wählen** — ✎ vormerken · ✓ bestätigen · ⏳ anfragen · ✕ Besetzung aufheben
+2. **Tage anhaken** — nach Person → Tourblock → Tag gruppiert, mit „alle/keine" auf jeder Ebene
+3. **Ausführen**
+
+**Vorausgewählt ist nichts.** Für den häufigen Fall gibt es „NUR OFFENE" — das hakt genau die
+Tage an, die noch keinen Status haben. Jede Zeile zeigt ihren jetzigen Zustand (· geplant,
+⏳ angefragt, ✓ bestätigt, ✗ abgelehnt), damit sichtbar bleibt, was du überschreibst: Ein
+grauer Eintrag ist harmlos, ein grüner nicht — dort hat jemand fest zugesagt und erfährt von
+einer Rücknahme nichts.
+
+Während des Vorgangs zeigt der Knopf den Fortschritt („12 / 59 …") und ist gesperrt; ein
+zweiter Klick kann also nichts doppelt schreiben. Mit **Escape** oder „Schließen" kommst du
+jederzeit heraus.
+
+„⏳ Anfragen" am Stück verschickt **eine** gebündelte Mail über „↻ Updates", nicht eine pro Tag.
 
 Die Crew wird **nicht** sofort benachrichtigt: Die Änderungen landen in „↻ Updates" und gehen
 erst per Knopfdruck raus.
