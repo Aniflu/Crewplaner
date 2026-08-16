@@ -54,7 +54,15 @@ function route(pfad) {
 test('Hook: /planstatus ist authentifiziert und gibt KEINE Mailadresse heraus', () => {
   const r = route('/planstatus/{id}');
   ok(/\$apis\.requireAuth\(\)/.test(r), 'Route ist nicht mit requireAuth geschützt');
-  ok(!/crew_email/.test(r), 'die Route gibt crew_email heraus — genau das soll sie nicht');
+  // ⚠️ Geprüft wird das HERAUSGEBEN, nicht das Erwähnen. Seit Hook v4.21 filtert die Route
+  // die eigenen entfallenen Einsätze über `crew_email = {:m}` — ein Vergleich mit der Adresse
+  // des ANFRAGENDEN Kontos. Das ist kein Leck: Es verlässt nichts die Route.
+  // Ein Leck entstünde erst, wenn der Wert AUSGELESEN und in die Antwort geschrieben würde,
+  // also über getString('crew_email'). Genau darauf prüfen wir.
+  ok(!/getString\(\s*['"]crew_email['"]\s*\)/.test(r),
+    'die Route liest crew_email aus und gibt sie damit heraus — genau das soll sie nicht');
+  ok(!/crew_email\s*:/.test(r),
+    'crew_email steht als Feld in der Antwort');
   ok(/crew_name/.test(r), 'der Anzeigename fehlt — die Crew soll die Namen ja sehen');
   // Zugriffsprüfung: Owner ODER superadmin ODER crew_member DIESER Tour, sonst 404.
   ok(/crew_members/.test(r) && /404/.test(r),

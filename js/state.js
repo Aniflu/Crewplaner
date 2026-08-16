@@ -25,6 +25,12 @@ export let logos = {booking:'', band:'', planer:''};
 export let crewMeta = {};            // { "Max Mustermann": { email, userId } }
 export let assignmentStatuses = {};  // { "2026-07-01": { "gl": { status, proposedBy, crewName } } }
 
+// Die EIGENEN entfallenen Einsätze (nur Crew-Sicht, gefüllt aus /planstatus ab Hook v4.21).
+// [{ date, posId, posLabel, aid }] — `aid` ist die Datensatz-ID für die „Gesehen"-Quittung.
+// Bewusst eine eigene Liste statt in assignmentStatuses: Diese Tage stehen in KEINEM
+// plan_data mehr, sie haben also keinen Platz in der Tabellen-Sicht.
+export const meineEntfallenen = [];
+
 // Crew-Absagen-Queue (shared zwischen userView.js und render.js)
 export const pendingCancellations = new Set();
 

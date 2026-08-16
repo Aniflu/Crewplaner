@@ -41,7 +41,8 @@ import { openTourBlock, tbBack, tbStep2, tbSetAll, tbConfirm, openBlockRange } f
 import { openAddDate } from './dates.js';
 import { sendCancellations, bulkConfirmAllMySlots,
          _openUpdateQueueModal, _closeUpdateQueueModal,
-         _sendPendingUpdates, _sendSelectedUpdates, _submitMeldung } from './userView.js';
+         _sendPendingUpdates, _sendSelectedUpdates, _submitMeldung,
+         _ackMeineEntfallenen } from './userView.js';
 import { openModal, closeModal } from './modals.js';
 import { showToast } from './utils.js';
 import { generatePDF, pdfSetView, pdfToggleAll, openPDFFilter } from './pdf.js';
@@ -120,6 +121,7 @@ window._closeUpdateQueueModal = _closeUpdateQueueModal;
 window._sendPendingUpdates = _sendPendingUpdates;
 window._sendSelectedUpdates = _sendSelectedUpdates;
 window._submitMeldung = _submitMeldung;
+window._ackMeineEntfallenen = _ackMeineEntfallenen;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.showToast = showToast;

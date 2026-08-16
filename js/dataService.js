@@ -3,7 +3,7 @@ import {
   POSITIONS, crew, defaultCrew, assignments, crewMeta,
   assignmentStatuses, TOUR_DATES, IS_CREW, IS_MANAGER,
   CURRENT_USER_EMAIL, USER_ROLE, CURRENT_USER_ID, OFFEN,
-  clearStatus
+  clearStatus, meineEntfallenen
 } from './state.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
 import { showToast, sameCrew, getVal, dedupKnownCrew } from './utils.js';
@@ -307,6 +307,13 @@ export async function loadAssignmentStatuses() {
       const res = await _pbRoute('/planstatus/' + encodeURIComponent(planId));
       Object.keys(assignmentStatuses).forEach(k => delete assignmentStatuses[k]);
       Object.assign(assignmentStatuses, res?.statuses || {});
+      // v0.9.3: die EIGENEN entfallenen Einsätze (Hook v4.21). Sie stehen in keinem
+      // plan_data mehr — beim Aufheben nimmt der Planer den Slot heraus, für die Crew
+      // verschwindet der Tag spurlos. Ohne diese Liste hätte die Crew keine Möglichkeit
+      // zu sehen, dass ein Tag entfallen ist, seit die Mail keine Daten mehr aufzählt.
+      // Ältere Hook-Stände liefern das Feld nicht → leeres Array, nichts bricht.
+      meineEntfallenen.length = 0;
+      (res?.cancelled || []).forEach(c => meineEntfallenen.push(c));
     } catch (e) {
       console.warn('loadAssignmentStatuses (Crew) Fehler:', e.message);
     }

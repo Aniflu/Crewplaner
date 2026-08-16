@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.20
-console.log('[hook] main.pb.js v4.20 geladen');
+// Version: 4.21
+console.log('[hook] main.pb.js v4.21 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -198,45 +198,47 @@ onRecordAfterCreateSuccess(function(e) {
         else upPen.push(upSlots[i]);
       } else { upNew.push(upSlots[i]); }
     }
-    function upTable(rows, chgColor) {
-      var out = '<table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0 24px 0;border:1px solid #e8e8e8;border-radius:2px;">'+
-        '<tr style="background:#f8f9fb;">'+
-        '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td>'+
-        '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td></tr>';
-      for (var j = 0; j < rows.length; j++) {
-        out += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+fmtISO(rows[j].date)+'</td>'+
-          '<td style="padding:10px 16px;font-size:13px;color:'+chgColor+';border-bottom:1px solid #e8e8e8;">'+esc(rows[j].posLabel||'')+'</td></tr>';
-      }
-      return out + '</table>';
-    }
+    // v4.21: KEINE Terminlisten mehr. Vorher stand hier je Art eine Tabelle mit allen Daten —
+    // bei einer 60-Tage-Tour wurde die Mail unlesbar lang, und aktuell bleibt sie ohnehin nicht:
+    // Wer sie später öffnet, liest einen Stand von gestern. Der verlässliche Ort ist die App.
+    // Deshalb nur noch: WAS für eine Änderung, plus der Weg dorthin.
+    //
+    // Die Einteilung in die vier Arten bleibt — sie steuert Satz und Knopf. Die `aids` der
+    // entfallenen Termine werden weiter mitgegeben; der Knopf ist die Quittung („GESEHEN").
+    var anz = function (n, ein, viele) { return n === 1 ? ein : n + ' ' + viele; };
+
     var upBody = '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Es gab &Auml;nderungen.</h1>'+
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">PLAN GE&Auml;NDERT · '+ePlan+'</p>'+
-      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hallo '+eName+',<br><br>in der Tour <strong style="color:#1a1a2e;">'+ePlan+'</strong> haben sich folgende &Auml;nderungen ergeben:</p>'+
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hallo '+eName+',<br><br>in der Tour <strong style="color:#1a1a2e;">'+ePlan+'</strong> hat sich etwas ge&auml;ndert:</p>'+
       noteBlock(customMsg);
+
     if (upNew.length) {
-      upBody += '<p style="font-size:13px;color:#2d6a3f;font-weight:bold;margin:24px 0 0 0;">&#10133; Neue Termine &mdash; bitte best&auml;tige, dass du Zeit hast:</p>'+
-        upTable(upNew, '#555570')+
+      upBody += '<p style="font-size:13px;color:#2d6a3f;font-weight:bold;margin:24px 0 8px 0;">&#10133; '+
+        anz(upNew.length, 'Ein neuer Termin', 'neue Termine')+' &mdash; bitte best&auml;tige, dass du Zeit hast.</p>'+
         mkBtn('https://crewplanner.nyxlightwork.de', 'TERMINE BEST&Auml;TIGEN &rarr;');
     }
     if (upRem.length) {
-      upBody += '<p style="font-size:13px;color:#e84a4a;font-weight:bold;margin:24px 0 0 0;">&#10134; Entfernte Termine &mdash; bitte best&auml;tige, dass du die &Auml;nderung gesehen hast:</p>'+
-        upTable(upRem, '#e84a4a');
+      upBody += '<p style="font-size:13px;color:#e84a4a;font-weight:bold;margin:24px 0 8px 0;">&#10134; '+
+        anz(upRem.length, 'Ein Termin ist entfallen', 'Termine sind entfallen')+'.</p>';
       if (ackIds.length) {
         upBody += mkBtn('https://crewplanner.nyxlightwork.de?action=ackcancel&aids='+ackIds.join(','), '&Auml;NDERUNGEN GESEHEN &#10003;', '#f8f9fb', '#555570');
       }
     }
-    // v4.12: Statuswechsel — der Termin bleibt bestehen, nur die Verbindlichkeit ändert
-    // sich. Bewusst OHNE Aktions-Button: hier ist nichts zu bestätigen.
+    // Statuswechsel: Der Termin bleibt bestehen, nur die Verbindlichkeit ändert sich.
+    // Bewusst OHNE Aktions-Button — hier ist nichts zu bestätigen.
     if (upPen.length) {
-      upBody += '<p style="font-size:13px;color:#7A5FB3;font-weight:bold;margin:24px 0 0 0;">&#9998; Jetzt vorgemerkt &mdash; vorl&auml;ufig geplant, noch nicht verbindlich:</p>'+
-        upTable(upPen, '#7A5FB3')+
-        '<p style="font-size:12px;color:#555570;line-height:1.7;margin:0 0 16px 0;">Du musst nichts tun. Die Termine bleiben in deinem Kalender, sind aber noch nicht fest &mdash; wir melden uns, sobald sie verbindlich werden.</p>';
+      upBody += '<p style="font-size:13px;color:#7A5FB3;font-weight:bold;margin:24px 0 4px 0;">&#9998; '+
+        anz(upPen.length, 'Ein Termin ist jetzt vorgemerkt', 'Termine sind jetzt vorgemerkt')+'.</p>'+
+        '<p style="font-size:12px;color:#555570;line-height:1.7;margin:0 0 16px 0;">Du musst nichts tun &mdash; vorl&auml;ufig geplant, noch nicht verbindlich. Wir melden uns, sobald es fest wird.</p>';
     }
     if (upCnf.length) {
-      upBody += '<p style="font-size:13px;color:#2d6a3f;font-weight:bold;margin:24px 0 0 0;">&#10003; Wieder verbindlich best&auml;tigt:</p>'+
-        upTable(upCnf, '#2d6a3f')+
-        '<p style="font-size:12px;color:#555570;line-height:1.7;margin:0 0 16px 0;">Diese Termine sind jetzt wieder fest eingeplant.</p>';
+      upBody += '<p style="font-size:13px;color:#2d6a3f;font-weight:bold;margin:24px 0 4px 0;">&#10003; '+
+        anz(upCnf.length, 'Ein Termin ist wieder fest', 'Termine sind wieder fest')+'.</p>';
     }
+
+    upBody += '<p style="font-size:13px;color:#555570;line-height:1.8;margin:28px 0 0 0;border-top:1px solid #e8e8e8;padding-top:20px;">'+
+      'Welche Tage betroffen sind, siehst du nach dem Einloggen &mdash; dort steht immer der aktuelle Stand.</p>'+
+      mkBtn('https://crewplanner.nyxlightwork.de', 'PLAN &Ouml;FFNEN &rarr;', '#f8f9fb', '#555570');
     sendMail(email, 'ÄNDERUNG · ' + plan, wrap(upBody));
     console.log('[hook] update email sent to '+email+' ('+upNew.length+' neu, '+upRem.length+' entfernt, '+upPen.length+' vorgemerkt, '+upCnf.length+' bestätigt)');
   } else if (type === 'staff_invite') {
@@ -727,8 +729,36 @@ routerAdd('GET', '/planstatus/{id}', function(e) {
     };
   }
 
+  // v4.21: Die EIGENEN entfallenen Einsätze mitliefern.
+  //
+  // Warum das sein muss: Beim Aufheben nimmt der Planer den Slot aus plan_data — für die Crew
+  // verschwindet der Tag damit spurlos, `getVal` liefert nichts mehr. Der zurückbleibende
+  // Datensatz steht auf 'cancelled' und wird vom Filter oben ausdrücklich ausgeschlossen.
+  // Solange die Update-Mail die Daten aufzählte, fiel das nicht auf. Seit die Mail nur noch
+  // „es gab Änderungen, bitte einloggen" sagt, wäre die Information sonst ersatzlos weg.
+  //
+  // ⚠️ Nur die EIGENEN, per E-Mail gefiltert. Diese Route gibt seit v0.8.1 bewusst keine
+  // fremden Kontaktdaten heraus; hier kommt nichts über andere Personen dazu.
+  // `aid` ist die Datensatz-ID für die Quittung (action=ackcancel), nichts Geheimes.
+  var entfallen = [];
+  try {
+    var cRows = $app.findRecordsByFilter(
+      'assignments',
+      'plan_id = {:p} && crew_email = {:m} && status = "cancelled"',
+      'date', 500, 0, { p: plan.id, m: mail }
+    );
+    for (var c = 0; c < cRows.length; c++) {
+      entfallen.push({
+        date: cRows[c].getString('date'),
+        posId: cRows[c].getString('pos_id'),
+        posLabel: cRows[c].getString('pos_label'),
+        aid: cRows[c].id
+      });
+    }
+  } catch (err4) { entfallen = []; }
+
   e.response.header().set('Content-Type', 'application/json; charset=utf-8');
-  return e.string(200, JSON.stringify({ plan: plan.id, statuses: statuses }));
+  return e.string(200, JSON.stringify({ plan: plan.id, statuses: statuses, cancelled: entfallen }));
 }, $apis.requireAuth());
 
 

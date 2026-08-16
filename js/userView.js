@@ -1,13 +1,13 @@
 // ── User View — Meine Einsätze / Confirm / Decline ────────────────────────────
 import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
          IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID, setStatus,
-         pendingCancellations } from './state.js';
+         pendingCancellations, meineEntfallenen } from './state.js';
 import { SUPABASE_ENABLED, POCKETBASE_URL } from './config.js';
 import { getVal, isPending, esc, showToast, fmtD, sameCrew } from './utils.js';
 import { pbPatch, pbPost, pbFirst } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
          bulkProposeCrew, sendAvailabilityNotice, loadPlanForCrew, loadCrewMeta,
-         loadCrewPlans } from './dataService.js';
+         loadCrewPlans, ackCancelledAssignments } from './dataService.js';
 import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable, resetTodayAutoScroll } from './render.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
@@ -122,8 +122,27 @@ export function getMyPendingSlots() {
 // ── Modal automatisch öffnen wenn offene Slots vorhanden ─────────────────────
 export function checkAndOpenMySchedule() {
   if (IS_MANAGER) return;
-  const pending = getMyPendingSlots();
-  if (pending.length > 0) openMyScheduleModal();
+  // Auch bei ausschließlich ENTFALLENEN Tagen öffnen (v0.9.3). Vorher nur bei offenen Slots —
+  // seit die Update-Mail keine Daten mehr aufzählt, wäre ein entfallener Tag sonst nirgends
+  // zu sehen: Er steht in keinem plan_data mehr und taucht in der Tabelle nicht auf.
+  if (getMyPendingSlots().length > 0 || meineEntfallenen.length > 0) openMyScheduleModal();
+}
+
+// „Gesehen" für die entfallenen Tage — derselbe Weg, den auch der Knopf in der Mail auslöst
+// (action=ackcancel). ackCancelledAssignments prüft serverseitig, dass die Adresse zum
+// Datensatz passt; hier wird nichts umgangen.
+export async function _ackMeineEntfallenen() {
+  const aids = meineEntfallenen.map(c => c.aid).filter(Boolean);
+  if (!aids.length) return;
+  showToast('Wird bestätigt…', '#e8c84a');
+  try {
+    const n = await ackCancelledAssignments(aids);
+    meineEntfallenen.length = 0;      // quittiert → nicht erneut zeigen
+    showToast(`${n} Änderung(en) als gesehen markiert ✓`, '#4ae8a0');
+    closeModal('sharedModal');
+  } catch (e) {
+    showToast('Fehler: ' + e.message, '#e84a4a');
+  }
 }
 
 // ── Meine Einsätze Modal ──────────────────────────────────────────────────────
@@ -140,11 +159,39 @@ function _renderMySchedule(myName) {
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === getActivePlanId())?.name || 'Tour Plan';
 
+  // Entfallene Tage: eigener Abschnitt. Sie stehen in KEINEM plan_data mehr — ohne diese
+  // Liste gäbe es für die Crew keinen Ort, an dem sie sichtbar wären (v0.9.3).
+  // ⚠️ Zeilen VOR dem Template bauen, nicht als verschachteltes `${…map(c => { … })}`:
+  // tests/imports.test.mjs entfernt Template-Literale mit `\$\{[^}]*\}` und stolpert über
+  // innere Klammern — der Rest der Datei wird dann falsch geparst und der Guard meldet
+  // Unsinn. Getrennt ist es ohnehin lesbarer.
+  const entfallenZeilen = meineEntfallenen.map(c => {
+    const [y, m, d] = String(c.date || '').split('-');
+    const td = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []).find(x => x.date === c.date);
+    const ort = td && td.loc ? ' · ' + esc(td.loc) : '';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule);">'
+      + '<span style="color:#e84a4a;flex-shrink:0;">✕</span>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:.66rem;color:var(--ink);">' + d + '.' + m + '.' + y + '</div>'
+      + '<div style="font-size:.58rem;color:var(--muted);">' + esc(c.posLabel || c.posId || '') + ort + '</div>'
+      + '</div></div>';
+  }).join('');
+
+  const entfallenHTML = meineEntfallenen.length
+    ? '<div style="margin-top:18px;border-top:1px solid var(--rule);padding-top:14px;">'
+      + '<div style="font-size:.62rem;color:#e84a4a;font-weight:bold;margin-bottom:8px;">'
+      + '➖ Entfallen — diese Tage bist du nicht mehr eingeplant</div>'
+      + entfallenZeilen
+      + '<div style="margin-top:10px;"><button class="mbtn" onclick="_ackMeineEntfallenen()">Gesehen ✓</button></div>'
+      + '</div>'
+    : '';
+
   if (slots.length === 0) {
     document.getElementById('sharedBody').innerHTML = `
-      <p style="font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">
+      ${meineEntfallenen.length ? '' : `<p style="font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">
         Keine offenen Einsätze — alles erledigt ✅
-      </p>
+      </p>`}
+      ${entfallenHTML}
       <div class="mactions"><button class="mbtn primary" onclick="closeModal('sharedModal')">Schließen</button></div>`;
     return;
   }
@@ -181,7 +228,8 @@ function _renderMySchedule(myName) {
     <div style="font-size:.62rem;color:var(--muted);margin-bottom:12px;line-height:1.5;">
       <strong style="color:var(--ink);">${planName}</strong> · Haken entfernen = nicht verfügbar
     </div>
-    <div style="max-height:55vh;overflow-y:auto;margin-bottom:14px;">${rows}</div>
+    <div style="max-height:45vh;overflow-y:auto;margin-bottom:14px;">${rows}</div>
+    ${entfallenHTML}
     <div class="mactions">
       <button class="mbtn" onclick="closeModal('sharedModal')">Später</button>
       <button class="mbtn primary" onclick="_bulkConfirmMySlots()" style="background:#4ae8a0;color:#1a1a2e;">Bestätigen ✓</button>
