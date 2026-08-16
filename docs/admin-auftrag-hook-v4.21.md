@@ -35,17 +35,13 @@ eingebautes Leck schlägt an).
 
 Erst **Test**, messen, dann **Live** — wie immer.
 
-```bash
-# Test
-ssh hetzner "curl -o <PFAD-TEST-VOLUME>/main.pb.js \
-  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart <TEST-CONTAINER>"
+Der Ablauf ist der gewohnte: Hook-Datei aus dem `main`-Branch ins jeweilige Volume ziehen und
+den Container neu starten. Volume- und Container-Namen stehen bewusst **nicht** hier — sie
+gehören nicht ins Repo (`tests/privacy.test.mjs` hält dagegen). Sie sind dieselben wie beim
+letzten Hook-Deploy.
 
-# Live (erst wenn Test grün)
-ssh hetzner "curl -o /var/lib/docker/volumes/ad9adhhkygjreidi79i4v5eb_pocketbase-hooks/_data/main.pb.js \
-  https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
-  && docker restart pocketbase-ad9adhhkygjreidi79i4v5eb"
-```
+Quelle:
+`https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js`
 
 ## Danach messen und die Ausgabe mitschicken
 

@@ -180,8 +180,10 @@ function _renderMySchedule(myName) {
   const entfallenHTML = meineEntfallenen.length
     ? '<div style="margin-top:18px;border-top:1px solid var(--rule);padding-top:14px;">'
       + '<div style="font-size:.62rem;color:#e84a4a;font-weight:bold;margin-bottom:8px;">'
-      + '➖ Entfallen — diese Tage bist du nicht mehr eingeplant</div>'
-      + entfallenZeilen
+      + '➖ Entfallen — diese Tage bist du nicht mehr eingeplant (' + meineEntfallenen.length + ')</div>'
+      // Eigener Scrollbereich wie die Liste darüber. Bei 20 entfallenen Tagen wäre der
+      // „Gesehen"-Knopf sonst weit unten in der Box — erreichbar, aber man sucht ihn.
+      + '<div style="max-height:30vh;overflow-y:auto;">' + entfallenZeilen + '</div>'
       + '<div style="margin-top:10px;"><button class="mbtn" onclick="_ackMeineEntfallenen()">Gesehen ✓</button></div>'
       + '</div>'
     : '';
