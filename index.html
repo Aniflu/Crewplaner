@@ -32,7 +32,7 @@
 <script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <!-- Design-Tokens + Schriften (Geist, JetBrains Mono) zentral in theme.css. -->
-<link rel="stylesheet" href="theme.css?v=2">
+<link rel="stylesheet" href="theme.css?v=3">
 <link rel="stylesheet" href="styles.css?v=25">
 
 <style>
@@ -75,7 +75,7 @@
           <div style="text-align:left;">
             <h1>Crewplanner</h1>
             <div class="subtitle-row">
-              <span class="tour-tag">Personalplan · v0.9.6</span>
+              <span class="tour-tag">Personalplan · v0.10.0</span>
               <span class="active-plan-name" id="activePlanName"></span>
             </div>
           </div>
@@ -573,6 +573,13 @@
 
 <!-- Backdrop für den mobilen Sidebar-Drawer -->
 <div class="drawer-backdrop" id="drawerBackdrop" onclick="toggleDrawer()"></div>
+
+<!-- Pflichtangaben nach § 5 DDG: statisches HTML, kein JavaScript — siehe theme.css -->
+<footer class="legal-footer">
+  <a href="impressum.html">Impressum</a>
+  <span class="sep" aria-hidden="true">·</span>
+  <a href="datenschutz.html">Datenschutz</a>
+</footer>
 
 </body>
 </html>

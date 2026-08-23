@@ -118,3 +118,67 @@
 /* ── Logo-Marke „Crew Pass" ─────────────────────────────────────────────────────
    Outlines erben currentColor (invertiert je Theme), Kopf-Kreis fest gold. */
 .cp-mark{display:block;flex-shrink:0;color:var(--ink);}
+
+/* ── Rechts-Footer (Impressum · Datenschutz) ────────────────────────────────────
+   Steht hier und nicht in styles.css, weil theme.css die einzige Datei ist, die ALLE
+   vier Oberflächen einbinden (admin.html und login.html laden styles.css nicht).
+   Einmal gepflegt statt viermal kopiert.
+
+   ⚠️ Das Markup dazu ist bewusst statisches HTML in jeder Seite, NICHT per JavaScript
+   eingespielt: § 5 DDG verlangt „ständig verfügbar", und in diesem Projekt sind Seiten
+   schon mehrfach an einem fehlgeschlagenen Modul-Import hängengeblieben. Ein Impressum,
+   das bei einem JS-Fehler verschwindet, ist keins. tests/legal.test.mjs hält dagegen. */
+.legal-footer{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 14px;
+  padding:18px 24px;margin-top:auto;
+  border-top:1px solid var(--rule-2);
+  background:var(--panel);
+  font-family:var(--sans);font-size:.7rem;line-height:1.6;color:var(--muted);
+}
+.legal-footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid transparent;}
+.legal-footer a:hover{color:var(--ink);border-bottom-color:var(--rule-2);}
+.legal-footer a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px;}
+.legal-footer .sep{opacity:.5;}
+
+/* ── Rechtstexte (impressum.html, datenschutz.html) ─────────────────────────────
+   Lesbarkeit vor Gestaltung: eine Spalte, ruhige Zeilenlänge, keine Effekte. */
+.legal-page{background:var(--bg);color:var(--ink);font-family:var(--sans);
+  min-height:100vh;display:flex;flex-direction:column;}
+.legal-head{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:18px 24px;border-bottom:1px solid var(--rule-2);background:var(--panel);
+}
+.legal-head .back{
+  font-size:.7rem;color:var(--muted);text-decoration:none;
+  border:1px solid var(--rule-2);border-radius:8px;padding:7px 12px;
+}
+.legal-head .back:hover{color:var(--ink);border-color:var(--accent);}
+.legal-head h1{font-size:1.05rem;font-weight:600;letter-spacing:.02em;margin:0;}
+.legal-main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:40px 24px 64px;}
+.legal-main h2{
+  font-size:.62rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:40px 0 12px;
+}
+.legal-main h2:first-of-type{margin-top:0;}
+.legal-main h3{font-size:.85rem;font-weight:600;color:var(--ink);margin:22px 0 8px;}
+.legal-main p,.legal-main li{font-size:.82rem;line-height:1.85;color:var(--ink-2);}
+.legal-main p{margin:0 0 12px;}
+.legal-main ul{margin:0 0 14px;padding-left:20px;}
+.legal-main li{margin-bottom:6px;}
+.legal-main a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;}
+.legal-main strong{color:var(--ink);font-weight:600;}
+.legal-main dl{margin:0 0 16px;}
+.legal-main dt{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin-top:14px;}
+.legal-main dd{font-size:.82rem;line-height:1.85;color:var(--ink-2);margin:2px 0 0;}
+.legal-note{
+  border-left:3px solid var(--rule-2);background:var(--panel);
+  padding:14px 18px;margin:16px 0;border-radius:0 6px 6px 0;
+}
+.legal-note p:last-child{margin-bottom:0;}
+.legal-stand{font-size:.68rem;color:var(--muted);margin-top:40px;
+  padding-top:16px;border-top:1px solid var(--rule-2);}
+@media (max-width:600px){
+  .legal-main{padding:28px 18px 48px;}
+  .legal-head{padding:14px 18px;}
+}

@@ -8,6 +8,8 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Version
 
+**v0.10.0** — feat: **Impressum und Datenschutzerklärung — die Seite war bisher ohne Pflichtangaben online.** Ein deutscher Online-Auftritt braucht beides, und zwar von jeder Unterseite aus erreichbar (§ 5 DDG, Art. 13 DSGVO); ohne Impressum ist das der häufigste Abmahngrund überhaupt. Neu sind `impressum.html` und `datenschutz.html` plus ein Rechts-Footer in allen vier Oberflächen. Der Footer ist **statisches HTML, kein JavaScript**: „ständig verfügbar" verträgt sich nicht damit, dass die Pflichtangaben bei einem fehlgeschlagenen Modul-Import verschwinden — genau das Fehlerbild dieses Projekts in v0.16.0 und v0.27.2. Zwei Dinge waren dabei die eigentliche Arbeit: Die Datenschutzerklärung beschreibt, was die App **wirklich** tut (Server-Protokolle, der lokale Speicher im Browser, der öffentliche Ansichtslink, das Kalender-Abo, der Mailversand über Resend in die USA) statt eines Mustertexts — und sie trennt sauber die beiden Rollen: Für Konten und Website sind wir Verantwortlicher, für die Crew-Daten der Kunden nur **Auftragsverarbeiter**, weshalb Crew-Mitglieder sich an ihre Produktionsfirma wenden müssen. **Ein Einwilligungsbanner braucht die Seite nicht:** Der lokale Speicher hält ausschließlich Anmeldung, Arbeitsstand und die Hell/Dunkel-Wahl, das ist nach § 25 Abs. 2 Nr. 2 TDDDG technisch erforderlich, und es gibt keinen einzigen fremden Host. `tests/legal.test.mjs` hält das fest: Verlinkung auf allen Seiten, statischer Footer, Eintrag im Dockerfile (sonst laufen die Links live ins 404) und keine externe Einbindung. ⚠️ **Die Texte enthalten noch `«…»`-Platzhalter** — Anschrift, Telefon, Hoster, Fristen; siehe „Rechtliches" unten. Vor dem Scharfschalten anwaltlich prüfen lassen.
+
 **v0.9.6** — fix: **Updates ließen sich in großen Touren gar nicht verschicken.** Bei vielen Änderungen brach der Versand mit einem roten Hinweis über „5000 Zeichen" ab — die Mail ging nicht raus. Ursache: Beim Senden wurde für jeden Einsatz noch Datum, Position und Änderungstext mitgeschickt, obwohl die Mail seit v0.9.3 gar keine Termine mehr aufzählt und der Server davon nur noch die Art der Änderung braucht. Diese Altlast sprengte das Datenfeld: 59 Einsätze ergaben rund 7700 Zeichen, erlaubt sind 5000. Jetzt wird nur noch übertragen, was wirklich gebraucht wird — dieselben 59 Einsätze belegen 2400 Zeichen. Sollte es je wieder eng werden, steht künftig dort, **was zu tun ist** („bitte in zwei Durchgängen senden"), statt einer Datenbankmeldung, mit der niemand etwas anfangen kann.
 
 **v0.9.5** — fix: **Die E-Mail-Vorschau ließ sich bei vielen Terminen nicht rollen.** Beim Versenden geht pro Person ein Vorschau-Fenster auf — das hatte keine Höhenbegrenzung. Bei einer langen Liste wuchs es über den Bildschirm hinaus und ragte oben wie unten heraus: nicht rollbar, die Knöpfe unerreichbar. *(In v0.9.3 hatte ich die Warteschlange davor repariert und dieses Fenster übersehen.)* Zweitens zeigte die Vorschau weiterhin eine Tabelle mit allen Tagen, obwohl die Mail seit v0.9.3 gar keine Tage mehr enthält — sie versprach also etwas, das beim Empfänger nie ankommt. Jetzt steht oben **„So kommt die Mail an"** mit genau den Sätzen, die verschickt werden, und darunter die betroffenen Tage, ausdrücklich als **„nur für dich, nicht in der Mail"** gekennzeichnet — als Kontrolle beim Versenden.
@@ -156,6 +158,36 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 | `manager` | index.html | Tour verwalten, Crew einladen |
 | `booker` | index.html | Read-only |
 | `crew` | index.html | Eigene Slots bestätigen/ablehnen |
+
+## Rechtliches
+
+| Seite | Grundlage | Stand |
+|---|---|---|
+| `impressum.html` | § 5 DDG | Entwurf, Platzhalter offen |
+| `datenschutz.html` | Art. 13 DSGVO, § 25 TDDDG | Entwurf, Platzhalter offen |
+
+Kein Einwilligungsbanner nötig: kein Tracking, keine fremden Hosts, lokaler Speicher nur für
+Anmeldung, Arbeitsstand und Darstellung (§ 25 Abs. 2 Nr. 2 TDDDG). **Das gilt nur so lange, wie
+das stimmt** — wer eine Analyse einbaut oder eine Schrift von fremdem Server lädt, macht ein
+Banner zur Pflicht und diese Erklärung falsch.
+
+Das BFSG (Barrierefreiheit, seit 28.06.2025) greift nicht: Kleinstunternehmen-Ausnahme bei
+Dienstleistungen **und** reines B2B-Angebot. Neu zu prüfen, sobald Verbraucher zugelassen werden,
+zehn Beschäftigte überschritten sind oder der Umsatz über 2 Mio. € steigt.
+
+### Offen — vor dem Scharfschalten zu erledigen
+
+1. `«…»`-Platzhalter in beiden Seiten füllen: Name, Anschrift, Telefon, USt-IdNr., Hoster samt
+   Anschrift und Serverstandort, Aufbewahrungsfrist der Protokolle, zuständige Aufsichtsbehörde, Datum
+2. Rollenadresse `kontakt@crewplanner.nyxlightwork.de` einrichten (bewusst **keine** private
+   Freimail-Adresse — `tests/privacy.test.mjs` verhindert die auch)
+3. AV-Verträge nach Art. 28 abschließen: Hoster und Resend; bei Resend zusätzlich prüfen, ob eine
+   Zertifizierung nach dem EU-US Data Privacy Framework vorliegt
+4. Beide Seiten anwaltlich gegenlesen lassen
+5. Noch nicht gebaut (Welle 2, für den Verkauf an Firmen nötig): Nutzungsbedingungen mit
+   Unternehmerklausel, **AV-Vertrag als abrufbares Dokument** samt TOM- und Unterauftragnehmer-Anlage,
+   Hinweisseite für Crew-Mitglieder (Art. 14), Unternehmer-Bestätigung bei der Registrierung,
+   Rechts-Footer in den Mails, Verarbeitungsverzeichnis nach Art. 30
 
 ## Lokale Entwicklung
 

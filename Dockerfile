@@ -20,6 +20,10 @@ WORKDIR /usr/share/nginx/html
 # Die vier Oberflächen
 COPY index.html admin.html login.html view.html ./
 
+# Pflichtangaben. Diese beiden MÜSSEN öffentlich sein — § 5 DDG verlangt „ständig verfügbar",
+# und der Footer jeder Oberfläche verlinkt sie. Fehlen sie hier, laufen die Links live ins 404.
+COPY impressum.html datenschutz.html ./
+
 # Stil, Symbol, Service Worker (sw.js hält die Module frisch, siehe v0.19.0)
 COPY styles.css theme.css favicon.svg sw.js ./
 

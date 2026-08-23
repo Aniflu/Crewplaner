@@ -16,7 +16,7 @@
 </script>
 <script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="stylesheet" href="theme.css?v=2">
+<link rel="stylesheet" href="theme.css?v=3">
 <script>
   // Umgebungs-Auswahl (v0.31.0): nur der exakte Live-Host bekommt die Live-API,
   // GitHub Pages / localhost / sonst → Test-API. Wortgleich zu pickApiUrl in js/pure.js.
@@ -38,20 +38,31 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* Spaltenrichtung statt Zeile: sonst setzt der Flex-Container den Rechts-Footer NEBEN die
+     Anmeldekarte. Die Karte bleibt trotzdem mittig — `margin:auto` verteilt den freien Raum
+     gleichmäßig über und unter ihr, der Footer schließt darunter ab. */
   body {
     background: var(--bg);
     color: var(--ink);
     font-family: var(--sans);
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 20px;
+    padding: 20px 20px 0;
   }
 
   .login-wrap {
     width: 100%;
     max-width: 380px;
+    margin: auto;
+  }
+
+  /* Der Footer spannt über die volle Breite und braucht hier kein margin-top:auto —
+     das übernimmt bereits das margin:auto der Karte. */
+  body > .legal-footer {
+    width: calc(100% + 40px);
+    margin: 0 -20px;
   }
 
   .login-brand {
@@ -216,7 +227,7 @@
     </svg>
     <h1 style="font-family:var(--sans);font-weight:700;font-size:1.9rem;letter-spacing:-.03em;color:var(--ink);text-transform:none;">Crewplanner</h1>
     <p>Personalplanung · Touring</p>
-    <div class="login-version">v0.9.6</div>
+    <div class="login-version">v0.10.0</div>
   </div>
 
   <div class="login-card">
@@ -461,5 +472,12 @@
     paint();
   })();
 </script>
+
+<!-- Pflichtangaben nach § 5 DDG: statisches HTML, kein JavaScript — siehe theme.css -->
+<footer class="legal-footer">
+  <a href="impressum.html">Impressum</a>
+  <span class="sep" aria-hidden="true">·</span>
+  <a href="datenschutz.html">Datenschutz</a>
+</footer>
 </body>
 </html>
