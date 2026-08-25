@@ -65,7 +65,7 @@ ssh «SERVER» "curl -s -o /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_dat
 
 > Der Hook bringt zugleich **v4.12** mit (vorgemerkte Termine im Kalender-Feed +
 > Statuswechsel-Abschnitt in der Update-Mail, siehe
-> [admin-runbook-hook-v4.12.md](admin-runbook-hook-v4.12.md)) — ein Deploy erledigt beides.
+> Hook v4.12) — ein Deploy erledigt beides.
 
 ## Schritt 2 — `users.createRule` setzen
 

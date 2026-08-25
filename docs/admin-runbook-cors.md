@@ -4,7 +4,7 @@
 > Traefik-Datei sitzt und deshalb SSH braucht. **Das war ein Denkfehler:** Nachgemessen kommt das
 > `Access-Control-Allow-Origin: *` aus **PocketBase selbst** (es erscheint zusammen mit
 > `Vary: Origin` und den PB-Security-Headern, auch auf reinen Hook-Routen, die Traefik nicht
-> anfasst). Gelöst wird es deshalb im Hook — siehe **`admin-runbook-hook-v4.18.md`**.
+> anfasst). Gelöst wird es deshalb im Hook (seit v4.18, siehe `.pb_hooks/main.pb.js`).
 > Dieses Dokument bleibt nur als Verlauf stehen.
 >
 > **ERLEDIGT seit 2026-08-05:** Hook v4.18 läuft auf beiden Instanzen; fremde Herkünfte

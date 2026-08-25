@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(shred -u /tmp/pbtok /tmp/peter.json)",
-      "Bash(rm -f /tmp/feed.* /tmp/f.ics /tmp/f2.ics)"
+      "Bash(rm -f /tmp/feed.* /tmp/f.ics /tmp/f2.ics)",
+      "Bash(awk '{print $NF, $5\"B\"}')"
     ]
   }
 }

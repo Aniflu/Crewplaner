@@ -13,7 +13,7 @@
 //   · Container-Namen, Docker-Volume-Pfade und der SSH-Alias des Servers.
 //
 // Die eigentliche Lösung ist serverseitig (nur App-Dateien ausliefern, siehe
-// docs/admin-runbook-audit-v0.8.0.md). Dieser Guard sichert die Hälfte, die im Repo liegt:
+// Audit vom 2026-08-09, Befund K-1). Dieser Guard sichert die Hälfte, die im Repo liegt:
 // Was hier nicht steht, kann auch nicht ausgeliefert werden. Platzhalter in «…» sind gewollt;
 // die echten Werte stehen in `.claude.local.md` (nicht eingecheckt).
 import { readFileSync } from 'fs';

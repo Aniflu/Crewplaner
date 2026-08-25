@@ -187,7 +187,7 @@ Eine `routerUse`-Middleware grenzt das ein — eingeführt in **v4.17**, aber **
 v4.18**: v4.17 setzte die Header nach `e.next()`, zu diesem Zeitpunkt ist die Antwort in Go
 längst geschrieben und jedes `Header().Set()` verpufft folgenlos. Der Hook lud, lief, meldete
 `v4.17 geladen` — und änderte keinen einzigen Header (vom Admin am 2026-08-05 gemessen; siehe
-`admin-runbook-hook-v4.18.md`). Die erlaubte Herkunft ergibt sich aus dem eigenen Hostnamen:
+Hook v4.18). Die erlaubte Herkunft ergibt sich aus dem eigenen Hostnamen:
 
 | Instanz | erlaubt |
 |---|---|

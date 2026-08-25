@@ -541,7 +541,7 @@ export async function promotePencilledToProposed(dateStr, posId) {
 // in kleinen Gruppen nebenläufig.
 //
 // ⚠️ Höchstens 5 gleichzeitig. Seit dem 14.08. läuft auf PocketBase eine Drosselung
-// (docs/admin-auftrag-v0.8.3-rueckmeldung.md); ein unbegrenztes Promise.all über 59 Einsätze
+// (vom Admin gemessen, v0.8.3); ein unbegrenztes Promise.all über 59 Einsätze
 // würde sie auslösen und die Hälfte mit 429 zurückbekommen — der Schutz von gestern sähe dann
 // wie Datenverlust aus.
 const BULK_GLEICHZEITIG = 5;
