@@ -723,11 +723,16 @@ function _updateSendButton() {
 
 function _activePlanName() {
   try {
+    // Für CREW ist `tourplan_active_plan_name` die verlässliche Quelle: den schreibt
+    // loadPlanForCrew aus dem gerade geladenen PB-Plan. Der lokale getPlansIndex() ist der
+    // Manager-Zustand aus dem localStorage und kann aus einer früheren Sitzung stammen —
+    // stand er vorn, zeigte das Abo-Fenster den Namen der VORIGEN Tour („gilt nur für
+    // AMK Tour 2026", während AMK 2027 offen war). Deshalb für Crew umgekehrte Reihenfolge.
+    const stored = localStorage.getItem('tourplan_active_plan_name');
+    if (IS_CREW && stored) return stored;
     const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
     const byIndex = plans.find(p => p.id === getActivePlanId())?.name;
     if (byIndex) return byIndex;
-    // Crew: getPlansIndex ist leer → Name aus loadPlanForCrew (localStorage).
-    const stored = localStorage.getItem('tourplan_active_plan_name');
     return stored || 'Tour Plan';
   } catch { return 'Tour Plan'; }
 }

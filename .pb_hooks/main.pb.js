@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.21
-console.log('[hook] main.pb.js v4.21 geladen');
+// Version: 4.22
+console.log('[hook] main.pb.js v4.22 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -920,8 +920,25 @@ routerAdd('GET', '/ics/{token}/{plan}', function(e) {
     if (rank > days[key].rank) { days[key].rank = rank; days[key].status = st; }
   }
 
-  var out = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Crewplaner//Feed v4.9//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Crewplaner'];
   var keys = Object.keys(days);
+
+  // Kalendername = TOURNAME, nicht mehr das feste 'Crewplaner' (v4.22). Wer in zwei Touren
+  // steht, bekam sonst zwei gleichnamige Abos nebeneinander — manche Clients lehnen das
+  // zweite deshalb rundheraus ab. Alle Zeilen dieses Requests gehören zu EINER Tour (die
+  // Abfrage filtert auf plan_id), der erste Treffer bestimmt also den Namen; ist der Feed
+  // leer, bleibt es beim alten Titel.
+  var kalName = keys.length ? (planMeta(days[keys[0]].planId).band || 'Crewplaner') : 'Crewplaner';
+
+  // DTSTAMP ist nach RFC 5545 § 3.6.1 PFLICHT in jedem VEVENT — es fehlte bis v4.21 in
+  // jedem einzelnen. Strikte Clients verweigern dann das ganze Abo („Der Kalender konnte
+  // nicht hinzugefügt werden. Bitte überprüfen Sie die URL"), ohne zu sagen, woran es liegt.
+  // Ein Wert für den ganzen Request: DTSTAMP meint den Zeitpunkt der ERZEUGUNG des Eintrags,
+  // nicht den des Termins.
+  var stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+
+  var out = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Crewplaner//Feed v4.22//DE',
+             'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+             'X-WR-CALNAME:' + icsEsc(kalName), 'NAME:' + icsEsc(kalName)];
   for (var k = 0; k < keys.length; k++) {
     var d = days[keys[k]];
     var m = planMeta(d.planId);
@@ -932,6 +949,7 @@ routerAdd('GET', '/ics/{token}/{plan}', function(e) {
     out.push(
       'BEGIN:VEVENT',
       'UID:' + d.planId + '-' + d.date + '@crewplanner',
+      'DTSTAMP:' + stamp,
       'DTSTART;VALUE=DATE:' + ymd(d.date),
       'DTEND;VALUE=DATE:' + nextYmd(d.date),
       'SUMMARY:' + icsEsc(title),

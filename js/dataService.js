@@ -147,6 +147,11 @@ export async function loadPlanForCrew() {
   if (!SUPABASE_ENABLED || !IS_CREW) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
+  // Der gemerkte Tourname gehört zur VORIGEN Tour, bis die neue wirklich geladen ist. Bricht
+  // das Laden unterwegs ab, blieb er sonst stehen, während `tourplan_active_pb_id` schon
+  // umgesprungen war — das Abo-Fenster behauptete dann „gilt nur für <alte Tour>". Lieber
+  // gar kein Name (die Anzeige fällt auf 'Tour Plan' zurück) als ein falscher.
+  try { localStorage.removeItem('tourplan_active_plan_name'); } catch(_) {}
   try {
     // Über die Hook-Route statt der plans-REST-API (v4.16): die liefert den kompletten
     // Datensatz inkl. `view_token`, und der soll ein Geheimnis bleiben — ein Crew-Mitglied

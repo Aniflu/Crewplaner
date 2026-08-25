@@ -190,7 +190,13 @@ export function icsExportRows(tourDates, positions, statuses, opts){
 export function crewIcsContent(band, rows, dateMeta){
   const esc = s => String(s==null?'':s).replace(/([,;\\])/g,'\\$1').replace(/\n/g,'\\n');
   const bandName = String(band||'Tour').trim() || 'Tour';
-  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Tour Crew Plan//v2.0//DE','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  // DTSTAMP ist nach RFC 5545 § 3.6.1 PFLICHT in jedem VEVENT. Es fehlte bis v0.10.3 in
+  // beiden Ausgabewegen; beim Abo-Feed führte das dazu, dass strikte Clients das Abo
+  // rundheraus verweigerten. Import ist toleranter, aber richtig ist richtig — ein Wert
+  // für die ganze Datei, denn DTSTAMP meint den Zeitpunkt der ERZEUGUNG, nicht den Termin.
+  const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z');
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Tour Crew Plan//v2.0//DE','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+                 `X-WR-CALNAME:${esc(bandName)}`,`NAME:${esc(bandName)}`];
   for(const r of (rows||[])){
     const meta = (dateMeta||{})[r.date] || {};
     const loc = meta.loc || '';
@@ -207,6 +213,7 @@ export function crewIcsContent(band, rows, dateMeta){
     const desc = 'Band: '+bandName+'\nArt: '+art+'\nOrt: '+loc + (stLabel ? '\nStatus: '+stLabel : '');
     lines.push(
       'BEGIN:VEVENT',
+      `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${dtStart}`,
       `DTEND;VALUE=DATE:${dtEnd}`,
       `SUMMARY:${esc(title)}`,
