@@ -1,5 +1,28 @@
 # Auftrag an den Admin — Hook v4.22 deployen
 
+> ✅ **Erledigt am 2026-08-25.** v4.22 auf Test und Live, sha im Volume beidseitig
+> `84a9e08f…9840ed0` = GitHub `main`, beide Container healthy, RestartCount 0.
+> Der Nachweis am selben Feed: **59 Termine / 0 DTSTAMP → 59 / 59**, `X-WR-CALNAME` von
+> „Crewplaner" auf „Provinz 2027". Nicht bei einem Konto belassen, sondern **alle 22
+> Live-Feeds** (Konto × Tour) durchgemessen: VEVENT = DTSTAMP bei jedem einzelnen, Zeilenzahl
+> gegen die DB-Abfrage gegengeprüft, kein Ausreißer. Der gemeldete Fall ist dabei
+> (AMK 2027 → 33/33, AMK Tour 2026 → 49/49) — zwei Touren, jetzt mit unterschiedlichen
+> Kalendernamen. Falscher Token weiterhin 404, CORS unverändert, UIDs unverändert (keine
+> Dubletten, niemand muss neu abonnieren). Unabhängig nachgemessen: `PRODID: Feed v4.22`,
+> `DTSTAMP:20260825T144238Z`. Dieses Dokument bleibt als Verlauf stehen.
+>
+> ⚠️ **Der Test-Deploy hätte fast nichts bewiesen** — und das ist die eigentliche Lehre:
+> Die Test-Instanz hat 853 `assignments`, aber nur **einen** `users`-Datensatz, dessen
+> Adresse zu keinem davon passt. Der Feed lieferte brav `200 text/calendar` mit einem leeren
+> Kalender — der neue Event-Pfad lief **überhaupt nicht**. Eine grüne Messung auf Test kann
+> also heißen, dass der geprüfte Pfad gar nicht durchlaufen wurde. Erst ein temporär
+> angelegtes Crew-Konto auf einer echten Test-Adresse zeigte 59/59 (Temp-Konto und
+> Temp-Superuser wieder gelöscht).
+>
+> **Rollback**, falls doch etwas klemmt: Backups der v4.21 liegen unter
+> `/root/backups/pb-hooks/main.pb.js.test.20260825-155442` und `.live.20260825-155607` —
+> ein Kopierbefehl plus Restart.
+
 **Datum:** 2026-08-25 · **Betrifft:** `.pb_hooks/main.pb.js` (v4.21 → v4.22)
 **Frontend:** v0.10.4, Test und Live bereits ausgerollt.
 
