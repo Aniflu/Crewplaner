@@ -309,8 +309,9 @@ Daten können jederzeit über PB Admin UI gelöscht werden.
 
 **Pflichtangaben nach außen** (seit v0.10.1): Crewplanner wird mit nyx lightwork vertrieben, das
 dortige zentrale Impressum gilt mit. Der Rechts-Footer aller vier Oberflächen verweist auf
-https://nyxlightwork.de/impressum.html bzw. `…#datenschutz`; die Repo-Dateien `impressum.html`
-und `datenschutz.html` sind nicht mehr verlinkt und **keine gültige Fassung** (Platzhalter).
+https://nyxlightwork.de/impressum.html bzw. `…#datenschutz`. Die früheren Repo-Dateien
+`impressum.html`/`datenschutz.html` sind in v0.10.2 entfernt: unverlinkt, voller Platzhalter,
+aber live abrufbar — `tests/legal.test.mjs` lässt eine lokale Zweitfassung nicht mehr zu.
 
 ⚠️ **Für dieses Dokument die eigentliche Regel:** Wer hier einen neuen externen Empfänger
 einträgt — ein weiterer Mail-Dienst, eine Analyse, ein CDN, eine fremde Schrift — muss ihn in

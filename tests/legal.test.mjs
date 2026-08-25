@@ -1,21 +1,26 @@
-// Guard: die Pflichtangaben sind da, verlinkt und werden auch tatsächlich ausgeliefert.
+// Guard: die Pflichtangaben sind von jeder Oberfläche aus erreichbar — und es gibt sie nur
+// in EINER Fassung.
 //
-// § 5 DDG verlangt „leicht erkennbar, unmittelbar erreichbar und ständig verfügbar" — und
-// § 3a UWG macht daraus einen Abmahngrund. Drei Fehlerbilder soll dieser Guard verhindern,
-// alle drei sind in diesem Projekt schon in anderer Form vorgekommen:
+// § 5 DDG verlangt „leicht erkennbar, unmittelbar erreichbar und ständig verfügbar", § 3a UWG
+// macht daraus einen Abmahngrund. Crewplanner wird mit nyx lightwork vertrieben, es gilt das
+// zentrale Impressum auf nyxlightwork.de; gepflegt wird dort, nicht hier im Repo (v0.10.1/v0.10.2).
+//
+// Fünf Fehlerbilder soll dieser Guard verhindern, die ersten drei sind hier schon vorgekommen:
 //
 //   1. Eine neue Oberfläche entsteht, der Footer wird vergessen → auf dieser Seite fehlen
 //      die Pflichtangaben, und auffallen würde es erst durch Post vom Anwalt.
 //   2. Jemand ersetzt den statischen Footer durch eine JS-Lösung („einmal statt viermal").
 //      Ein fehlgeschlagener Modul-Import lässt die Angaben dann verschwinden — genau das
 //      Fehlerbild, das dieses Projekt mehrfach hatte (siehe README zu v0.16.0/v0.27.2).
-//   3. Die Seiten liegen im Repo, stehen aber nicht im Dockerfile → live läuft der Link ins
-//      404, weil das Dockerfile eine Whitelist ist (Befund K-1).
-//   4. Seit v0.10.1 zeigt der Footer auf das zentrale Impressum von nyxlightwork.de. Dort
-//      steht die Datenschutzerklärung in derselben Seite, erreichbar nur über den Anker
-//      `#datenschutz`. Fällt der Anker weg, landet der Datenschutz-Link am Seitenkopf und die
-//      Erklärung ist nicht mehr „unmittelbar erreichbar" — deshalb wird die volle URL geprüft.
-import { readFileSync, existsSync } from 'fs';
+//   3. Auslieferung und Repo laufen auseinander → das Dockerfile ist eine Whitelist (Befund K-1).
+//   4. Der Anker `#datenschutz` fällt weg. Die Erklärung steht in derselben Seite wie das
+//      Impressum; ohne Anker landet der Link am Seitenkopf und die Erklärung ist nicht mehr
+//      „unmittelbar erreichbar" — deshalb wird die volle URL geprüft, nicht nur die Domain.
+//   5. Eine lokale Zweitfassung kehrt zurück. Genau das war der Zustand bis v0.10.2:
+//      impressum.html/datenschutz.html lagen unverlinkt, voller «…»-Platzhalter, aber live
+//      abrufbar im Container — ein unvollständiges Impressum, das jemand für das geltende
+//      halten könnte. Ein unvollständiges Impressum ist rechtlich wie keins.
+import { readFileSync, readdirSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { test, ok } from './_assert.mjs';
@@ -24,19 +29,13 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const lies = (f) => readFileSync(join(root, f), 'utf8');
 
 const OBERFLAECHEN = ['index.html', 'admin.html', 'login.html', 'view.html'];
-const RECHTSSEITEN = ['impressum.html', 'datenschutz.html'];
-// Ziel des Footers seit v0.10.1: das gepflegte Impressum auf nyxlightwork.de. Die lokalen
-// RECHTSSEITEN bleiben als Dateien liegen (mit ihren «…»-Platzhaltern), sind aber nicht mehr
-// verlinkt — die Pflichtangaben gibt es damit nur noch in einer Fassung.
+// Die geltenden Pflichtangaben. Beide URLs vollständig, der Anker gehört dazu (Fehlerbild 4).
 const PFLICHT_LINKS = [
   'https://nyxlightwork.de/impressum.html',
   'https://nyxlightwork.de/impressum.html#datenschutz',
 ];
-
-test('Impressum und Datenschutzerklärung existieren', () => {
-  const fehlen = RECHTSSEITEN.filter(f => !existsSync(join(root, f)));
-  ok(fehlen.length === 0, `Pflichtseiten fehlen: ${fehlen.join(', ')}`);
-});
+// Die abgeschafften Zweitfassungen (Fehlerbild 5).
+const ALTSEITEN = ['impressum.html', 'datenschutz.html'];
 
 test('jede Oberfläche verlinkt Impressum und Datenschutzerklärung', () => {
   const fund = [];
@@ -61,51 +60,66 @@ test('der Footer ist statisches HTML, nicht per JavaScript eingespielt', () => {
   ok(fund.length === 0, 'Footer fehlt oder ist kein statisches Element:\n      ' + fund.join('\n      '));
 });
 
-test('die Pflichtseiten stehen im Dockerfile', () => {
-  const dockerfile = lies('Dockerfile');
-  const fehlen = RECHTSSEITEN.filter(f => !new RegExp(`^COPY\\s.*\\b${f}\\b`, 'm').test(dockerfile));
-  ok(fehlen.length === 0,
-    `nicht ausgeliefert (Dockerfile ist eine Whitelist): ${fehlen.join(', ')}`);
-});
-
-test('die Pflichtseiten laden theme.css und kommen ohne fremde Hosts aus', () => {
+test('der Footer öffnet die Pflichtangaben sicher (rel=noopener)', () => {
+  // target="_blank" ohne rel="noopener" gibt der Zielseite window.opener und damit Zugriff
+  // auf die Navigation der App — auf dem Weg zum Impressum ausgerechnet.
   const fund = [];
-  for (const seite of RECHTSSEITEN) {
-    const src = lies(seite);
-    if (!/href=["']theme\.css/.test(src)) fund.push(`${seite}: theme.css nicht eingebunden`);
-    // Die CSP steht auf default-src 'self'. Ein eingeschleppter fremder Host wäre auf einer
-    // Rechtstextseite besonders unangenehm: Sie soll gerade beweisen, dass es keinen gibt.
-    for (const treffer of src.match(/(?:src|href)=["']https?:\/\/[^"']+/g) || []) {
-      fund.push(`${seite}: externe Einbindung ${treffer}`);
+  for (const seite of OBERFLAECHEN) {
+    for (const a of lies(seite).match(/<a\s[^>]*nyxlightwork\.de\/impressum[^>]*>/g) || []) {
+      if (/target=["']_blank["']/.test(a) && !/rel=["'][^"']*noopener/.test(a)) fund.push(`${seite}: ${a}`);
     }
   }
-  ok(fund.length === 0, fund.join('\n      '));
+  ok(fund.length === 0, 'target="_blank" ohne noopener:\n      ' + fund.join('\n      '));
 });
 
-test('die Datenschutzerklärung benennt jeden externen Empfänger', () => {
-  // Wer im Code Daten hinschickt, muss in der Erklärung stehen. Prüft die zwei Empfänger,
-  // die es derzeit gibt — kommt ein dritter dazu, gehört er hier UND dort ergänzt.
-  const ds = lies('datenschutz.html');
-  const hook = existsSync(join(root, '.pb_hooks/main.pb.js')) ? lies('.pb_hooks/main.pb.js') : '';
+test('keine lokale Zweitfassung der Pflichtangaben', () => {
+  // Fehlerbild 5. Zwei Fassungen heißt: eine davon ist veraltet, und welche live steht,
+  // entscheidet der Zufall. Gepflegt wird ausschließlich auf nyxlightwork.de.
+  const da = ALTSEITEN.filter(f => existsSync(join(root, f)));
+  ok(da.length === 0,
+    `lokale Rechtstexte sind wieder da: ${da.join(', ')} — gepflegt wird nur nyxlightwork.de`);
+});
+
+test('das Dockerfile liefert keine Rechtstexte mehr aus', () => {
+  // Die Datei kann im Repo fehlen und trotzdem im COPY stehen — dann bricht erst der
+  // Coolify-Build ab, also nach dem Push.
+  const dockerfile = lies('Dockerfile');
+  const aktiv = dockerfile.split('\n').filter(z => !z.trim().startsWith('#')).join('\n');
+  const fund = ALTSEITEN.filter(f => new RegExp(`^COPY\\s.*\\b${f}\\b`, 'm').test(aktiv));
+  ok(fund.length === 0, `Dockerfile kopiert abgeschaffte Rechtstexte: ${fund.join(', ')}`);
+});
+
+test('kein unbekannter externer Empfänger — sonst muss nyxlightwork.de nachgezogen werden', () => {
+  // Wer im Code Daten an einen fremden Host schickt, muss in der Datenschutzerklärung stehen.
+  // Die liegt jetzt außerhalb dieses Repos und lässt sich hier nicht mehr gegenlesen — prüfbar
+  // bleibt die Gegenrichtung: Taucht ein Host auf, der beim Schreiben der Erklärung noch nicht
+  // bekannt war, ist die Erklärung ab sofort unvollständig. Dann gehört er DORT ergänzt.
+  //
+  // ⚠️ Ein fremder Host kippt außerdem die Banner-Freiheit: § 25 Abs. 2 Nr. 2 TDDDG trägt nur,
+  // solange nichts Fremdes geladen wird (siehe README „Rechtliches", docs/security.md).
+  const BEKANNT = [
+    'api.resend.com',                       // Mailversand, USA — in der Erklärung benannt
+    'api.crewplanner.nyxlightwork.de',      // eigene Live-API
+    'api-test.crewplanner.nyxlightwork.de', // eigene Test-API
+    'crewplanner.nyxlightwork.de', 'www.crewplanner.nyxlightwork.de',
+    'nyxlightwork.de',                      // Sitz der Pflichtangaben
+    'aniflu.github.io',                     // Testumgebung (v0.31.0)
+    'pocketbase.io',                        // nur Doku-Verweise im Hook
+    'localhost', '127.0.0.1',
+  ];
+  const quellen = [
+    ...readdirSync(join(root, 'js')).filter(f => f.endsWith('.js')).map(f => `js/${f}`),
+    '.pb_hooks/main.pb.js',
+  ].filter(f => existsSync(join(root, f)));
+
   const fund = [];
-  if (/resend/i.test(hook) && !/resend/i.test(ds)) fund.push('Resend wird im Hook genutzt, fehlt aber in datenschutz.html');
-  if (!/§ ?25|TDDDG/.test(ds)) fund.push('Hinweis zur Speicherung auf dem Endgerät (§ 25 TDDDG) fehlt');
-  if (!/Art\.? ?28/.test(ds)) fund.push('Hinweis zur Auftragsverarbeitung (Art. 28 DSGVO) fehlt');
-  ok(fund.length === 0, fund.join('\n      '));
-});
-
-test('kein Platzhalter mehr in den Pflichtangaben (scharf ab Redaktionsschluss)', () => {
-  // Solange «…» drinsteht, ist das Impressum unvollständig — und ein unvollständiges
-  // Impressum ist rechtlich wie keins. Der Test meldet SKIP, solange die Werte noch
-  // ausstehen, damit die Suite währenddessen grün bleibt; er wird von selbst scharf,
-  // sobald der Betreiber die letzte Lücke gefüllt hat.
-  const offen = [];
-  for (const seite of RECHTSSEITEN) {
-    const treffer = lies(seite).match(/«[^»]*»/g) || [];
-    if (treffer.length) offen.push(`${seite}: ${treffer.length} Platzhalter`);
+  for (const datei of quellen) {
+    for (const treffer of lies(datei).match(/https?:\/\/[a-zA-Z0-9.-]+/g) || []) {
+      const host = treffer.replace(/^https?:\/\//, '');
+      if (!BEKANNT.includes(host)) fund.push(`${datei}: ${host}`);
+    }
   }
-  if (offen.length) {
-    console.log(`      ⚠ noch einzusetzen — ${offen.join(', ')}`);
-    return 'SKIP';
-  }
+  ok(fund.length === 0,
+    'neuer externer Host — in der Erklärung auf nyxlightwork.de ergänzen und die\n      ' +
+    'Banner-Freiheit neu bewerten:\n      ' + [...new Set(fund)].join('\n      '));
 });

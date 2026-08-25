@@ -20,9 +20,11 @@ WORKDIR /usr/share/nginx/html
 # Die vier Oberflächen
 COPY index.html admin.html login.html view.html ./
 
-# Pflichtangaben. Diese beiden MÜSSEN öffentlich sein — § 5 DDG verlangt „ständig verfügbar",
-# und der Footer jeder Oberfläche verlinkt sie. Fehlen sie hier, laufen die Links live ins 404.
-COPY impressum.html datenschutz.html ./
+# Pflichtangaben liegen NICHT hier: Crewplanner wird mit nyx lightwork vertrieben, es gilt das
+# zentrale Impressum auf https://nyxlightwork.de/impressum.html (Datenschutz unter #datenschutz),
+# und der Footer jeder Oberfläche verlinkt dorthin. Die früheren impressum.html/datenschutz.html
+# sind in v0.10.2 entfernt worden — sie waren unverlinkt, voller «…»-Platzhalter und trotzdem
+# live abrufbar: eine ungültige Zweitfassung, die jemand für die geltende halten könnte.
 
 # Stil, Symbol, Service Worker (sw.js hält die Module frisch, siehe v0.19.0)
 COPY styles.css theme.css favicon.svg sw.js ./
