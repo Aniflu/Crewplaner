@@ -163,10 +163,23 @@ Crew-Scheduling-App für Tourneen. Admin weist Crew-Mitglieder pro Position und 
 
 ## Rechtliches
 
-| Seite | Grundlage | Stand |
+Crewplanner wird **mit nyx lightwork vertrieben**, deshalb gilt das dortige zentrale Impressum
+mit. Seit v0.10.1 verweist der Rechts-Footer aller vier Oberflächen dorthin — es gibt nur noch
+**eine** Fassung, und die wird auf nyxlightwork.de gepflegt, nicht hier im Repo.
+
+| Angabe | Grundlage | Wo sie steht |
 |---|---|---|
-| `impressum.html` | § 5 DDG | Entwurf, Platzhalter offen |
-| `datenschutz.html` | Art. 13 DSGVO, § 25 TDDDG | Entwurf, Platzhalter offen |
+| Impressum | § 5 DDG | https://nyxlightwork.de/impressum.html |
+| Datenschutzerklärung | Art. 13 DSGVO, § 25 TDDDG | https://nyxlightwork.de/impressum.html**#datenschutz** |
+
+Der Anker `#datenschutz` ist Teil der Pflicht, nicht Komfort: Ohne ihn landet der Link am
+Seitenkopf und die Erklärung ist nicht mehr „unmittelbar erreichbar" (§ 5 DDG). `tests/legal.test.mjs`
+prüft beide vollständigen URLs auf allen vier Oberflächen und hält den statischen Footer fest.
+
+⚠️ `impressum.html` und `datenschutz.html` liegen weiterhin im Repo und werden vom Dockerfile
+ausgeliefert, sind aber **nicht mehr verlinkt** und voll `«…»`-Platzhalter — sie sind **keine
+gültige Fassung**. Wer Rechtstexte ändern will, ändert sie auf nyxlightwork.de. Ob die beiden
+Dateien ganz verschwinden, ist noch nicht entschieden.
 
 Kein Einwilligungsbanner nötig: kein Tracking, keine fremden Hosts, lokaler Speicher nur für
 Anmeldung, Arbeitsstand und Darstellung (§ 25 Abs. 2 Nr. 2 TDDDG). **Das gilt nur so lange, wie
@@ -179,8 +192,13 @@ zehn Beschäftigte überschritten sind oder der Umsatz über 2 Mio. € steigt.
 
 ### Offen — vor dem Scharfschalten zu erledigen
 
-1. `«…»`-Platzhalter in beiden Seiten füllen: Name, Anschrift, Telefon, USt-IdNr., Hoster samt
-   Anschrift und Serverstandort, Aufbewahrungsfrist der Protokolle, zuständige Aufsichtsbehörde, Datum
+1. **Auf nyxlightwork.de** (nicht mehr hier): Die dortige Erklärung muss abdecken, was
+   Crewplanner **wirklich** tut — Server-Protokolle, lokaler Speicher im Browser, öffentlicher
+   Ansichtslink, Kalender-Abo, Mailversand über Resend in die USA — und die zwei Rollen sauber
+   trennen: Verantwortlicher für Konten und Website, **Auftragsverarbeiter** für die Crew-Daten
+   der Kunden (Art. 28). Wer Auskunft oder Löschung will und Crew ist, muss an seine
+   Produktionsfirma verwiesen werden. Ebenso zu prüfen: Hoster samt Serverstandort,
+   Aufbewahrungsfrist der Protokolle, zuständige Aufsichtsbehörde
 2. Rollenadresse `kontakt@crewplanner.nyxlightwork.de` einrichten (bewusst **keine** private
    Freimail-Adresse — `tests/privacy.test.mjs` verhindert die auch)
 3. AV-Verträge nach Art. 28 abschließen: Hoster und Resend; bei Resend zusätzlich prüfen, ob eine

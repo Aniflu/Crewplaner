@@ -307,6 +307,17 @@ Verantwortlich: Betreiber («SUPERADMIN-MAIL»).
 
 Daten können jederzeit über PB Admin UI gelöscht werden.
 
+**Pflichtangaben nach außen** (seit v0.10.1): Crewplanner wird mit nyx lightwork vertrieben, das
+dortige zentrale Impressum gilt mit. Der Rechts-Footer aller vier Oberflächen verweist auf
+https://nyxlightwork.de/impressum.html bzw. `…#datenschutz`; die Repo-Dateien `impressum.html`
+und `datenschutz.html` sind nicht mehr verlinkt und **keine gültige Fassung** (Platzhalter).
+
+⚠️ **Für dieses Dokument die eigentliche Regel:** Wer hier einen neuen externen Empfänger
+einträgt — ein weiterer Mail-Dienst, eine Analyse, ein CDN, eine fremde Schrift — muss ihn in
+der Erklärung auf nyxlightwork.de nachziehen **und** die Banner-Freiheit neu bewerten
+(§ 25 Abs. 2 Nr. 2 TDDDG trägt nur, solange es keinen fremden Host gibt). `tests/legal.test.mjs`
+fängt das nur für Resend ab, nicht allgemein.
+
 ---
 
 ## Incident Response
