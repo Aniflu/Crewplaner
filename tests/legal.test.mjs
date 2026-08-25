@@ -11,6 +11,10 @@
 //      Fehlerbild, das dieses Projekt mehrfach hatte (siehe README zu v0.16.0/v0.27.2).
 //   3. Die Seiten liegen im Repo, stehen aber nicht im Dockerfile → live läuft der Link ins
 //      404, weil das Dockerfile eine Whitelist ist (Befund K-1).
+//   4. Seit v0.10.1 zeigt der Footer auf das zentrale Impressum von nyxlightwork.de. Dort
+//      steht die Datenschutzerklärung in derselben Seite, erreichbar nur über den Anker
+//      `#datenschutz`. Fällt der Anker weg, landet der Datenschutz-Link am Seitenkopf und die
+//      Erklärung ist nicht mehr „unmittelbar erreichbar" — deshalb wird die volle URL geprüft.
 import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -21,18 +25,25 @@ const lies = (f) => readFileSync(join(root, f), 'utf8');
 
 const OBERFLAECHEN = ['index.html', 'admin.html', 'login.html', 'view.html'];
 const RECHTSSEITEN = ['impressum.html', 'datenschutz.html'];
+// Ziel des Footers seit v0.10.1: das gepflegte Impressum auf nyxlightwork.de. Die lokalen
+// RECHTSSEITEN bleiben als Dateien liegen (mit ihren «…»-Platzhaltern), sind aber nicht mehr
+// verlinkt — die Pflichtangaben gibt es damit nur noch in einer Fassung.
+const PFLICHT_LINKS = [
+  'https://nyxlightwork.de/impressum.html',
+  'https://nyxlightwork.de/impressum.html#datenschutz',
+];
 
 test('Impressum und Datenschutzerklärung existieren', () => {
   const fehlen = RECHTSSEITEN.filter(f => !existsSync(join(root, f)));
   ok(fehlen.length === 0, `Pflichtseiten fehlen: ${fehlen.join(', ')}`);
 });
 
-test('jede Oberfläche verlinkt beide Pflichtseiten', () => {
+test('jede Oberfläche verlinkt Impressum und Datenschutzerklärung', () => {
   const fund = [];
-  for (const seite of [...OBERFLAECHEN, ...RECHTSSEITEN]) {
+  for (const seite of OBERFLAECHEN) {
     const src = lies(seite);
-    for (const ziel of RECHTSSEITEN) {
-      if (!new RegExp(`href=["']${ziel}["']`).test(src)) fund.push(`${seite} → ${ziel}`);
+    for (const ziel of PFLICHT_LINKS) {
+      if (!src.includes(`href="${ziel}"`)) fund.push(`${seite} → ${ziel}`);
     }
   }
   ok(fund.length === 0, 'fehlende Links auf die Pflichtangaben:\n      ' + fund.join('\n      '));
