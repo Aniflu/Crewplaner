@@ -170,18 +170,38 @@ export function _getNewSlotsForCrew(crewName, crewEmail) {
   });
 }
 
+// Übersetzt die rohe Meldung in einen Satz, aus dem hervorgeht, WAS zu tun ist. Bei der
+// Drosselung ist das entscheidend: 429 heißt „zu schnell", nicht „geht nicht" — wer das
+// nicht weiß, hält die Einladung für kaputt. (Vorbild: login.html)
+function _einladungsFehlerText(e) {
+  const roh = (e && e.message) || 'unbekannter Fehler';
+  if ((e && e.status === 429) || /too many requests/i.test(roh))
+    return 'Zu viele Anfragen auf einmal — bitte eine halbe Minute warten und erneut einladen.';
+  return roh;
+}
+
 export async function sendInvite(crewName, type) {
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
 
-  // Alle nicht-bestätigten Slots auf proposed setzen
-  const allSlots = _getAllSlotsForCrew(crewName, meta.email).filter(s => {
-    const existing = assignmentStatuses[s.date]?.[s.posId];
-    return !existing || existing.status !== 'confirmed';
-  });
-  if (allSlots.length) await bulkProposeCrew(allSlots);
+  // Der Vermerk „eingeladen" wird NUR gesetzt, wenn wirklich eine Mail rausging. Ein
+  // Fehlschlag muss sichtbar bleiben und die Person auf „⚪ Nicht eingeladen" stehen lassen —
+  // sonst wartet der Planer auf eine Antwort, um die nie jemand gebeten wurde (v0.10.5).
+  try {
+    // Alle nicht-bestätigten Slots auf proposed setzen
+    const allSlots = _getAllSlotsForCrew(crewName, meta.email).filter(s => {
+      const existing = assignmentStatuses[s.date]?.[s.posId];
+      return !existing || existing.status !== 'confirmed';
+    });
+    if (allSlots.length) await bulkProposeCrew(allSlots);
 
-  await sendCrewInvite(crewName, meta.email, type);
+    await sendCrewInvite(crewName, meta.email, type);
+  } catch (e) {
+    showToast(`${crewName}: nicht gesendet — ${_einladungsFehlerText(e)}`, '#e84a4a');
+    _renderCrewNotifyList();
+    throw e;
+  }
+
   _saveInvite(crewName);
   const label = type === 'reminder' ? 'Erinnerung gesendet ✓' : 'Einladung gesendet ✓';
   showToast(`${crewName}: ${label}`, '#4ae8a0');

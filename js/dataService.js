@@ -464,33 +464,24 @@ export async function bulkCancelProposals(posId, crewName) {
 }
 
 // ── Crew für mehrere Slots auf einmal vorschlagen ─────────────────────────────
+// Läuft über applyStatusToSlots (weiter unten) — NICHT über ein eigenes Promise.all.
+//
+// Vorher stand hier genau der Fehler, vor dem der Kommentar über BULK_GLEICHZEITIG warnt:
+// ein unbegrenztes Promise.all über alle Termine, jeder Durchlauf ein pbUpsert = ZWEI
+// Anfragen (erst suchen, dann schreiben). Beim Einladen einer Person mit 25 Terminen in
+// „Provinz 2027" waren das 50 gleichzeitige Anfragen — die PocketBase-Drosselung antwortete
+// mit 429, unten rechts stand „Too many requests" und die Einladung ging nicht raus (v0.10.5).
+//
+// applyStatusToSlots sucht EINMAL für den ganzen Plan, schreibt in Fünfergruppen und
+// wiederholt nach einem 429. Es setzt bei Ziel 'proposed' von sich aus proposed_by='bulk' —
+// dieselbe Kennzeichnung wie vorher, an der der Hook die Sammelaktion erkennt und die
+// per-Slot-Anfragemail unterdrückt (der Aufrufer schickt seine eigene Einladungs-/Update-Mail).
 export async function bulkProposeCrew(slots) {
   if (!SUPABASE_ENABLED || !slots.length) return;
-  const planId = await _getActivePlanId();
-  if (!planId) return;
-
-  await Promise.all(slots.map(s => {
-    const pos = typeof POSITIONS !== 'undefined' ? POSITIONS.find(p => p.id === s.posId) : null;
-    return pbUpsert(
-      'assignments',
-      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(s.date)}" && pos_id = "${pbEscapeFilter(s.posId)}"`,
-      {
-        plan_id: planId, date: s.date, pos_id: s.posId, pos_label: pos?.label || s.posId,
-        crew_name: s.crewName, crew_email: s.crewEmail || '',
-        status: 'proposed', proposed_by: 'bulk'
-      },
-      // proposed_by:'bulk' → Hook unterdrückt per-Slot-Anfrage-Mail (Aufrufer sendet eigene Invite/Update-Mail)
-      { crew_name: s.crewName, pos_label: pos?.label || s.posId, crew_email: s.crewEmail || '',
-        status: 'proposed', proposed_by: 'bulk' }
-    );
-  }));
-
-  slots.forEach(s => {
-    if (!assignmentStatuses[s.date]) assignmentStatuses[s.date] = {};
-    assignmentStatuses[s.date][s.posId] = {
-      status: 'proposed', proposedBy: CURRENT_USER_ID, crewName: s.crewName
-    };
-  });
+  await applyStatusToSlots(
+    slots.map(s => ({ date: s.date, posId: s.posId, name: s.crewName, email: s.crewEmail })),
+    'proposed'
+  );
 }
 
 // ── Slot vorläufig vormerken (Manager, Fernzukunft, KEIN Mailversand) ─────────
@@ -837,6 +828,10 @@ export async function sendCrewInvite(crewName, crewEmail, type) {
   } catch (e) {
     console.warn('sendCrewInvite Fehler:', e.message);
     _showMailError(e.message);
+    // WEITERWERFEN (v0.10.5): Vorher endete der Fehler hier. sendInvite lief danach durch,
+    // vermerkte die Person als „eingeladen" und meldete grün „Einladung gesendet ✓" über die
+    // rote Meldung hinweg — ohne dass je eine Mail rausging.
+    throw e;
   }
 }
 

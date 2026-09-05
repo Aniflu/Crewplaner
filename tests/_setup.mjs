@@ -41,3 +41,10 @@ globalThis.document = {
 };
 // navigator ist in Node 24 read-only → nur setzen wenn nötig/möglich
 try{ if(!globalThis.navigator) globalThis.navigator = { userAgent:'node-test' }; }catch(_){ /* ok, Node liefert eigenes navigator */ }
+
+// location gibt es in Node nicht. Ohne Stub scheitert z.B. sendCrewInvite an
+// `window.location.origin` mit einem TypeError — ein Test würde dann „wirft" sehen und
+// grün werden, ohne je den geprüften Weg erreicht zu haben.
+if(!globalThis.location) globalThis.location = {
+  origin: 'https://test.local', pathname: '/', href: 'https://test.local/', search: '', hash: '',
+};
