@@ -46,7 +46,10 @@ export function isPending(si){return!!(si&&(si.status==='proposed'||si.status===
 // eine Crew-Antwort (es wurde ja noch nichts angefragt), sondern ein reiner Manager-Platzhalter
 // für die Fernzukunft. Eigene Prüfung, damit dropdown.js beide Fälle sauber trennen kann.
 export function isPencilled(si){return!!(si&&si.status==='pencilled');}
-export function showToast(msg,color='#4f81bd'){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.style.background=color;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.opacity='0';},2200);}
+// dauerMs: für Fortschrittsmeldungen, die eine gedrosselte Anlage begleiten (v0.10.6).
+// Mit den festen 2200 ms verschwand die Anzeige mitten in der Wartezeit — also genau dann,
+// wenn sie gebraucht wird.
+export function showToast(msg,color='#4f81bd',dauerMs=2200){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.style.background=color;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.opacity='0';},dauerMs);}
 // Escaped auch " und ' — der textContent/innerHTML-Trick maskierte die NICHT, wodurch ein Wert
 // mit " (z.B. Name „Robert \"Woody\" Steinmetz") in value="${esc(...)}"-Attributen abbrach (v0.23.3).
 export function esc(s){return s==null?'':String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

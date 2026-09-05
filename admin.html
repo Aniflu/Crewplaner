@@ -541,7 +541,7 @@ body {
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.10.5</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.10.6</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -1025,14 +1025,17 @@ function switchTab(name) {
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
-function adminToast(msg, color) {
+function adminToast(msg, color, dauerMs) {
   const el = document.getElementById('adminToast');
   el.textContent = msg;
   el.style.borderColor = color || 'var(--rule-2)';
   el.style.color = color || 'var(--ink)';
   el.style.display = 'block';
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.style.display = 'none', 3000);
+  // dauerMs: für Fortschrittsmeldungen, die eine gedrosselte Anlage begleiten. Mit den
+  // festen 3 Sekunden verschwand die Anzeige mitten in der Wartezeit — genau dann, wenn
+  // sie gebraucht wird.
+  el._t = setTimeout(() => el.style.display = 'none', dauerMs || 3000);
 }
 
 // ── Logout ─────────────────────────────────────────────────────────────────────
@@ -1636,12 +1639,20 @@ function sendAdminInvite(crewName) {
     slots,
     sender: async (customText) => {
       // proposed-Records für neue Slots (proposed_by:'bulk' → Hook unterdrückt per-Slot-Mail)
-      for (const s of slots) {
-        if (s.hasRecord) continue;
+      //
+      // Das Anlegen wird von pb.js gedrosselt (max. 18 Anlagen pro 5 Sekunden — die
+      // PocketBase-Regel `*:create` erlaubt 20). Bei einer neu eingeplanten Person mit vielen
+      // Terminen dauert das deshalb spürbar; ohne Rückmeldung sähe es aus, als hinge das
+      // Fenster. Genau so war es gemeldet worden — nur mit „Too many requests" statt Warten.
+      const neue = slots.filter(s => !s.hasRecord);
+      let fertig = 0;
+      for (const s of neue) {
+        if (neue.length > 10) adminToast(`Termine werden angelegt … ${fertig} von ${neue.length}`, 'var(--accent)', 20000);
         await pbPost('/api/collections/assignments/records', {
           plan_id: _wrkPbPlanId, date: s.date, pos_id: s.posId, pos_label: s.posLabel,
           crew_name: crewName, crew_email: meta.email, status: 'proposed', proposed_by: 'bulk'
         });
+        fertig++;
       }
       await pbPost('/api/collections/crew_invites/records', {
         plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: meta.email,

@@ -4,7 +4,69 @@ import { POCKETBASE_URL } from './config.js';
 // Thin fetch-wrapper: setzt Authorization-Header automatisch aus localStorage.
 // Alle API-Routen: https://pocketbase.io/docs/api-records/
 
+// ── Mengengrenze beim Anlegen einhalten (v0.10.6) ─────────────────────────────
+// PocketBase läuft mit der Regel `*:create` = 20 Anfragen / 5 Sekunden. Das ist KEINE
+// Gleichzeitigkeits-, sondern eine Mengengrenze: Wer ein neues Crew-Mitglied auf 25 Termine
+// setzt, legt 25 assignments-Records an — ab dem 21. antwortet der Server mit 429
+// „Too many requests", und die Einladung ging nicht raus (an „Provinz 2027" gemeldet, im
+// Live-Log beider Versuche als 20 × 200 + 1 × 429 nachgemessen).
+//
+// Betroffen ist nur das ANLEGEN. Ein PATCH zählt nicht gegen diese Regel — deshalb fiel es
+// erst beim neu hinzugefügten Mitglied auf, dessen Records es alle noch nicht gab.
+//
+// Die Drossel sitzt hier und nicht im jeweiligen Aufrufer: admin.html reicht dasselbe pbPost
+// über window durch (js/admin-app.js), damit sind Admin-Ansicht und Plan-Ansicht in einem
+// Zug abgedeckt — und jeder künftige Weg ebenfalls.
+//
+// `max` liegt bewusst unter den erlaubten 20: Nebenher laufen weitere Anlagen (crew_invites),
+// und die Buchführung des Servers beginnt nicht exakt bei unserer ersten Anfrage.
+export const _drossel = { max: 18, fensterMs: 5000, backoffMs: 5250, zeiten: [] };
+
+const _warte = (ms) => new Promise(r => setTimeout(r, ms));
+
+function _istAnlage(method, path) {
+  return method === 'POST' && /^\/api\/collections\/[^/]+\/records(\?|$)/.test(path);
+}
+
+// Erteilt Anlage-Erlaubnis der Reihe nach. Die Kette ist nötig, damit gleichzeitig
+// gestartete Anlagen sich nicht alle denselben freien Platz nehmen.
+let _schlange = Promise.resolve();
+function _anlagePlatz() {
+  const meiner = _schlange.then(async () => {
+    const d = _drossel;
+    for (;;) {
+      const jetzt = Date.now();
+      while (d.zeiten.length && jetzt - d.zeiten[0] >= d.fensterMs) d.zeiten.shift();
+      if (d.zeiten.length < d.max) { d.zeiten.push(Date.now()); return; }
+      await _warte(d.fensterMs - (jetzt - d.zeiten[0]) + 20);
+    }
+  });
+  _schlange = meiner.catch(() => {});
+  return meiner;
+}
+
 async function _pbFetch(method, path, body) {
+  const anlage = _istAnlage(method, path);
+  let versuche = 0;
+  for (;;) {
+    if (anlage) await _anlagePlatz();
+    try {
+      return await _einmalSenden(method, path, body);
+    } catch (e) {
+      // Ein 429 heißt „zu schnell", nicht „geht nicht". Das Fenster einmal auslaufen lassen
+      // und erneut versuchen — aber begrenzt, sonst hängt die Oberfläche stumm fest.
+      if (e && e.status === 429 && versuche < 2) {
+        versuche++;
+        _drossel.zeiten.length = 0;   // unsere Buchführung liegt daneben — neu anfangen
+        await _warte(_drossel.backoffMs);
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+
+async function _einmalSenden(method, path, body) {
   const token = localStorage.getItem('pb_token');
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (token) opts.headers['Authorization'] = 'Bearer ' + token;

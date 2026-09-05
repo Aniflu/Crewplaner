@@ -476,11 +476,12 @@ export async function bulkCancelProposals(posId, crewName) {
 // wiederholt nach einem 429. Es setzt bei Ziel 'proposed' von sich aus proposed_by='bulk' —
 // dieselbe Kennzeichnung wie vorher, an der der Hook die Sammelaktion erkennt und die
 // per-Slot-Anfragemail unterdrückt (der Aufrufer schickt seine eigene Einladungs-/Update-Mail).
-export async function bulkProposeCrew(slots) {
+export async function bulkProposeCrew(slots, aufFortschritt) {
   if (!SUPABASE_ENABLED || !slots.length) return;
   await applyStatusToSlots(
     slots.map(s => ({ date: s.date, posId: s.posId, name: s.crewName, email: s.crewEmail })),
-    'proposed'
+    'proposed',
+    aufFortschritt
   );
 }
 
@@ -888,7 +889,7 @@ export async function saveCrewLink(crewName, email) {
     );
   } catch (e) {
     console.error('saveCrewLink Fehler:', e.message);
-    if (typeof showToast === 'function') showToast('⚠ E-Mail-Speichern fehlgeschlagen: ' + e.message, 6000);
+    if (typeof showToast === 'function') showToast('⚠ E-Mail-Speichern fehlgeschlagen: ' + e.message, '#e84a4a', 6000);
     throw e;
   }
   if (!crewMeta[crewName]) crewMeta[crewName] = {};

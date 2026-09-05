@@ -7,6 +7,7 @@ export async function loadGraph(){
   try{
     const m = {};
     m.state     = await import('../js/state.js');
+    m.pb        = await import('../js/pb.js');
     m.utils     = await import('../js/utils.js');
     m.types     = await import('../js/types.js');
     m.crew      = await import('../js/crew.js');
@@ -15,6 +16,13 @@ export async function loadGraph(){
     m.plans     = await import('../js/plans.js');
     m.dataService = await import('../js/dataService.js');
     m.stats     = await import('../js/stats.js');
+    // Die Anlage-Drossel (pb.js) rechnet in echten 5-Sekunden-Fenstern. Ungebremst würde
+    // jeder Test, der viele Records anlegt oder einen 429 simuliert, die Suite um Sekunden
+    // verlängern — sie lief dadurch 27 statt 1 Sekunde. Hier auf Testmaß gestellt; das
+    // VERHALTEN (nie mehr als `max` pro Fenster) prüft tests/ratelimit.test.mjs mit
+    // eigenen Werten, die echten Zahlen stehen in js/pb.js.
+    m.pb._drossel.fensterMs = 20;
+    m.pb._drossel.backoffMs = 20;
     _cache = m;
   }catch(e){
     console.log('      (Graph-Load fehlgeschlagen: ' + e.message + ')');

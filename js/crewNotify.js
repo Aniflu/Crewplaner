@@ -193,7 +193,14 @@ export async function sendInvite(crewName, type) {
       const existing = assignmentStatuses[s.date]?.[s.posId];
       return !existing || existing.status !== 'confirmed';
     });
-    if (allSlots.length) await bulkProposeCrew(allSlots);
+    // Das Anlegen ist gedrosselt (pb.js: max. 18 Anlagen pro 5 Sekunden, weil PocketBase
+    // bei 20 mit 429 abweist). Bei vielen neuen Terminen dauert das spürbar — ohne
+    // Rückmeldung sähe es aus, als hinge der Dialog.
+    if (allSlots.length) {
+      await bulkProposeCrew(allSlots, allSlots.length > 10
+        ? (fertig) => showToast(`Termine werden angelegt … ${fertig} von ${allSlots.length}`, '#e8c84a', 20000)
+        : undefined);
+    }
 
     await sendCrewInvite(crewName, meta.email, type);
   } catch (e) {
