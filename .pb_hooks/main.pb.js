@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.22
-console.log('[hook] main.pb.js v4.22 geladen');
+// Version: 4.23
+console.log('[hook] main.pb.js v4.23 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -759,6 +759,168 @@ routerAdd('GET', '/planstatus/{id}', function(e) {
 
   e.response.header().set('Content-Type', 'application/json; charset=utf-8');
   return e.string(200, JSON.stringify({ plan: plan.id, statuses: statuses, cancelled: entfallen }));
+}, $apis.requireAuth());
+
+
+// ── 6d. Ein Endpoint für alle Mail-auslösenden Vorgänge (v4.23) ──────────────
+// POST /notify  (authentifiziert)
+//
+// Warum: Ein fachlicher Vorgang — „diese Person für 25 Termine anfragen und einladen" — war
+// als 26 einzelne HTTP-Schreibvorgänge modelliert. Zwei Folgen, beide gemeldet:
+//   1. PocketBase läuft mit `*:create` = 20 Anfragen / 5 Sekunden. Ab dem 21. kam 429
+//      („Too many requests"), die Einladung ging nicht raus. Am Live-Log nachgemessen:
+//      20 × POST 200 auf assignments/records, dann der 21. mit 429 — zweimal identisch.
+//   2. Schlimmer: Der Vorgang konnte auf halber Strecke abbrechen. Termine standen auf
+//      „angefragt", die Mail ging nie raus — die Person wusste von nichts.
+//
+// Hier ist es EIN Aufruf. Slots und Auslöse-Record entstehen in EINER Transaktion, und der
+// Mail-Hook hängt an onRecordAfterCreateSuccess — er feuert also erst NACH dem Commit.
+// Damit gilt: alle Termine und die Mail, oder nichts von beidem. Der halbe Zustand ist
+// strukturell ausgeschlossen, nicht bloß unwahrscheinlicher.
+//
+// Die Typ-Tabelle IST die Rechteprüfung: ein Blick genügt, um zu sehen, wer was darf.
+// Verstreute if-Zweige haben genau diese Eigenschaft nicht.
+// Goja-Isolation: alle Helfer/Literale INNERHALB des Handlers.
+routerAdd('POST', '/notify', function(e) {
+  var auth = e.auth;
+  if (!auth) return e.string(401, 'unauthorized');
+
+  var body = {};
+  try { body = e.requestInfo().body || {}; } catch (errB) { body = {}; }
+
+  var typ    = String(body.type || '');
+  var planId = String(body.planId || '');
+  var name   = String(body.crewName || '');
+  var mail   = String(body.crewEmail || '');
+  var slots  = Array.isArray(body.slots) ? body.slots : [];
+  var weg    = Array.isArray(body.removeSlots) ? body.removeSlots : [];
+  var von    = String(body.proposedBy || 'bulk');
+  var notiz  = String(body.customMessage || '');
+
+  var TABELLE = {
+    invite:       { wer: 'owner', slots: true,  loeschen: false },
+    reminder:     { wer: 'owner', slots: true,  loeschen: false },
+    update:       { wer: 'owner', slots: true,  loeschen: false },
+    cancellation: { wer: 'owner', slots: false, loeschen: true  },
+    availability: { wer: 'crew',  slots: false, loeschen: false },
+    staff_invite: { wer: 'super', slots: false, loeschen: false }
+  };
+  var regel = TABELLE[typ];
+  if (!regel) return e.string(400, 'unbekannter Typ');
+  if (!name || !mail) return e.string(400, 'crewName und crewEmail sind Pflicht');
+
+  var meineMail = (auth.getString('email') || '').toLowerCase();
+  var istSuper  = auth.getString('role') === 'superadmin';
+
+  // staff_invite gehört zu keiner Tour — nur superadmin, wie es die geltende
+  // crew_invites.createRule ohne plan_id ohnehin schon einschränkt.
+  if (regel.wer === 'super') {
+    if (!istSuper) return e.string(404, 'not found');
+  } else {
+    if (!planId) return e.string(400, 'planId fehlt');
+    var plan;
+    try { plan = $app.findRecordById('plans', planId); } catch (err2) { plan = null; }
+    if (!plan) return e.string(404, 'not found');
+
+    var darf = istSuper || (plan.getString('owner') === auth.id);
+    if (regel.wer === 'crew') {
+      if (!darf) {
+        try {
+          var m = $app.findFirstRecordByFilter('crew_members',
+            'plan_id = {:p} && email = {:m}', { p: planId, m: meineMail });
+          darf = !!m;
+        } catch (err3) { darf = false; }
+      }
+      // Nur für sich selbst — sonst könnte ein Crew-Konto im Namen einer anderen Person melden.
+      if (!istSuper && mail.toLowerCase() !== meineMail) return e.string(404, 'not found');
+    }
+    if (!darf) return e.string(404, 'not found');
+  }
+
+  // Was der Typ nicht darf, wird verworfen statt abgelehnt: Ein Aufrufer, der versehentlich
+  // Slots an eine Absage hängt, soll keine Termine anlegen — aber die Absage soll rausgehen.
+  if (!regel.slots)    slots = [];
+  if (!regel.loeschen) weg   = [];
+
+  // Das Transportformat der Mail baut ab jetzt der Server, nicht der Browser. Das Feld
+  // app_url ist bei 5000 Zeichen zu Ende — die Grenze gilt hier, also wird sie hier geprüft.
+  // Vorher lag sie im Client (APP_URL_GRENZE) und schlug bei 59 Einsätzen zu.
+  var planName = String(body.planName || '');
+  var appUrl   = String(body.appUrl || '');
+  var liste = [];
+  for (var li = 0; li < slots.length; li++)
+    liste.push({ date: slots[li].date, posLabel: slots[li].posLabel || slots[li].posId });
+  for (var lj = 0; lj < weg.length; lj++)
+    liste.push({ date: weg[lj].date, posLabel: weg[lj].posLabel || weg[lj].posId });
+  var nutzlast = liste.length ? JSON.stringify(liste) : appUrl;
+  if (nutzlast.length > 4900) return e.string(400, 'zu viele Termine fuer eine Mail');
+
+  var angelegt = 0, aktualisiert = 0, geloescht = 0;
+
+  try {
+    $app.runInTransaction(function (tx) {
+      var col = tx.findCollectionByNameOrId('assignments');
+
+      for (var i = 0; i < slots.length; i++) {
+        var s = slots[i];
+        if (!s || !s.date || !s.posId) continue;
+        var da = null;
+        try {
+          da = tx.findFirstRecordByFilter('assignments',
+            'plan_id = {:p} && date = {:d} && pos_id = {:q}',
+            { p: planId, d: String(s.date), q: String(s.posId) });
+        } catch (err4) { da = null; }
+        var r = da || new Record(col);
+        if (!da) {
+          r.set('plan_id', planId);
+          r.set('date', String(s.date));
+          r.set('pos_id', String(s.posId));
+        }
+        r.set('pos_label', String(s.posLabel || s.posId));
+        r.set('crew_name', name);
+        r.set('crew_email', mail);
+        r.set('status', 'proposed');
+        r.set('proposed_by', von);
+        tx.save(r);
+        if (da) { aktualisiert++; } else { angelegt++; }
+      }
+
+      for (var k = 0; k < weg.length; k++) {
+        var w = weg[k];
+        if (!w || !w.date || !w.posId) continue;
+        var alt = [];
+        try {
+          alt = tx.findRecordsByFilter('assignments',
+            'plan_id = {:p} && date = {:d} && pos_id = {:q}', '', 50, 0,
+            { p: planId, d: String(w.date), q: String(w.posId) });
+        } catch (err5) { alt = []; }
+        for (var n = 0; n < alt.length; n++) { tx.delete(alt[n]); geloescht++; }
+      }
+
+      // Der Auslöse-Record ZULETZT und in derselben Transaktion. Der Mail-Hook feuert an
+      // onRecordAfterCreateSuccess, also nach dem Commit: Bricht oben etwas ab, geht auch
+      // keine Mail raus. Genau das war der Zweck der ganzen Übung.
+      var iCol = tx.findCollectionByNameOrId('crew_invites');
+      var inv  = new Record(iCol);
+      inv.set('plan_id', planId);
+      inv.set('crew_name', name);
+      inv.set('crew_email', mail);
+      inv.set('type', typ);
+      inv.set('plan_name', planName || 'Tour Plan');
+      inv.set('app_url', nutzlast);
+      if (notiz) { inv.set('custom_message', notiz); }
+      tx.save(inv);
+    });
+  } catch (errTx) {
+    console.error('[hook] /notify Transaktion fehlgeschlagen:', String(errTx));
+    return e.string(500, 'nicht gespeichert');
+  }
+
+  console.log('[hook] /notify ' + typ + ' · neu=' + angelegt + ' akt=' + aktualisiert + ' weg=' + geloescht);
+  e.response.header().set('Content-Type', 'application/json; charset=utf-8');
+  return e.string(200, JSON.stringify({
+    ok: true, angelegt: angelegt, aktualisiert: aktualisiert, geloescht: geloescht
+  }));
 }, $apis.requireAuth());
 
 
