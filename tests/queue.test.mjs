@@ -151,15 +151,20 @@ test('_sendPendingUpdates: status-Slots werden NICHT auf proposed gepatcht', asy
     const method = (opts && opts.method) || 'GET';
     let body = {}; try { body = JSON.parse(opts?.body || '{}'); } catch(_) {}
     if (method === 'PATCH') patched.push(body);
-    if (method === 'POST' && String(url).includes('crew_invites')) invites.push(body);
-    return { status:200, ok:true, json: async () => ({ items: [], id:'rec1' }) };
+    // Seit v0.11.0 laeuft der Versand ueber POST /notify statt eines direkt angelegten
+    // crew_invites-Records. Die ZUSAGE dieses Tests ist unveraendert: genau eine Mail, und
+    // der Statuswechsel darf nicht als erneute Anfrage rausgehen.
+    if (method === 'POST' && String(url).includes('/notify')) invites.push(body);
+    return { status:200, ok:true, json: async () => ({ items: [], id:'rec1', ok:true }) };
   };
 
   await g.userView._sendPendingUpdates();
 
   ok(!patched.some(b => b.status === 'proposed'), 'kein PATCH auf proposed');
   eq(invites.length, 1, 'genau eine Update-Mail');
-  const slots = JSON.parse(invites[0].app_url || '[]');
+  eq((invites[0].slots || []).length, 0,
+     'ein reiner Statuswechsel darf keine Anfrage schreiben — auch nicht serverseitig');
+  const slots = invites[0].mailSlots || [];
   eq(slots.length, 1, 'ein Slot in der Mail');
   eq(slots[0].kind, 'status', 'als Statuswechsel markiert');
   eq(slots[0].to, 'pencilled', 'Richtung geht an den Hook mit');

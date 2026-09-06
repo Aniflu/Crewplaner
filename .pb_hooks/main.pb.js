@@ -842,17 +842,28 @@ routerAdd('POST', '/notify', function(e) {
   if (!regel.slots)    slots = [];
   if (!regel.loeschen) weg   = [];
 
-  // Das Transportformat der Mail baut ab jetzt der Server, nicht der Browser. Das Feld
-  // app_url ist bei 5000 Zeichen zu Ende — die Grenze gilt hier, also wird sie hier geprüft.
-  // Vorher lag sie im Client (APP_URL_GRENZE) und schlug bei 59 Einsätzen zu.
+  // Die Mail-Nutzlast (app_url) ist NICHT dasselbe wie die zu schreibenden Slots:
+  //   · invite/cancellation → eine Terminliste {date, posLabel}
+  //   · update              → {kind, to, aid} — die `aid` traegt die Quittung fuer den
+  //     „GESEHEN ✓"-Knopf; faellt eine weg, bleibt eine Absage dauerhaft offen
+  // Die zweite Form kann der Server nicht aus `slots` ableiten, denn kind/to/aid sind
+  // fachliche Angaben, die nur der Client kennt. Deshalb darf er `mailSlots` mitgeben.
+  //
+  // Was der Server uebernimmt, ist die GRENZE: app_url endet bei 5000 Zeichen. Vorher lag
+  // die Pruefung im Browser (APP_URL_GRENZE) — dort, wo die Grenze gar nicht gilt.
   var planName = String(body.planName || '');
   var appUrl   = String(body.appUrl || '');
-  var liste = [];
-  for (var li = 0; li < slots.length; li++)
-    liste.push({ date: slots[li].date, posLabel: slots[li].posLabel || slots[li].posId });
-  for (var lj = 0; lj < weg.length; lj++)
-    liste.push({ date: weg[lj].date, posLabel: weg[lj].posLabel || weg[lj].posId });
-  var nutzlast = liste.length ? JSON.stringify(liste) : appUrl;
+  var nutzlast;
+  if (Array.isArray(body.mailSlots)) {
+    nutzlast = JSON.stringify(body.mailSlots);
+  } else {
+    var liste = [];
+    for (var li = 0; li < slots.length; li++)
+      liste.push({ date: slots[li].date, posLabel: slots[li].posLabel || slots[li].posId });
+    for (var lj = 0; lj < weg.length; lj++)
+      liste.push({ date: weg[lj].date, posLabel: weg[lj].posLabel || weg[lj].posId });
+    nutzlast = liste.length ? JSON.stringify(liste) : appUrl;
+  }
   if (nutzlast.length > 4900) return e.string(400, 'zu viele Termine fuer eine Mail');
 
   var angelegt = 0, aktualisiert = 0, geloescht = 0;

@@ -104,15 +104,17 @@ import { dirname, join } from 'path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const adminHtml = readFileSync(join(root, 'admin.html'), 'utf8');
 
-test('admin.html legt Records ausschließlich über pbPost an (nie per eigenem fetch)', () => {
+test('admin.html geht nie per eigenem fetch an die records-API', () => {
   const eigenesFetch = adminHtml.match(/fetch\(\s*[^)]*\/api\/collections\/[^)]*records/g) || [];
   eq(eigenesFetch.length, 0,
      'ein direktes fetch() auf die records-API umgeht die Anlage-Drossel in pb.js');
-  ok(/pbPost\('\/api\/collections\/assignments\/records'/.test(adminHtml),
-     'die Slot-Anlage der Einladung geht über pbPost');
 });
 
-test('admin.html meldet den Fortschritt, wenn viele Termine angelegt werden', () => {
-  ok(/Termine werden angelegt/.test(adminHtml),
-     'ohne Rückmeldung sieht die gedrosselte Anlage aus, als hinge das Fenster');
+// Seit v0.11.0 legt der SERVER die Termine an (POST /notify, eine Transaktion). Die frühere
+// Schleife im Browser samt Fortschrittsanzeige ist damit gegenstandslos — und darf nicht
+// zurückkommen: Sie war der Weg, der in die Mengengrenze lief.
+test('admin.html legt Einsätze nicht mehr selbst an — das macht der Server', () => {
+  ok(!/pbPost\('\/api\/collections\/assignments\/records'/.test(adminHtml),
+     'die Slot-Anlage gehört in die Transaktion des Endpoints, nicht in den Browser');
+  ok(/notify\(\{/.test(adminHtml), 'die Admin-Ansicht sendet über notify()');
 });

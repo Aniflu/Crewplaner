@@ -541,7 +541,7 @@ body {
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.10.6</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.11.0</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -1366,10 +1366,8 @@ async function sendStaffInvite() {
   // (dort fehlt das /Crewplaner/-Präfix → window.location.origin+'/login.html' = 404).
   const appUrl   = 'https://crewplanner.nyxlightwork.de/login.html';
   try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id: _wrkPbPlanId, crew_name: name, crew_email: email,
-      type: 'staff_invite', plan_name: planName, app_url: appUrl
-    });
+    await notify({ type: 'staff_invite', planId: _wrkPbPlanId, crewName: name,
+                   crewEmail: email, planName, appUrl });
     adminToast('Einladung gesendet ✓', 'var(--show)');
     document.getElementById('inviteName').value  = '';
     document.getElementById('inviteEmail').value = '';
@@ -1601,11 +1599,9 @@ function sendAdminEmail(crewName, type) {
       ? `Einladung zu <strong>${esc(_wrkPlanName)}</strong> — Crew bestätigt ihre Einsätze in der App.`
       : `Erinnerung, ausstehende Einsätze für <strong>${esc(_wrkPlanName)}</strong> zu bestätigen.`,
     sender: async (customText) => {
-      await pbPost('/api/collections/crew_invites/records', {
-        plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: meta.email,
-        type, plan_name: _wrkPlanName, app_url: 'https://crewplanner.nyxlightwork.de',
-        ...(customText ? { custom_message: customText } : {})
-      });
+      await notify({ type, planId: _wrkPbPlanId, crewName, crewEmail: meta.email,
+                     planName: _wrkPlanName, appUrl: 'https://crewplanner.nyxlightwork.de',
+                     ...(customText ? { customMessage: customText } : {}) });
       adminToast(`${label} gesendet an ${crewName} ✓`, 'var(--show)');
     }
   });
@@ -1644,21 +1640,16 @@ function sendAdminInvite(crewName) {
       // PocketBase-Regel `*:create` erlaubt 20). Bei einer neu eingeplanten Person mit vielen
       // Terminen dauert das deshalb spürbar; ohne Rückmeldung sähe es aus, als hinge das
       // Fenster. Genau so war es gemeldet worden — nur mit „Too many requests" statt Warten.
-      const neue = slots.filter(s => !s.hasRecord);
-      let fertig = 0;
-      for (const s of neue) {
-        if (neue.length > 10) adminToast(`Termine werden angelegt … ${fertig} von ${neue.length}`, 'var(--accent)', 20000);
-        await pbPost('/api/collections/assignments/records', {
-          plan_id: _wrkPbPlanId, date: s.date, pos_id: s.posId, pos_label: s.posLabel,
-          crew_name: crewName, crew_email: meta.email, status: 'proposed', proposed_by: 'bulk'
-        });
-        fertig++;
-      }
-      await pbPost('/api/collections/crew_invites/records', {
-        plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: meta.email,
-        type: 'invite', plan_name: _wrkPlanName,
-        app_url: JSON.stringify(slots.map(s => ({ date: s.date, posLabel: s.posLabel }))),
-        ...(customText ? { custom_message: customText } : {})
+      // EIN Aufruf (v0.11.0). Vorher: eine Anlage pro Termin, dann die Mail — genau der
+      // Weg, der bei 25 Terminen in die Mengengrenze lief (20 Anlagen pro 5 Sekunden) und
+      // auf halber Strecke stehenbleiben konnte.
+      await notify({
+        type: 'invite', planId: _wrkPbPlanId, crewName, crewEmail: meta.email,
+        planName: _wrkPlanName,
+        slots: slots.filter(s => !s.hasRecord)
+                    .map(s => ({ date: s.date, posId: s.posId, posLabel: s.posLabel })),
+        mailSlots: slots.map(s => ({ date: s.date, posLabel: s.posLabel })),
+        ...(customText ? { customMessage: customText } : {})
       });
       adminToast(`Einladung gesendet an ${crewName} ✓ (${slots.length} Termine)`, 'var(--show)');
     }
@@ -1683,11 +1674,9 @@ function sendAdminUpdate(crewName) {
     intro: `${slots.length} aktualisierte Einsätze — Crew bestätigt erneut.`,
     slots,
     sender: async (customText) => {
-      await pbPost('/api/collections/crew_invites/records', {
-        plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: meta.email,
-        type: 'update', plan_name: _wrkPlanName, app_url: JSON.stringify(slots),
-        ...(customText ? { custom_message: customText } : {})
-      });
+      await notify({ type: 'update', planId: _wrkPbPlanId, crewName, crewEmail: meta.email,
+                     planName: _wrkPlanName, mailSlots: slots,
+                     ...(customText ? { customMessage: customText } : {}) });
       adminToast(`Update gesendet an ${crewName} ✓`, 'var(--show)');
     }
   });
@@ -1763,24 +1752,17 @@ function cancelSelectNext() {
     intro: `${chosen.length} Einsätze werden aus dem Plan entfernt und ${esc(crewName)} per E-Mail informiert.`,
     slots: chosen,
     sender: async (customText) => {
-      // 1) Status-Records der gewählten Slots löschen
-      for (const s of chosen) {
-        try {
-          const data = await pbList('assignments',
-            `plan_id = "${_wrkPbPlanId}" && date = "${s.date}" && pos_id = "${s.posId}"`);
-          for (const row of (data?.items || [])) {
-            await pbDelete('/api/collections/assignments/records/' + row.id);
-          }
-          if (_wrkAssignmentStatuses[s.date]) delete _wrkAssignmentStatuses[s.date][s.posId];
-        } catch(e) { console.warn('[absage] Slot-Löschung:', e.message); }
-      }
-      // 2) Absage-Mail (mit Freitext)
-      await pbPost('/api/collections/crew_invites/records', {
-        plan_id: _wrkPbPlanId, crew_name: crewName, crew_email: email,
-        type: 'cancellation', plan_name: _wrkPlanName,
-        app_url: JSON.stringify(chosen.map(s => ({ date: s.date, posLabel: s.posLabel }))),
-        ...(customText ? { custom_message: customText } : {})
+      // Löschen UND Absage-Mail in einer Transaktion (v0.11.0). Vorher lief eine
+      // Löschschleife vorweg: brach sie ab, war die Hälfte der Einsätze weg und die Absage
+      // nie verschickt — die Person stand ohne Termine da, ohne es zu erfahren.
+      await notify({
+        type: 'cancellation', planId: _wrkPbPlanId, crewName, crewEmail: email,
+        planName: _wrkPlanName,
+        removeSlots: chosen.map(s => ({ date: s.date, posId: s.posId, posLabel: s.posLabel })),
+        ...(customText ? { customMessage: customText } : {})
       });
+      for (const s of chosen)
+        if (_wrkAssignmentStatuses[s.date]) delete _wrkAssignmentStatuses[s.date][s.posId];
       adminToast(`Absage gesendet an ${crewName} ✓`, 'var(--show)');
       renderAdminNotify();
     }

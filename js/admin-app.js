@@ -16,7 +16,7 @@ import { esc, showToast } from './utils.js';
 import { normEmail, mergeCrewDirectory, renameInPlanData } from './pure.js';
 import { openModal, closeModal } from './modals.js';
 import { renderEmailLog } from './emailLog.js';
-import { loadAssignmentStatuses, loadCrewMeta, createPoolMember } from './dataService.js';
+import { loadAssignmentStatuses, loadCrewMeta, createPoolMember, notify } from './dataService.js';
 import { POOL_PLAN_ID } from './config.js';
 import { generatePDF, openPDFFilter, pdfSetView, pdfToggleAll } from './pdf.js';
 // HINWEIS: KEIN Import von calendar.js generateICS mehr — admin.html hat eine eigene
@@ -42,6 +42,9 @@ window.closeModal = closeModal;
 window.renderEmailLog = renderEmailLog;
 window.loadAssignmentStatuses = loadAssignmentStatuses;
 window.loadCrewMeta = loadCrewMeta;
+// admin.html ist ein klassisches Inline-Skript und kann nicht importieren — der eine
+// Mail-/Schreibweg kommt wie alles andere von hier.
+window.notify = notify;
 // admin.html ist ein klassisches Inline-Skript und kann nicht importieren — Pool-Sentinel und
 // Anlege-Funktion kommen von hier. Beide erst INNERHALB von Funktionen lesen, dieses Modul
 // läuft nach dem Inline-Skript (siehe Kommentar dort).

@@ -8,7 +8,7 @@ import { getVal, isPending, isPencilled, esc, showToast, sortInsert, fmtD, sameC
 import { TYPE_OPTS, typeFromLabel, saveCustomType } from './types.js';
 import { renderTable } from './render.js';
 import { pbDelete } from './pb.js';
-import { cancelProposal, bulkCancelProposals, bulkProposeCrew as proposeCrew, loadAssignmentStatuses, confirmAssignment, pencilInAssignment, promotePencilledToProposed, softCancelAssignment, removeAssignmentSlot } from './dataService.js';
+import { cancelProposal, bulkCancelProposals, loadAssignmentStatuses, confirmAssignment, pencilInAssignment, promotePencilledToProposed, softCancelAssignment, removeAssignmentSlot } from './dataService.js';
 import { openBulkStatusModal } from './bulkStatus.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
 import { showPrompt, showConfirm } from './dialog.js';

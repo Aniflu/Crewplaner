@@ -3,8 +3,7 @@ import { crew, assignments, assignmentStatuses, TOUR_DATES, POSITIONS,
          CURRENT_USER_EMAIL, IS_MANAGER, crewMeta, CREW_COLORS } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
 import { showToast, isPending, getVal, esc } from './utils.js';
-import { pbPost, pbList, pbFirst } from './pb.js';
-import { bulkProposeCrew, sendCrewInvite, sendCancellationNotice,
+import { sendCrewInvite, sendCancellationNotice,
          sendUpdateNotice, loadAssignmentStatuses } from './dataService.js';
 import { hasPermission } from './rbac.js';
 import { openModal, closeModal } from './modals.js';
@@ -187,28 +186,29 @@ export async function sendInvite(crewName, type) {
   // Der Vermerk „eingeladen" wird NUR gesetzt, wenn wirklich eine Mail rausging. Ein
   // Fehlschlag muss sichtbar bleiben und die Person auf „⚪ Nicht eingeladen" stehen lassen —
   // sonst wartet der Planer auf eine Antwort, um die nie jemand gebeten wurde (v0.10.5).
-  try {
-    // Alle nicht-bestätigten Slots auf proposed setzen
-    const allSlots = _getAllSlotsForCrew(crewName, meta.email).filter(s => {
-      const existing = assignmentStatuses[s.date]?.[s.posId];
-      return !existing || existing.status !== 'confirmed';
-    });
-    // Das Anlegen ist gedrosselt (pb.js: max. 18 Anlagen pro 5 Sekunden, weil PocketBase
-    // bei 20 mit 429 abweist). Bei vielen neuen Terminen dauert das spürbar — ohne
-    // Rückmeldung sähe es aus, als hinge der Dialog.
-    if (allSlots.length) {
-      await bulkProposeCrew(allSlots, allSlots.length > 10
-        ? (fertig) => showToast(`Termine werden angelegt … ${fertig} von ${allSlots.length}`, '#e8c84a', 20000)
-        : undefined);
-    }
+  // Alle nicht-bestätigten Slots — der Server setzt sie auf „angefragt"
+  const allSlots = _getAllSlotsForCrew(crewName, meta.email).filter(s => {
+    const existing = assignmentStatuses[s.date]?.[s.posId];
+    return !existing || existing.status !== 'confirmed';
+  });
 
-    await sendCrewInvite(crewName, meta.email, type);
+  // Seit v0.11.0 EIN Aufruf: Der Server schreibt die Termine und löst die Mail in derselben
+  // Transaktion aus. Die frühere Vorab-Anlage im Browser (bulkProposeCrew) entfällt samt
+  // ihrer Drosselung und Fortschrittsanzeige — eine Anfrage kann keine Mengengrenze reißen.
+  try {
+    await sendCrewInvite(crewName, meta.email, type, allSlots);
   } catch (e) {
     showToast(`${crewName}: nicht gesendet — ${_einladungsFehlerText(e)}`, '#e84a4a');
     _renderCrewNotifyList();
     throw e;
   }
 
+  // Geschrieben hat der Server — der lokale Status muss nachziehen, sonst zeigt die Liste
+  // die Person weiter als „nicht angefragt".
+  allSlots.forEach(s => {
+    if (!assignmentStatuses[s.date]) assignmentStatuses[s.date] = {};
+    assignmentStatuses[s.date][s.posId] = { status: 'proposed', proposedBy: 'bulk', crewName };
+  });
   _saveInvite(crewName);
   const label = type === 'reminder' ? 'Erinnerung gesendet ✓' : 'Einladung gesendet ✓';
   showToast(`${crewName}: ${label}`, '#4ae8a0');
@@ -220,12 +220,17 @@ export async function sendUpdate(crewName) {
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
   const newSlots = _getNewSlotsForCrew(crewName, meta.email);
   if (!newSlots.length) { showToast('Keine neuen Termine', '#5a6070'); return; }
-  await bulkProposeCrew(newSlots);
   const updateSlots = newSlots.map(s => ({
     date: s.dateLabel, posLabel: s.posLabel,
     changes: [s.loc ? s.loc : 'Neuer Termin']
   }));
-  await sendUpdateNotice(crewName, meta.email, updateSlots);
+  // Schreiben und mailen in EINEM Aufruf (v0.11.0) — kein vorgelagertes bulkProposeCrew
+  // mehr, das auf halber Strecke stehenbleiben konnte.
+  await sendUpdateNotice(crewName, meta.email, updateSlots, undefined, newSlots);
+  newSlots.forEach(s => {
+    if (!assignmentStatuses[s.date]) assignmentStatuses[s.date] = {};
+    assignmentStatuses[s.date][s.posId] = { status: 'proposed', proposedBy: 'update', crewName };
+  });
   _saveInvite(crewName);
   showToast(`${crewName}: Update gesendet ✓`, '#4ae8a0');
   _renderCrewNotifyList();

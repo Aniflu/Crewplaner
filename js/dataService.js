@@ -13,17 +13,32 @@ import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex } from './
 // ── Authentifizierte Hook-Route abrufen ───────────────────────────────────────
 // Die Routen des Hooks (/myplans, /myplan/{id}) liegen am Root, nicht unter /api —
 // pbGet passt also nicht. Anmeldung wie überall per Bearer-Token aus dem localStorage.
-async function _pbRoute(path) {
+async function _pbRoute(path, method, body) {
   const token = localStorage.getItem('pb_token');
-  const res = await fetch(POCKETBASE_URL + path, {
-    headers: token ? { Authorization: 'Bearer ' + token } : {},
-  });
+  const opts = { method: method || 'GET', headers: {} };
+  if (token) opts.headers.Authorization = 'Bearer ' + token;
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(POCKETBASE_URL + path, opts);
   if (!res.ok) {
     const err = new Error('Route ' + path + ' → HTTP ' + res.status);
     err.status = res.status;
     throw err;
   }
   return res.json();
+}
+
+// ── Ein Vorgang, eine Anfrage (v0.11.0) ───────────────────────────────────────
+// Löst alle bisherigen `pbPost` auf crew_invites ab — samt der Slot-Anlage, die ihnen
+// vorausging. Der Server schreibt Termine und Mail-Auslöser in EINER Transaktion.
+//
+// Was damit verschwindet, ist nicht nur die 429-Meldung: Vorher konnte der Vorgang auf
+// halber Strecke abbrechen — Termine angefragt, Mail nie raus, die Person wusste von
+// nichts. Das ist jetzt strukturell ausgeschlossen, nicht bloß seltener.
+export async function notify(nutzlast) {
+  return _pbRoute('/notify', 'POST', nutzlast);
 }
 
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
@@ -463,27 +478,10 @@ export async function bulkCancelProposals(posId, crewName) {
   }
 }
 
-// ── Crew für mehrere Slots auf einmal vorschlagen ─────────────────────────────
-// Läuft über applyStatusToSlots (weiter unten) — NICHT über ein eigenes Promise.all.
-//
-// Vorher stand hier genau der Fehler, vor dem der Kommentar über BULK_GLEICHZEITIG warnt:
-// ein unbegrenztes Promise.all über alle Termine, jeder Durchlauf ein pbUpsert = ZWEI
-// Anfragen (erst suchen, dann schreiben). Beim Einladen einer Person mit 25 Terminen in
-// „Provinz 2027" waren das 50 gleichzeitige Anfragen — die PocketBase-Drosselung antwortete
-// mit 429, unten rechts stand „Too many requests" und die Einladung ging nicht raus (v0.10.5).
-//
-// applyStatusToSlots sucht EINMAL für den ganzen Plan, schreibt in Fünfergruppen und
-// wiederholt nach einem 429. Es setzt bei Ziel 'proposed' von sich aus proposed_by='bulk' —
-// dieselbe Kennzeichnung wie vorher, an der der Hook die Sammelaktion erkennt und die
-// per-Slot-Anfragemail unterdrückt (der Aufrufer schickt seine eigene Einladungs-/Update-Mail).
-export async function bulkProposeCrew(slots, aufFortschritt) {
-  if (!SUPABASE_ENABLED || !slots.length) return;
-  await applyStatusToSlots(
-    slots.map(s => ({ date: s.date, posId: s.posId, name: s.crewName, email: s.crewEmail })),
-    'proposed',
-    aufFortschritt
-  );
-}
+// bulkProposeCrew ist mit v0.11.0 entfallen: Die Slot-Anlage vor einer Mail macht jetzt der
+// Server in derselben Transaktion (POST /notify). Eine gedrosselte Massen-Anlage im Browser
+// gibt es weiterhin — applyStatusToSlots — aber sie gehoert zum Sammel-Statuswechsel, nicht
+// zum Mailversand.
 
 // ── Slot vorläufig vormerken (Manager, Fernzukunft, KEIN Mailversand) ─────────
 // status='pencilled' ist dem Hook unbekannt (main.pb.js prüft nur 'proposed'/'declined')
@@ -722,14 +720,14 @@ export async function sendCancellationNotice(crewName, crewEmail, slots) {
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
   try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id: planId, crew_name: crewName, crew_email: crewEmail,
-      type: 'cancellation', plan_name: planName,
-      app_url: JSON.stringify(slots)
-    });
+    // removeSlots: Die Absage LOESCHT Records. Bisher tat das der Browser in einer eigenen
+    // Schleife vor dem Mailversand — brach sie ab, war die Haelfte weg und die Mail nie raus.
+    await notify({ type: 'cancellation', planId, crewName, crewEmail, planName,
+                   removeSlots: slots });
   } catch (e) {
     console.warn('sendCancellationNotice Fehler:', e.message);
     _showMailError(e.message);
+    throw e;
   }
 }
 
@@ -741,11 +739,7 @@ export async function sendAvailabilityNotice(crewName, crewEmail, slots) {
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
   try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id: planId, crew_name: crewName, crew_email: crewEmail,
-      type: 'availability', plan_name: planName,
-      app_url: JSON.stringify(slots)
-    });
+    await notify({ type: 'availability', planId, crewName, crewEmail, planName, slots });
   } catch(e) {
     console.warn('sendAvailabilityNotice Fehler:', e.message);
     _showMailError(e.message);
@@ -775,32 +769,28 @@ function _schlankeSlots(slots) {
   });
 }
 
-const APP_URL_GRENZE = 5000;   // Feldlänge in crew_invites.app_url
+// APP_URL_GRENZE ist entfallen (v0.11.0): Die Feldgrenze prueft jetzt der Hook — dort gilt sie.
 
-export async function sendUpdateNotice(crewName, crewEmail, slots, customMessage) {
+// `slots` = was in die MAIL soll · `schreibSlots` = was als Anfrage geschrieben wird.
+// Die beiden sind nicht dasselbe: Die Mail traegt kind/to/aid (Quittung), der Schreibvorgang
+// braucht date/posId. Frueher lief das Schreiben getrennt ueber bulkProposeCrew davor.
+export async function sendUpdateNotice(crewName, crewEmail, slots, customMessage, schreibSlots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
-  const nutzlast = JSON.stringify(_schlankeSlots(slots));
-
-  // Sollte es je wieder eng werden, soll dastehen WAS zu tun ist — nicht die rohe
-  // Datenbankmeldung über eine Feldlänge, mit der niemand etwas anfangen kann.
-  if (nutzlast.length > APP_URL_GRENZE) {
-    const msg = `Zu viele Änderungen für eine Mail (${slots.length} Einsätze). `
-              + 'Bitte in zwei Durchgängen senden: erst einen Teil anhaken, dann den Rest.';
-    _showMailError(msg);
-    throw new Error(msg);
-  }
-
+  // Die Laengenpruefung liegt jetzt im Hook — dort, wo die Feldgrenze gilt. proposedBy
+  // 'update' MUSS mit: userView.js liest den Wert wieder aus, um geaenderte Slots zu
+  // erkennen. Auf 'bulk' vereinheitlicht waere die Kennzeichnung still verloren.
   try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id: planId, crew_name: crewName, crew_email: crewEmail,
-      type: 'update', plan_name: planName,
-      app_url: nutzlast,
-      ...(customMessage ? { custom_message: customMessage } : {})
-    });
+    await notify({ type: 'update', planId, crewName, crewEmail, planName,
+                   slots: schreibSlots || [], proposedBy: 'update',
+                   // mailSlots getrennt von slots: In die Mail gehoeren kind/to/aid — die
+                   // `aid` traegt die Quittung fuer den „GESEHEN ✓"-Knopf. Aus date/posId
+                   // ist das nicht ableitbar, deshalb schickt der Client es mit.
+                   mailSlots: _schlankeSlots(slots),
+                   ...(customMessage ? { customMessage } : {}) });
   } catch(e) {
     console.warn('sendUpdateNotice Fehler:', e.message);
     _showMailError(e.message);
@@ -809,9 +799,8 @@ export async function sendUpdateNotice(crewName, crewEmail, slots, customMessage
 }
 
 // ── Crew einladen / Erinnerung schicken (E-Mail via Pocketbase-Hook) ──────────
-export async function sendCrewInvite(crewName, crewEmail, type) {
+export async function sendCrewInvite(crewName, crewEmail, type, slots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
-  // Hook-Trigger: temporären invite-Record anlegen, Hook sendet Mail und löscht ihn
   const planId = await _getActivePlanId();
   if (!planId) return;
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
@@ -822,10 +811,8 @@ export async function sendCrewInvite(crewName, crewEmail, type) {
   const _range = _dates.length>=2 ? ' · '+_fmt(_dates[0])+'–'+_fmt(_dates[_dates.length-1]) : '';
   const planNameDisplay = planName + _range;
   try {
-    await pbPost('/api/collections/crew_invites/records', {
-      plan_id: planId, crew_name: crewName, crew_email: crewEmail,
-      type, plan_name: planNameDisplay, app_url: appUrl
-    });
+    await notify({ type, planId, crewName, crewEmail,
+                   planName: planNameDisplay, appUrl, slots: slots || [] });
   } catch (e) {
     console.warn('sendCrewInvite Fehler:', e.message);
     _showMailError(e.message);

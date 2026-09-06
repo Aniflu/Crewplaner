@@ -129,13 +129,16 @@ test('gesendet wird nur, was der Hook liest — und das passt ins Feld', async (
   await g.dataService.sendUpdateNotice('Wolf', 'wolf@example.com', slots);
 
   ok(gesendet, 'es wurde nichts gesendet');
-  ok(gesendet.app_url.length < 5000,
-     'Nutzlast über der Feldgrenze: ' + gesendet.app_url.length + ' Zeichen');
+  // Seit v0.11.0 geht die Nutzlast als `mailSlots` an POST /notify; der Hook schreibt sie
+  // nach app_url und prueft dort die Feldgrenze. Die Zusage bleibt dieselbe: schlank genug,
+  // und die aids muessen vollstaendig ankommen.
+  const roh = JSON.stringify(gesendet.mailSlots || []);
+  ok(roh.length < 5000, 'Nutzlast über der Feldgrenze: ' + roh.length + ' Zeichen');
 
-  const raus = JSON.parse(gesendet.app_url);
+  const raus = gesendet.mailSlots;
   eq(raus.length, 59, 'es müssen alle Einsätze mit — nur schlanker');
-  ok(!/posLabel|"date"|changes/.test(gesendet.app_url),
-     'ungenutzte Felder werden weiter mitgeschickt: ' + gesendet.app_url.slice(0, 200));
+  ok(!/posLabel|"date"|changes/.test(roh),
+     'ungenutzte Felder werden weiter mitgeschickt: ' + roh.slice(0, 200));
   // Die aids tragen die Quittung — fällt eine weg, bleibt die Absage dauerhaft offen.
   eq(raus.filter(s => s.aid).length, 40, 'aids unvollständig');
   eq(raus.filter(s => s.to === 'pencilled').length, 19, 'Statuswechsel unvollständig');

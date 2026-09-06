@@ -6,7 +6,7 @@ import { SUPABASE_ENABLED, POCKETBASE_URL } from './config.js';
 import { getVal, isPending, esc, showToast, fmtD, sameCrew } from './utils.js';
 import { pbPatch, pbPost, pbFirst } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
-         bulkProposeCrew, sendAvailabilityNotice, loadPlanForCrew, loadCrewMeta,
+         sendAvailabilityNotice, loadPlanForCrew, loadCrewMeta,
          loadCrewPlans, ackCancelledAssignments } from './dataService.js';
 import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable, resetTodayAutoScroll } from './render.js';
@@ -940,29 +940,28 @@ async function _sendUpdateForEntry(name, entry, customText) {
     const wanted = new Set(normal.map(s => s.date + '|' + (s.posId || '')));
     let newSlots = allNew.filter(s => wanted.has(s.date + '|' + s.posId));
     if (!newSlots.length && normal.length) newSlots = allNew;   // Fallback (Legacy-Slots ohne posId)
-    if (newSlots.length) await bulkProposeCrew(newSlots);
     const mailSlots = newSlots.map(s => ({ date: s.date, posLabel: s.posLabel, kind: 'new', changes: ['Neuer Termin'] })).concat(removedMail, statusMail);
-    if (mailSlots.length) await sendUpdateNotice(name, entry.email, mailSlots, customText);
+    // Schreiben und mailen in EINEM Aufruf (v0.11.0): frueher lief bulkProposeCrew davor
+    // und konnte auf halber Strecke stehenbleiben — Termine angefragt, Mail nie raus.
+    if (mailSlots.length) await sendUpdateNotice(name, entry.email, mailSlots, customText, newSlots);
     return;
   }
   // Änderung an bestehenden Einsätzen: vorhandene Records auf proposed setzen + mailen.
   const newSlots = _getNewSlotsForCrew(name, entry.email);
-  if (newSlots.length) await bulkProposeCrew(newSlots);
-  const planId = localStorage.getItem('tourplan_active_pb_id');
+  // Die bestehenden Einsaetze, die wieder angefragt werden sollen, aufloesen (posLabel → posId).
+  // Frueher folgte darauf eine PATCH-Schleife: ein Suchen und ein Schreiben pro Slot, alles
+  // einzeln und keins davon zusammenhaengend. Jetzt gehen sie mit dem Rest in EINEN Aufruf.
+  const wieder = [];
   for (const slot of normal) {
     const day = assignmentStatuses[slot.date];
     const posId = day ? Object.keys(day).find(p => {
       const pos = POSITIONS.find(pp => pp.id === p);
       return (pos?.label || p) === slot.posLabel && day[p].crewName === name;
     }) : null;
-    if (posId && planId) {
-      const existing = await pbFirst('assignments',
-        `plan_id = "${planId}" && date = "${slot.date}" && pos_id = "${posId}"`);
-      if (existing) await pbPatch('/api/collections/assignments/records/'+existing.id,
-        { status: 'proposed', proposed_by: 'update' });
-    }
+    if (posId) wieder.push({ date: slot.date, posId, posLabel: slot.posLabel });
   }
-  await sendUpdateNotice(name, entry.email, normal.concat(removedMail, statusMail), customText);
+  await sendUpdateNotice(name, entry.email, normal.concat(removedMail, statusMail), customText,
+                         newSlots.concat(wieder));
 }
 
 export async function _sendSelectedUpdates() {

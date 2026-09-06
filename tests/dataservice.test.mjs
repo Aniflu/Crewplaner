@@ -272,31 +272,31 @@ function _vieleSlots(n){
   const slots = [];
   for (let i = 1; i <= n; i++) {
     const tag = '2027-06-' + String(i).padStart(2, '0');
-    slots.push({ date: tag, posId: 'gl', crewName: 'Neu Person', crewEmail: 'neu@x.de' });
+    slots.push({ date: tag, posId: 'gl', name: 'Neu Person', email: 'neu@x.de' });
   }
   return slots;
 }
 
-test('bulkProposeCrew hält die Gleichzeitigkeit bei 5 — sonst antwortet PocketBase mit 429', async () => {
+test('applyStatusToSlots hält die Gleichzeitigkeit bei 5 — sonst antwortet PocketBase mit 429', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   resetState(g); primePlan(g);
   g.state.POSITIONS.push({ id: 'gl', label: 'GL' });
 
   const z = _fetchMitGleichzeitigkeit();
-  await g.dataService.bulkProposeCrew(_vieleSlots(25));
+  await g.dataService.applyStatusToSlots(_vieleSlots(25), 'proposed');
 
   ok(z.max <= 5, `nie mehr als 5 Anfragen gleichzeitig — gemessen: ${z.max}`);
   eq(g.state.assignmentStatuses['2027-06-25']?.gl?.status, 'proposed', 'alle Slots stehen danach auf proposed');
 });
 
-test('bulkProposeCrew: ein 429 kippt nicht den ganzen Einladen-Vorgang', async () => {
+test('applyStatusToSlots: ein 429 kippt nicht den ganzen Sammel-Vorgang', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   resetState(g); primePlan(g);
   g.state.POSITIONS.push({ id: 'gl', label: 'GL' });
 
   const z = _fetchMitGleichzeitigkeit();
   z.ersterSchreibFehler = 1;                     // die allererste Schreibanfrage läuft in die Drosselung
-  await g.dataService.bulkProposeCrew(_vieleSlots(8));
+  await g.dataService.applyStatusToSlots(_vieleSlots(8), 'proposed');
 
   eq(z.schreibversuche, 9, 'der abgewiesene Slot wird genau einmal wiederholt (8 + 1)');
   eq(g.state.assignmentStatuses['2027-06-01']?.gl?.status, 'proposed', 'auch der abgewiesene Slot steht am Ende');
