@@ -47,12 +47,22 @@ bleiben auf dem direkten, gedrosselten Weg).
 
 ```
 POST /notify          (authentifiziert, wie alle bestehenden Hook-Routen)
-{ type, planId, crewName, crewEmail, slots?, customMessage? }
+{ type, planId, crewName, crewEmail,
+  slots?, removeSlots?, proposedBy?, customMessage? }
 
-→ 200 { ok: true, angelegt: 12, aktualisiert: 3 }
+→ 200 { ok: true, angelegt: 12, aktualisiert: 3, geloescht: 0 }
 → 400 unbekannter Typ oder fehlende Pflichtfelder
 → 404 das Konto darf für diese Tour nicht handeln
 ```
+
+Zwei Felder ergeben sich aus dem bestehenden Code und wurden beim ersten Entwurf übersehen:
+
+- **`removeSlots`** — die Absage in `admin.html` **löscht** vor dem Mailversand Records
+  (`pbDelete` je Slot). Ohne dieses Feld bliebe ausgerechnet der Absage-Vorgang weiterhin
+  halb-abbrechbar. Die Löschung gehört in dieselbe Transaktion.
+- **`proposedBy`** — der Crew-Update-Weg in `userView.js` schreibt `proposed_by: 'update'`,
+  und `userView.js:211` liest das wieder aus (`si?.proposedBy === 'update'` → „geändert").
+  Der Server darf das nicht auf `'bulk'` vereinheitlichen. Standard bleibt `'bulk'`.
 
 **404 statt 403** — wortgleich zu `/myplan` und `/planstatus`: die Ablehnung verrät nicht,
 ob es die Tour überhaupt gibt.
