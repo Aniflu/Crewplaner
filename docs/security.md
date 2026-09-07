@@ -31,6 +31,28 @@ Zwei Dinge, die dabei nebenbei geschlossen wurden und in keinem Befund standen:
 
 ---
 
+## Nachtrag 2026-09-07 (v0.11.0) — Mail-Auslöser nur noch serverseitig
+
+`crew_invites.createRule` steht jetzt auf **leer** (nur Server). Vorher durfte jeder
+Plan-Owner — und für `type = "availability"` **jedes** angemeldete Konto — direkt einen
+Datensatz anlegen und damit eine echte Mail über die eigene Domain auslösen. Seit dem
+`POST /notify`-Endpoint braucht das kein Browser mehr. Gemessen auf Test: direkter Zugriff
+**403**, App-Weg über den Hook **200**.
+
+⚠️ Die Regel überlebt einen Redeploy/Reimport nicht zuverlässig — Prüfschritt in
+`docs/admin-runbook-hook-deploy.md`.
+
+**Weiterhin offen, eigener Vorgang:**
+
+| Befund | Regel | Warum noch offen |
+|---|---|---|
+| `assignments.createRule` = `@request.auth.id != ""` | jedes Konto darf in **jeder** Tour Einsätze anlegen (`deleteRule` ebenso) | Zumachen erst möglich, wenn auch Vormerkungen und Statuswechsel serverseitig laufen |
+| `crew_invites.listRule`/`viewRule` = `@request.auth.id != ""` | jedes Konto kann **alle** Auslöse-Datensätze lesen — samt `crew_email` jeder Person | inhaltlich derselbe Befund wie K-2, nur in einer anderen Collection; nach v0.11.0 liest das Frontend die Collection gar nicht mehr, die Regeln könnten also zu |
+| `crew_invites` wächst unbegrenzt | — | der Hook löscht den Auslöse-Record nach dem Versand nicht, obwohl ein Kommentar im Code das behauptet |
+
+
+---
+
 ## Resend-Schlüssel im Git-Verlauf (2026-08-05) — kein Handlungsbedarf
 
 Beim Aufräumen gefunden: In `CHANGELOG.md` stand seit **v0.9.3 (Commit `37b414d`)** ein

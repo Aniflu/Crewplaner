@@ -118,3 +118,28 @@ ssh «SERVER» 'cp /root/backups/pb-hooks/main.pb.js.live.<ZEITSTEMPEL> \
 Die Hook-Version in der Übersicht nachziehen. Beim v4.22-Deploy unterblieb das — die Doku
 nannte noch v4.21, während längst v4.22 lief. Wer dann einen Fehler sucht, sucht am falschen
 Stand.
+
+## ⚠️ Nach jedem Redeploy/Reimport: `crew_invites.createRule` prüfen
+
+Seit v0.11.0 legt **kein Browser mehr** einen Mail-Auslöser an — das macht ausschließlich
+`POST /notify`. Deshalb steht die Regel auf **leer** (nur Server). Eine Collection-Regel
+überlebt einen Redeploy oder einen Schema-Reimport aber nicht zuverlässig; steht sie wieder
+offen, kann jedes angemeldete Konto direkt einen Datensatz anlegen und damit eine echte Mail
+über die eigene Domain auslösen.
+
+Prüfen (als Superuser):
+
+```
+GET {base}/api/collections   →  crew_invites.createRule  MUSS null/leer sein
+```
+
+Gegenprobe mit einem normalen Konto: ein `POST` auf `/api/collections/crew_invites/records`
+muss **403** ergeben, während eine Einladung über die App weiterhin funktioniert (der Hook
+läuft mit Server-Rechten und unterliegt der Regel nicht — am 2026-09-07 auf Test so gemessen:
+direkt 403, über `/notify` 200).
+
+**Vorherige Fassung**, falls je zurückgerollt werden muss:
+
+```
+@request.auth.role = "superadmin" || (@request.auth.id != "" && type = "availability") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)
+```
