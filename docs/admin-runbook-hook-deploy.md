@@ -4,6 +4,10 @@ Der verbindliche Weg. Die älteren Runbooks (`golive`, `registrierungs-sperre`, 
 `umzug-zwei-umgebungen`) zeigten einen Einzeiler, der **so nicht mehr benutzt werden soll** —
 warum, steht unten.
 
+> Alle `«…»` sind Platzhalter — die echten Werte stehen in `.claude.local.md`, nicht im
+> Repo. Das Repo ist öffentlich; `tests/privacy.test.mjs` hält dagegen und wird rot,
+> sobald eine Server-Kennung hier landet (genau das ist beim Schreiben passiert).
+
 ---
 
 ## ⚠️ Warum nicht `curl -o` direkt ins Volume
@@ -32,10 +36,10 @@ Fassung ins Backup. `set -e` bricht bei jedem Fehlschlag ab.
 **Test** (ermittelt Volume und Container selbst, bricht ab, wenn sie nicht eindeutig sind):
 
 ```bash
-ssh hetzner 'set -e
+ssh «SERVER» 'set -e
 URL=https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js
-V=$(docker volume ls --format "{{.Name}}" | grep -i pocketbase-hooks | grep -v "^ad9adhhkygjreidi79i4v5eb_")
-C=$(docker ps --format "{{.Names}}" | grep -i pocketbase | grep -v "^pocketbase-ad9adhhkygjreidi79i4v5eb$")
+V=$(docker volume ls --format "{{.Name}}" | grep -i pocketbase-hooks | grep -v "«PB-HOOKS-VOLUME-LIVE»")
+C=$(docker ps --format "{{.Names}}" | grep -i pocketbase | grep -v "«PB-CONTAINER-LIVE»")
 { [ -n "$V" ] && [ "$(echo "$V" | wc -l)" -eq 1 ]; } || { echo "ABBRUCH — Volume nicht eindeutig:"; echo "$V"; exit 1; }
 { [ -n "$C" ] && [ "$(echo "$C" | wc -l)" -eq 1 ]; } || { echo "ABBRUCH — Container nicht eindeutig:"; echo "$C"; exit 1; }
 echo "Volume: $V · Container: $C"
@@ -52,7 +56,7 @@ docker restart "$C"'
 **Live:**
 
 ```bash
-ssh hetzner 'set -e
+ssh «SERVER» 'set -e
 URL=https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js
 VOL=/var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data
 curl -fsSL "$URL" -o /tmp/main.pb.js
@@ -78,7 +82,7 @@ ist die Route wirklich neu da.
 
 ```bash
 # Version im Log
-ssh hetzner 'docker logs --tail 30 «PB-CONTAINER-LIVE» | grep "main.pb.js v"'
+ssh «SERVER» 'docker logs --tail 30 «PB-CONTAINER-LIVE» | grep "main.pb.js v"'
 
 # Neue Route + Kontrolle
 curl -s -o /dev/null -w "neu:       %{http_code}\n" -X POST https://api.crewplanner.nyxlightwork.de/notify
@@ -104,7 +108,7 @@ deshalb heißen, dass gar nichts gemessen wurde.
 Die Backups aus dem Deploy liegen unter `/root/backups/pb-hooks/`:
 
 ```bash
-ssh hetzner 'cp /root/backups/pb-hooks/main.pb.js.live.<ZEITSTEMPEL> \
+ssh «SERVER» 'cp /root/backups/pb-hooks/main.pb.js.live.<ZEITSTEMPEL> \
   /var/lib/docker/volumes/«PB-HOOKS-VOLUME-LIVE»/_data/main.pb.js \
   && docker restart «PB-CONTAINER-LIVE»'
 ```
