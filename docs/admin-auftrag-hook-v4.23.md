@@ -1,5 +1,20 @@
 # Auftrag an den Admin — Hook v4.23 deployen (POST /notify)
 
+> ✅ **Erledigt am 2026-09-07.** v4.23 auf Test und Live, beide identisch mit GitHub `main`
+> (sha `eb2a042c…4aadb9`), Container healthy, RestartCount 0. Gemessen **mit Kontrollprobe**:
+> `POST /notify` 404 → **401**, während die erfundene Kontroll-URL bei 404 blieb — erst das
+> beweist, dass die Route wirklich neu da ist. Keine Regression (`/api/health` 200,
+> `/viewplan/ungueltig` 404, CORS unverändert). Backups der v4.22 liegen auf dem Server.
+>
+> ⚠️ **Noch NICHT gemessen: der Erfolgspfad** mit gültigem Owner-Token — dass die Route also
+> Slots anlegt und die Mail auslöst. „Geladen ist nicht gewirkt" (Lehre aus v4.17/v4.22).
+> Das ist der nächste Schritt, siehe unten.
+>
+> 📌 **Die Befehle in diesem Auftrag waren fehlerhaft** und wurden vom Admin bewusst nicht so
+> ausgeführt: `curl -o` direkt ins Volume schreibt bei einem GitHub-Fehler die Fehlerseite in
+> `main.pb.js`, und `&&` sieht nur curls Exit-Code — der Restart liefe mit kaputtem Hook.
+> Der richtige Weg steht jetzt in **`docs/admin-runbook-hook-deploy.md`**.
+
 **Datum:** 2026-09-06 · **Betrifft:** `.pb_hooks/main.pb.js` (v4.22 → v4.23)
 **Frontend:** v0.11.0 liegt auf `main` (Test) — **noch NICHT auf `live`.**
 

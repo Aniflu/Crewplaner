@@ -46,6 +46,9 @@ Konkrete „mach jetzt das"-Anleitung für den Server-Admin. Ausführliche Hinte
    `@request.auth.id != ""` zurückgefallen sein.
 7. **Hook v4.11 deployen** (Container-Name + Hooks-Volume-Pfad der neuen Instanz einsetzen):
 
+   > ⚠️ **Überholt** (2026-09-07): `curl -s` ohne `-f` schreibt auch eine Fehlerseite in
+   > `main.pb.js`, `&&` prüft nur den Exit-Code. Verbindlich ist `docs/admin-runbook-hook-deploy.md`.
+
    ```bash
    ssh «SERVER» "curl -s -o <TEST-HOOKS-VOLUME>/main.pb.js \
      https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \

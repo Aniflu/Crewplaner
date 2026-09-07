@@ -47,6 +47,12 @@ Danach registriert sich Marco normal über die Login-Seite und ist sofort Supera
 
 **Test** (Container-Name und Hooks-Pfad der Test-PB einsetzen):
 
+> ⚠️ **Der folgende Einzeiler ist überholt** (2026-09-07). `curl -s` ohne `-f` schreibt
+> auch eine GitHub-Fehlerseite in `main.pb.js`, und `&&` prüft nur den Exit-Code, nicht den
+> Inhalt — der Restart liefe mit kaputtem Hook, während die alte Fassung schon überschrieben
+> ist. Verbindlich ist jetzt **`docs/admin-runbook-hook-deploy.md`** (erst nach `/tmp`,
+> Version und sha256 prüfen, Backup, dann kopieren). Der Block bleibt als Verlauf stehen.
+
 ```bash
 ssh «SERVER» "curl -s -o <TEST-HOOKS-PFAD>/main.pb.js \
   https://raw.githubusercontent.com/Aniflu/Crewplaner/main/.pb_hooks/main.pb.js \
