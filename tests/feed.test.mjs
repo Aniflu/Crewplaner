@@ -92,3 +92,31 @@ test('Hook /ics: der Kalendername ist nicht mehr fest verdrahtet', () => {
   ok(!/X-WR-CALNAME:Crewplaner['"]/.test(icsRoute),
      'X-WR-CALNAME steht wieder fest auf „Crewplaner" — zwei Touren ergeben zwei gleichnamige Abos');
 });
+
+// ── Tourname im sichtbaren Titel (v0.12.0) ────────────────────────────────────
+// Der Kalendername (X-WR-CALNAME) trägt den Tournamen seit v0.10.4 — in der Monatsansicht
+// sieht man davon aber nichts, dort zählt allein SUMMARY. Wer in zwei Touren steht, las
+// deshalb bloß „Reisetag" und wusste nicht, zu welcher Tour der Tag gehört.
+test('Hook /ics: der sichtbare Titel beginnt mit dem Tournamen', () => {
+  ok(icsRoute, '/ics-Route nicht gefunden');
+  const titel = (icsRoute.match(/var title = [^;]+;/) || [''])[0];
+  ok(titel, 'keine Titel-Bildung in der /ics-Route gefunden');
+  ok(/m\.band/.test(titel),
+     'der Tourname (m.band) geht nicht in den Titel ein — bekommen: ' + titel);
+  // Nicht nur „kommt vor": Bis v0.12.0 stand m.band lediglich als Fallback am Ende
+  // (`[art, loc].join(': ') || m.band`) — sichtbar war er damit nie. Er muss VORNE stehen,
+  // weil Kalender in der Monatsansicht abschneiden.
+  ok(titel.indexOf('m.band') < titel.indexOf('art'),
+     'der Tourname steht nicht vorne im Titel — bekommen: ' + titel);
+});
+
+// Der Ort wandert aus dem Titel in das eigene Feld. Fehlt LOCATION in einem Ausgabeweg, ist
+// er dort komplett weg — in calendar.js und admin.html war das bis v0.12.0 der Fall.
+test('alle vier ICS-Wege setzen LOCATION (sonst geht der Ort verloren)', () => {
+  const root2 = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const ohne = [];
+  for (const f of ['js/pure.js', 'js/calendar.js', 'admin.html', '.pb_hooks/main.pb.js'])
+    if (!/LOCATION/.test(readFileSync(join(root2, f), 'utf8'))) ohne.push(f);
+  ok(ohne.length === 0,
+     'ohne LOCATION: ' + ohne.join(', ') + ' — dort sieht niemand mehr, wo der Termin ist');
+});

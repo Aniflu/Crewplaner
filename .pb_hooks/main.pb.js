@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.23
-console.log('[hook] main.pb.js v4.23 geladen');
+// Version: 4.24
+console.log('[hook] main.pb.js v4.24 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -1109,7 +1109,7 @@ routerAdd('GET', '/ics/{token}/{plan}', function(e) {
   // nicht den des Termins.
   var stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
 
-  var out = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Crewplaner//Feed v4.22//DE',
+  var out = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Crewplaner//Feed v4.24//DE',
              'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
              'X-WR-CALNAME:' + icsEsc(kalName), 'NAME:' + icsEsc(kalName)];
   for (var k = 0; k < keys.length; k++) {
@@ -1118,7 +1118,13 @@ routerAdd('GET', '/ics/{token}/{plan}', function(e) {
     var dm = m.dates[d.date] || {};
     var loc = dm.loc || '';
     var art = dm.typeLabel || dm.type || '';
-    var title = [art, loc].filter(Boolean).join(': ') || m.band;
+    // Sichtbarer Titel = „Tour · Art" (v4.24). Der Tourname steht VORNE, weil Kalender in
+    // der Monatsansicht abschneiden — vorher stand er nur im Kalendernamen und in der
+    // Beschreibung, in der Monatsansicht las man bloss „Reisetag". Der Ort ist bewusst
+    // nicht mehr im Titel: er steht direkt darunter in LOCATION.
+    // Spiegelt icsTitel() in js/pure.js — Goja kann das Modul nicht importieren, deshalb
+    // haelt tests/feed.test.mjs beide Seiten zusammen.
+    var title = [m.band, art].filter(Boolean).join(' \u00b7 ') || m.band;
     out.push(
       'BEGIN:VEVENT',
       'UID:' + d.planId + '-' + d.date + '@crewplanner',

@@ -107,3 +107,53 @@ test('Import-Guard: kein Modul nutzt Fremd-Export ohne Import', () =>
   ok(leaks.length === 0,
      `Fehlende Imports (Bezeichner verwendet, aber nicht importiert → ReferenceError beim Aufruf):\n      ` +
      leaks.join('\n      ')));
+
+// ── Gegenrichtung: importiert, aber dort gar nicht exportiert (v0.12.0) ───────
+// Der Guard oben fängt „verwendet ohne Import". Die andere Hälfte fehlte: ein Import aus
+// einer lokalen Datei, die den Namen nie exportiert. Der Browser wirft dann schon beim
+// LADEN des Moduls („does not provide an export named …") — der ganze Einstiegspunkt
+// bleibt tot, nicht nur eine Funktion.
+//
+// Anlass: Beim Kalender-Umbau importierte calendar.js `activePlanName` aus plans.js, bevor
+// es dort existierte. Die Suite blieb grün, weil calendar.js in keinem Testgraph geladen
+// wird — aufgefallen wäre es erst im Browser.
+const importiert = [];
+for (const f of files) {
+  const s = strip(raw[f]);
+  for (const m of s.matchAll(/import\s*\{([^}]*)\}\s*from\s*''/g)) {
+    // Der Pfad wurde von strip() zu '' — deshalb aus der Rohfassung nachschlagen.
+  }
+  for (const m of raw[f].matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]\.\/([\w.-]+)['"]/g)) {
+    const ziel = m[2].endsWith('.js') ? m[2] : m[2] + '.js';
+    for (const teil of m[1].split(',')) {
+      const name = teil.trim().split(/\s+as\s+/)[0].trim();
+      if (name) importiert.push({ von: f, name, ziel });
+    }
+  }
+}
+
+test('Import-Guard: Analyzer hat Imports gefunden (Sanity)', () =>
+  ok(importiert.length > 30, `nur ${importiert.length} Imports erkannt — Scan kaputt?`));
+
+test('Import-Guard: kein Import auf einen Namen, den es dort nicht gibt', () => {
+  // NICHT über exp[] prüfen: das ordnet jedem Namen genau EINE Datei zu und liegt bei
+  // Re-Exports daneben (utils.js reicht DE_DAYS/DE_MON aus state.js weiter — beide „besitzen"
+  // den Namen). Deshalb direkt in der Zieldatei nachsehen.
+  const exportiertDort = (src, name) => {
+    const w = name.replace(/[$]/g, '\\$&');
+    if (new RegExp(`export\\s+(?:async\\s+)?(?:function\\*?|const|let|var|class)\\s+${w}\\b`).test(src)) return true;
+    for (const m of src.matchAll(/export\s*\{([^}]*)\}/g))
+      for (const teil of m[1].split(','))
+        if (teil.trim().split(/\s+as\s+/).pop().trim() === name) return true;
+    if (/export\s*\*\s*from/.test(src)) return true;   // Sternchen-Re-Export → nicht entscheidbar
+    return false;
+  };
+  const fehlt = [];
+  for (const { von, name, ziel } of importiert) {
+    if (!raw[ziel]) continue;                       // Datei außerhalb von js/ — nicht prüfbar
+    if (exportiertDort(raw[ziel], name)) continue;
+    fehlt.push(`${von} → importiert { ${name} } aus ${ziel}, das dort NICHT exportiert wird`);
+  }
+  ok(fehlt.length === 0,
+     'Der Browser bricht beim Laden dieser Module ab:\n      ' + fehlt.join('\n      '));
+});

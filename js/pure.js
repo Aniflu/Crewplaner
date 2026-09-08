@@ -183,6 +183,21 @@ export function icsExportRows(tourDates, positions, statuses, opts){
   return out;
 }
 
+// ── Sichtbarer Kalender-Titel (v0.12.0) ──────────────────────────────────────
+// „Tour · Art", z.B. „Provinz 2027 · Reisetag". Der Tourname steht VORNE, weil Kalender in
+// der Monatsansicht abschneiden — was vorne steht, sieht man sicher. Vorher hieß der Titel
+// „Art: Ort" und der Tourname stand nur in der Beschreibung; wer in mehreren Touren steht,
+// las deshalb bloß „Reisetag" und wusste nicht, zu welcher Tour der Tag gehört.
+//
+// Der Ort ist bewusst NICHT mehr im Titel — er gehört ins eigene Feld LOCATION, das
+// Kalender-Apps separat anzeigen. Jeder Ausgabeweg MUSS LOCATION setzen, sonst ist der Ort
+// dort verschwunden (in calendar.js und admin.html fehlte es bis v0.12.0).
+//
+// Fehlt eines von beidem, bleibt das andere allein stehen — nie ein hängendes Trennzeichen.
+export function icsTitel(tourName, art){
+  return [String(tourName||'').trim(), String(art||'').trim()].filter(Boolean).join(' · ');
+}
+
 // Persönlicher Crew-ICS: pro Tag NUR Band (SUMMARY) + Ort (LOCATION) + Art/Status
 // (DESCRIPTION). KEINE Positions-/Crew-Namen. rows = icsExportRows-Ausgabe (Datum +
 // Tagesstatus genutzt), dateMeta = { date: {loc, typeLabel, type} }.
@@ -205,8 +220,8 @@ export function crewIcsContent(band, rows, dateMeta){
     const [y,m,d] = String(r.date).split('-').map(Number);
     const nx = new Date(y, (m||1)-1, (d||1)+1);
     const dtEnd = `${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
-    // Sichtbarer Kalender-Titel = „Art: Ort" (Bandname wandert in die Beschreibung).
-    const title = [art, loc].filter(Boolean).join(': ') || bandName;
+    // Sichtbarer Kalender-Titel = „Tour · Art" (der Ort steht in LOCATION).
+    const title = icsTitel(bandName, art) || bandName;
     // Status ins Infofeld (v0.5.0): vorgemerkte Termine bleiben im Kalender, sind aber
     // als unverbindlich erkennbar — sichtbar im Text UND als VEVENT-STATUS.
     const stLabel = ICS_STATUS_LABEL[r.status] || '';

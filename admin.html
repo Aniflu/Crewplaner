@@ -541,7 +541,7 @@ body {
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.11.0</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.12.0</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -1850,7 +1850,8 @@ function adminGenerateICS() {
     const [y, m, d] = row.date.split('-').map(Number);
     const nx = new Date(y, m - 1, d + 1);
     const dtEnd = `${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
-    const summary = `${row.typeLabel || row.type} – ${row.loc || ''}`;
+    // Titel = „Tour · Art" (v0.12.0); der Ort steht darunter in LOCATION.
+    const summary = icsTitel(_wrkPlanName, row.typeLabel || row.type) || (row.loc || '');
     let desc = `Art: ${row.typeLabel || row.type}\\nOrt: ${row.loc || ''}`;
     desc += '\\n' + confirmed.map(c => `${c.posLabel}: ${c.crewName}`).join('\\n');
     const uid = `${row.date}-${Math.random().toString(36).slice(2)}@tourcrewplan`;
@@ -1859,6 +1860,7 @@ function adminGenerateICS() {
       `DTSTART;VALUE=DATE:${dtStart}`,
       `DTEND;VALUE=DATE:${dtEnd}`,
       `SUMMARY:${summary}`,
+      `LOCATION:${row.loc || ''}`,
       `DESCRIPTION:${desc}`,
       `UID:${uid}`,
       'END:VEVENT'

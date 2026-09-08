@@ -10,7 +10,7 @@ import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdat
          loadCrewPlans, ackCancelledAssignments } from './dataService.js';
 import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable, resetTodayAutoScroll } from './render.js';
-import { getActivePlanId, getPlansIndex } from './plans.js';
+import { getActivePlanId, getPlansIndex, activePlanName } from './plans.js';
 import { closeModal, openModal } from './modals.js';
 import { icsExportRows, ICS_STATUS_LABEL, crewIcsContent, feedUrls } from './pure.js';
 
@@ -721,21 +721,10 @@ function _updateSendButton() {
   if (btn) btn.textContent = `AUSWAHL SENDEN (${count}) →`;
 }
 
-function _activePlanName() {
-  try {
-    // Für CREW ist `tourplan_active_plan_name` die verlässliche Quelle: den schreibt
-    // loadPlanForCrew aus dem gerade geladenen PB-Plan. Der lokale getPlansIndex() ist der
-    // Manager-Zustand aus dem localStorage und kann aus einer früheren Sitzung stammen —
-    // stand er vorn, zeigte das Abo-Fenster den Namen der VORIGEN Tour („gilt nur für
-    // AMK Tour 2026", während AMK 2027 offen war). Deshalb für Crew umgekehrte Reihenfolge.
-    const stored = localStorage.getItem('tourplan_active_plan_name');
-    if (IS_CREW && stored) return stored;
-    const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
-    const byIndex = plans.find(p => p.id === getActivePlanId())?.name;
-    if (byIndex) return byIndex;
-    return stored || 'Tour Plan';
-  } catch { return 'Tour Plan'; }
-}
+// _activePlanName ist mit v0.12.0 nach plans.js gewandert (activePlanName) — der Kalender
+// braucht denselben Namen, und zwei Exemplare waeren zwei Gelegenheiten fuer den Fehler
+// aus v0.10.4. Hier nur noch der lokale Aliasname.
+const _activePlanName = activePlanName;
 function _fmtPrevDate(iso) {
   const p = String(iso || '').split('-');
   return (p.length === 3 && p[0].length === 4) ? `${p[2]}.${p[1]}.${p[0]}` : iso;

@@ -13,7 +13,7 @@ import './crewNotify.js';
 import './dialog.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
 import { esc, showToast } from './utils.js';
-import { normEmail, mergeCrewDirectory, renameInPlanData } from './pure.js';
+import { normEmail, mergeCrewDirectory, renameInPlanData, icsTitel } from './pure.js';
 import { openModal, closeModal } from './modals.js';
 import { renderEmailLog } from './emailLog.js';
 import { loadAssignmentStatuses, loadCrewMeta, createPoolMember, notify } from './dataService.js';
@@ -34,6 +34,8 @@ window.pbDelete = pbDelete;
 window.pbList = pbList;
 window.esc = esc;
 window.normEmail = normEmail;
+// Eine Titelregel fuer alle ICS-Wege (v0.12.0) — admin.html kann nicht importieren.
+window.icsTitel = icsTitel;
 window.mergeCrewDirectory = mergeCrewDirectory;
 window.renameInPlanData = renameInPlanData;
 window.showToast = showToast;

@@ -2,8 +2,9 @@
 import { TOUR_DATES, POSITIONS, assignmentStatuses, crewMeta, IS_CREW,
          CURRENT_USER_EMAIL, CURRENT_USER_ID } from './state.js';
 import { showToast } from './utils.js';
-import { icsExportRows, ICS_STATUS_LABEL } from './pure.js';
+import { icsExportRows, ICS_STATUS_LABEL, icsTitel } from './pure.js';
 import { openModal } from './modals.js';
+import { activePlanName } from './plans.js';
 
 // Eigener Crew-Name aus crewMeta (gleiche Logik wie getMyCrewName, ohne userView-Import).
 function _myCrewName(){
@@ -35,6 +36,11 @@ export function generateICS(){
     return;
   }
   const dateMeta = {}; TOUR_DATES.forEach(r => { dateMeta[r.date] = r; });
+  // Der Tourname gehoert seit v0.12.0 in den sichtbaren Titel. activePlanName() liegt in
+  // plans.js, weil die Ermittlung nicht trivial ist: Fuer Crew-Konten hat der gerade
+  // geladene Plan Vorrang vor dem lokalen Index — sonst steht der Name der VORIGEN Tour da
+  // (der Fehler aus v0.10.4).
+  const tourName = activePlanName();
 
   const lines=[
     'BEGIN:VCALENDAR',
@@ -50,7 +56,8 @@ export function generateICS(){
     const [y,m,d]=date.split('-').map(Number);
     const nx=new Date(y,m-1,d+1);
     const dtEnd=`${nx.getFullYear()}${String(nx.getMonth()+1).padStart(2,'0')}${String(nx.getDate()).padStart(2,'0')}`;
-    const summary=`${row.typeLabel||row.type||''} – ${row.loc||''}`;
+    // Titel = „Tour · Art" (v0.12.0); der Ort steht darunter in LOCATION.
+    const summary=icsTitel(tourName, row.typeLabel||row.type||'') || (row.loc||'');
     let desc=`Art: ${row.typeLabel||row.type||''}\\nOrt: ${row.loc||''}`;
     const stLabel = ICS_STATUS_LABEL[status] || '';
     if(stLabel) desc+=`\\nStatus: ${stLabel}`;
@@ -64,6 +71,7 @@ export function generateICS(){
       `DTSTART;VALUE=DATE:${dtStart}`,
       `DTEND;VALUE=DATE:${dtEnd}`,
       `SUMMARY:${summary}`,
+      `LOCATION:${row.loc||''}`,
       `DESCRIPTION:${desc}`,
       `STATUS:${status==='confirmed'?'CONFIRMED':'TENTATIVE'}`,
       `UID:${uid}`,

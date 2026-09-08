@@ -1,6 +1,6 @@
 // ── Multi-Plan System ──────────────────────────────────────────────────────────
 import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew, logos,
-         IS_MANAGER, CURRENT_USER_ID } from './state.js';
+         IS_MANAGER, IS_CREW, CURRENT_USER_ID } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
 import { showToast, sortInsert } from './utils.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
@@ -15,6 +15,27 @@ export let activePlanId = null;
 
 export function getActivePlanId() { return activePlanId; }
 export function setActivePlanId(id) { activePlanId = id; }
+
+// ── Name der aktiven Tour (v0.12.0 hierher verschoben) ───────────────────────
+// Lag als `_activePlanName` privat in userView.js; seit der Tourname auch im Kalender-Titel
+// steht, brauchen ihn zwei Module. Verschoben statt kopiert — die Reihenfolge ist nicht
+// beliebig und ein zweites, leicht abweichendes Exemplar wuerde den Fehler von v0.10.4
+// wiederholen:
+//
+// Fuer CREW ist `tourplan_active_plan_name` die verlaessliche Quelle (schreibt
+// loadPlanForCrew aus dem gerade geladenen PB-Plan). Der lokale getPlansIndex() ist der
+// MANAGER-Zustand aus dem localStorage und kann aus einer frueheren Sitzung stammen — stand
+// er vorn, zeigte das Abo-Fenster den Namen der VORIGEN Tour („gilt nur fuer AMK Tour 2026",
+// waehrend AMK 2027 offen war). Deshalb fuer Crew die umgekehrte Reihenfolge.
+export function activePlanName() {
+  try {
+    const stored = localStorage.getItem('tourplan_active_plan_name');
+    if (IS_CREW && stored) return stored;
+    const byIndex = getPlansIndex().find(p => p.id === getActivePlanId())?.name;
+    if (byIndex) return byIndex;
+    return stored || 'Tour Plan';
+  } catch { return 'Tour Plan'; }
+}
 
 export function getPlansIndex(){
   try{const r=localStorage.getItem(PLANS_INDEX_KEY);return r?JSON.parse(r):[];}catch(e){return[];}

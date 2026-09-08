@@ -112,17 +112,40 @@ test('crewIcsContent: Status im Infofeld — bestätigt bzw. vorgemerkt', () => 
   ok(pen.includes('STATUS:TENTATIVE'), 'vorgemerkt = TENTATIVE, nicht CONFIRMED');
 });
 
-test('crewIcsContent: Titel = Art: Ort, Band in Details, keine Crew-Namen', () => {
+// ── Titel = „Tour · Art" (v0.12.0) ───────────────────────────────────────────
+// Vorher stand hier „Art: Ort", der Tourname nur in der Beschreibung. Wer in mehreren Touren
+// steht, sah in der Monatsansicht also bloß „Reisetag" und wusste nicht, zu welcher Tour der
+// Tag gehört. Kalender schneiden lange Titel ab — was vorne steht, sieht man sicher, deshalb
+// der Tourname zuerst.
+//
+// Der Ort faellt damit aus dem Titel und MUSS als LOCATION erhalten bleiben, sonst verliert
+// die Umstellung Information (in calendar.js und admin.html fehlte LOCATION bis v0.12.0).
+test('crewIcsContent: Titel = Tour · Art, Ort als LOCATION, keine Crew-Namen', () => {
   const rows = [{date:'2026-07-01', status:'confirmed', slots:[{posLabel:'Gewerkeleitung',crewName:'Wolf',status:'confirmed'}]}];
   const meta = { '2026-07-01': { loc:'Berlin – Arena', typeLabel:'Show' } };
   const ics = crewIcsContent('Provinz 2027', rows, meta);
-  ok(ics.includes('SUMMARY:Show: Berlin'), 'Titel = Art: Ort');
-  ok(!ics.includes('SUMMARY:Provinz 2027'), 'Band NICHT im Titel');
-  ok(ics.includes('LOCATION:Berlin'), 'Ort als LOCATION');
-  ok(/DESCRIPTION:Band: Provinz 2027/.test(ics), 'Band in Beschreibung');
+  ok(ics.includes('SUMMARY:Provinz 2027 · Show'), 'Titel = Tour · Art — bekommen: ' + (ics.match(/SUMMARY:.*/)||[''])[0]);
+  ok(ics.includes('LOCATION:Berlin'), 'Ort bleibt als LOCATION erhalten');
+  ok(/DESCRIPTION:Band: Provinz 2027/.test(ics), 'Band weiterhin in der Beschreibung');
   ok(/DESCRIPTION:.*Art: Show/.test(ics), 'Art in Beschreibung');
   ok(ics.includes('DTSTART;VALUE=DATE:20260701'), 'Ganztags-Datum');
   ok(!ics.includes('Wolf') && !ics.includes('Gewerkeleitung'), 'KEINE Crew-/Positionsnamen');
+});
+
+test('crewIcsContent: ohne Tournamen kein fuehrendes Trennzeichen', () => {
+  const meta = { '2026-07-01': { loc:'Berlin', typeLabel:'Show' } };
+  const ics = crewIcsContent('', [{date:'2026-07-01', status:'confirmed', slots:[]}], meta);
+  const zeile = (ics.match(/SUMMARY:.*/)||[''])[0];
+  ok(!/SUMMARY:\s*·/.test(zeile), 'Titel beginnt mit „ · " — bekommen: ' + zeile);
+  ok(/SUMMARY:.*Show/.test(zeile), 'die Art muss trotzdem dastehen: ' + zeile);
+});
+
+test('crewIcsContent: ohne Art bleibt der Tourname allein stehen', () => {
+  const meta = { '2026-07-01': { loc:'Berlin' } };
+  const ics = crewIcsContent('Provinz 2027', [{date:'2026-07-01', status:'confirmed', slots:[]}], meta);
+  const zeile = (ics.match(/SUMMARY:.*/)||[''])[0];
+  ok(!/·\s*$/.test(zeile), 'Titel endet auf ein leeres Trennzeichen: ' + zeile);
+  ok(zeile.includes('Provinz 2027'), 'Tourname fehlt: ' + zeile);
 });
 
 // ── pickApiUrl (Umgebungs-Auswahl Test vs. Live, v0.31.0) ─────────────────────
