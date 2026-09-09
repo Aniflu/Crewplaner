@@ -191,6 +191,12 @@ export function renderBody(){
         if(si.status==='confirmed'){
           const _ps=_isPending?'background:rgba(232,74,74,.12);border-color:rgba(232,74,74,.4);color:var(--warn);text-decoration:line-through;':'color:var(--show);border-color:var(--show-wash-2);background:var(--show-wash);';
           b+=`<button class="assign-btn" style="${_ps}" onclick="toggleCancellation('${row.date}','${p.id}')">${_isPending?'Absagen?':'✓ '+esc(si.crewName||myName)}</button>`;
+        }else if(si.status==='pencilled'){
+          // Eigene Vormerkung: anklickbar, aber NUR zum Absagen (v0.13.0). Vorher stand hier
+          // ein toter <span> — die Crew sah, dass sie vorgemerkt ist, konnte aber nicht
+          // sagen „geht bei mir nicht", und der Manager plante weiter auf Sand.
+          // openSlotConfirmModal erkennt den Status und bietet dann kein „Bestätigen" an.
+          b+=`<button class="assign-btn" onclick="openSlotConfirmModal('${row.date}','${p.id}')" style="color:var(--pencilled);border-color:var(--pencilled-wash-2);background:var(--pencilled-wash);">✎ ${esc(si.crewName||myName)}</button>`;
         }else{
           b+=`<span class="${cls}" style="${style};cursor:default;">${icHtml?icHtml+' ':''}${esc(display)}</span>`;
         }

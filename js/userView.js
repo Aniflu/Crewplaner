@@ -112,6 +112,34 @@ export function getMyPendingSlots() {
       if (!sameCrew(getVal(day.date, pos.id), myName)) return;
       const si = (assignmentStatuses[day.date] || {})[pos.id];
       if (si && si.status === 'confirmed') return;   // schon bestätigt → nicht mehr offen
+      // „Vorgemerkt" ist KEINE offene Frage (v0.13.0). Es ist Planung des Managers — utils.js
+      // sagt das seit v0.29.0 im Kommentar zu isPending, hier stand es nur nicht. Solange es
+      // fehlte, fragte der Login nach vorgemerkten Tagen und die Antwort hob sie still auf
+      // bestätigt, obwohl den Status ausschließlich Admin/Tourmanager bewegen darf.
+      // Absagen kann die Crew sie trotzdem — dafür gibt es getMyPencilledSlots().
+      if (si && si.status === 'pencilled') return;
+      slots.push({ date: day.date, posId: pos.id });
+    });
+  });
+  slots.sort((a, b) => a.date.localeCompare(b.date));
+  return slots;
+}
+
+// ── Meine Vormerkungen sammeln ───────────────────────────────────────────────
+// Bewusst getrennt von getMyPendingSlots: Diese Tage werden NICHT gefragt („kannst du?"),
+// sie sind nur sichtbar — mit genau einer erlaubten Aktion, der Absage. Wer nicht kann,
+// muss das sagen dürfen, bevor der Manager fest mit ihm plant.
+export function getMyPencilledSlots() {
+  const myName = getMyCrewName();
+  if (!myName) return [];
+  const _dates = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []);
+  const _pos   = (typeof POSITIONS  !== 'undefined' ? POSITIONS  : []);
+  const slots = [];
+  _dates.forEach(day => {
+    _pos.forEach(pos => {
+      if (!sameCrew(getVal(day.date, pos.id), myName)) return;
+      const si = (assignmentStatuses[day.date] || {})[pos.id];
+      if (!si || si.status !== 'pencilled') return;
       slots.push({ date: day.date, posId: pos.id });
     });
   });
@@ -125,6 +153,10 @@ export function checkAndOpenMySchedule() {
   // Auch bei ausschließlich ENTFALLENEN Tagen öffnen (v0.9.3). Vorher nur bei offenen Slots —
   // seit die Update-Mail keine Daten mehr aufzählt, wäre ein entfallener Tag sonst nirgends
   // zu sehen: Er steht in keinem plan_data mehr und taucht in der Tabelle nicht auf.
+  // Vormerkungen lösen hier BEWUSST nichts aus (v0.13.0): Sie sind keine Frage, also darf
+  // der Login nicht danach fragen. Genau das war der gemeldete Fehler — wer vorgemerkt war,
+  // bekam beim Anmelden „kannst du an diesen Terminen?" und hob mit der Antwort still den
+  // Status auf bestätigt. Erreichbar bleiben sie über den Knopf (bulkConfirmAllMySlots).
   if (getMyPendingSlots().length > 0 || meineEntfallenen.length > 0) openMyScheduleModal();
 }
 
@@ -188,11 +220,43 @@ function _renderMySchedule(myName) {
       + '</div>'
     : '';
 
+  // Vormerkungen: eigener Abschnitt, BEWUSST ohne Checkbox (v0.13.0). Eine Checkbox in der
+  // Liste oben verspricht „wird bestätigt" — und genau das darf die Crew hier nicht. Den
+  // Status vorgemerkt bewegt nur Admin/Tourmanager. Absagen darf sie trotzdem, sonst plant
+  // der Manager auf Sand; deshalb pro Zeile genau ein Knopf.
+  const vormerkZeilen = getMyPencilledSlots().map(({ date, posId }) => {
+    const [y, m, d] = date.split('-');
+    const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
+    const td  = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []).find(x => x.date === date);
+    const ort = td && td.loc ? ' · ' + esc(td.loc) : '';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule);">'
+      + '<span style="color:var(--pencilled);flex-shrink:0;">✎</span>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:.66rem;color:var(--ink);">' + d + '.' + m + '.' + y + '</div>'
+      + '<div style="font-size:.58rem;color:var(--muted);">' + esc(pos?.label || posId) + ort + '</div>'
+      + '</div>'
+      + '<button class="mbtn" style="flex-shrink:0;font-size:.58rem;padding:4px 8px;" '
+      + 'onclick="declineMySlot(\'' + date + '\',\'' + posId + '\')">✗ Absagen</button>'
+      + '</div>';
+  }).join('');
+
+  const vormerkHTML = vormerkZeilen
+    ? '<div style="margin-top:18px;border-top:1px solid var(--rule);padding-top:14px;">'
+      + '<div style="font-size:.62rem;color:var(--pencilled);font-weight:bold;margin-bottom:4px;">'
+      + '✎ Vorgemerkt (' + getMyPencilledSlots().length + ')</div>'
+      + '<div style="font-size:.58rem;color:var(--muted);margin-bottom:8px;line-height:1.5;">'
+      + 'Noch keine Anfrage — die Tourleitung plant hier erst. Du musst nichts tun. '
+      + 'Wenn du jetzt schon weißt, dass es nicht geht, sag bitte ab.</div>'
+      + '<div style="max-height:30vh;overflow-y:auto;">' + vormerkZeilen + '</div>'
+      + '</div>'
+    : '';
+
   if (slots.length === 0) {
     document.getElementById('sharedBody').innerHTML = `
-      ${meineEntfallenen.length ? '' : `<p style="font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">
+      ${(meineEntfallenen.length || vormerkZeilen) ? '' : `<p style="font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">
         Keine offenen Einsätze — alles erledigt ✅
       </p>`}
+      ${vormerkHTML}
       ${entfallenHTML}
       <div class="mactions"><button class="mbtn primary" onclick="closeModal('sharedModal')">Schließen</button></div>`;
     return;
@@ -231,6 +295,7 @@ function _renderMySchedule(myName) {
       <strong style="color:var(--ink);">${planName}</strong> · Haken entfernen = nicht verfügbar
     </div>
     <div style="max-height:45vh;overflow-y:auto;margin-bottom:14px;">${rows}</div>
+    ${vormerkHTML}
     ${entfallenHTML}
     <div class="mactions">
       <button class="mbtn" onclick="closeModal('sharedModal')">Später</button>
@@ -280,14 +345,33 @@ export function openSlotConfirmModal(dateStr, posId) {
   const dateLabel = `${d}.${m}.${y}`;
   const posLabel = pos?.label || posId;
   const loc = tourDay?.loc || '';
-  document.getElementById('sharedTitle').textContent = 'Einsatz bestätigen';
+  // Vorgemerkt → nur absagen (v0.13.0). Ein „✓ Bestätigen" wäre hier gelogen: Der Klick
+  // würde vom Guard in dataService.js abgewiesen und die Crew stünde vor einem Knopf, der
+  // nichts tut. Lieber gar nicht anbieten, was das System nicht annimmt.
+  const istVorgemerkt = (assignmentStatuses||{})[dateStr]?.[posId]?.status === 'pencilled';
+  // ⚠️ Beide Blöcke VOR dem Template bauen, nicht als verschachteltes `${… ? `…` : ''}` —
+  // dieselbe Falle wie in _renderMySchedule: tests/imports.test.mjs entfernt Template-Literale
+  // per `\$\{[^}]*\}`, verschluckt sich an den inneren Backticks und meldet danach Unsinn.
+  const hinweisHTML = istVorgemerkt
+    ? '<div style="font-size:.6rem;color:var(--muted);margin-bottom:16px;line-height:1.6;">'
+      + '✎ Die Tourleitung hat dich hier vorgemerkt — eine Anfrage ist das noch nicht, du musst '
+      + 'nichts tun. Wenn du jetzt schon weißt, dass es nicht geht, sag bitte ab.</div>'
+    : '';
+  // Vorgemerkt → kein „Bestätigen". Der Knopf würde vom Guard in dataService.js abgewiesen,
+  // und ein Knopf, der nichts tut, ist schlimmer als keiner.
+  const bestaetigenHTML = istVorgemerkt
+    ? ''
+    : '<button class="mbtn primary" onclick="confirmMySlot(\'' + dateStr + '\',\'' + posId + '\');closeModal(\'sharedModal\')" '
+      + 'style="background:#4ae8a0;color:#1a1a2e;">✓ Bestätigen</button>';
+  document.getElementById('sharedTitle').textContent = istVorgemerkt ? 'Vorgemerkter Einsatz' : 'Einsatz bestätigen';
   document.getElementById('sharedBody').innerHTML = `
     <div style="font-size:.68rem;color:var(--ink);margin-bottom:16px;line-height:1.7;">
       <strong>${dateLabel}</strong> · ${posLabel}${loc ? ' · ' + loc : ''}
     </div>
+    ${hinweisHTML}
     <div class="mactions">
-      <button class="mbtn" onclick="declineMySlot('${dateStr}','${posId}');closeModal('sharedModal')">✗ Ablehnen</button>
-      <button class="mbtn primary" onclick="confirmMySlot('${dateStr}','${posId}');closeModal('sharedModal')" style="background:#4ae8a0;color:#1a1a2e;">✓ Bestätigen</button>
+      <button class="mbtn" onclick="declineMySlot('${dateStr}','${posId}');closeModal('sharedModal')">✗ Absagen</button>
+      ${bestaetigenHTML}
     </div>`;
   openModal('sharedModal');
 }
@@ -295,7 +379,11 @@ export function openSlotConfirmModal(dateStr, posId) {
 // ── Alle angefragten Termine auf einmal bestätigen ────────────────────────────
 export function bulkConfirmAllMySlots() {
   if (!getMyCrewName()) { showToast('Konto nicht mit Crew-Mitglied verknüpft — Admin kontaktieren', '#e84a4a'); return; }
-  if (!getMyPendingSlots().length) { showToast('Keine offenen Termine — alles bestätigt ✓', '#5a6070'); return; }
+  // Auch bei NUR Vormerkungen öffnen (v0.13.0): Seit die aus getMyPendingSlots draußen sind,
+  // wäre der Absage-Weg sonst unerreichbar — das Modal ist der einzige Ort, an dem er steht.
+  if (!getMyPendingSlots().length && !getMyPencilledSlots().length) {
+    showToast('Keine offenen Termine — alles bestätigt ✓', '#5a6070'); return;
+  }
   // Auswahl-Liste öffnen: abwählen was nicht geht → „Bestätigen ✓" bestätigt den Rest
   // (angehakt) und lehnt die abgewählten ab (_bulkConfirmMySlots).
   openMyScheduleModal();

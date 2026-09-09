@@ -7,7 +7,7 @@ import {
 } from './state.js';
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
 import { showToast, sameCrew, getVal, dedupKnownCrew } from './utils.js';
-import { normEmail } from './pure.js';
+import { normEmail, isCrewStatusTransitionAllowed } from './pure.js';
 import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex } from './plans.js';
 
 // ── Authentifizierte Hook-Route abrufen ───────────────────────────────────────
@@ -375,6 +375,11 @@ export async function confirmAssignment(dateStr, posId) {
       // Crew darf nur EIGENE Einsätze bestätigen (Manager verwaltet den ganzen Plan).
       if (IS_CREW && !IS_MANAGER && (existing.crew_email || '').toLowerCase() !== _myEmail)
         throw new Error('Zugriff verweigert – nicht dein Einsatz');
+      // …und nur aus einem Status heraus, den sie selbst bewegen darf (v0.13.0). Eine
+      // Vormerkung gehört Admin/Tourmanager: absagen ja, bestätigen nein. Verbindlich prüft
+      // das der Hook — hier steht es, damit die Oberfläche gar nicht erst falsch schreibt.
+      if (IS_CREW && !IS_MANAGER && !isCrewStatusTransitionAllowed(existing.status, 'confirmed'))
+        throw new Error('Diesen Status kannst du nicht selbst ändern – bitte Admin fragen');
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'confirmed', responded_at: new Date().toISOString()
       });
@@ -425,6 +430,11 @@ export async function declineAssignment(dateStr, posId) {
       // Crew darf nur EIGENE Einsätze absagen (Manager verwaltet den ganzen Plan).
       if (IS_CREW && !IS_MANAGER && (existing.crew_email || '').toLowerCase() !== _myEmail)
         throw new Error('Zugriff verweigert – nicht dein Einsatz');
+      // Absagen darf die Crew aus angefragt, bestätigt UND vorgemerkt (v0.13.0) — „ich kann
+      // nicht" muss immer möglich sein. Der Guard fängt hier nur die sinnlosen Fälle ab
+      // (bereits abgesagt, bereits entfallen), damit kein leerer PATCH rausgeht.
+      if (IS_CREW && !IS_MANAGER && !isCrewStatusTransitionAllowed(existing.status, 'declined'))
+        throw new Error('Diesen Status kannst du nicht selbst ändern – bitte Admin fragen');
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
         status: 'declined', responded_at: new Date().toISOString()
       });

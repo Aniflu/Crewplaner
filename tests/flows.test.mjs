@@ -192,6 +192,43 @@ test('getMyPendingSlots: getVal-geplant, nicht-confirmed (inkl. defaultCrew ohne
   deepEq(dates, ['2026-07-01','2026-07-03'], 'nur offene, defaultCrew-Slots ohne Record inklusive; confirmed raus');
 });
 
+// ── Regression (v0.13.0): „vorgemerkt" ist KEINE offene Frage an die Crew ─────
+// Der gemeldete Fehler: Wer vom Admin vorgemerkt wurde, bekam beim Login trotzdem „kannst du
+// an diesen Terminen?" — und die Antwort hob den Status still auf bestätigt. Vorgemerkt ist
+// Planung des Managers; utils.js sagt das seit v0.29.0 bei isPending, getMyPendingSlots hielt
+// sich nur nicht daran und prüfte bloß auf confirmed.
+test('getMyPendingSlots: vorgemerkt zählt NICHT als offen (sonst fragt der Login danach)', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g);
+  const { TOUR_DATES, POSITIONS, crewMeta, defaultCrew, setStatus, setAuthState } = g.state;
+  POSITIONS.push({ id:'gl', label:'GL', short:'GL' });
+  crewMeta['Wolf'] = { email:'w@x.de' };
+  setAuthState('uid-w', 'w@x.de', 'crew');
+  ['2026-07-01','2026-07-02','2026-07-03'].forEach(d => TOUR_DATES.push({ date:d, loc:'X' }));
+  defaultCrew['gl'] = 'Wolf';
+  setStatus('2026-07-01','gl', { status:'pencilled', crewName:'Wolf' }); // vorgemerkt → raus
+  setStatus('2026-07-02','gl', { status:'confirmed', crewName:'Wolf' }); // bestätigt  → raus
+
+  const dates = g.userView.getMyPendingSlots().map(s => s.date).sort();
+  deepEq(dates, ['2026-07-03'], 'nur der wirklich offene Tag bleibt übrig');
+});
+
+test('getMyPencilledSlots: liefert genau die eigenen Vormerkungen (zum Absagen)', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g);
+  const { TOUR_DATES, POSITIONS, crewMeta, defaultCrew, setStatus, setAuthState } = g.state;
+  POSITIONS.push({ id:'gl', label:'GL', short:'GL' });
+  crewMeta['Wolf'] = { email:'w@x.de' };
+  setAuthState('uid-w', 'w@x.de', 'crew');
+  ['2026-07-01','2026-07-02','2026-07-03'].forEach(d => TOUR_DATES.push({ date:d, loc:'X' }));
+  defaultCrew['gl'] = 'Wolf';
+  setStatus('2026-07-01','gl', { status:'pencilled', crewName:'Wolf' });
+  setStatus('2026-07-02','gl', { status:'confirmed', crewName:'Wolf' });
+
+  const dates = g.userView.getMyPencilledSlots().map(s => s.date).sort();
+  deepEq(dates, ['2026-07-01'], 'nur der vorgemerkte Tag — sichtbar bleiben muss er, absagbar auch');
+});
+
 // ── Crew-Verknüpfung: getMyCrewName (case-insensitiv + per userId) ───────────
 test('getMyCrewName: matcht per E-Mail (case-insensitiv) und userId', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';

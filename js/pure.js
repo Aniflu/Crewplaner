@@ -155,6 +155,38 @@ export function renameInPlanData(planData, oldName, newName){
 // utils.js), damit Download UND Server-Feed dieselbe Formulierung nutzen können.
 export const ICS_STATUS_LABEL = { confirmed:'Bestätigt', proposed:'Angefragt', pencilled:'Vorgemerkt' };
 
+// ── Welche Statuswechsel darf die CREW selbst auslösen? (v0.13.0) ─────────────
+// Leitprinzip: Die Crew bewegt einen Status nur ABWÄRTS, Richtung Absage. Die einzige
+// Aufwärtsbewegung, die ihr gehört, ist die Antwort auf eine Anfrage: proposed → confirmed.
+//
+// Der Anlass: Ein vorgemerkter Einsatz landete in „Meine Einsätze" und wurde beim Beantworten
+// still auf bestätigt gehoben. „Vorgemerkt" ist aber Planung des Managers und keine an die
+// Crew gestellte Frage — utils.js sagt das seit v0.29.0 im Kommentar zu isPending, nur hielt
+// sich niemand daran. Absagen darf die Crew eine Vormerkung trotzdem: „ich kann nicht" muss
+// immer möglich sein, sonst plant der Manager auf Sand.
+//
+// Planer (superadmin/manager) und Plan-Owner stehen NICHT in dieser Tabelle — sie dürfen alles.
+// Die Tabelle beschreibt ausschließlich die Selbstbedienung der Crew.
+//
+// ⚠️ .pb_hooks/main.pb.js führt eine handkopierte Zweitfassung dieser Tabelle, weil Goja dort
+// kein `import` kennt (gleiches Muster wie ICS_STATUS_LABEL ↔ LABEL im Hook). Wer hier etwas
+// ändert, MUSS dort nachziehen — tests/statusguard.test.mjs vergleicht beide Seiten.
+export const CREW_STATUS_TRANSITIONS = {
+  proposed:  ['confirmed', 'declined'],  // Antwort auf die Anfrage
+  confirmed: ['declined'],               // späte Absage — Hook mailt dem Admin
+  pencilled: ['declined'],               // vorgemerkt: absagen ja, bestätigen nein
+  cancelled: ['cancel_acked']            // „Gesehen"-Quittung zur Absage des Managers
+};
+
+// fromStatus: aktueller assignments.status. Leer/null = es gibt noch keinen Record, der Slot
+// ist nur geplant (defaultCrew) — dann darf die Crew ihn beantworten, wie bei einer Anfrage.
+// Unbekannter Ausgangs- oder Zielwert ⇒ false: im Zweifel verbieten, nicht durchwinken.
+export function isCrewStatusTransitionAllowed(fromStatus, toStatus){
+  if(!fromStatus) return toStatus === 'confirmed' || toStatus === 'declined';
+  const erlaubt = CREW_STATUS_TRANSITIONS[fromStatus];
+  return !!erlaubt && erlaubt.indexOf(toStatus) !== -1;
+}
+
 // Welche Status landen im Kalender — und in welcher Rangfolge sie den Tagesstatus
 // bestimmen (bestätigt schlägt vorgemerkt). 'declined'/'cancelled'/'cancel_acked'
 // fehlen bewusst: abgesagte Einsätze gehören in keinen Kalender.

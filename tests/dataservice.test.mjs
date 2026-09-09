@@ -301,3 +301,60 @@ test('applyStatusToSlots: ein 429 kippt nicht den ganzen Sammel-Vorgang', async 
   eq(z.schreibversuche, 9, 'der abgewiesene Slot wird genau einmal wiederholt (8 + 1)');
   eq(g.state.assignmentStatuses['2027-06-01']?.gl?.status, 'proposed', 'auch der abgewiesene Slot steht am Ende');
 });
+
+// ── Statuswechsel-Guard (v0.13.0) ────────────────────────────────────────────
+// „Vorgemerkt" gehört Admin/Tourmanager. Die Crew darf eine Vormerkung absagen, aber
+// niemals selbst bestätigen. Der Client prüft das vor dem PATCH — die verbindliche
+// Prüfung sitzt im Hook (.pb_hooks/main.pb.js), weil die REST-API auch ohne diese
+// Oberfläche erreichbar ist.
+test('confirmAssignment: Crew darf eine VORMERKUNG nicht bestätigen (kein PATCH)', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeCrew(g, 'crew@example.com');
+  g.state.setStatus('2026-07-01', 'gl', { status: 'pencilled', crewName: 'Marco Hoch' });
+  let patched = false;
+  mockFetch((url, method) => {
+    if (method === 'GET' && url.includes('/myplans')) return res([{ id: 'PLAN1', name: 'Tour' }]);
+    if (method === 'GET' && url.includes('/assignments/records'))
+      return res({ items: [{ id: 'rec1', crew_email: 'crew@example.com', status: 'pencilled' }] });
+    if (method === 'PATCH') { patched = true; return res({}); }
+    return res({});
+  });
+  let threw = false;
+  try { await g.dataService.confirmAssignment('2026-07-01', 'gl'); } catch(_) { threw = true; }
+  ok(threw, 'Bestätigen einer Vormerkung muss werfen');
+  ok(!patched, 'und darf gar nicht erst schreiben');
+  eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'pencilled', 'Status bleibt vorgemerkt');
+});
+
+test('declineAssignment: Crew DARF eine Vormerkung absagen', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeCrew(g, 'crew@example.com');
+  g.state.setStatus('2026-07-01', 'gl', { status: 'pencilled', crewName: 'Marco Hoch' });
+  let patched = false;
+  mockFetch((url, method) => {
+    if (method === 'GET' && url.includes('/myplans')) return res([{ id: 'PLAN1', name: 'Tour' }]);
+    if (method === 'GET' && url.includes('/assignments/records'))
+      return res({ items: [{ id: 'rec1', crew_email: 'crew@example.com', status: 'pencilled' }] });
+    if (method === 'PATCH') { patched = true; return res({ id: 'rec1', status: 'declined' }); }
+    return res({});
+  });
+  await g.dataService.declineAssignment('2026-07-01', 'gl');
+  ok(patched, '„ich kann nicht" muss immer möglich sein');
+  eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'declined', 'lokal abgesagt');
+});
+
+test('confirmAssignment: der MANAGER darf eine Vormerkung weiterhin bestätigen', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primePlan(g);                       // primePlan meldet als 'manager' an
+  g.state.setStatus('2026-07-01', 'gl', { status: 'pencilled', crewName: 'Wolf' });
+  let patched = false;
+  mockFetch((url, method) => {
+    if (method === 'GET' && url.includes('/assignments/records'))
+      return res({ items: [{ id: 'rec1', crew_email: 'wolf@x.de', status: 'pencilled' }] });
+    if (method === 'PATCH') { patched = true; return res({ id: 'rec1', status: 'confirmed' }); }
+    return res({});
+  });
+  await g.dataService.confirmAssignment('2026-07-01', 'gl');
+  ok(patched, 'der Guard darf Planer nicht einsperren');
+  eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'confirmed', 'Manager hebt die Vormerkung');
+});

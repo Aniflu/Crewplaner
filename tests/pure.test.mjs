@@ -1,6 +1,7 @@
 // Tests für js/pure.js — keine Browser-Stubs nötig (dependency-frei).
 import { test, eq, deepEq, ok } from './_assert.mjs';
-import { toISODate, eachDateInRange, normCrewName, sameCrew, icsExportRows, crewIcsContent, pickApiUrl } from '../js/pure.js';
+import { toISODate, eachDateInRange, normCrewName, sameCrew, icsExportRows, crewIcsContent, pickApiUrl,
+         CREW_STATUS_TRANSITIONS, isCrewStatusTransitionAllowed } from '../js/pure.js';
 
 // ── eachDateInRange ───────────────────────────────────────────────────────────
 test('eachDateInRange: Einzeltag', () =>
@@ -159,3 +160,61 @@ test('pickApiUrl: alles andere → Test-API (Sicherheits-Default "im Zweifel Tes
   eq(pickApiUrl('localhost'), 'https://api-test.crewplanner.nyxlightwork.de', 'lokal → Test');
   eq(pickApiUrl(''), 'https://api-test.crewplanner.nyxlightwork.de', 'leer/unbekannt → Test');
 });
+
+// ── Crew-Statuswechsel (v0.13.0) ──────────────────────────────────────────────
+// Leitprinzip: Crew bewegt einen Status nur ABWÄRTS (Richtung declined). Die einzige
+// Aufwärtsbewegung, die ihr gehört, ist die Antwort auf eine Anfrage (proposed → confirmed).
+// Vormerken und Wiederbeleben sind Planer-Sache.
+
+test('Crew-Übergänge: Anfrage beantworten — beides erlaubt', () => {
+  ok(isCrewStatusTransitionAllowed('proposed', 'confirmed'), 'angefragt → bestätigt muss gehen');
+  ok(isCrewStatusTransitionAllowed('proposed', 'declined'),  'angefragt → abgesagt muss gehen');
+});
+
+test('Crew-Übergänge: vorgemerkt darf NICHT selbst bestätigt werden (der gemeldete Fehler)', () => {
+  ok(!isCrewStatusTransitionAllowed('pencilled', 'confirmed'),
+     'vorgemerkt → bestätigt durch die Crew ist genau der Fehler, um den es geht');
+});
+
+test('Crew-Übergänge: vorgemerkt darf die Crew absagen', () =>
+  ok(isCrewStatusTransitionAllowed('pencilled', 'declined')));
+
+test('Crew-Übergänge: bestätigt darf die Crew noch absagen, aber nicht erneut bestätigen', () => {
+  ok(isCrewStatusTransitionAllowed('confirmed', 'declined'), 'späte Absage muss möglich bleiben');
+  ok(!isCrewStatusTransitionAllowed('confirmed', 'confirmed'), 'kein Selbstwechsel');
+});
+
+test('Crew-Übergänge: eine Absage nimmt nur der Planer zurück', () => {
+  ok(!isCrewStatusTransitionAllowed('declined', 'confirmed'));
+  ok(!isCrewStatusTransitionAllowed('declined', 'proposed'));
+  ok(!isCrewStatusTransitionAllowed('declined', 'pencilled'));
+});
+
+test('Crew-Übergänge: niemand vermerkt sich selbst vor', () => {
+  for (const von of ['proposed', 'confirmed', 'declined', 'pencilled', '', null])
+    ok(!isCrewStatusTransitionAllowed(von, 'pencilled'), `${von} → pencilled darf die Crew nicht`);
+});
+
+test('Crew-Übergänge: ohne Record (nur geplant) darf die Crew antworten', () => {
+  ok(isCrewStatusTransitionAllowed(null, 'confirmed'), 'defaultCrew-Slot ohne Record bestätigen');
+  ok(isCrewStatusTransitionAllowed('',   'declined'),  'defaultCrew-Slot ohne Record absagen');
+});
+
+test('Crew-Übergänge: "Gesehen"-Quittung der Absage bleibt erlaubt', () =>
+  ok(isCrewStatusTransitionAllowed('cancelled', 'cancel_acked')));
+
+test('Crew-Übergänge: unbekannter Status wird abgelehnt, nicht durchgewunken', () => {
+  ok(!isCrewStatusTransitionAllowed('assigned', 'confirmed'), 'Alt-/Fremdwert darf nichts erlauben');
+  ok(!isCrewStatusTransitionAllowed('proposed', 'quatsch'),   'unbekanntes Ziel ist kein Ziel');
+});
+
+// Form der Tabelle festnageln: Der Hook (.pb_hooks/main.pb.js) führt eine handkopierte
+// Zweitfassung, weil Goja kein `import` kann. Ändert jemand hier etwas, MUSS er dort
+// nachziehen — tests/statusguard.test.mjs vergleicht beide Seiten.
+test('Crew-Übergänge: Tabellenform ist festgenagelt (Anker gegen Drift zum Hook)', () =>
+  deepEq(CREW_STATUS_TRANSITIONS, {
+    proposed:  ['confirmed', 'declined'],
+    confirmed: ['declined'],
+    pencilled: ['declined'],
+    cancelled: ['cancel_acked']
+  }));
