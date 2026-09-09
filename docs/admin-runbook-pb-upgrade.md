@@ -45,8 +45,12 @@ Live drankommt.
 1. Test-PB-Image auf den **Zielversions-Tag** setzen (Coolify) → Redeploy.
 2. **Grundcheck:** PB startet ohne Fehler (Log), `…/api-test…/api/health` → 200, Admin-UI
    erreichbar, Collections + Rules noch da (nach jedem Redeploy prüfen — Coolify-Falle).
-3. **Hook v4.11 neu deployen** und Log prüfen: **`[hook] main.pb.js v4.11 geladen`** — und
-   **keine JSVM-Fehler** beim Start. (Das ist der wichtigste Einzelcheck.)
+3. **Hook neu deployen** — den Stand aus `main`, nach `docs/admin-runbook-hook-deploy.md`
+   (erst nach `/tmp`, Version und sha256 als Gate, Backup, dann kopieren). Log prüfen:
+   `[hook] main.pb.js v<aktuelle Version> geladen` — und **keine JSVM-Fehler** beim Start.
+   (Das ist der wichtigste Einzelcheck.) Die Nummer steht bewusst nicht fest hier: Sie war
+   zuletzt v4.11 und ist inzwischen v4.24 — maßgeblich ist immer der Kopf von
+   `.pb_hooks/main.pb.js` im `main`-Branch.
 4. **Voll durchtesten** auf der Testseite `aniflu.github.io/Crewplaner`:
    - **Login / Registrierung** (Auto-Verify des users-Hooks).
    - **Plan anlegen**, Crew hinzufügen, Zuweisungen, Vormerken.
@@ -73,7 +77,8 @@ Live drankommt.
    - **Collections/Rules/strip-api/CORS** nach dem Redeploy erneut prüfen (Coolify-Falle,
      siehe CLAUDE.md: `pocketbase-fix.yaml` Priorität 1000, gehärtete Rules, CORS ohne
      `aniflu.github.io` auf Live).
-   - **Hook v4.11 deployen** → Log `v4.11 geladen`.
+   - **Hook deployen** (Stand aus `main`) → Log zeigt dieselbe Version, die im Kopf von
+     `.pb_hooks/main.pb.js` steht.
    - **Echte Flows:** Login, Plan öffnen, echten ICS-Link testen, **eine** Test-Einladung an
      die eigene Adresse (echte Mail kommt an?).
 5. **Logs beobachten** (`docker logs … -f`) auf JSVM-Fehler in den ersten Minuten.

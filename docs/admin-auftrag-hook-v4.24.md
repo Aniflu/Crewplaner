@@ -1,5 +1,26 @@
 # Auftrag an den Admin — Hook v4.24 deployen (Tourname im Kalender-Titel)
 
+> ✅ **Erledigt am 2026-09-08.** v4.24 auf Test und Live, Rollback-Stände der v4.23 liegen auf
+> dem Server. Der Admin hat Version **und sha256 als Gate** gesetzt (statt sie nur auszugeben)
+> und Live erst nach der Test-Messung angefasst.
+>
+> **Wirkung nachgemessen** — nicht an einem Konto belassen: alle **25** Feed-Kombinationen
+> (Konto × Tour) durchgemessen, 23 davon mit Terminen, **993 Termine**. Ergebnis:
+> **23/23** auf `PRODID: Feed v4.24`, **993/993** mit **nicht leerem** `LOCATION`,
+> `DTSTAMP` vollzählig 23/23, alle Titel beginnen mit dem Tournamen.
+> Beispiel aus dem Live-Feed: `Provinz 2027 · Aufbau` · `Ort: Berlin - BBM`.
+>
+> 📌 **Zwei Messfallen, vom Admin benannt** — sie stehen hier, weil sie beim nächsten
+> Feed-Deploy wieder gelten:
+> 1. **Frischebeweis ist `PRODID`, nicht der Titel.** Der Endpunkt setzt
+>    `Cache-Control: public, max-age=1800` — wer über einen Kalender-Client statt per `curl`
+>    misst, sieht bis zu 30 Minuten den alten Feed und hält den Deploy für wirkungslos.
+> 2. **`LOCATION` wird unbedingt geschrieben, auch bei leerem Ort.** Ein Count gegen
+>    `BEGIN:VEVENT` geht damit garantiert auf und beweist nur die Zeile. Aussagekräftig ist
+>    allein der Count auf **nicht leere** `LOCATION:`-Werte.
+>
+> Dieses Dokument bleibt als Verlauf stehen.
+
 **Datum:** 2026-09-08 · **Betrifft:** `.pb_hooks/main.pb.js` (v4.23 → v4.24)
 **Frontend:** v0.12.0, auf Test und Live bereits ausgerollt.
 

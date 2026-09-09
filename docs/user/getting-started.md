@@ -1,6 +1,6 @@
 # Crewplanner — Erste Schritte
 
-Stand: v0.6.1 (2026-08-07)
+Stand: v0.12.0 (2026-09-09)
 
 ---
 
@@ -61,6 +61,17 @@ nichts tun. Wird daraus ein fester Termin, ändert sich der Status beim nächste
 ### 7. Kalender abonnieren (aktualisiert sich automatisch)
 
 Statt eines einmaligen Downloads kannst du deinen Kalender auch **abonnieren** — er aktualisiert sich danach von selbst, sobald sich deine Einsätze ändern. Sidebar → **„📆 Kalender abonnieren"** öffnet einen Link zum Ein-Tipp-Abo (Apple/iPhone/Android/Outlook) sowie eine URL für Google Kalender („Per URL"). Der Feed gilt immer nur für die **gerade geöffnete Tour** — bist du in mehreren Touren, wechsle links die Tour und abonniere für jede einzeln.
+
+**Wie der Termin im Kalender aussieht (seit v0.12.0):** Der Titel nennt zuerst die Tour, dann die
+Art des Tages — `Provinz 2027 · Aufbau`, `Provinz 2027 · Show`. So siehst du in der Monatsansicht
+auf einen Blick, zu welcher Tour ein Tag gehört; vorher stand dort nur „Aufbau". Der **Ort** steht
+in der eigenen Ortszeile des Termins (bei den meisten Apps mit Kartenlink), nicht mehr im Titel.
+
+**Wann die Änderungen ankommen:** Der Kalender holt sich den Stand nach seinem eigenen Zeitplan —
+bei Apple/iPhone meist innerhalb von Minuten bis Stunden (im Abo unter „Aktualisierung" auf 15
+Minuten stellbar), bei **Google Kalender oft erst nach mehreren Stunden bis zum Folgetag**, und das
+lässt sich dort leider nicht beeinflussen. Du musst nichts tun — es kommt von selbst. Wer sofort
+nachsehen will, öffnet die Abo-URL einmal direkt im Browser.
 
 ### 8. Hell/Dunkel umschalten
 

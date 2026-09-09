@@ -1,6 +1,11 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v0.6.1 (2026-08-07) · Hook v4.18
+PocketBase-Collections (SQLite). Stand: v0.12.0 (2026-09-09) · Hook v4.24
+
+> Die API-Regeln in diesem Dokument sind am **2026-09-09 an der Live-Instanz ausgelesen**
+> (`GET /api/collections` als Superuser), nicht aus dem Gedächtnis geschrieben. Weicht etwas
+> ab, gilt die Datenbank — und dann ist vermutlich ein Redeploy dazwischengekommen, der
+> Regeln zurücksetzt (siehe die ⚠️-Hinweise unten).
 
 ---
 
@@ -17,10 +22,14 @@ PocketBase-Collections (SQLite). Stand: v0.6.1 (2026-08-07) · Hook v4.18
 | `emailVisibility` | Bool | `true` = E-Mail in API-Responses sichtbar |
 | `feed_token` | Text (optional) | Nicht-erratbarer Schlüssel für den abonnierbaren Kalender-Feed (`/ics/{token}/{plan}`, seit v0.27.0). Wird beim User-Create vom Hook vergeben; ein Backfill vergibt ihn bestehenden Usern nach. ⚠️ Ein Coolify-Redeploy/Reimport löscht das Feld nicht, aber falls es fehlt: der Hook vergibt es selbstheilend beim nächsten Bootstrap. |
 
-**API Rules:**
-- Create: *(leer — public für Selbstregistrierung)*
-- Update: `@request.auth.role = "superadmin"`
-- Delete: `@request.auth.role = "superadmin"`
+**API Rules** (live gemessen 2026-09-09):
+- List: `@request.auth.role = "superadmin"` · View: `superadmin || @request.auth.id = id`
+- Create: `@collection.crew_members.email ?= email`
+  → **nicht** offen: Registrieren kann sich nur, wessen Adresse im Crew-Pool steht. Der Hook
+  prüft dasselbe zusätzlich kleingeschrieben (`onRecordCreateRequest`, v4.13), weil der
+  PB-Vergleich `=` case-sensitiv ist. Die frühere Doku nannte die Regel „leer — public für
+  Selbstregistrierung"; das war seit der Registrierungssperre falsch.
+- Update / Delete: `@request.auth.role = "superadmin"`
 
 ---
 
@@ -100,14 +109,28 @@ PocketBase-Collections (SQLite). Stand: v0.6.1 (2026-08-07) · Hook v4.18
 
 **API Rule (Update, seit v0.26.0 gehärtet):**
 `@request.auth.role = "superadmin" || (@request.auth.id != "" && crew_email = @request.auth.email) || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)`
-→ Crew ändert nur EIGENE Einsätze; Owner/superadmin alles. create/deleteRule unverändert (`auth != ""`).
-⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen (Details: docs/security.md · CLAUDE.md).
+→ Crew ändert nur EIGENE Einsätze; Owner/superadmin alles.
+⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen (Details: docs/security.md).
 
-**Hook-Trigger (Stand Hook v4.18, deployt 2026-08-05 auf beide Instanzen):**
+⚠️ **Offener Befund:** `createRule` und `deleteRule` stehen weiter auf `@request.auth.id != ""` —
+**jedes** angemeldete Konto darf in **jeder** Tour Einsätze anlegen und löschen. Zumachen lässt
+sich das erst, wenn auch Vormerkungen, Bestätigungen und Statuswechsel serverseitig laufen; der
+Mailweg tut es seit v0.11.0 (`POST /notify`), die übrigen Schreibwege noch nicht.
+
+**Hook-Trigger (Stand Hook v4.24, deployt 2026-09-08 auf beide Instanzen):**
 - assignments-CREATE-Hook **entfernt** (v4.2) — keine per-Slot-Mails mehr. Mails laufen über `crew_invites` (Einladung/Erinnerung/Update/Absage, konsolidiert).
 - UPDATE (status=declined) → Hook informiert den Admin („Abgelehnt").
 - users-CREATE (v4.8+) → Auto-Verify **+** übernimmt die Rolle aus dem Crew-Pool (`crew_members` mit `plan_id="__pool__"`, gleiche E-Mail), falls dort ≠ `crew`; vergibt zusätzlich `feed_token` falls leer (v4.9).
 - `routerAdd('GET','/ics/{token}/{plan}')` (v4.9.2, öffentlich, unauthentifiziert) → liefert den abonnierbaren ICS-Kalender-Feed einer Person für EINE Tour (Token→user, Plan-ID grenzt ein). Kein `/api`-Präfix, liegt am Route-Root.
+- `routerAdd('POST','/notify')` (v4.23, authentifiziert) → **der einzige Weg, der Mails auslöst.**
+  Schreibt Termine und den `crew_invites`-Auslöser in EINER Transaktion; weil der Mail-Hook an
+  `onRecordAfterCreateSuccess` hängt, feuert er erst nach dem Commit — also alle Termine und die
+  Mail, oder nichts von beidem. Rechte je Typ als Tabelle im Handler; Ablehnung als 404.
+  Ersetzt die frühere Modellierung, bei der ein Vorgang aus bis zu 26 Einzelanfragen bestand
+  (das riss die PocketBase-Regel `*:create` = 20 pro 5 Sekunden → 429 „Too many requests").
+- Der ICS-Titel lautet seit v4.24 `Tour · Art` (vorher `Art: Ort`); der Ort steht in `LOCATION`.
+  Gemessen an 23 Live-Feeds / 993 Terminen: alle auf `PRODID: Feed v4.24`, alle mit nicht leerem
+  `LOCATION`.
 - `type==='update'` (v4.10) → rendert die zweiteilige „Es gab Änderungen"-Mail: ➕-Abschnitt für neue Slots (`kind` fehlt oder ≠ `'removed'`, rückwärtskompatibel) und ➖-Abschnitt für entfernte Slots (`kind==='removed'`), Letzterer mit Button `?action=ackcancel&aids=id1,id2` (nur wenn `aid`-Werte vorhanden). Der App-seitige `ackcancel`-Zweig (authService.js) patcht die betroffenen `assignments` von `cancelled` → `cancel_acked`.
 
 ---
@@ -120,16 +143,28 @@ PocketBase-Collections (SQLite). Stand: v0.6.1 (2026-08-07) · Hook v4.18
 | `plan_id` | Text | Plan-Referenz (optional) |
 | `crew_name` | Text | Name der einzuladenden Person |
 | `crew_email` | Email | Ziel-E-Mail |
-| `type` | Select | `invite` / `reminder` / `update` / `cancellation` / `love_invite` / `staff_invite` |
+| `type` | **Text** (kein Select) | `invite` / `reminder` / `update` / `cancellation` / `availability` / `staff_invite` — die sechs Zweige, die der Hook rendert. (`love_invite` stand in der Doku, existiert im Hook aber nicht.) |
 | `plan_name` | Text | Für E-Mail-Template |
-| `app_url` | URL | Login-URL in der E-Mail (bei `sendAdminInvite` ein JSON-Slot-Array → Hook v4.7 rendert Terminliste) |
+| `app_url` | Text | Doppelt belegt: entweder Login-URL **oder** ein JSON-Slot-Array (dann rendert der Hook eine Terminliste). Feldgrenze 5000 Zeichen — seit v0.11.0 prüft der **Hook** sie, vorher der Browser. |
 | `custom_message` | Text (optional) | Freitext des Admins → Notiz-Block in der Mail (Hook v4.6) |
 
-**API Rule (Create, seit v0.26.0 gehärtet):**
+**API Rule (Create): leer — nur Server** (seit v0.11.0, 2026-09-07).
+
+Kein Browser legt mehr direkt einen Mail-Auslöser an; das macht ausschließlich `POST /notify`
+(Hook v4.23). Der Hook läuft mit Server-Rechten und unterliegt der Regel nicht — auf Test
+gemessen: direkter Zugriff **403**, Weg über `/notify` **200**.
+
+Vorherige Fassung, falls je zurückgerollt werden muss:
 `@request.auth.role = "superadmin" || (@request.auth.id != "" && type = "availability") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)`
-→ nur Owner/superadmin dürfen `invite`/`reminder`/`update`/`cancellation` (mailen an Fremde);
-`availability` (Crew-Bereitschaft, mailt nur an Admin) bleibt jedem Eingeloggten erlaubt.
-⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen.
+
+⚠️ Ein Redeploy/Reimport setzt die Regel zurück → Prüfschritt in
+`docs/admin-runbook-hook-deploy.md`. Steht sie wieder offen, kann jedes angemeldete Konto
+eine echte Mail über die eigene Domain auslösen.
+
+⚠️ **Weiterhin offen:** `listRule`/`viewRule` stehen auf `@request.auth.id != ""` — jedes
+angemeldete Konto kann alle Auslöse-Datensätze lesen, **samt `crew_email` jeder Person**.
+Inhaltlich derselbe Befund wie K-2, nur in einer anderen Collection. Seit v0.11.0 liest das
+Frontend die Collection gar nicht mehr, die Regeln könnten also zu (siehe `docs/security.md`).
 
 **Hook-Trigger:** CREATE → sendet E-Mail via Resend HTTP API
 
