@@ -8,6 +8,28 @@ warum, steht unten.
 > Repo. Das Repo ist öffentlich; `tests/privacy.test.mjs` hält dagegen und wird rot,
 > sobald eine Server-Kennung hier landet (genau das ist beim Schreiben passiert).
 
+## ⚠️ Vor dem Hochladen eines Mess- oder Rückmeldungsberichts: Testlauf
+
+**Jedes** Dokument, das aus einer Messung entsteht — Rückmeldung, Protokoll, Auftrag —
+muss vor dem Push einmal durch:
+
+```bash
+node tests/run.mjs      # es genügt, dass „keine echten Mailadressen …" und
+                        # „keine Server-Kennungen …" grün sind
+```
+
+Der Grund, aus der Praxis vom 2026-09-09: Die Rückmeldung zu Hook v4.25 war beim
+Anonymisieren sorgfältig — aber nur bei den **Server-Kennungen**. Eine echte Mailadresse
+stand zweimal darin (in der Baseline-Beschreibung und unter „Aufgeräumt") und ging so ins
+öffentliche Repo. Aufgefallen ist es erst beim nächsten Testlauf, also **nach** dem Push.
+
+Der Test prüft beides. Ein Bericht über eine Messung nennt fast zwangsläufig Konten,
+Adressen und Datensätze — das ist genau die Sorte Dokument, bei der es passiert.
+
+Aus dem aktuellen Stand entfernt man es in einer Minute. Aus dem Verlauf eines öffentlichen
+Repos nicht: Selbst nach einem Force-Push bleibt der alte Commit über seine SHA erreichbar,
+bis GitHub-Support ihn löscht. Deshalb steht dieser Schritt **vor** dem Push.
+
 ---
 
 ## ⚠️ Warum nicht `curl -o` direkt ins Volume
