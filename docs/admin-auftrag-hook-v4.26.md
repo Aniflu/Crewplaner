@@ -1,5 +1,30 @@
 # Auftrag an den Admin — Hook v4.26 deployen (Korrektur des gescheiterten v4.25)
 
+> ✅ **Erledigt am 2026-09-09.** v4.26 auf Test und Live (`sha 8f642184…`), beide Instanzen
+> healthy, `RestartCount: 0`. Alle **sechs** Messungen auf Test wie erwartet:
+>
+> | # | Messung | gemessen |
+> |---|---|---|
+> | 1 | vorgemerkt → bestätigt (Crew) | **400 · `status_transition_denied`** ✅ |
+> | 2 | vorgemerkt → abgesagt (Crew) | 200 ✅ |
+> | 3 | Zweitrecord (Crew) | **400 · `assignment_create_denied`** ✅ |
+> | 4 | `/api/health` | 200 ✅ |
+> | 5 | Superuser-Statuswechsel | 200 ✅ |
+> | 6 | `PATCH` ohne `status`-Feld | 200 ✅ |
+>
+> Messung 1 und 3 tragen den **Fehlercode im Body** — das ist der Unterschied zu v4.25, wo
+> dieselben Zeilen zwar 400 lieferten, aber ohne Code, weil der Hook platzte statt zu prüfen.
+> Zusammen mit 2, 5 und 6 ist damit belegt: Der Guard prüft, statt pauschal abzuweisen.
+>
+> **Damit ist die gemeldete Lücke geschlossen** — ein Crew-Token kann `pencilled → confirmed`
+> nicht mehr setzen, auch nicht per `curl` an der App vorbei.
+>
+> 📌 **Offen geblieben** (siehe unten, kein Mangel des Deploys):
+> die Gegenmessung mit Crew-Token auf **Live** (braucht einen Testzugang), die Nachmessung des
+> Mail-Nebenbefunds, und die Durchklick-Liste (`/notify`, Manager-Sammelvorgänge, „GESEHEN ✓").
+>
+> Dieses Dokument bleibt als Verlauf stehen.
+
 **Datum:** 2026-09-09 · **Betrifft:** `.pb_hooks/main.pb.js` (v4.24 live → v4.26)
 **Vorgeschichte:** `docs/rueckmeldung-hook-v4.25-2026-09-09.md` · **Ersetzt:** `admin-auftrag-hook-v4.25.md`
 **Frontend:** v0.13.0, unverändert — schon ausgerollt, hier ist nichts zu tun.

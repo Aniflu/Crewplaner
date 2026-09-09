@@ -1,6 +1,6 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v0.13.0 (2026-09-09) · Hook v4.24 live, v4.26 im Repo
+PocketBase-Collections (SQLite). Stand: v0.13.0 (2026-09-09) · Hook v4.26
 
 > Die API-Regeln in diesem Dokument sind am **2026-09-09 an der Live-Instanz ausgelesen**
 > (`GET /api/collections` als Superuser), nicht aus dem Gedächtnis geschrieben. Weicht etwas
@@ -112,7 +112,7 @@ PocketBase-Collections (SQLite). Stand: v0.13.0 (2026-09-09) · Hook v4.24 live,
 → Crew ändert nur EIGENE Einsätze; Owner/superadmin alles.
 ⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen (Details: docs/security.md).
 
-**Erlaubte Statuswechsel für CREW (Hook v4.26 / v0.13.0 — serverseitig, sobald v4.26 deployt ist):**
+**Erlaubte Statuswechsel für CREW (Hook v4.26 / v0.13.0 — serverseitig erzwungen, auf Test gemessen):**
 `proposed → confirmed|declined`, `confirmed → declined`, `pencilled → declined`,
 `cancelled → cancel_acked`, sowie „kein Record" → `confirmed|declined` für einen geplanten Slot.
 Alles andere ist Planer-Sache — insbesondere **`pencilled → confirmed`** und **jedes** Setzen von
@@ -128,14 +128,15 @@ Coolify-Redeploy auf permissiv zurück, Hook-Dateien nicht.
 
 ⚠️ **Offener Befund (Stand v0.13.0 verkleinert, nicht geschlossen):** `createRule` und `deleteRule`
 stehen weiter auf `@request.auth.id != ""` — **jedes** angemeldete Konto darf in **jeder** Tour
-Einsätze anlegen und löschen. Die **Statuswechsel**-Hälfte der Vorbedingung ist mit Hook v4.26
+Einsätze anlegen und löschen. Die **Statuswechsel**-Hälfte der Vorbedingung ist seit Hook v4.26
 erfüllt, und der Create-Guard schließt den Zweitrecord-Weg (Crew darf direkt nur den **eigenen**
 Slot und nur als `confirmed` anlegen). Offen bleiben: Anlegen von Einsätzen für **fremde**
 Personen und `deleteRule` insgesamt. Es gibt außerdem **keinen Unique-Index** auf
 `(plan_id, date, pos_id)` — der wäre die sauberere Absicherung gegen Doppel-Records als der Hook.
 
-**Hook-Trigger (Stand Hook v4.26 — im Repo, NOCH NICHT deployt. Live ist v4.24; v4.25 warf zur
-Laufzeit Fehler und wurde auf Test zurückgerollt, siehe `rueckmeldung-hook-v4.25-2026-09-09.md`):**
+**Hook-Trigger (Stand Hook v4.26, deployt 2026-09-09 auf beide Instanzen, `sha 8f642184…`.
+v4.25 warf zur Laufzeit Fehler, wurde auf Test zurückgerollt und ging nie live — siehe
+`rueckmeldung-hook-v4.25-2026-09-09.md`):**
 - assignments-UPDATE **blockierend** (v4.26) → weist Statuswechsel ab, die die Crew nicht selbst
   machen darf (Tabelle oben). Planer und Plan-Owner sind ausgenommen. Fehler:
   `status_transition_denied`.
