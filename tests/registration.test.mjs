@@ -24,7 +24,11 @@ test('Hook: Registrierungs-Sperre auf users ist vorhanden', () => {
 // Kette inkl. Anlegen durch und die Sperre ist wirkungslos — der Datensatz existiert
 // bereits, wenn geworfen wird.
 test('Hook: geprüft wird VOR e.next() (sonst ist der Datensatz schon angelegt)', () => {
-  const m = hook.match(/onRecordCreateRequest\(function\(e\)\s*\{([\s\S]*?)\n\}, 'users'\);/);
+  // Der Rumpf darf KEIN weiteres onRecordCreateRequest enthalten (v4.25): Seit es auch einen
+  // Create-Guard auf assignments gibt, fing das alte `[\s\S]*?` beim erstbesten Hook an und
+  // maß dann dessen e.next() gegen die Abweisung des users-Hooks — der Test schlug an, obwohl
+  // die Registrierungssperre unverändert richtig steht.
+  const m = hook.match(/onRecordCreateRequest\(function\(e\)\s*\{((?:(?!onRecordCreateRequest)[\s\S])*?)\n\}, 'users'\);/);
   ok(m, 'users-Request-Hook nicht gefunden');
   const body = m[1];
   const posThrow = body.indexOf('not_allowlisted: Diese');

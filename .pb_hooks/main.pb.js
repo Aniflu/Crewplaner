@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.24
-console.log('[hook] main.pb.js v4.24 geladen');
+// Version: 4.25
+console.log('[hook] main.pb.js v4.25 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -254,6 +254,90 @@ onRecordAfterCreateSuccess(function(e) {
   } catch(outerErr) { console.error('[hook] crew_invites UNCAUGHT:', String(outerErr)); }
 
 }, 'crew_invites');
+
+
+// ── 2b. Statuswechsel-Guard für assignments (v4.25) ──────────────────────────
+// WARUM SERVERSEITIG: assignments.updateRule ist feldblind. Sie sagt „Crew darf ihren eigenen
+// Record ändern" und kann nicht unterscheiden, welches Feld auf welchen Wert geht. Ein
+// Crew-Konto kann also mit seinem eigenen Token per PATCH auf /api/collections/assignments
+// jeden Status setzen — an der Oberfläche vorbei. Der Anlass: Wer vom Admin VORGEMERKT wurde,
+// bekam beim Login „kannst du an diesen Terminen?" und hob mit der Antwort still auf
+// bestätigt. Der Filter im Frontend (v0.13.0) behebt die Frage, nicht die Lücke.
+//
+// Regel: Die Crew bewegt einen Status nur ABWÄRTS, Richtung Absage. Die einzige
+// Aufwärtsbewegung, die ihr gehört, ist die Antwort auf eine Anfrage: proposed → confirmed.
+// Vormerken und Wiederbeleben sind Sache von Admin/Tourmanager.
+//
+// ⚠️ HANDKOPIE von CREW_STATUS_TRANSITIONS aus js/pure.js — Goja kennt hier kein `import`
+// (gleiches Muster wie LABEL ↔ ICS_STATUS_LABEL weiter unten). Wer dort etwas ändert, MUSS
+// hier nachziehen; tests/statusguard.test.mjs vergleicht beide Seiten und schlägt sonst an.
+var CREW_STATUS_TRANSITIONS = {
+  proposed:  ['confirmed', 'declined'],
+  confirmed: ['declined'],
+  pencilled: ['declined'],
+  cancelled: ['cancel_acked']
+};
+
+function isCrewStatusTransitionAllowed(fromStatus, toStatus) {
+  if (!fromStatus) return toStatus === 'confirmed' || toStatus === 'declined';
+  var erlaubt = CREW_STATUS_TRANSITIONS[fromStatus];
+  return !!erlaubt && erlaubt.indexOf(toStatus) !== -1;
+}
+
+// Planer und Plan-Owner dürfen alles. Bewusst eine OBERMENGE der heutigen updateRule
+// (superadmin ODER Plan-Owner ODER eigener Record): Wer heute schreiben darf, muss es auch
+// nach diesem Guard noch dürfen — ein Guard, der nebenbei Rechte entzieht, fällt beim
+// nächsten Bulk-Vorgang auf und wird dann pauschal wieder ausgebaut.
+function _istPlaner(auth, planId) {
+  if (!auth) return false;
+  var rolle = auth.getString('role');
+  if (rolle === 'superadmin' || rolle === 'manager') return true;
+  try {
+    var plan = $app.findRecordById('plans', planId);
+    return !!plan && plan.getString('owner') === auth.id;
+  } catch (err) { return false; }
+}
+
+onRecordUpdateRequest(function(e) {
+  var auth = e.auth;
+  var rec  = e.record;
+  var neu  = rec.get('status');
+  var alt  = rec.originalCopy().get('status');
+
+  // Nur echte Statuswechsel prüfen — ein PATCH auf responded_at o.ä. geht keinen etwas an.
+  if (auth && alt !== neu && !_istPlaner(auth, rec.get('plan_id'))) {
+    var meine   = (auth.getString('email') || '').toLowerCase();
+    var istMein = String(rec.get('crew_email') || '').toLowerCase() === meine;
+    // Fremde Records fängt bereits die updateRule ab; hier geht es um den eigenen.
+    if (istMein && !isCrewStatusTransitionAllowed(alt, neu)) {
+      console.log('[hook] status_transition_denied', alt, '->', neu, 'von', meine, 'rec:', rec.id);
+      throw new BadRequestError('status_transition_denied: ' + alt + ' → ' + neu
+        + ' darfst du nicht selbst setzen. Vormerkungen bewegt nur die Tourleitung.');
+    }
+  }
+  e.next();   // NACH der Prüfung — e.next() führt den Schreibvorgang aus.
+}, 'assignments');
+
+// Ohne diesen zweiten Guard wäre der erste umgehbar: createRule steht auf
+// `@request.auth.id != ""` und es gibt keinen Unique-Index auf (plan_id, date, pos_id).
+// Statt den vorgemerkten Record zu patchen, ließe sich einfach ein ZWEITER Record für
+// denselben Slot mit status confirmed anlegen — und die Oberfläche zeigt dann irgendeinen
+// davon. Der einzige legitime Direkt-Anlage-Weg der Crew ist der eigene, bisher recordlose
+// Slot als bestätigt (confirmAssignment, js/dataService.js).
+onRecordCreateRequest(function(e) {
+  var auth = e.auth;
+  if (auth && !_istPlaner(auth, e.record.get('plan_id'))) {
+    var meine  = (auth.getString('email') || '').toLowerCase();
+    var fuer   = String(e.record.get('crew_email') || '').toLowerCase();
+    var status = e.record.get('status');
+    if (fuer !== meine || status !== 'confirmed') {
+      console.log('[hook] assignment_create_denied', status, 'fuer', fuer, 'von', meine);
+      throw new BadRequestError('assignment_create_denied: als Crew kannst du nur deinen '
+        + 'eigenen Einsatz anlegen, und nur als bestätigt.');
+    }
+  }
+  e.next();
+}, 'assignments');
 
 
 // ── 3. Anfrage (proposed via UPDATE) oder Absage (declined) ───────────────────

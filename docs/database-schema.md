@@ -112,12 +112,35 @@ PocketBase-Collections (SQLite). Stand: v0.12.0 (2026-09-09) · Hook v4.24
 → Crew ändert nur EIGENE Einsätze; Owner/superadmin alles.
 ⚠️ Coolify-Redeploy setzt die Regel zurück → neu setzen (Details: docs/security.md).
 
-⚠️ **Offener Befund:** `createRule` und `deleteRule` stehen weiter auf `@request.auth.id != ""` —
-**jedes** angemeldete Konto darf in **jeder** Tour Einsätze anlegen und löschen. Zumachen lässt
-sich das erst, wenn auch Vormerkungen, Bestätigungen und Statuswechsel serverseitig laufen; der
-Mailweg tut es seit v0.11.0 (`POST /notify`), die übrigen Schreibwege noch nicht.
+**Erlaubte Statuswechsel für CREW (seit Hook v4.25 / v0.13.0 serverseitig erzwungen):**
+`proposed → confirmed|declined`, `confirmed → declined`, `pencilled → declined`,
+`cancelled → cancel_acked`, sowie „kein Record" → `confirmed|declined` für einen geplanten Slot.
+Alles andere ist Planer-Sache — insbesondere **`pencilled → confirmed`** und **jedes** Setzen von
+`pencilled`. Leitprinzip: Die Crew bewegt einen Status nur abwärts; die einzige Aufwärtsbewegung,
+die ihr gehört, ist die Antwort auf eine Anfrage. Die Tabelle steht in `js/pure.js`
+(`CREW_STATUS_TRANSITIONS`) und als Handkopie im Hook — Goja kennt kein `import`;
+`tests/statusguard.test.mjs` vergleicht beide Seiten.
 
-**Hook-Trigger (Stand Hook v4.24, deployt 2026-09-08 auf beide Instanzen):**
+⚠️ **Warum das im Hook steht und nicht in der Regel:** `updateRule` ist **feldblind**. Sie kann
+„eigener Record" prüfen, aber nicht, welches Feld auf welchen Wert geht — ein Crew-Token konnte
+per `PATCH` bis v4.24 jeden Status setzen, an der App vorbei. Zusätzlich fallen Regeln bei einem
+Coolify-Redeploy auf permissiv zurück, Hook-Dateien nicht.
+
+⚠️ **Offener Befund (Stand v0.13.0 verkleinert, nicht geschlossen):** `createRule` und `deleteRule`
+stehen weiter auf `@request.auth.id != ""` — **jedes** angemeldete Konto darf in **jeder** Tour
+Einsätze anlegen und löschen. Die **Statuswechsel**-Hälfte der Vorbedingung ist seit Hook v4.25
+erfüllt, und der Create-Guard schließt den Zweitrecord-Weg (Crew darf direkt nur den **eigenen**
+Slot und nur als `confirmed` anlegen). Offen bleiben: Anlegen von Einsätzen für **fremde**
+Personen und `deleteRule` insgesamt. Es gibt außerdem **keinen Unique-Index** auf
+`(plan_id, date, pos_id)` — der wäre die sauberere Absicherung gegen Doppel-Records als der Hook.
+
+**Hook-Trigger (Stand Hook v4.25 — im Repo, NOCH NICHT deployt; v4.24 ist der Live-Stand seit 2026-09-08):**
+- assignments-UPDATE **blockierend** (v4.25) → weist Statuswechsel ab, die die Crew nicht selbst
+  machen darf (Tabelle oben). Planer und Plan-Owner sind ausgenommen. Fehler:
+  `status_transition_denied`.
+- assignments-CREATE **blockierend** (v4.25) → Crew darf direkt nur den eigenen Slot und nur als
+  `confirmed` anlegen; schließt den Weg, den Update-Guard per Zweitrecord zu umgehen. Fehler:
+  `assignment_create_denied`.
 - assignments-CREATE-Hook **entfernt** (v4.2) — keine per-Slot-Mails mehr. Mails laufen über `crew_invites` (Einladung/Erinnerung/Update/Absage, konsolidiert).
 - UPDATE (status=declined) → Hook informiert den Admin („Abgelehnt").
 - users-CREATE (v4.8+) → Auto-Verify **+** übernimmt die Rolle aus dem Crew-Pool (`crew_members` mit `plan_id="__pool__"`, gleiche E-Mail), falls dort ≠ `crew`; vergibt zusätzlich `feed_token` falls leer (v4.9).
