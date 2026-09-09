@@ -1,5 +1,17 @@
 # Auftrag an den Admin — Hook v4.25 deployen (Statuswechsel-Guard für `assignments`)
 
+> ⛔ **Nicht ausgerollt. Ersetzt durch `admin-auftrag-hook-v4.26.md`.**
+>
+> Der Admin hat v4.25 auf Test ausgerollt, gemessen und zurückgerollt: Beide Hooks warfen zur
+> Laufzeit einen Fehler, **bevor** sie irgendetwas prüften — PocketBase macht daraus pauschal
+> `400`, womit *jeder* authentifizierte Schreibvorgang auf `assignments` scheiterte, für Crew
+> **und** Planer. Live wurde nicht angefasst. Befund:
+> `docs/rueckmeldung-hook-v4.25-2026-09-09.md`.
+>
+> Ursachen: `record.originalCopy()` heißt seit PB 0.23 `original()`, und Deklarationen auf
+> oberster Dateiebene sind in den Handler-VMs nicht sichtbar. Beides ist in v4.26 behoben.
+> Dieses Dokument bleibt als Verlauf stehen.
+
 **Datum:** 2026-09-09 · **Betrifft:** `.pb_hooks/main.pb.js` (v4.24 → v4.25)
 **Frontend:** v0.13.0, gepusht — bitte wie üblich mit ausrollen.
 

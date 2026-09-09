@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.25
-console.log('[hook] main.pb.js v4.25 geladen');
+// Version: 4.26
+console.log('[hook] main.pb.js v4.26 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -268,52 +268,67 @@ onRecordAfterCreateSuccess(function(e) {
 // Aufwärtsbewegung, die ihr gehört, ist die Antwort auf eine Anfrage: proposed → confirmed.
 // Vormerken und Wiederbeleben sind Sache von Admin/Tourmanager.
 //
-// ⚠️ HANDKOPIE von CREW_STATUS_TRANSITIONS aus js/pure.js — Goja kennt hier kein `import`
-// (gleiches Muster wie LABEL ↔ ICS_STATUS_LABEL weiter unten). Wer dort etwas ändert, MUSS
-// hier nachziehen; tests/statusguard.test.mjs vergleicht beide Seiten und schlägt sonst an.
-var CREW_STATUS_TRANSITIONS = {
-  proposed:  ['confirmed', 'declined'],
-  confirmed: ['declined'],
-  pencilled: ['declined'],
-  cancelled: ['cancel_acked']
-};
-
-function isCrewStatusTransitionAllowed(fromStatus, toStatus) {
-  if (!fromStatus) return toStatus === 'confirmed' || toStatus === 'declined';
-  var erlaubt = CREW_STATUS_TRANSITIONS[fromStatus];
-  return !!erlaubt && erlaubt.indexOf(toStatus) !== -1;
-}
-
-// Planer und Plan-Owner dürfen alles. Bewusst eine OBERMENGE der heutigen updateRule
-// (superadmin ODER Plan-Owner ODER eigener Record): Wer heute schreiben darf, muss es auch
-// nach diesem Guard noch dürfen — ein Guard, der nebenbei Rechte entzieht, fällt beim
-// nächsten Bulk-Vorgang auf und wird dann pauschal wieder ausgebaut.
-function _istPlaner(auth, planId) {
-  if (!auth) return false;
-  var rolle = auth.getString('role');
-  if (rolle === 'superadmin' || rolle === 'manager') return true;
-  try {
-    var plan = $app.findRecordById('plans', planId);
-    return !!plan && plan.getString('owner') === auth.id;
-  } catch (err) { return false; }
-}
+// ⚠️ HANDKOPIE von CREW_STATUS_TRANSITIONS aus js/pure.js — Goja kennt hier kein `import`.
+// Wer dort etwas ändert, MUSS hier nachziehen; tests/statusguard.test.mjs vergleicht beide.
+//
+// ⚠️⚠️ ALLES steht INNERHALB der Handler, bewusst doppelt. Jeder Hook-Handler läuft in einer
+// eigenen VM, in der er als `/pb.js` erscheint — Deklarationen auf oberster Ebene der Datei
+// sind darin NICHT sichtbar. Der erste Entwurf von v4.25 hatte sie oben stehen und starb mit
+// `ReferenceError: _istPlaner is not defined`; PocketBase macht daraus pauschal 400, womit
+// JEDER Schreibvorgang auf assignments scheiterte, auch für Planer. Auf Test gemessen,
+// deshalb nie live gegangen. Die gesamte übrige Datei macht es richtig (sendMail, esc,
+// fmtISO, LABEL sind alle handler-lokal) — diese drei waren die einzigen Ausreißer.
 
 onRecordUpdateRequest(function(e) {
+  // ── handler-lokal, siehe /pb.js-Isolation oben ──────────────────────────────
+  var CREW_STATUS_TRANSITIONS = {
+    proposed:  ['confirmed', 'declined'],
+    confirmed: ['declined'],
+    pencilled: ['declined'],
+    cancelled: ['cancel_acked']
+  };
+  var erlaubt = function(von, nach) {
+    if (!von) return nach === 'confirmed' || nach === 'declined';
+    var l = CREW_STATUS_TRANSITIONS[von];
+    return !!l && l.indexOf(nach) !== -1;
+  };
+  // Planer und Plan-Owner dürfen alles. Bewusst eine OBERMENGE der heutigen updateRule:
+  // Wer heute schreiben darf, muss es auch nach diesem Guard noch dürfen — ein Guard, der
+  // nebenbei Rechte entzieht, fällt beim nächsten Bulk-Vorgang auf und wird dann pauschal
+  // wieder ausgebaut.
+  var istPlaner = function(auth, planId) {
+    if (!auth) return false;
+    var rolle = auth.getString('role');
+    if (rolle === 'superadmin' || rolle === 'manager') return true;
+    try {
+      var plan = $app.findRecordById('plans', planId);
+      return !!plan && plan.getString('owner') === auth.id;
+    } catch (err) { return false; }
+  };
+
   var auth = e.auth;
   var rec  = e.record;
-  var neu  = rec.get('status');
-  var alt  = rec.originalCopy().get('status');
 
-  // Nur echte Statuswechsel prüfen — ein PATCH auf responded_at o.ä. geht keinen etwas an.
-  if (auth && alt !== neu && !_istPlaner(auth, rec.get('plan_id'))) {
-    var meine   = (auth.getString('email') || '').toLowerCase();
-    var istMein = String(rec.get('crew_email') || '').toLowerCase() === meine;
-    // Fremde Records fängt bereits die updateRule ab; hier geht es um den eigenen.
-    if (istMein && !isCrewStatusTransitionAllowed(alt, neu)) {
-      console.log('[hook] status_transition_denied', alt, '->', neu, 'von', meine, 'rec:', rec.id);
-      throw new BadRequestError('status_transition_denied: ' + alt + ' → ' + neu
-        + ' darfst du nicht selbst setzen. Vormerkungen bewegt nur die Tourleitung.');
-    }
+  // Reihenfolge ist Absicht: Erst alles ausschließen, was den Guard nichts angeht, DANN erst
+  // den Vorzustand lesen. So berührt ein Planer-PATCH `original()` überhaupt nicht, und ein
+  // Fehler in diesem Zweig kann nur noch Crew-Statuswechsel treffen statt jeden Schreibvorgang
+  // auf der Collection. Genau daran ist der erste Entwurf gescheitert.
+  if (!auth) { e.next(); return; }
+  if (istPlaner(auth, rec.get('plan_id'))) { e.next(); return; }
+
+  var meine = (auth.getString('email') || '').toLowerCase();
+  // Fremde Records fängt bereits die updateRule ab; hier geht es nur um den eigenen.
+  if (String(rec.get('crew_email') || '').toLowerCase() !== meine) { e.next(); return; }
+
+  // `original()` (NICHT originalCopy — das hieß so bis PB 0.23 und wirft seitdem einen
+  // TypeError; im Mail-Hook weiter unten steckte derselbe Aufruf jahrelang in einem
+  // catch und ist deshalb nie aufgefallen).
+  var neu = rec.get('status');
+  var alt = rec.original().get('status');
+  if (alt !== neu && !erlaubt(alt, neu)) {
+    console.log('[hook] status_transition_denied', alt, '->', neu, 'von', meine, 'rec:', rec.id);
+    throw new BadRequestError('status_transition_denied: ' + alt + ' → ' + neu
+      + ' darfst du nicht selbst setzen. Vormerkungen bewegt nur die Tourleitung.');
   }
   e.next();   // NACH der Prüfung — e.next() führt den Schreibvorgang aus.
 }, 'assignments');
@@ -325,8 +340,20 @@ onRecordUpdateRequest(function(e) {
 // davon. Der einzige legitime Direkt-Anlage-Weg der Crew ist der eigene, bisher recordlose
 // Slot als bestätigt (confirmAssignment, js/dataService.js).
 onRecordCreateRequest(function(e) {
+  // handler-lokal, siehe /pb.js-Isolation oben — eine gemeinsame Fassung auf oberster
+  // Dateiebene ist genau das, was NICHT funktioniert.
+  var istPlaner = function(auth, planId) {
+    if (!auth) return false;
+    var rolle = auth.getString('role');
+    if (rolle === 'superadmin' || rolle === 'manager') return true;
+    try {
+      var plan = $app.findRecordById('plans', planId);
+      return !!plan && plan.getString('owner') === auth.id;
+    } catch (err) { return false; }
+  };
+
   var auth = e.auth;
-  if (auth && !_istPlaner(auth, e.record.get('plan_id'))) {
+  if (auth && !istPlaner(auth, e.record.get('plan_id'))) {
     var meine  = (auth.getString('email') || '').toLowerCase();
     var fuer   = String(e.record.get('crew_email') || '').toLowerCase();
     var status = e.record.get('status');
@@ -384,8 +411,16 @@ onRecordAfterUpdateSuccess(function(e) {
     if (!crewEmail) { console.error('[mail] proposed update: keine crew_email', aid); return; }
 
     // Kein doppeltes E-Mail wenn der Status schon 'proposed' war (z.B. pbUpsert ohne Status-Änderung)
+    // ⚠️ v4.25: Hier stand `r.originalCopy()`. Die Methode heißt seit PB 0.23 `original()` und
+    // warf seitdem einen TypeError — den das catch still verschluckt hat. Diese Prüfung hat
+    // also vermutlich NIE gegriffen: Ein erneutes 'proposed' verschickte jedes Mal eine weitere
+    // Anfrage-Mail. Vom Admin beim v4.25-Test gefunden (aus dem Code geschlossen, nicht
+    // gemessen — Test hat keinen RESEND_KEY). Nachweis auf Test: Die Zeile unten darf jetzt
+    // überhaupt erscheinen; vorher konnte sie es nicht.
+    // Das catch bleibt bewusst: Fällt die Prüfung aus, geht eine Mail zu viel raus — das ist
+    // die harmlose Richtung. (Beim GUARD oben ist es umgekehrt, deshalb steht dort keins.)
     try {
-      var orig = r.originalCopy();
+      var orig = r.original();
       if (orig && orig.get('status') === 'proposed') {
         console.log('[hook] UPDATE proposed: Status unverändert, kein E-Mail gesendet', aid);
         return;

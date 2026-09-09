@@ -30,23 +30,51 @@ test('Hook: blockierender Update-Guard auf assignments existiert', () => {
 test('Hook: der Update-Guard vergleicht ALTEN mit NEUEM Status', () => {
   const m = code.match(/onRecordUpdateRequest\(function[\s\S]*?,\s*'assignments'\);/);
   ok(m, 'Update-Guard-Block nicht gefunden');
-  ok(/originalCopy\(\)\.get\('status'\)/.test(m[0]),
-     'liest den vorherigen Status nicht über originalCopy() — ohne ihn kann er keinen Übergang prüfen');
-  ok(/isCrewStatusTransitionAllowed\(/.test(m[0]), 'wendet die Übergangstabelle nicht an');
+  ok(/\.original\(\)\.get\('status'\)/.test(m[0]),
+     'liest den vorherigen Status nicht über original() — ohne ihn kann er keinen Übergang prüfen');
+  ok(/erlaubt\(alt, neu\)/.test(m[0]), 'wendet die Übergangstabelle nicht an');
 });
 
 test('Hook: Planer und Plan-Owner kommen am Guard vorbei (sonst sperrt er die Falschen ein)', () => {
-  const m = code.match(/function _istPlaner\([\s\S]*?\n\}/);
-  ok(m, '_istPlaner nicht gefunden — beide Guards hängen an dieser Ausnahme');
-  ok(/superadmin/.test(m[0]), 'superadmin-Ausnahme fehlt');
-  ok(/manager/.test(m[0]),    'manager-Ausnahme fehlt');
-  ok(/getString\('owner'\)/.test(m[0]),
-     'Plan-Owner-Ausnahme fehlt — die steht heute in der updateRule und darf nicht wegfallen');
-  // Beide Guards MÜSSEN sie benutzen, sonst schützt sie nur die Hälfte.
+  // istPlaner steht in JEDEM Handler einzeln — siehe /pb.js-Isolation im Test darunter.
   for (const guard of ['onRecordUpdateRequest', 'onRecordCreateRequest']) {
     const g = code.match(new RegExp(guard + '\\(function[\\s\\S]*?,\\s*\'assignments\'\\);'));
-    ok(g && /_istPlaner\(/.test(g[0]), guard + ' auf assignments fragt _istPlaner nicht');
+    ok(g, guard + ' auf assignments nicht gefunden');
+    ok(/var istPlaner\s*=\s*function/.test(g[0]),
+       guard + ': istPlaner fehlt oder ist nicht handler-lokal');
+    ok(/superadmin/.test(g[0]), guard + ': superadmin-Ausnahme fehlt');
+    ok(/manager/.test(g[0]),    guard + ': manager-Ausnahme fehlt');
+    ok(/getString\('owner'\)/.test(g[0]),
+       guard + ': Plan-Owner-Ausnahme fehlt — die steht in der updateRule und darf nicht wegfallen');
   }
+});
+
+// ── Zwei Wächter aus dem gescheiterten v4.25-Deploy (2026-09-09) ─────────────
+// Beide Fehler waren Laufzeitfehler. Die Tabellen-Prüfung unten war grün, während KEIN
+// Handler auch nur bis zur ersten Prüfung kam: PocketBase macht aus dem Fehler pauschal 400,
+// womit jeder Schreibvorgang auf assignments scheiterte — für Crew UND Planer. Gefunden hat
+// das die Messung auf der Test-Instanz, nicht die Suite. Diese zwei Tests holen nach, was
+// statisch überhaupt prüfbar ist.
+
+test('Hook: KEINE Deklarationen auf oberster Dateiebene (Handler laufen isoliert als /pb.js)', () => {
+  // Jeder Handler läuft in einer eigenen VM und sieht Top-Level-Deklarationen der Datei NICHT.
+  // Der erste v4.25-Entwurf hatte CREW_STATUS_TRANSITIONS, isCrewStatusTransitionAllowed und
+  // _istPlaner dort stehen und starb mit „ReferenceError: _istPlaner is not defined".
+  // Die gesamte übrige Datei macht es richtig: sendMail, esc, fmtISO, LABEL sind handler-lokal.
+  const treffer = code.split('\n')
+    .map((z, i) => [i + 1, z])
+    .filter(([, z]) => /^(var|function|const|let)\s/.test(z));
+  ok(treffer.length === 0,
+     'Top-Level-Deklaration(en) — im Handler unsichtbar, führt zu ReferenceError und 400 auf JEDEN '
+     + 'Schreibvorgang:\n      ' + treffer.map(([n, z]) => n + ': ' + z.trim()).join('\n      '));
+});
+
+test('Hook: kein originalCopy() — die Methode heißt seit PB 0.23 original()', () => {
+  ok(!/originalCopy\s*\(/.test(code),
+     'originalCopy() wirft einen TypeError. Ungeschützt reißt das jeden Schreibvorgang mit; '
+     + 'in einem catch (Mail-Hook bis v4.25) fällt die Prüfung still aus und niemand merkt es.');
+  // Gegenprobe, damit dieser Test nicht grün ist, weil der Aufruf ganz verschwunden ist.
+  ok(/\.original\(\)/.test(code), 'original() kommt gar nicht mehr vor — Vorzustand wird nirgends gelesen');
 });
 
 test('Hook: Create-Guard schließt den Zweitrecord-Weg', () => {
@@ -73,6 +101,6 @@ test('Hook: die Version ist mitgezogen worden', () => {
   const m = hook.match(/^\/\/ Version:\s*([\d.]+)/m);
   ok(m, 'Versionszeile fehlt');
   const [maj, min] = m[1].split('.').map(Number);
-  ok(maj > 4 || (maj === 4 && min >= 25),
-     'Hook-Version muss mit dem Guard auf mindestens 4.25 stehen — bekommen: ' + m[1]);
+  ok(maj > 4 || (maj === 4 && min >= 26),
+     'Hook-Version muss mit dem Guard auf mindestens 4.26 stehen — bekommen: ' + m[1]);
 });

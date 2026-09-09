@@ -35,7 +35,7 @@ Die Kontrollprobe ist der Punkt: Ohne sie hieße „200" nur „irgendetwas antw
 beschriebenen Wege sind damit als real belegt, nicht nur als plausibel.
 
 **Zur Falle aus dem Runbook:** Sie ist genau so eingetreten. Die Test-DB hat 853 `assignments`,
-davon 33 `pencilled` — **alle** auf `marco@hoch-online.com`, für die es keinen `users`-Datensatz
+davon 33 `pencilled` — **alle** auf `«CREW-MAIL»`, für die es keinen `users`-Datensatz
 gab. Ich habe deshalb vorübergehend ein Crew-Konto für diese Adresse angelegt (`users.createRule`
 ist `@collection.crew_members.email ?= email`, die Adresse steht in `crew_members` — also der
 reguläre App-Weg) und es nach der Messung wieder gelöscht. Details unter „Aufgeräumt".
@@ -188,7 +188,7 @@ nachweisen (er dürfte nie erscheinen); sag Bescheid, dann messe ich das nach.
 - **Test zurück auf v4.24**, Backup des Vorzustands: `/root/backups/pb-hooks/main.pb.js.test.20260909-183903`
 - **Testdaten unverändert:** 853 `assignments`, davon 33 `pencilled` — identisch zur Baseline.
   Der in der Baseline angelegte Zweitrecord ist gelöscht, der geänderte Record steht wieder auf `pencilled`.
-- **Temporäre Konten gelöscht:** das Crew-Konto für `marco@hoch-online.com` und ein temporärer
+- **Temporäre Konten gelöscht:** das Crew-Konto für `«CREW-MAIL»` und ein temporärer
   Superuser (nur für Anlegen/Löschen dieses Kontos nötig, weil `users.deleteRule` auf `superadmin`
   steht). Die `users`-Tabelle auf Test hat wieder genau einen Datensatz, die Superuser-Liste wieder
   die ursprünglichen zwei. Passwörter waren Einmalwerte und sind vernichtet.
