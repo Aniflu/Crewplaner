@@ -38,7 +38,7 @@ test('Dockerfile liefert keine internen Dateien aus', () => {
   // Was hier steht, war am 2026-08-11 nachweislich öffentlich abrufbar.
   const VERBOTEN = [
     'CLAUDE.md', 'CHANGELOG.md', 'HANDOFF.md', 'README.md', 'LICENSE',
-    '.pb_hooks', 'tools', 'tests', 'pocketbase', '.github', '.claude',
+    '.pb_hooks', 'tools', 'tests', 'pocketbase', '.github', '.claude', '.githooks',
   ];
   const fund = [];
   for (const q of quellen) {
@@ -89,12 +89,13 @@ test('Dateien der Pflichtliste existieren wirklich', () => {
 // eines Schutzes — er sieht aus, als wäre die Sache erledigt.
 const aktiv = nginxConf.split('\n').filter(z => !z.trim().startsWith('#')).join('\n');
 
-test('nginx.conf setzt die vier Schutz-Header', () => {
+test('nginx.conf setzt die Schutz-Header', () => {
   const PFLICHT = [
     'Strict-Transport-Security',
     'X-Content-Type-Options',
     'X-Frame-Options',
     'Referrer-Policy',
+    'Permissions-Policy',
   ];
   const fehlt = PFLICHT.filter(h => !new RegExp(`add_header\\s+${h}\\b`).test(aktiv));
   ok(fehlt.length === 0, `Schutz-Header fehlen oder sind auskommentiert: ${fehlt.join(', ')}`);
@@ -113,6 +114,21 @@ test('jeder Schutz-Header trägt always', () => {
     .filter(z => !/\balways\s*;\s*$/.test(z))
     .map(z => z.split(/\s+/)[1]);
   ok(ohne.length === 0, `add_header ohne always: ${ohne.join(', ')}`);
+});
+
+test('die Permissions-Policy sperrt Gerätezugriffe, aber nicht die Zwischenablage', () => {
+  // Seit v0.13.1. Die App braucht weder Kamera noch Mikrofon noch Standort — eine eingeschleuste
+  // Seite soll sie deshalb auch nicht anfragen können. Die Zwischenablage dagegen BRAUCHT sie:
+  // „Link kopieren" in admin.html und js/userView.js (navigator.clipboard). Wer hier aus
+  // Gründlichkeit clipboard-write=() ergänzt, macht diese Knöpfe still wirkungslos.
+  const zeile = aktiv.split('\n').map(z => z.trim())
+    .find(z => /^add_header\s+Permissions-Policy/.test(z)) || '';
+  ok(zeile, 'keine aktive Permissions-Policy-Zeile gefunden');
+  const gesperrt = ['camera', 'microphone', 'geolocation']
+    .filter(f => !new RegExp(`\\b${f}=\\(\\)`).test(zeile));
+  ok(gesperrt.length === 0, `nicht gesperrt: ${gesperrt.join(', ')}`);
+  ok(!/clipboard-(write|read)=\(\)/.test(zeile),
+    'Zwischenablage gesperrt — „Link kopieren" in admin.html / userView.js funktioniert dann nicht');
 });
 
 test('die CSP ist AKTIV, nicht auskommentiert', () => {

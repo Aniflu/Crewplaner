@@ -1,0 +1,33 @@
+#!/bin/sh
+# pre-push — lässt vor jedem Push die Tests laufen, in beiden Zeitzonen (seit v0.13.1).
+#
+# Warum: Es gibt weder CI noch sonst eine Stelle, an der die Tests automatisch laufen.
+# `git push origin main:live` ging bisher raus, ohne dass jemand geprüft hat.
+#
+# Einschalten — EINMAL pro Clone (lokale Konfiguration, steht in keinem Repo):
+#     git config core.hooksPath .githooks
+#
+# Notausgang, nur bewusst: `git push --no-verify` — die Tests danach nachholen.
+# Geprüft wird dieser Hook von tests/githook.test.mjs.
+
+# GitHub Desktop startet Hooks mit schmalem PATH — node aus Homebrew läge dann außer Sicht,
+# und der Push würde mit „node: not found" scheitern statt mit einem echten Befund.
+PATH="$PATH:/opt/homebrew/bin:/usr/local/bin"
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-push: node nicht gefunden — Tests konnten nicht laufen, Push abgebrochen." >&2
+  exit 1
+fi
+
+for tz in Europe/Berlin UTC; do
+  if ! out=$(TZ="$tz" node tests/run.mjs 2>&1); then
+    # Bestandene Tests ausblenden, damit die roten nicht in 280 grünen Zeilen untergehen.
+    printf '%s\n' "$out" | grep -v '^  ✓' >&2
+    echo "" >&2
+    echo "pre-push: Tests rot unter TZ=$tz — Push abgebrochen." >&2
+    exit 1
+  fi
+  echo "pre-push: TZ=$tz — $(printf '%s\n' "$out" | tail -1)"
+done
