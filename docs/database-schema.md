@@ -126,13 +126,20 @@ die ihr gehört, ist die Antwort auf eine Anfrage. Die Tabelle steht in `js/pure
 per `PATCH` bis v4.24 jeden Status setzen, an der App vorbei. Zusätzlich fallen Regeln bei einem
 Coolify-Redeploy auf permissiv zurück, Hook-Dateien nicht.
 
-⚠️ **Offener Befund (Stand v0.13.0 verkleinert, nicht geschlossen):** `createRule` und `deleteRule`
-stehen weiter auf `@request.auth.id != ""` — **jedes** angemeldete Konto darf in **jeder** Tour
-Einsätze anlegen und löschen. Die **Statuswechsel**-Hälfte der Vorbedingung ist seit Hook v4.26
-erfüllt, und der Create-Guard schließt den Zweitrecord-Weg (Crew darf direkt nur den **eigenen**
-Slot und nur als `confirmed` anlegen). Offen bleiben: Anlegen von Einsätzen für **fremde**
-Personen und `deleteRule` insgesamt. Es gibt außerdem **keinen Unique-Index** auf
-`(plan_id, date, pos_id)` — der wäre die sauberere Absicherung gegen Doppel-Records als der Hook.
+✅ **Geschlossen mit v0.13.2 (2026-09-13, auf Test UND Live gesetzt und gemessen):**
+
+- `createRule` = superadmin · `crew_email = @request.auth.email` · Planbesitzer — dieselbe Form
+  wie `updateRule`. Der Eigen-Zweig MUSS bleiben: Die Crew legt beim Bestätigen ggf. den eigenen
+  Datensatz an (`dataService.js:399`, Slot war geplant, aber nie angefragt).
+- `deleteRule` = superadmin · Planbesitzer, **ohne** Eigen-Zweig. Im Crew-Pfad (`userView.js`,
+  `crewNotify.js`, `authService.js`) gibt es kein einziges `pbDelete`.
+- **Unique-Index** `idx_assignments_slot` auf `(plan_id, date, pos_id)` auf beiden Instanzen. Er
+  erzwingt endlich, was die App überall annimmt: ein Datensatz je Slot. Ein Index greift
+  feldunabhängig und auch gegen den Superuser — anders als jede Regel.
+
+Vor dem Index mussten auf Live **20 Dubletten** aufgelöst werden (siehe `docs/security.md`). Der
+Soll-Stand in `tools/check-pb-rules.mjs` enthält beide Regeln, damit ein Redeploy-Rückfall beim
+nächsten Lauf auffällt.
 
 **Hook-Trigger (Stand Hook v4.26, deployt 2026-09-09 auf beide Instanzen, `sha 8f642184…`.
 v4.25 warf zur Laufzeit Fehler, wurde auf Test zurückgerollt und ging nie live — siehe

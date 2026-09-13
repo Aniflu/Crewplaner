@@ -77,13 +77,29 @@ const SOLL = {
     // das braucht sie zum Bestätigen/Absagen (confirmAssignment sucht per pbFirst).
     listRule:   OWN_OR_OWNER,
     viewRule:   OWN_OR_OWNER,
-    // createRule bleibt `auth != ""`: Crew legt beim Bestätigen ggf. den eigenen Record an.
     // v0.26.0 — Crew ändert nur EIGENE Einsätze
     updateRule: '@request.auth.role = "superadmin" || (@request.auth.id != "" && crew_email = @request.auth.email) || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)',
+    // v0.13.2 — createRule war bis dahin `@request.auth.id != ""`: JEDES angemeldete Konto
+    // durfte in JEDER Tour Einsätze anlegen, auch für fremde Personen. Der Eigen-Zweig muss
+    // bleiben — die Crew legt beim Bestätigen ggf. den eigenen Record an (dataService.js:399,
+    // Slot war geplant, aber nie angefragt). Deshalb dieselbe Form wie updateRule.
+    createRule: '@request.auth.role = "superadmin" || (@request.auth.id != "" && crew_email = @request.auth.email) || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)',
+    // v0.13.2 — deleteRule OHNE Eigen-Zweig: Im gesamten Crew-Pfad (userView.js, crewNotify.js,
+    // authService.js) gibt es kein einziges pbDelete. Gelöscht wird nur aus der Planer-
+    // Oberfläche (dropdown.js, plans.js, admin-app.js). Absagen der Crew laufen über einen
+    // Statuswechsel, nicht über Löschen.
+    deleteRule: OWNER_ONLY,
   },
   crew_invites: {
-    // v0.26.0 — nur Owner/superadmin dürfen an Fremde mailen; „availability" geht an den Admin
-    createRule: '@request.auth.role = "superadmin" || (@request.auth.id != "" && type = "availability") || (@collection.plans.id ?= plan_id && @collection.plans.owner ?= @request.auth.id)',
+    // ⚠️ Stand 2026-09-07 (Commit „crew_invites.createRule gehaertet"): NUR NOCH SERVERSEITIG,
+    // also `null` = nur superuser. Der Auslöse-Record entsteht ausschließlich im Hook.
+    //
+    // Bis v0.13.2 stand hier noch der alte, weitere Soll-Stand von v0.26.0
+    // (`superadmin || (auth != "" && type = "availability") || owner`). Das war eine Falle:
+    // Ein Lauf mit --fix hätte die Härtung wieder AUFGEMACHT, und zwar wortlos — das Werkzeug
+    // hätte gemeldet, es habe eine „Abweichung zurückgesetzt". Ein Soll-Stand, der hinter der
+    // Wirklichkeit herhinkt, ist gefährlicher als gar keiner.
+    createRule: null,
   },
   plans: {
     // v0.6.0: Der frühere Zweig `|| view_token != ""` machte ALLE Pläne anonym lesbar —

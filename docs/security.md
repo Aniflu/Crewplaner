@@ -46,9 +46,29 @@ Datensatz anlegen und damit eine echte Mail über die eigene Domain auslösen. S
 
 | Befund | Regel | Warum noch offen |
 |---|---|---|
-| `assignments.createRule` = `@request.auth.id != ""` | jedes Konto darf in **jeder** Tour Einsätze anlegen (`deleteRule` ebenso) | **Teilweise erledigt (v0.13.0 / Hook v4.26, deployt und gemessen 2026-09-09):** Die *Statuswechsel*-Hälfte der Vorbedingung läuft jetzt serverseitig — ein blockierender `onRecordUpdateRequest` auf `assignments` prüft jeden Wechsel gegen die Crew-Übergangstabelle, und ein `onRecordCreateRequest` lässt für die Crew nur den **eigenen** Slot als `confirmed` durch (sonst wäre der Update-Guard per Zweitrecord umgehbar — es gibt keinen Unique-Index auf `(plan_id, date, pos_id)`). **Offen bleiben:** Anlegen für **fremde** Personen und `deleteRule` insgesamt. Erst danach kann die Regel selbst zu. |
 | `crew_invites.listRule`/`viewRule` = `@request.auth.id != ""` | jedes Konto kann **alle** Auslöse-Datensätze lesen — samt `crew_email` jeder Person | inhaltlich derselbe Befund wie K-2, nur in einer anderen Collection; nach v0.11.0 liest das Frontend die Collection gar nicht mehr, die Regeln könnten also zu |
 | `crew_invites` wächst unbegrenzt | — | der Hook löscht den Auslöse-Record nach dem Versand nicht, obwohl ein Kommentar im Code das behauptet |
+
+**✅ Geschlossen am 2026-09-13 (v0.13.2): `assignments.createRule`/`deleteRule` + Unique-Index.**
+`createRule` hat jetzt dieselbe Form wie `updateRule` (superadmin · eigene Adresse · Planbesitzer),
+`deleteRule` steht auf superadmin · Planbesitzer **ohne** Eigen-Zweig — im gesamten Crew-Pfad gibt
+es kein einziges `pbDelete`, Absagen laufen über einen Statuswechsel. Dazu liegt auf beiden
+Instanzen ein **Unique-Index** auf `(plan_id, date, pos_id)`; er ist die feldunabhängige
+Absicherung, die eine Regel nicht leisten kann.
+
+Gemessen auf Test mit einem temporären Crew-Konto (danach samt Pool-Eintrag gelöscht): eigener
+Datensatz anlegen **200**, fremder **400**, löschen **404**, eigener Statuswechsel **200** — das
+Bestätigen und Absagen der Crew bleibt also unbeschädigt. Dublette auf ein bestehendes Tripel:
+**400**, auch als Superuser, auf beiden Instanzen.
+
+⚠️ **Vorbedingung, die es zu Tage gefördert hat:** Live trug **20 Dubletten** auf demselben Tripel
+(eine Tour, eine Position, eine Person; je ein `proposed` neben einem `confirmed`, beide
+`proposed_by=bulk`). Der Index ließ sich erst nach der Bereinigung anlegen. Welcher der beiden
+Datensätze angezeigt wurde, entschied die Sortierung — die Tour zeigte also womöglich „angefragt",
+wo längst zugesagt war. Die 20 `proposed`-Zwillinge sind gelöscht (alle 20 bleibenden tragen ein
+gesetztes `responded_at`), Sicherung vorher als JSON. Die **Ursache** ist nicht mehr feststellbar:
+`assignments` hat keine `created`/`updated`-Felder, und der heutige Sammelweg holt alle Datensätze
+in einer Abfrage und findet vorhandene zuverlässig.
 
 
 ---
