@@ -100,6 +100,16 @@ const SOLL = {
     // hätte gemeldet, es habe eine „Abweichung zurückgesetzt". Ein Soll-Stand, der hinter der
     // Wirklichkeit herhinkt, ist gefährlicher als gar keiner.
     createRule: null,
+    // v0.13.3 — auch lesen, ändern und löschen nur noch superuser. Vorher stand alles vier auf
+    // `@request.auth.id != ""`: Jedes angemeldete Konto konnte die gesamte Versandhistorie
+    // abrufen — samt crew_email jeder Person (inhaltlich derselbe Befund wie K-2).
+    // Das Frontend fasst die Collection über REST nirgends an (tests/notify.test.mjs wacht
+    // darüber), und der Hook schreibt serverseitig in einer Transaktion — für ihn gelten
+    // Zugriffsregeln ohnehin nicht.
+    listRule: null,
+    viewRule: null,
+    updateRule: null,
+    deleteRule: null,
   },
   plans: {
     // v0.6.0: Der frühere Zweig `|| view_token != ""` machte ALLE Pläne anonym lesbar —

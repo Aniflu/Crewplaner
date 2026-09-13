@@ -46,8 +46,22 @@ Datensatz anlegen und damit eine echte Mail über die eigene Domain auslösen. S
 
 | Befund | Regel | Warum noch offen |
 |---|---|---|
-| `crew_invites.listRule`/`viewRule` = `@request.auth.id != ""` | jedes Konto kann **alle** Auslöse-Datensätze lesen — samt `crew_email` jeder Person | inhaltlich derselbe Befund wie K-2, nur in einer anderen Collection; nach v0.11.0 liest das Frontend die Collection gar nicht mehr, die Regeln könnten also zu |
-| `crew_invites` wächst unbegrenzt | — | der Hook löscht den Auslöse-Record nach dem Versand nicht, obwohl ein Kommentar im Code das behauptet |
+| `crew_invites` wächst unbegrenzt | — | der Hook löscht den Auslöse-Record nach dem Versand nicht, obwohl ein Kommentar im Code das behauptet. Der Altbestand ist mit v0.13.3 einmalig geleert (73 → 0), neue entstehen weiter. **Braucht einen Hook-Deploy, also Server-Zugang — liegt beim Admin.** |
+
+**✅ Geschlossen am 2026-09-13 (v0.13.3): `crew_invites` ist zu.**
+`listRule`, `viewRule`, `updateRule` und `deleteRule` stehen auf „nur superuser“, wie `createRule`
+seit dem 2026-09-07. Vorher konnte jedes angemeldete Konto die gesamte Versandhistorie abrufen —
+mit `crew_email` jeder Person. Gemessen auf Test mit einem echten Crew-Konto gegen einen wirklich
+vorhandenen Datensatz: Liste **403**, Einzelabruf **403**, Ändern **403**, Löschen **403**.
+
+Die 73 Altbestände auf Live sind nach JSON-Sicherung gelöscht (41× `update`, 28× `invite`, 3×
+`reminder`, 1× `staff_invite`, 12 Personen; `app_url` ohne Slot-Daten, kein Datensatz zeigte auf
+eine gelöschte Tour). Es sind Auslöse-Datensätze verschickter Mails, **nicht** die Besetzung — die
+liegt in `crew_members` und `assignments` und ist nachgezählt unverändert (27 Personen, 1004
+Einsätze, 3 Touren).
+
+⚠️ Kein Zeitstempel: `crew_invites` hat wie `assignments` keine `created`/`updated`-Felder. Das
+Alter eines Eintrags ist deshalb nicht feststellbar — beim nächsten Schema-Eingriff mitnehmen.
 
 **✅ Geschlossen am 2026-09-13 (v0.13.2): `assignments.createRule`/`deleteRule` + Unique-Index.**
 `createRule` hat jetzt dieselbe Form wie `updateRule` (superadmin · eigene Adresse · Planbesitzer),
