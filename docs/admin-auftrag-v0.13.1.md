@@ -2,8 +2,10 @@
 
 **Datum:** 2026-09-11 · **Betrifft:** Frontend v0.13.0 → v0.13.1, `nginx.conf`, Tests
 **Hook:** v4.26, **unverändert** — kein Hook-Deploy, kein Neustart, keine PB-Regeln.
-**Stand:** Test und Live sind schon ausgerollt (`main` = `live` = `5a746be`). Coolify hat
-selbst nachgezogen, auf dem Server ist nichts zu tun.
+**Stand:** Test und Live sind schon ausgerollt. `live` steht auf `5a746be` (v0.13.1), `main`
+einen Commit weiter auf `1f2c137` — dieser eine Commit ist **dieses Dokument selbst**
+(`docs/…`, +73/−0), das nie ausgeliefert wird. Am ausgelieferten Code sind beide identisch.
+Coolify hat selbst nachgezogen, auf dem Server ist nichts zu tun.
 
 ---
 
@@ -59,8 +61,14 @@ aber ob der Browser das auf Live genauso sieht, zeigt nur ein echter Klick:
    Messung. Hat keine Tour einen Link, bitte die Messung auslassen und das so melden.
 3. Erwartet wird die Meldung **„Kurzlink kopiert ✓"**. „Kopieren fehlgeschlagen" wäre der
    Befund.
-4. Zur Sicherheit in ein Textfeld einfügen, es muss der Kurzlink ankommen. In der Konsole (F12)
-   darf **kein** Hinweis zu `Permissions-Policy` oder `clipboard` stehen.
+4. Zur Sicherheit in ein Textfeld einfügen. Erwartet wird die **vollständige** URL
+   `https://crewplanner.nyxlightwork.de/view.html?token=…` — **kein** verkürzter Link.
+   Das Feld heißt zwar „Kurzlink", enthält aber seit v0.8.3 den vollen Link: Der
+   is.gd-Kurzlink ist damals ausgebaut worden, weil der `view_token` an einen Fremddienst
+   ging. `generateViewLink()` schreibt seitdem `view_shorturl: fullUrl` (`admin.html:1392`),
+   und die Anzeige fällt auf `plan.view_shorturl || fullUrl` zurück (`admin.html:1506`).
+   Der Name des Feldes ist ein Überbleibsel.
+5. In der Konsole (F12) darf **kein** Hinweis zu `Permissions-Policy` oder `clipboard` stehen.
 
 Kommt der Link nicht an oder steht dort ein Policy-Hinweis, bitte kurz melden, **nichts selbst
 ändern**. Dann liegt es an der Header-Zeile in `nginx.conf`, und das korrigieren wir über den
