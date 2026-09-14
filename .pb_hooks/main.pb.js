@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.26
-console.log('[hook] main.pb.js v4.26 geladen');
+// Version: 4.27
+console.log('[hook] main.pb.js v4.27 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -254,6 +254,40 @@ onRecordAfterCreateSuccess(function(e) {
   } catch(outerErr) { console.error('[hook] crew_invites UNCAUGHT:', String(outerErr)); }
 
 }, 'crew_invites');
+
+
+// ── 1b. Aufräum-Cron für crew_invites (v4.27) ────────────────────────────────
+// `crew_invites` ist der Postausgang: je verschickter Mail ein Auslöse-Datensatz. Gelesen wird
+// er nach dem Versand von NIEMANDEM mehr — das Frontend fasst die Collection gar nicht an
+// (tests/notify.test.mjs wacht darüber), und hier oben nur einmal beim Anlegen. Trotzdem blieb
+// jeder Datensatz für immer liegen: Am 2026-09-13 lagen auf Live 73 Stück mit Namen und
+// Mailadressen von 12 Personen. Einmalig geleert (v0.13.3), das Nachwachsen stoppt erst hier.
+//
+// ⚠️ BEWUSST NICHT im Mail-Hook oben löschen, so naheliegend das wäre: Dort liefe `$app.delete`
+// in der Transaktion der Anlage. Genau diese Sorte Eingriff hat mit v4.25 den Statuswechsel-Guard
+// zerlegt — der Hook starb zur Laufzeit, die Crew konnte weder zu- noch absagen, und es musste
+// auf Test zurückgerollt werden. Ein Cron läuft außerhalb dieser Transaktion: Geht er schief,
+// bleibt der Mailversand unberührt. tests/hookcron.test.mjs hält beide Seiten fest.
+//
+// Aufbewahrung 30 Tage — lang genug für die Rückfrage „ist die Mail rausgegangen?", kurz genug,
+// dass nicht wieder Jahre auflaufen. Der Zeitstempel dafür ist das `created`-Feld, das die
+// Collection seit v0.13.4 hat (vorher war das Alter eines Eintrags gar nicht bestimmbar).
+//
+// Nachweis nach dem Deploy: `GET /api/crons` muss `purge_crew_invites` listen — „geladen" ist
+// nicht „wirksam" (die Lehre aus v4.17).
+cronAdd('purge_crew_invites', '20 3 * * *', function () {
+  try {
+    // PocketBase speichert als 'YYYY-MM-DD HH:MM:SS.sssZ' — ISO mit Leerzeichen statt 'T'.
+    var grenze = new Date(Date.now() - 30 * 86400000).toISOString().replace('T', ' ');
+    var alte = $app.findRecordsByFilter('crew_invites', 'created < {:g}', '-created', 500, 0, { g: grenze });
+    var n = 0;
+    for (var i = 0; i < alte.length; i++) { $app.delete(alte[i]); n++; }
+    console.log('[hook] purge_crew_invites: ' + n + ' entfernt (älter als 30 Tage, Grenze ' + grenze + ')');
+  } catch (err) {
+    // Ein fehlgeschlagener Aufräumlauf darf nichts weiter beeinträchtigen — morgen wieder.
+    console.error('[hook] purge_crew_invites fehlgeschlagen: ' + String(err));
+  }
+});
 
 
 // ── 2b. Statuswechsel-Guard für assignments (v4.25) ──────────────────────────

@@ -1,6 +1,7 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v0.13.0 (2026-09-09) · Hook v4.26
+PocketBase-Collections (SQLite). Stand: v0.13.4 (2026-09-14) · Hook **v4.26 deployt**,
+**v4.27 im Repo, NOCH NICHT deployt** (`docs/admin-auftrag-hook-v4.27.md`)
 
 > Die API-Regeln in diesem Dokument sind am **2026-09-09 an der Live-Instanz ausgelesen**
 > (`GET /api/collections` als Superuser), nicht aus dem Gedächtnis geschrieben. Weicht etwas
@@ -144,6 +145,13 @@ nächsten Lauf auffällt.
 **Hook-Trigger (Stand Hook v4.26, deployt 2026-09-09 auf beide Instanzen, `sha 8f642184…`.
 v4.25 warf zur Laufzeit Fehler, wurde auf Test zurückgerollt und ging nie live — siehe
 `rueckmeldung-hook-v4.25-2026-09-09.md`):**
+
+⚠️ **v4.27 liegt im Repo, ist aber NICHT deployt.** Neu darin: der Cron `purge_crew_invites`
+(täglich 3:20 Uhr) löscht `crew_invites` älter als 30 Tage — bewusst als Cron und nicht im
+Mail-Hook, weil `$app.delete` dort in der Transaktion der Anlage liefe (die Lehre aus v4.25).
+Nachweis nach dem Deploy: `GET /api/crons` muss den Job listen; auslösen von Hand geht mit
+`POST /api/crons/purge_crew_invites`. Auftrag: `docs/admin-auftrag-hook-v4.27.md`.
+Bis dahin räumt nur `tools/purge-invites.mjs` auf, von außen über die API.
 - assignments-UPDATE **blockierend** (v4.26) → weist Statuswechsel ab, die die Crew nicht selbst
   machen darf (Tabelle oben). Planer und Plan-Owner sind ausgenommen. Fehler:
   `status_transition_denied`.
@@ -179,8 +187,13 @@ v4.25 warf zur Laufzeit Fehler, wurde auf Test zurückgerollt und ging nie live 
 | `plan_name` | Text | Für E-Mail-Template |
 | `app_url` | Text | Doppelt belegt: entweder Login-URL **oder** ein JSON-Slot-Array (dann rendert der Hook eine Terminliste). Feldgrenze 5000 Zeichen — seit v0.11.0 prüft der **Hook** sie, vorher der Browser. |
 | `custom_message` | Text (optional) | Freitext des Admins → Notiz-Block in der Mail (Hook v4.6) |
+| `created` | **autodate** (`onCreate`) | Seit v0.13.4. Grundlage für das Aufräumen — vorher war das Alter eines Eintrags gar nicht bestimmbar |
 
-**API Rule (Create): leer — nur Server** (seit v0.11.0, 2026-09-07).
+**API Rules: ALLE leer — nur Server.** `createRule` seit v0.11.0 (2026-09-07), `listRule`,
+`viewRule`, `updateRule` und `deleteRule` seit v0.13.3 (2026-09-13). Vorher standen die vier
+letzten auf `@request.auth.id != ""`: Jedes angemeldete Konto konnte die gesamte Versandhistorie
+abrufen, samt `crew_email` jeder Person. Auf Test mit echtem Crew-Konto gegen einen vorhandenen
+Datensatz gemessen: Liste, Einzelabruf, Ändern und Löschen je **403**.
 
 Kein Browser legt mehr direkt einen Mail-Auslöser an; das macht ausschließlich `POST /notify`
 (Hook v4.23). Der Hook läuft mit Server-Rechten und unterliegt der Regel nicht — auf Test

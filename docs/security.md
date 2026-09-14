@@ -46,7 +46,7 @@ Datensatz anlegen und damit eine echte Mail über die eigene Domain auslösen. S
 
 | Befund | Regel | Warum noch offen |
 |---|---|---|
-| `crew_invites` wächst unbegrenzt | — | der Hook löscht den Auslöse-Record nach dem Versand nicht, obwohl ein Kommentar im Code das behauptet. Der Altbestand ist mit v0.13.3 einmalig geleert (73 → 0), neue entstehen weiter. **Braucht einen Hook-Deploy, also Server-Zugang — liegt beim Admin.** |
+| `crew_invites` wächst unbegrenzt | — | Altbestand mit v0.13.3 einmalig geleert (73 → 0). **Hook v4.27 liegt im Repo und ist NOCH NICHT deployt** — er legt den Cron `purge_crew_invites` an (täglich 3:20 Uhr, älter als 30 Tage). Deploy braucht SSH: `docs/admin-auftrag-hook-v4.27.md`. Ohne ihn räumt nur `tools/purge-invites.mjs` von Hand auf. |
 
 **✅ Geschlossen am 2026-09-13 (v0.13.3): `crew_invites` ist zu.**
 `listRule`, `viewRule`, `updateRule` und `deleteRule` stehen auf „nur superuser“, wie `createRule`
@@ -60,8 +60,13 @@ eine gelöschte Tour). Es sind Auslöse-Datensätze verschickter Mails, **nicht*
 liegt in `crew_members` und `assignments` und ist nachgezählt unverändert (27 Personen, 1004
 Einsätze, 3 Touren).
 
-⚠️ Kein Zeitstempel: `crew_invites` hat wie `assignments` keine `created`/`updated`-Felder. Das
-Alter eines Eintrags ist deshalb nicht feststellbar — beim nächsten Schema-Eingriff mitnehmen.
+✅ **Nachgeholt mit v0.13.4:** `crew_invites` hat jetzt ein `created`-Feld (`autodate`, `onCreate`)
+auf Test und Live, geprüft mit je einem Probe-Datensatz. Vorher war das Alter eines Eintrags gar
+nicht feststellbar — genau deshalb ließ sich bei den 73 Altbeständen nichts datieren.
+
+⚠️ **Offen bleibt dasselbe bei `assignments`:** auch dort gibt es weder `created` noch `updated`.
+Bei den 20 Dubletten (v0.13.2) war die Entstehung deshalb nicht rekonstruierbar. Beim nächsten
+Schema-Eingriff mitnehmen — nachrüsten geht, wie v0.13.4 zeigt, ohne Datenverlust.
 
 **✅ Geschlossen am 2026-09-13 (v0.13.2): `assignments.createRule`/`deleteRule` + Unique-Index.**
 `createRule` hat jetzt dieselbe Form wie `updateRule` (superadmin · eigene Adresse · Planbesitzer),
