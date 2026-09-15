@@ -1,7 +1,7 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v0.13.4 (2026-09-14) · Hook **v4.26 deployt**,
-**v4.27 im Repo, NOCH NICHT deployt** (`docs/admin-auftrag-hook-v4.27.md`)
+PocketBase-Collections (SQLite). Stand: v0.13.5 (2026-09-15) · Hook **v4.27 deployt**
+(2026-09-15, Test + Live)
 
 > Die API-Regeln in diesem Dokument sind am **2026-09-09 an der Live-Instanz ausgelesen**
 > (`GET /api/collections` als Superuser), nicht aus dem Gedächtnis geschrieben. Weicht etwas
@@ -146,12 +146,17 @@ nächsten Lauf auffällt.
 v4.25 warf zur Laufzeit Fehler, wurde auf Test zurückgerollt und ging nie live — siehe
 `rueckmeldung-hook-v4.25-2026-09-09.md`):**
 
-⚠️ **v4.27 liegt im Repo, ist aber NICHT deployt.** Neu darin: der Cron `purge_crew_invites`
-(täglich 3:20 Uhr) löscht `crew_invites` älter als 30 Tage — bewusst als Cron und nicht im
-Mail-Hook, weil `$app.delete` dort in der Transaktion der Anlage liefe (die Lehre aus v4.25).
-Nachweis nach dem Deploy: `GET /api/crons` muss den Job listen; auslösen von Hand geht mit
-`POST /api/crons/purge_crew_invites`. Auftrag: `docs/admin-auftrag-hook-v4.27.md`.
-Bis dahin räumt nur `tools/purge-invites.mjs` auf, von außen über die API.
+✅ **v4.27 ist seit 2026-09-15 auf Test und Live deployt.** Neu darin: der Cron
+`purge_crew_invites` (täglich 3:20 Uhr) löscht `crew_invites` älter als 30 Tage — bewusst als
+Cron und nicht im Mail-Hook, weil `$app.delete` dort in der Transaktion der Anlage liefe (die
+Lehre aus v4.25). `GET /api/crons` listet den Job auf beiden Instanzen; von Hand auslösen geht
+mit `POST /api/crons/purge_crew_invites`.
+
+Der Zeitvergleich (`created < {:g}`) ist **echt gemessen**, nicht hergeleitet: ein Probe-Datensatz
+per `sqlite3` auf den 01.07. zurückdatiert (über die API unmöglich, `created` ist `autodate`),
+danach `purge_crew_invites: 1 entfernt` — der alte weg, der frische stand noch. Rezept:
+`docs/admin-runbook-hook-deploy.md`, Abschnitt „Aufräum- und Filter-Jobs".
+`tools/purge-invites.mjs` bleibt als Weg ohne Server-Zugang bestehen.
 - assignments-UPDATE **blockierend** (v4.26) → weist Statuswechsel ab, die die Crew nicht selbst
   machen darf (Tabelle oben). Planer und Plan-Owner sind ausgenommen. Fehler:
   `status_transition_denied`.

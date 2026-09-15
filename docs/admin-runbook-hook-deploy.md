@@ -125,6 +125,32 @@ dessen Daten zu den vorhandenen Datensätzen passen: Die Test-DB hat viele `assi
 einen einzigen `users`-Datensatz, der zu keinem davon gehört. Eine grüne Messung dort kann
 deshalb heißen, dass gar nichts gemessen wurde.
 
+### Aufräum- und Filter-Jobs: leerer Bestand beweist nichts
+
+Anlass: Hook v4.27 (2026-09-15). Als Abnahme für den Cron `purge_crew_invites` stand im Auftrag,
+ihn von Hand auf der leeren Collection auszulösen — erwartet `0 entfernt`. **Untauglich:** Diese
+Null kommt auch heraus, wenn der Zeitvergleich gar nicht greift. Der Lauf hatte nie einen
+Kandidaten, also konnte er auch nichts falsch machen.
+
+Die Regel dahinter gilt für jeden Job, der nach einem Kriterium löscht oder ändert: **Erst einen
+Treffer erzeugen, dann messen.** Und immer einen Nicht-Treffer daneben legen, sonst belegt das
+Ergebnis nur, dass überhaupt etwas passiert ist.
+
+```bash
+# 1. Zwei Probe-Datensätze anlegen (@example.invalid, damit nie jemand Post bekommt)
+# 2. EINEN davon zurückdatieren — über die API geht das NICHT: `created` ist ein autodate-Feld,
+#    PocketBase setzt es selbst und nimmt keinen Wert entgegen. Also direkt in der DB:
+ssh «SERVER» 'sqlite3 «PFAD»/data.db "UPDATE crew_invites SET created = \"2026-07-01 12:00:00.000Z\" WHERE id = \"«ID»\";"'
+# 3. Job auslösen (Superuser-Token)
+curl -s -X POST -H "Authorization: «TOKEN»" https://«API»/api/crons/purge_crew_invites -o /dev/null -w "%{http_code}\n"
+# 4. Erwartet: „purge_crew_invites: 1 entfernt" im Log, der ALTE ist weg, der FRISCHE steht noch
+# 5. Fehler suchen, wo sie wirklich stehen — nicht im Container-Log:
+ssh «SERVER» 'sqlite3 «PFAD»/auxiliary.db "SELECT created,message FROM _logs WHERE level > 0 ORDER BY created DESC LIMIT 20;"'
+```
+
+Schritt 5 ist die Stelle, an der v4.25 aufflog: Der Hook warf zur Laufzeit `ReferenceError` und
+`TypeError`, während die Messungen oben plausible Zahlen lieferten.
+
 ## Rollback
 
 Die Backups aus dem Deploy liegen unter `/root/backups/pb-hooks/`:

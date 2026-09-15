@@ -42,11 +42,31 @@ Datensatz anlegen und damit eine echte Mail über die eigene Domain auslösen. S
 ⚠️ Die Regel überlebt einen Redeploy/Reimport nicht zuverlässig — Prüfschritt in
 `docs/admin-runbook-hook-deploy.md`.
 
-**Weiterhin offen, eigener Vorgang:**
+**Weiterhin offen, eigener Vorgang:** — **seit 2026-09-15 keiner mehr.** Die Tabelle stand hier
+seit dem Audit vom 09.08. und ist mit v0.13.5 leer. Was aus diesem Audit übrig ist, steht unten
+als Erledigt-Vermerk, jeweils mit der Messung, die es belegt.
 
-| Befund | Regel | Warum noch offen |
-|---|---|---|
-| `crew_invites` wächst unbegrenzt | — | Altbestand mit v0.13.3 einmalig geleert (73 → 0). **Hook v4.27 liegt im Repo und ist NOCH NICHT deployt** — er legt den Cron `purge_crew_invites` an (täglich 3:20 Uhr, älter als 30 Tage). Deploy braucht SSH: `docs/admin-auftrag-hook-v4.27.md`. Ohne ihn räumt nur `tools/purge-invites.mjs` von Hand auf. |
+Nicht aus dem Audit, aber offen und jeweils ein eigener Vorgang:
+
+- `assignments` hat weder `created` noch `updated`. Bei den 20 Dubletten (v0.13.2) war deshalb
+  nicht rekonstruierbar, wann sie entstanden sind. Nachrüsten geht ohne Datenverlust — bei
+  `crew_invites` hat es mit v0.13.4 funktioniert.
+- Die Live-Gegenmessung des Statuswechsel-Guards (Hook v4.26) mit einem echten Crew-Token steht
+  aus; sie braucht einen Crew-Testzugang auf Live.
+
+**✅ Geschlossen am 2026-09-15 (v0.13.5 / Hook v4.27): `crew_invites` wächst nicht mehr.**
+Der Cron `purge_crew_invites` (täglich 3:20 Uhr) löscht Datensätze älter als 30 Tage; er ist auf
+Test und Live registriert (`GET /api/crons`). Bewusst als Cron und nicht im Mail-Hook, weil
+`$app.delete` dort in der Transaktion der Anlage liefe — die Lehre aus v4.25.
+
+⚠️ **Wie es gemessen wurde, ist hier der eigentliche Punkt.** Die ursprüngliche Abnahme dieses
+Auftrags lautete: Job von Hand auf der leeren Collection auslösen, erwartet `0 entfernt`. Das
+beweist nichts — diese Null kommt auch heraus, wenn der Zeitvergleich gar nicht greift. Der Admin
+hat stattdessen einen Probe-Datensatz per `sqlite3` zurückdatiert (`created` ist `autodate`, über
+die API nicht setzbar): Der alte flog raus, der frische blieb stehen, und in `auxiliary.db`
+(`_logs`, `level > 0`) stand kein `ReferenceError`/`TypeError`. **Ein Abnahmekriterium, das den
+Erfolgsfall nicht erzwingen kann, ist keine Messung** — dieselbe Klasse wie ein CSP-„Grün" ohne
+Gegenprobe. Rezept gesichert in `docs/admin-runbook-hook-deploy.md`.
 
 **✅ Geschlossen am 2026-09-13 (v0.13.3): `crew_invites` ist zu.**
 `listRule`, `viewRule`, `updateRule` und `deleteRule` stehen auf „nur superuser“, wie `createRule`

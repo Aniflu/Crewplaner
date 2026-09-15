@@ -1,5 +1,40 @@
 # Auftrag an den Admin — Hook v4.27 deployen (crew_invites räumt sich selbst auf)
 
+> ✅ **Erledigt am 2026-09-15.** v4.27 auf Test und Live, `RestartCount: 0`, healthy.
+> Rollback-Stände liegen unter `/root/backups/pb-hooks/main.pb.js.{test,live}.20260915-*`.
+>
+> | # | Messung | Ergebnis |
+> |---|---|---|
+> | 1 | Logzeile | `main.pb.js v4.27 geladen` ✅ |
+> | 2 | `GET /api/crons` | `purge_crew_invites (20 3 * * *)` auf **Test UND Live** ✅ |
+> | — | Zeitvergleich (siehe unten) | `purge_crew_invites: 1 entfernt` ✅ |
+> | — | `auxiliary.db` (`_logs`, `level > 0`) | kein `ReferenceError`/`TypeError` ✅ |
+> | — | Live-Baseline nach dem Deploy | `/api/health` 200 · `/notify` 401 bei Kontroll-URL 404 · CORS nur erlaubte Origin · anonyme `plans` 0 · Frontend 200 · `crew_invites`-Regeln alle fünf leer ✅ |
+>
+> ⚠️ **Der Admin hat die Abnahme-Anweisung dieses Dokuments korrigiert — zu Recht.** Unten stand
+> als Nachweis: den Job von Hand auf der leeren Collection auslösen, erwartet `0 entfernt`.
+> **Das beweist nichts.** `0 entfernt` kommt dort auch heraus, wenn der Zeitvergleich gar nicht
+> greift — der Lauf hat schlicht keinen Kandidaten. Ein Abnahmekriterium, das den Erfolgsfall
+> nicht erzwingen kann, ist keine Messung. Dieselbe Klasse wie das CSP-„Grün" ohne Gegenprobe.
+>
+> Er hat stattdessen zwei Probe-Datensätze (`@example.invalid`) angelegt und einen per `sqlite3`
+> auf den 01.07. zurückdatiert — über die API geht das nicht, `created` ist ein `autodate`-Feld.
+> Ergebnis: **der alte flog raus, der frische blieb stehen.** Erst das belegt `created < {:g}`.
+> Das Rezept steht jetzt dauerhaft in `docs/admin-runbook-hook-deploy.md`.
+>
+> **Messung 2 auf Live** hatte er als offen gemeldet, weil `GET /api/crons` einen Superuser-Token
+> verlangt und er auf Live keins anlegen wollte (richtig so). Erledigt: Der Zugang liegt lokal
+> bei Marco (`pb-admin.local.json`), von dort nachgeprüft — der Job ist auf **beiden** Instanzen
+> registriert. Es braucht dafür keine Zugangsdaten und kein Warten auf 03:20 Uhr.
+>
+> 📌 **Offen geblieben, bewusst:** Messung 3 (echte Einladungsmail auf Live) wurde nicht
+> ausgelöst — sie ginge an eine reale Person. v4.27 fasst den Mail-Weg nicht an, und der Cron
+> löscht nur, was älter als 30 Tage ist; einem frischen Datensatz kann er nichts anhaben. Die
+> nächste ohnehin anstehende Einladung ist der Beleg. Auf Test ist der Endstand wieder sauber
+> (0 Invites, 2 Superuser, temporäres Konto gelöscht).
+>
+> Dieses Dokument bleibt als Verlauf stehen.
+
 **Datum:** 2026-09-14 · **Betrifft:** `.pb_hooks/main.pb.js` (v4.26 live → v4.27)
 **Frontend:** v0.13.4, unverändert ausgerollt — dort ist nichts zu tun.
 **Vorgeschichte:** `docs/admin-auftrag-v0.13.1.md`, `docs/security.md`
