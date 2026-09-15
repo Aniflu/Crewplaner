@@ -102,7 +102,9 @@ PocketBase-Collections (SQLite). Stand: v0.13.5 (2026-09-15) · Hook **v4.27 dep
 | `crew_email` | Email | E-Mail für Hook-Benachrichtigung |
 | `status` | **Text** (kein Select — 2026-07-21 live geprüft, entgegen früherer Doku-Annahme) | `proposed` → `confirmed` / `declined` / `pencilled` (v0.29.0, „vorgemerkt"). Da es ein freies Textfeld ist, braucht ein neuer Status-Wert KEINE Schema-Änderung. |
 | `proposed_by` | **Text** | Quelle der Anfrage: `'bulk'` / `'update'` / `'manual'` (NICHT E-Mail) |
-| `responded_at` | DateTime | Zeitstempel der Antwort |
+| `responded_at` | DateTime | Zeitstempel der **Antwort** — nur bei bestätigen/absagen/stornieren/quittieren. Ein vom Planer angelegter Slot hat hier nichts; als Entstehungszeit taugt das Feld deshalb NICHT |
+| `created` | **autodate** (`onCreate`) | Seit v0.13.6 (Test + Live). Die 1004 Zeilen von vorher bleiben **leer** und damit ehrlich als „unbekannt" erkennbar — PocketBase füllt Altbestand nicht nach (an einer Wegwerf-Collection gemessen, bevor irgendetwas angefasst wurde) |
+| `updated` | **autodate** (`onCreate` + `onUpdate`) | Seit v0.13.6. Greift auch bei Altbestand-Zeilen, sobald sie geändert werden; `created` bleibt dort trotzdem leer — eine alte Zeile bleibt also dauerhaft als alt erkennbar |
 
 > ⚠️ `proposed_by` MUSS **Text** sein. Nach einem Coolify-Wipe/Reimport wurde es schon als `relation`
 > angelegt → jeder Slot-Create wirft „Failed to create record" (Einladen/Update/Bestätigen kaputt).

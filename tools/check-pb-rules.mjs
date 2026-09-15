@@ -163,6 +163,16 @@ async function auth(inst) {
   return j.token;
 }
 
+// ── Pflichtfelder (v0.13.6) ───────────────────────────────────────────────────────────
+// Nicht nur Regeln fallen bei einem Coolify-Redeploy oder Schema-Reimport zurück — Felder
+// ebenso. Ohne `created` ist nicht mehr feststellbar, wann ein Datensatz entstanden ist;
+// genau daran scheiterte die Ursachensuche bei den 20 Dubletten (v0.13.2) und bei den 73
+// Altbeständen in crew_invites (v0.13.3).
+const PFLICHTFELDER = {
+  assignments:  ['created', 'updated'],
+  crew_invites: ['created'],
+};
+
 async function pruefe(name, inst) {
   console.log(`\n── ${name.toUpperCase()} · ${inst.base_url}`);
   let token;
@@ -190,6 +200,21 @@ async function pruefe(name, inst) {
       });
       console.log(p.ok ? `   → ${coll}: ${Object.keys(patch).length} Regel(n) zurückgesetzt ✓`
                        : `   → ${coll}: Zurücksetzen FEHLGESCHLAGEN (HTTP ${p.status})`);
+    }
+  }
+
+  // Pflichtfelder prüfen — bewusst OHNE --fix-Reparatur: Ein Feld anzulegen ist ein
+  // Schema-Eingriff und gehört bewusst gemacht, nicht nebenbei von einem Reparaturlauf.
+  for (const [coll, felder] of Object.entries(PFLICHTFELDER)) {
+    const res = await fetch(`${inst.base_url}/api/collections/${coll}`, { headers: { Authorization: token } });
+    if (!res.ok) { console.log(`   ✗ ${coll}: Felder nicht lesbar (HTTP ${res.status})`); abweichungen++; continue; }
+    const def = await res.json();
+    const vorhanden = new Set((def.fields || []).map(f => f.name));
+    const fehlt = felder.filter(f => !vorhanden.has(f));
+    if (fehlt.length) {
+      abweichungen++;
+      console.log(`   ✗ ${coll}: Feld(er) fehlen: ${fehlt.join(', ')}`);
+      console.log('       (--fix repariert das NICHT — Schema-Eingriff, bitte bewusst setzen)');
     }
   }
 

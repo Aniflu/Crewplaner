@@ -48,9 +48,16 @@ als Erledigt-Vermerk, jeweils mit der Messung, die es belegt.
 
 Nicht aus dem Audit, aber offen und jeweils ein eigener Vorgang:
 
-- `assignments` hat weder `created` noch `updated`. Bei den 20 Dubletten (v0.13.2) war deshalb
-  nicht rekonstruierbar, wann sie entstanden sind. Nachrüsten geht ohne Datenverlust — bei
-  `crew_invites` hat es mit v0.13.4 funktioniert.
+- ✅ **Erledigt mit v0.13.6:** `assignments` hat jetzt `created` und `updated` (beide `autodate`,
+  auf Test und Live gesetzt). Alles ab jetzt ist datierbar; die 1004 Altzeilen bleiben bewusst
+  leer, weil es für sie keine ehrliche Quelle gibt — ein geschätzter Zeitstempel sähe später aus
+  wie eine Tatsache. Vorher an einer Wegwerf-Collection gemessen, dass PocketBase Altbestand
+  **nicht** nachfüllt.
+- ⚠️ **Offen: „wer" fehlt weiterhin.** Die Zeitstempel sagen *wann*, nicht *wer*. Das
+  PocketBase-Request-Log taugt dafür nicht — es führt nur die Auth-Art (`users`/`_superusers`),
+  keine Personen-ID, und `maxDays: 1` löscht es nach 24 Stunden. `activity_log` (470 Einträge auf
+  Live) deckt nur Crew-Antworten ab, wird vom Browser geschrieben und ist damit fälschbar.
+  Fälschungssicher ginge es nur serverseitig im Hook über `e.auth` — eigener Vorgang.
 - Die Live-Gegenmessung des Statuswechsel-Guards (Hook v4.26) mit einem echten Crew-Token steht
   aus; sie braucht einen Crew-Testzugang auf Live.
 
