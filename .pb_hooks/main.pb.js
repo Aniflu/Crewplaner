@@ -1,7 +1,7 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.27
-console.log('[hook] main.pb.js v4.27 geladen');
+// Version: 4.28
+console.log('[hook] main.pb.js v4.28 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -288,6 +288,45 @@ cronAdd('purge_crew_invites', '20 3 * * *', function () {
     console.error('[hook] purge_crew_invites fehlgeschlagen: ' + String(err));
   }
 });
+
+
+// ── 2a. Protokoll: wer hat zuletzt geschrieben (v4.28) ───────────────────────
+// Die Zeitstempel aus v0.13.6 sagen *wann*, nicht *wer*. Beide naheliegenden Quellen taugen
+// dafür nicht: Das PocketBase-Request-Log führt nur die Auth-ART (`users`/`_superusers`), keine
+// Person, und löscht nach 24 Stunden (`maxDays: 1`); `activity_log` deckt nur Crew-Antworten ab
+// und wird vom Browser geschrieben, ist also fälschbar. Hier steht die ID des angemeldeten
+// Kontos, gesetzt vom Server — daran kann ein Client nichts drehen.
+//
+// Das Feld ist `hidden`: Die Crew bekommt es über die API nicht ausgeliefert, auch nicht bei den
+// eigenen Einsätzen (auf einer Wegwerf-Collection gemessen, bevor es angelegt wurde). Sie soll
+// nicht sehen, welcher Planer sie eingeteilt hat — dieselbe Linie wie „Crew sieht nur Namen".
+//
+// ⚠️ EIGENER Hook, nicht eine Zeile im Guard unten: Der Guard steigt VIERMAL früh aus
+// (`e.next(); return;`) — kein Auth, Planer, fremder Datensatz. Ausgerechnet beim Planer-Pfad,
+// dem häufigsten, bliebe das Feld sonst leer.
+//
+// ⚠️ KEIN `throw`, alles in try/catch: Wir fassen denselben Pfad an, an dem v4.25 die Crew vom
+// Zu- und Absagen abgeschnitten hat. Ein fehlender Protokolleintrag ist das niemals wert —
+// im Zweifel wird ohne Feld weitergeschrieben.
+//
+// ⚠️ Bewusst DOPPELT statt in einer gemeinsamen Funktion: Deklarationen auf oberster Dateiebene
+// sind in diesem Hook nicht zuverlässig sichtbar (die Lehre aus v4.25/v4.26) — jeder Handler
+// trägt seine Fassung selbst. Bitte nicht „aufräumen".
+onRecordCreateRequest(function (e) {
+  try {
+    var auth = e.auth;
+    if (auth && auth.id) { e.record.set('changed_by', auth.id); }
+  } catch (err) { console.error('[hook] changed_by (create) nicht gesetzt: ' + String(err)); }
+  e.next();
+}, 'assignments');
+
+onRecordUpdateRequest(function (e) {
+  try {
+    var auth = e.auth;
+    if (auth && auth.id) { e.record.set('changed_by', auth.id); }
+  } catch (err) { console.error('[hook] changed_by (update) nicht gesetzt: ' + String(err)); }
+  e.next();
+}, 'assignments');
 
 
 // ── 2b. Statuswechsel-Guard für assignments (v4.25) ──────────────────────────
@@ -1045,6 +1084,9 @@ routerAdd('POST', '/notify', function(e) {
         r.set('crew_email', mail);
         r.set('status', 'proposed');
         r.set('proposed_by', von);
+        // v4.28: Dieser Weg läuft NICHT durch die Record-Request-Hooks oben — ohne diese Zeile
+        // bliebe `changed_by` für jeden über /notify angelegten Slot für immer leer.
+        if (auth && auth.id) { r.set('changed_by', auth.id); }
         tx.save(r);
         if (da) { aktualisiert++; } else { angelegt++; }
       }

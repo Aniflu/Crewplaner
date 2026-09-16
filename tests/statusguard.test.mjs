@@ -22,29 +22,46 @@ const hook = readFileSync(join(root, '.pb_hooks/main.pb.js'), 'utf8');
 // die verbotenen Übergänge absichtlich beim Namen und würden die Guards sonst auslösen.
 const code = hook.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
+// Seit v4.28 hängen MEHRERE Handler desselben Typs an `assignments`: zuerst das Protokoll
+// (changed_by), dann der Guard. Ein `match` auf „der erste onRecordUpdateRequest" greift seitdem
+// den falschen Block — genau das ist beim Einbau passiert, beide Guard-Tests wurden rot, obwohl
+// am Guard nichts geändert war. Deshalb wird der Block an seiner KENNUNG gesucht, nicht an der
+// Position: Wer den Guard umbaut, darf die Tests brechen; wer einen Handler davor hängt, nicht.
+function handlerMit(typ, kennung) {
+  const re = new RegExp(typ + "\\(function[\\s\\S]*?,\\s*'assignments'\\);", 'g');
+  for (const treffer of code.match(re) || []) {
+    if (treffer.includes(kennung)) return treffer;
+  }
+  return null;
+}
+
 test('Hook: blockierender Update-Guard auf assignments existiert', () => {
   ok(/onRecordUpdateRequest\(/.test(code), 'onRecordUpdateRequest fehlt — ohne ihn ist der Statuswechsel ungeschützt');
   ok(/onRecordUpdateRequest\([\s\S]*?,\s*'assignments'\)/.test(code), 'der Update-Guard hängt nicht an assignments');
 });
 
 test('Hook: der Update-Guard vergleicht ALTEN mit NEUEM Status', () => {
-  const m = code.match(/onRecordUpdateRequest\(function[\s\S]*?,\s*'assignments'\);/);
-  ok(m, 'Update-Guard-Block nicht gefunden');
-  ok(/\.original\(\)\.get\('status'\)/.test(m[0]),
+  const m = handlerMit('onRecordUpdateRequest', 'status_transition_denied');
+  ok(m, 'Update-Guard-Block nicht gefunden (Kennung status_transition_denied)');
+  ok(/\.original\(\)\.get\('status'\)/.test(m),
      'liest den vorherigen Status nicht über original() — ohne ihn kann er keinen Übergang prüfen');
-  ok(/erlaubt\(alt, neu\)/.test(m[0]), 'wendet die Übergangstabelle nicht an');
+  ok(/erlaubt\(alt, neu\)/.test(m), 'wendet die Übergangstabelle nicht an');
 });
 
 test('Hook: Planer und Plan-Owner kommen am Guard vorbei (sonst sperrt er die Falschen ein)', () => {
   // istPlaner steht in JEDEM Handler einzeln — siehe /pb.js-Isolation im Test darunter.
-  for (const guard of ['onRecordUpdateRequest', 'onRecordCreateRequest']) {
-    const g = code.match(new RegExp(guard + '\\(function[\\s\\S]*?,\\s*\'assignments\'\\);'));
-    ok(g, guard + ' auf assignments nicht gefunden');
-    ok(/var istPlaner\s*=\s*function/.test(g[0]),
+  const guards = [
+    ['onRecordUpdateRequest', 'status_transition_denied'],
+    ['onRecordCreateRequest', 'assignment_create_denied'],
+  ];
+  for (const [guard, kennung] of guards) {
+    const g = handlerMit(guard, kennung);
+    ok(g, guard + ' auf assignments nicht gefunden (Kennung ' + kennung + ')');
+    ok(/var istPlaner\s*=\s*function/.test(g),
        guard + ': istPlaner fehlt oder ist nicht handler-lokal');
-    ok(/superadmin/.test(g[0]), guard + ': superadmin-Ausnahme fehlt');
-    ok(/manager/.test(g[0]),    guard + ': manager-Ausnahme fehlt');
-    ok(/getString\('owner'\)/.test(g[0]),
+    ok(/superadmin/.test(g), guard + ': superadmin-Ausnahme fehlt');
+    ok(/manager/.test(g),    guard + ': manager-Ausnahme fehlt');
+    ok(/getString\('owner'\)/.test(g),
        guard + ': Plan-Owner-Ausnahme fehlt — die steht in der updateRule und darf nicht wegfallen');
   }
 });

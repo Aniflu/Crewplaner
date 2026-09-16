@@ -53,11 +53,18 @@ Nicht aus dem Audit, aber offen und jeweils ein eigener Vorgang:
   leer, weil es für sie keine ehrliche Quelle gibt — ein geschätzter Zeitstempel sähe später aus
   wie eine Tatsache. Vorher an einer Wegwerf-Collection gemessen, dass PocketBase Altbestand
   **nicht** nachfüllt.
-- ⚠️ **Offen: „wer" fehlt weiterhin.** Die Zeitstempel sagen *wann*, nicht *wer*. Das
-  PocketBase-Request-Log taugt dafür nicht — es führt nur die Auth-Art (`users`/`_superusers`),
-  keine Personen-ID, und `maxDays: 1` löscht es nach 24 Stunden. `activity_log` (470 Einträge auf
-  Live) deckt nur Crew-Antworten ab, wird vom Browser geschrieben und ist damit fälschbar.
-  Fälschungssicher ginge es nur serverseitig im Hook über `e.auth` — eigener Vorgang.
+- 🔄 **„wer": vorbereitet, Deploy offen (v0.13.7 / Hook v4.28).** Das Feld
+  `assignments.changed_by` (Text, `hidden`) ist auf Test und Live angelegt; gefüllt wird es erst
+  vom Hook v4.28, und der braucht SSH — siehe `docs/admin-auftrag-hook-v4.28.md`. Der Hook setzt
+  `auth.id` serverseitig, der Client kann daran nichts drehen. `hidden` hält es von der Crew fern:
+  Sie soll nicht sehen, welcher Planer sie eingeteilt hat (Linie „Crew sieht nur Namen").
+  Auf einer Wegwerf-Collection vorab gemessen, dass `hidden` für normale Konten wirklich
+  unterdrückt und der Superuser den Wert weiterhin liest.
+  **Ausgeschlossene Abkürzungen, beide nachgemessen:** Das PocketBase-Request-Log führt nur die
+  Auth-Art (`users`/`_superusers`), keine Personen-ID, und `maxDays: 1` löscht es nach 24 Stunden.
+  `activity_log` (470 Einträge auf Live) deckt nur Crew-Antworten ab und wird vom Browser
+  geschrieben, ist also fälschbar.
+  **Grenze:** `changed_by` zeigt den **letzten** Schreibenden, keine Historie.
 - Die Live-Gegenmessung des Statuswechsel-Guards (Hook v4.26) mit einem echten Crew-Token steht
   aus; sie braucht einen Crew-Testzugang auf Live.
 

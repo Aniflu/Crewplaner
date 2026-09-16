@@ -105,6 +105,7 @@ PocketBase-Collections (SQLite). Stand: v0.13.5 (2026-09-15) · Hook **v4.27 dep
 | `responded_at` | DateTime | Zeitstempel der **Antwort** — nur bei bestätigen/absagen/stornieren/quittieren. Ein vom Planer angelegter Slot hat hier nichts; als Entstehungszeit taugt das Feld deshalb NICHT |
 | `created` | **autodate** (`onCreate`) | Seit v0.13.6 (Test + Live). Die 1004 Zeilen von vorher bleiben **leer** und damit ehrlich als „unbekannt" erkennbar — PocketBase füllt Altbestand nicht nach (an einer Wegwerf-Collection gemessen, bevor irgendetwas angefasst wurde) |
 | `updated` | **autodate** (`onCreate` + `onUpdate`) | Seit v0.13.6. Greift auch bei Altbestand-Zeilen, sobald sie geändert werden; `created` bleibt dort trotzdem leer — eine alte Zeile bleibt also dauerhaft als alt erkennbar |
+| `changed_by` | **Text**, `hidden` | Seit v0.13.7. ID des Kontos, das zuletzt geschrieben hat — gesetzt **serverseitig** im Hook (v4.28), der Client kann daran nichts drehen. `hidden` heißt: Die Crew bekommt das Feld über die API nicht ausgeliefert, auch nicht bei den eigenen Einsätzen; lesen kann es nur ein Superuser. Zeigt nur den **letzten** Schreibenden, keine Historie. Bis v4.28 deployt ist, bleibt es leer |
 
 > ⚠️ `proposed_by` MUSS **Text** sein. Nach einem Coolify-Wipe/Reimport wurde es schon als `relation`
 > angelegt → jeder Slot-Create wirft „Failed to create record" (Einladen/Update/Bestätigen kaputt).
@@ -147,6 +148,14 @@ nächsten Lauf auffällt.
 **Hook-Trigger (Stand Hook v4.26, deployt 2026-09-09 auf beide Instanzen, `sha 8f642184…`.
 v4.25 warf zur Laufzeit Fehler, wurde auf Test zurückgerollt und ging nie live — siehe
 `rueckmeldung-hook-v4.25-2026-09-09.md`):**
+
+⚠️ **v4.28 liegt im Repo und ist NICHT deployt.** Neu darin: ein eigener Abschnitt „2a" **vor**
+den Guards, der bei jedem Anlegen und Ändern `changed_by` auf `auth.id` setzt, dazu eine Zeile in
+der `/notify`-Transaktion (dieser Weg läuft nicht durch die Record-Hooks). Bewusst ein eigener
+Hook statt einer Zeile im Guard: Der Guard steigt viermal früh aus, ausgerechnet beim
+Planer-Pfad bliebe das Feld sonst leer. Die neuen Hooks werfen nichts (`try/catch`, kein `throw`)
+— ein fehlender Protokolleintrag darf das Zu- und Absagen nie verhindern.
+Auftrag: `docs/admin-auftrag-hook-v4.28.md`. Bis dahin bleibt `changed_by` leer.
 
 ✅ **v4.27 ist seit 2026-09-15 auf Test und Live deployt.** Neu darin: der Cron
 `purge_crew_invites` (täglich 3:20 Uhr) löscht `crew_invites` älter als 30 Tage — bewusst als

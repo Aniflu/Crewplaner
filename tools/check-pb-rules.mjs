@@ -169,7 +169,11 @@ async function auth(inst) {
 // genau daran scheiterte die Ursachensuche bei den 20 Dubletten (v0.13.2) und bei den 73
 // Altbeständen in crew_invites (v0.13.3).
 const PFLICHTFELDER = {
-  assignments:  ['created', 'updated'],
+  // `changed_by` (v0.13.7) ist `hidden` — die Crew bekommt es über die API nicht ausgeliefert,
+  // auch nicht bei den eigenen Einsätzen. Gefüllt wird es ausschließlich serverseitig im Hook
+  // (v4.28) mit `auth.id`; der Browser kann daran nichts drehen. Ein Schema-Reimport setzt
+  // `hidden` zurück — dann stünde die ID offen, deshalb gehört das Feld hierher.
+  assignments:  ['created', 'updated', 'changed_by'],
   crew_invites: ['created'],
 };
 
