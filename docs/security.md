@@ -1,6 +1,6 @@
 # Sicherheitsrichtlinie — Crewplanner
 
-Stand: v0.13.0 (2026-09-09) · Hook v4.26
+Stand: v1.0.0 (2026-10-24) · Hook v4.28
 
 ---
 
@@ -53,9 +53,12 @@ Nicht aus dem Audit, aber offen und jeweils ein eigener Vorgang:
   leer, weil es für sie keine ehrliche Quelle gibt — ein geschätzter Zeitstempel sähe später aus
   wie eine Tatsache. Vorher an einer Wegwerf-Collection gemessen, dass PocketBase Altbestand
   **nicht** nachfüllt.
-- 🔄 **„wer": vorbereitet, Deploy offen (v0.13.7 / Hook v4.28).** Das Feld
-  `assignments.changed_by` (Text, `hidden`) ist auf Test und Live angelegt; gefüllt wird es erst
-  vom Hook v4.28, und der braucht SSH — siehe `docs/admin-auftrag-hook-v4.28.md`. Der Hook setzt
+- ✅ **„wer": erledigt mit v0.13.7 / Hook v4.28, deployt am 2026-09-18.** Das Feld
+  `assignments.changed_by` (Text, `hidden`) ist auf Test und Live angelegt und wird vom Hook v4.28
+  gefüllt (`docs/rueckmeldung-hook-v4.28-2026-09-18.md`). Auf Test alle sieben Messungen bestanden,
+  darunter: Crew-Token bekommt das Feld nicht ausgeliefert. Auf Live seit 2026-09-30 belegt, dass
+  Planer-Schreibvorgänge das Feld füllen (Gegenprobe: genau die Zeilen mit `updated` sind gefüllt);
+  der Crew-Pfad ist auf Live noch nicht vorgekommen. Der Hook setzt
   `auth.id` serverseitig, der Client kann daran nichts drehen. `hidden` hält es von der Crew fern:
   Sie soll nicht sehen, welcher Planer sie eingeteilt hat (Linie „Crew sieht nur Namen").
   Auf einer Wegwerf-Collection vorab gemessen, dass `hidden` für normale Konten wirklich

@@ -1,6 +1,6 @@
 # Crewplanner — Erste Schritte
 
-Stand: v0.12.0 (2026-09-09)
+Stand: v1.0.0 (2026-10-24)
 
 ---
 
@@ -36,6 +36,12 @@ App.
 Nach dem Einloggen öffnet sich deshalb das Fenster **„Meine Einsätze"**. Dort stehen:
 
 - **offene Anfragen** — mit Haken bestätigen, Haken entfernen heißt „nicht verfügbar"
+- **Vormerkungen** (seit v0.13.0) — Tage, für die dich die Tourleitung grob eingeplant hat. Hier
+  gibt es bewusst kein Häkchen, nur **„Absagen"**: Bestätigen musst du eine Vormerkung nicht, sie
+  wird zur Anfrage, sobald es verbindlich wird. Kannst du an einem Tag nicht, sag es hier, dann
+  plant die Tourleitung nicht ins Leere. Dasselbe geht per Klick auf die eigene Vormerkung in der
+  Tabelle. Das Fenster öffnet sich beim Login nur bei echten Anfragen, die Vormerkungen erreichst
+  du jederzeit über die Schaltfläche.
 - **entfallene Tage** — Tage, für die du nicht mehr eingeplant bist, mit einem „Gesehen"-Knopf
 
 Der Knopf **„ÄNDERUNGEN GESEHEN ✓"** in der Mail macht dasselbe wie „Gesehen" im Fenster; du

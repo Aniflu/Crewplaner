@@ -49,7 +49,7 @@ Live drankommt.
    (erst nach `/tmp`, Version und sha256 als Gate, Backup, dann kopieren). Log prüfen:
    `[hook] main.pb.js v<aktuelle Version> geladen` — und **keine JSVM-Fehler** beim Start.
    (Das ist der wichtigste Einzelcheck.) Die Nummer steht bewusst nicht fest hier: Sie war
-   zuletzt v4.11 und ist inzwischen v4.24 — maßgeblich ist immer der Kopf von
+   zuletzt v4.11 und ist inzwischen v4.28 (Stand 2026-10-24) — maßgeblich ist immer der Kopf von
    `.pb_hooks/main.pb.js` im `main`-Branch.
 4. **Voll durchtesten** auf der Testseite `aniflu.github.io/Crewplaner`:
    - **Login / Registrierung** (Auto-Verify des users-Hooks).
@@ -89,7 +89,7 @@ Live drankommt.
 - **Beide** Instanzen auf **demselben expliziten Versions-Tag** pinnen (kein `:latest`, kein
   dangling) → reproduzierbar + Test spiegelt Live weiterhin exakt.
 - Backups noch eine Weile aufbewahren.
-- **CLAUDE.md aktualisieren:** PB-Versionsangabe (aktuell „v0.38") + etwaige JSVM-Änderungen,
+- **`docs/database-schema.md` aktualisieren:** neue PB-Version im Kopf + etwaige JSVM-Änderungen,
   damit künftige Hook-Arbeit die richtige API-Basis kennt.
 
 ## Was Marco/Claude beitragen können

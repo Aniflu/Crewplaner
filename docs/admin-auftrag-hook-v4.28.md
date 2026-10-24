@@ -1,5 +1,12 @@
 # Auftrag an den Admin — Hook v4.28 deployen (wer hat zuletzt geschrieben)
 
+> ✅ **Erledigt am 2026-09-18.** v4.28 auf Test und Live, `RestartCount: 0`, healthy. Auf Test alle
+> sieben Messungen bestanden, Einzelheiten in `docs/rueckmeldung-hook-v4.28-2026-09-18.md`.
+> Live-Abnahme des Planer-Pfads nachgeholt am 2026-10-24: vier am 2026-09-30 geänderte Einsätze
+> tragen `changed_by` (Rolle des Schreibenden: superadmin), alle übrigen 1003 sind leer.
+> `node tools/check-pb-rules.mjs` am 2026-10-24 auf beiden Instanzen grün, inkl. Pflichtfeld
+> `changed_by`.
+
 **Datum:** 2026-09-16 · **Betrifft:** `.pb_hooks/main.pb.js` (v4.27 live → v4.28)
 **Frontend:** v0.13.7, unverändert ausgerollt — dort ist nichts zu tun.
 **Feld:** `assignments.changed_by` ist auf Test und Live **bereits angelegt** (Text, `hidden`).

@@ -1,7 +1,7 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v0.13.5 (2026-09-15) · Hook **v4.27 deployt**
-(2026-09-15, Test + Live)
+PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.28 deployt**
+(2026-09-18, Test + Live)
 
 > Die API-Regeln in diesem Dokument sind am **2026-09-09 an der Live-Instanz ausgelesen**
 > (`GET /api/collections` als Superuser), nicht aus dem Gedächtnis geschrieben. Weicht etwas
@@ -80,7 +80,7 @@ PocketBase-Collections (SQLite). Stand: v0.13.5 (2026-09-15) · Hook **v4.27 dep
 > `loadAllKnownCrew` liest alle `crew_members` → Pool-Mitglieder erscheinen in „Aus Crew-Pool wählen".
 > Beim Übernehmen in eine Tour entsteht ein zweiter Record mit der echten `plan_id`.
 > Das Login-Konto entsteht erst beim ersten Login über den Einladungslink; der `users`-Create-Hook
-> (main.pb.js, aktuell v4.18) übernimmt dann die im Pool gesetzte `role`.
+> (main.pb.js, seit v4.18) übernimmt dann die im Pool gesetzte `role`.
 
 > ⚠️ **`plan_id` MUSS Text sein (v0.23.2):** Nach einem Coolify-Wipe/Reimport war `crew_members.plan_id`
 > (und `assignments.plan_id`) als **`relation → plans`** angelegt. Der Sentinel `"__pool__"` ist kein
@@ -105,7 +105,7 @@ PocketBase-Collections (SQLite). Stand: v0.13.5 (2026-09-15) · Hook **v4.27 dep
 | `responded_at` | DateTime | Zeitstempel der **Antwort** — nur bei bestätigen/absagen/stornieren/quittieren. Ein vom Planer angelegter Slot hat hier nichts; als Entstehungszeit taugt das Feld deshalb NICHT |
 | `created` | **autodate** (`onCreate`) | Seit v0.13.6 (Test + Live). Die 1004 Zeilen von vorher bleiben **leer** und damit ehrlich als „unbekannt" erkennbar — PocketBase füllt Altbestand nicht nach (an einer Wegwerf-Collection gemessen, bevor irgendetwas angefasst wurde) |
 | `updated` | **autodate** (`onCreate` + `onUpdate`) | Seit v0.13.6. Greift auch bei Altbestand-Zeilen, sobald sie geändert werden; `created` bleibt dort trotzdem leer — eine alte Zeile bleibt also dauerhaft als alt erkennbar |
-| `changed_by` | **Text**, `hidden` | Seit v0.13.7. ID des Kontos, das zuletzt geschrieben hat — gesetzt **serverseitig** im Hook (v4.28), der Client kann daran nichts drehen. `hidden` heißt: Die Crew bekommt das Feld über die API nicht ausgeliefert, auch nicht bei den eigenen Einsätzen; lesen kann es nur ein Superuser. Zeigt nur den **letzten** Schreibenden, keine Historie. Bis v4.28 deployt ist, bleibt es leer |
+| `changed_by` | **Text**, `hidden` | Seit v0.13.7. ID des Kontos, das zuletzt geschrieben hat — gesetzt **serverseitig** im Hook (v4.28), der Client kann daran nichts drehen. `hidden` heißt: Die Crew bekommt das Feld über die API nicht ausgeliefert, auch nicht bei den eigenen Einsätzen; lesen kann es nur ein Superuser. Zeigt nur den **letzten** Schreibenden, keine Historie: Ändert ein Planer den Datensatz nach der Crew-Antwort, steht danach seine ID dort, die der Crew ist weg. Gefüllt seit Hook v4.28 (2026-09-18); der Altbestand davor bleibt leer. Auf Test sind Crew- und Planer-Pfad gemessen, auf Live der Planer-Pfad (erste gefüllte Zeilen am 2026-09-30) |
 
 > ⚠️ `proposed_by` MUSS **Text** sein. Nach einem Coolify-Wipe/Reimport wurde es schon als `relation`
 > angelegt → jeder Slot-Create wirft „Failed to create record" (Einladen/Update/Bestätigen kaputt).
