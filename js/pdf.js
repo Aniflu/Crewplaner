@@ -3,7 +3,7 @@
 // Drei Ansichten: Tabelle (volle Kreuztabelle), Blöcke (Tourblock-Zusammenfassung),
 // Crew (Timeline pro Person).
 import { TOUR_DATES, POSITIONS, crew, assignments, defaultCrew,
-         assignmentStatuses, logos, IS_MANAGER, CREW_COLORS, OFFEN } from './state.js';
+         assignmentStatuses, logos, IS_MANAGER, CREW_COLORS, OFFEN, loadedPlanName } from './state.js';
 import { getVal, isPending, esc, parseD, fmtD, dw, DE_DAYS, DE_MON, fmt } from './utils.js';
 import { TYPE_OPTS } from './types.js';
 import { getPlansIndex, getActivePlanId } from './plans.js';
@@ -459,7 +459,7 @@ export async function generatePDF(){
     else if(PDF_VIEW==='crew'){ viewResult=pdfRenderCrew(fd,selCrew); viewLabel='Crew-Timeline'; }
     else { viewResult=pdfRenderTable(fd,selPos,selCrew); viewLabel='Tabelle'; }
 
-    const planName=(()=>{try{const p=(typeof getPlansIndex==='function')?getPlansIndex():[];const a=p.find(x=>x.id===getActivePlanId());return a?a.name:'';}catch(e){return '';}})();
+    const planName=(()=>{try{const p=(typeof getPlansIndex==='function')?getPlansIndex():[];const a=p.find(x=>x.id===getActivePlanId());return a?a.name:loadedPlanName;}catch(e){return loadedPlanName;}})();
     const html=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Tour/Crew Plan</title>
 <style>${pdfSharedCSS()}${viewResult.css}</style></head><body>
 <div class="page">

@@ -159,6 +159,24 @@ export function setCrewMeta(meta) {
   crewMeta = { ...meta };
 }
 
+// Name des Plans, den admin.html geladen hat (v0.13.8). Der Admin führt keinen Plan im
+// localStorage-Index, pdf.js findet den Namen dort also nicht — leer heißt: nicht gesetzt.
+export let loadedPlanName = '';
+
+// Einen ganzen Plan in state.js übernehmen (v0.13.8). admin.html ist ein klassisches
+// Inline-Skript mit eigenen Variablen; Module wie pdf.js lesen aber hier. Ohne diesen Schritt
+// zeigte der PDF-Export im Admin die Startwerte oben (Max Mustermann, Demo-Tour) statt des
+// geladenen Plans — dieselbe Klasse wie der ICS-Fehler v0.19.1.
+export function loadPlanState(pd, statuses, planName) {
+  setTourDates(pd.tourDates || []);
+  setPositions(pd.positions || []);
+  setCrew(pd.crew || []);
+  setDefaultCrew(pd.defaultCrew || {});
+  loadAssignmentsData(pd.assignments || {});
+  loadStatusesData(statuses || {});
+  loadedPlanName = planName || '';
+}
+
 export function setLogos(l) {
   logos = { ...l };
 }

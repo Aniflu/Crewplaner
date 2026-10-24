@@ -541,7 +541,7 @@ body {
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v0.13.7</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v1.0.0</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -1811,7 +1811,11 @@ async function onAdminImportFile(event) {
 // ── Werkzeuge: PDF & ICS ───────────────────────────────────────────────────────
 function openAdminPDF() {
   if (!_wrkPlanData) { adminToast('Bitte zuerst einen Plan laden', 'var(--warn)'); return; }
-  openPDFFilter(); // from pdf.js, uses globals set above
+  // pdf.js ist ein Modul und sieht die Variablen dieses Skripts nicht — es liest state.js.
+  // Hier den aktuellen Stand übergeben, nicht beim Laden: Import und Umbenennen ändern ihn danach.
+  window.loadPlanState({ tourDates: TOUR_DATES, positions: POSITIONS, crew, defaultCrew, assignments },
+                       _wrkAssignmentStatuses, _wrkPlanName);
+  openPDFFilter();
 }
 
 function openAdminICS() {

@@ -19,6 +19,7 @@ import { renderEmailLog } from './emailLog.js';
 import { loadAssignmentStatuses, loadCrewMeta, createPoolMember, notify } from './dataService.js';
 import { POOL_PLAN_ID } from './config.js';
 import { generatePDF, openPDFFilter, pdfSetView, pdfToggleAll } from './pdf.js';
+import { loadPlanState } from './state.js';
 // HINWEIS: KEIN Import von calendar.js generateICS mehr — admin.html hat eine eigene
 // Inline-`adminGenerateICS`, die den GELADENEN Plan (_wrk*/TOUR_DATES) exportiert.
 // Der frühere `window.adminGenerateICS = generateICS` überschrieb sie und las `state.js`
@@ -52,6 +53,9 @@ window.notify = notify;
 // läuft nach dem Inline-Skript (siehe Kommentar dort).
 window.POOL_PLAN_ID = POOL_PLAN_ID;
 window.createPoolMember = createPoolMember;
+// pdf.js liest aus state.js, admin.html hält den geladenen Plan in eigenen Variablen —
+// openAdminPDF übergibt ihn damit, bevor der Filter aufgeht (v0.13.8).
+window.loadPlanState = loadPlanState;
 window.generatePDF = generatePDF;
 window.openPDFFilter = openPDFFilter;
 window.pdfSetView = pdfSetView;
