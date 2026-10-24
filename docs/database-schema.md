@@ -222,10 +222,10 @@ Vorherige Fassung, falls je zurückgerollt werden muss:
 `docs/admin-runbook-hook-deploy.md`. Steht sie wieder offen, kann jedes angemeldete Konto
 eine echte Mail über die eigene Domain auslösen.
 
-⚠️ **Weiterhin offen:** `listRule`/`viewRule` stehen auf `@request.auth.id != ""` — jedes
-angemeldete Konto kann alle Auslöse-Datensätze lesen, **samt `crew_email` jeder Person**.
-Inhaltlich derselbe Befund wie K-2, nur in einer anderen Collection. Seit v0.11.0 liest das
-Frontend die Collection gar nicht mehr, die Regeln könnten also zu (siehe `docs/security.md`).
+✅ **Geschlossen mit v0.13.3:** `listRule`, `viewRule`, `updateRule` und `deleteRule` stehen auf
+`null` (nur Superuser). Vorher standen sie auf `@request.auth.id != ""`, jedes angemeldete Konto
+konnte alle Auslöse-Datensätze lesen, samt `crew_email` jeder Person (inhaltlich derselbe Befund
+wie K-2). Soll-Stand in `tools/check-pb-rules.mjs`, dort am 2026-10-24 auf beiden Instanzen grün.
 
 **Hook-Trigger:** CREATE → sendet E-Mail via Resend HTTP API
 
