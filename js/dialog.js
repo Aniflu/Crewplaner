@@ -41,6 +41,7 @@ export function initDialogSystem(){
       titleEl.textContent=opts.title||(opts.danger?'Achtung':'Hinweis');
       msgEl.textContent=opts.msg;
       inputEl.style.display=opts.type==='prompt'?'block':'none';
+      inputEl.type=opts.inputType||'text';
       if(opts.type==='prompt')inputEl.value=opts.def||'';
       btnsEl.innerHTML='';
       const close=val=>{
@@ -84,6 +85,10 @@ export function initDialogSystem(){
   window.showPrompt=function(msg,def){
     return _show({type:'prompt',title:'Eingabe',msg,def:def||''});
   };
+  // Datumsauswahl (v1.1.0) — liefert 'YYYY-MM-DD' oder null.
+  window.showDatePrompt=function(msg,def){
+    return _show({type:'prompt',title:'Datum',msg,def:def||'',inputType:'date'});
+  };
 })();   // ← inneres IIFE MUSS aufgerufen werden, sonst werden window.show* nie gesetzt
 }
 initDialogSystem();
@@ -92,3 +97,4 @@ initDialogSystem();
 export function showAlert(msg) { return window.showAlert(msg); }
 export function showConfirm(msg, label) { return window.showConfirm(msg, label); }
 export function showPrompt(msg, def) { return window.showPrompt(msg, def); }
+export function showDatePrompt(msg, def) { return window.showDatePrompt(msg, def); }

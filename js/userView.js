@@ -3,16 +3,17 @@ import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
          IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID, setStatus,
          pendingCancellations, meineEntfallenen } from './state.js';
 import { SUPABASE_ENABLED, POCKETBASE_URL } from './config.js';
-import { getVal, isPending, esc, showToast, fmtD, sameCrew } from './utils.js';
+import { getVal, isPending, esc, showToast, fmtD, fmtDParts, sameCrew } from './utils.js';
 import { pbPatch, pbPost, pbFirst } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
          sendAvailabilityNotice, loadPlanForCrew, loadCrewMeta,
-         loadCrewPlans, ackCancelledAssignments } from './dataService.js';
+         loadCrewPlans, ackCancelledAssignments, moveAssignmentDate } from './dataService.js';
 import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable, resetTodayAutoScroll } from './render.js';
-import { getActivePlanId, getPlansIndex, activePlanName } from './plans.js';
+import { getActivePlanId, getPlansIndex, activePlanName, _savePlanToLS } from './plans.js';
 import { closeModal, openModal } from './modals.js';
-import { icsExportRows, ICS_STATUS_LABEL, crewIcsContent, feedUrls } from './pure.js';
+import { icsExportRows, ICS_STATUS_LABEL, crewIcsContent, feedUrls,
+         checkDateMove, moveDateInPlan } from './pure.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
 export function toggleCancellation(dateStr, posId) {
@@ -547,6 +548,23 @@ export function _queueCrewUpdate(dateStr, changeDesc) {
   _saveCrewUpdateQueue(q);
   _updateCrewUpdateBar();
   renderTable();
+}
+
+// Datum eines Tour-Tags ändern (v1.1.0). Reihenfolge ist Absicht: erst prüfen (ohne Netz),
+// dann die PB-Records verschieben, erst danach den lokalen Stand — scheitert der Server, bleibt
+// die Tabelle wie sie war. Angefragte/bestätigte Crew geht wie bei einer Ortsänderung zurück
+// auf „angefragt" und landet mit „Datum: alt → neu" in der Update-Queue.
+export async function changeTourDate(oldDate, newDate) {
+  const reason = checkDateMove(TOUR_DATES, oldDate, newDate);
+  if (reason) return { ok: false, reason };
+  await moveAssignmentDate(oldDate, newDate);
+  const q = _getCrewUpdateQueue();
+  moveDateInPlan({ tourDates: TOUR_DATES, assignments, statuses: assignmentStatuses, queue: q }, oldDate, newDate);
+  _saveCrewUpdateQueue(q);
+  _savePlanToLS(getActivePlanId());
+  _queueCrewUpdate(newDate, `Datum: ${fmtDParts(oldDate).dt}. → ${fmtDParts(newDate).dt}.`);
+  renderTable();
+  return { ok: true, reason: '' };
 }
 
 export function _queueGlobalCrewUpdate(changeDesc, dates) {

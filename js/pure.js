@@ -319,3 +319,32 @@ export function todayMarkers(dateList, todayISO){
   if(today !== null) next = null;   // exakter Tag hat Vorrang → kein separater „nextday"-Strich
   return { today, next };
 }
+
+// ── Datum eines Tour-Tags ändern (v1.1.0) ─────────────────────────────────────
+// Das Datum ist der Schlüssel für Besetzung, Crew-Status und Update-Queue. Liefert den Grund,
+// warum die Verschiebung NICHT geht ('' = geht): ungueltig | gleich | fehlt | belegt.
+export function checkDateMove(tourDates, oldDate, newDate){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(newDate||''))) return 'ungueltig';
+  if(newDate === oldDate) return 'gleich';
+  if(!tourDates.some(r => r.date === oldDate)) return 'fehlt';
+  if(tourDates.some(r => r.date === newDate)) return 'belegt';
+  return '';
+}
+
+// Verschiebt den Tag in place: Zeile (mit Ort/Tagesart/Block) neu einsortieren, Besetzung und
+// Status umschlüsseln, Queue-Slots umdatieren. Bei Grund ≠ '' bleibt alles unverändert.
+export function moveDateInPlan(plan, oldDate, newDate){
+  const td = plan.tourDates;
+  const reason = checkDateMove(td, oldDate, newDate);
+  if(reason) return { ok:false, reason };
+  const [row] = td.splice(td.findIndex(r => r.date === oldDate), 1);
+  row.date = newDate;
+  const at = td.findIndex(r => r.date > newDate);
+  if(at === -1) td.push(row); else td.splice(at, 0, row);
+  for(const m of [plan.assignments, plan.statuses]){
+    if(m && m[oldDate]){ m[newDate] = m[oldDate]; delete m[oldDate]; }
+  }
+  for(const e of Object.values(plan.queue || {}))
+    for(const s of (e.slots || [])) if(s.date === oldDate) s.date = newDate;
+  return { ok:true, reason:'' };
+}

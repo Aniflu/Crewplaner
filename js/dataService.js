@@ -573,6 +573,33 @@ async function _inGruppen(liste, arbeit, aufFortschritt) {
   return fertig;
 }
 
+// Datum ändern (v1.1.0): alle assignments-Records des Tags auf das neue Datum umschreiben.
+// NUR das Datum wird gepatcht — der Status bleibt, deshalb verschickt der Hook dabei keine
+// Mail; die Crew erfährt es über die Update-Queue. Scheitert ein Record, werden die schon
+// verschobenen zurückgeholt, damit Server und Tabelle nicht auseinanderlaufen.
+export async function moveAssignmentDate(oldDate, newDate) {
+  if (!SUPABASE_ENABLED) return 0;
+  const planId = await _getActivePlanId();
+  if (!planId) throw new Error('Plan nicht gefunden – bitte neu einloggen');
+  const data = await pbListAll('assignments',
+    `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(oldDate)}"`);
+  const recs = data?.items || [];
+  const moved = [];
+  try {
+    await _inGruppen(recs, async (r) => {
+      await pbPatch('/api/collections/assignments/records/' + r.id, { date: newDate });
+      moved.push(r.id);
+    });
+  } catch (e) {
+    for (const id of moved) {
+      try { await pbPatch('/api/collections/assignments/records/' + id, { date: oldDate }); }
+      catch (e2) { console.warn('moveAssignmentDate: Rückholen fehlgeschlagen', id, e2.message); }
+    }
+    throw e;
+  }
+  return recs.length;
+}
+
 // targets: [{ date, posId, name, email }] · ziel: 'pencilled' | 'confirmed' | 'proposed'
 export async function applyStatusToSlots(targets, ziel, aufFortschritt) {
   if (!SUPABASE_ENABLED) return 0;

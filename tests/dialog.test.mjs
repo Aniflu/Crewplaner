@@ -26,3 +26,5 @@ test('Dialog: window.showAlert ist eine Funktion', () =>
   ok(typeof window.showAlert === 'function', 'window.showAlert undefined'));
 test('Dialog: window.showPrompt ist eine Funktion', () =>
   ok(typeof window.showPrompt === 'function', 'window.showPrompt undefined'));
+test('Dialog: window.showDatePrompt ist eine Funktion (Datum ändern, v1.1.0)', () =>
+  ok(typeof window.showDatePrompt === 'function', 'window.showDatePrompt undefined'));

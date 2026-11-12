@@ -11,10 +11,10 @@ import { pbDelete } from './pb.js';
 import { cancelProposal, bulkCancelProposals, loadAssignmentStatuses, confirmAssignment, pencilInAssignment, promotePencilledToProposed, softCancelAssignment, removeAssignmentSlot } from './dataService.js';
 import { openBulkStatusModal } from './bulkStatus.js';
 import { _savePlanToLS, getActivePlanId } from './plans.js';
-import { showPrompt, showConfirm } from './dialog.js';
+import { showPrompt, showConfirm, showDatePrompt } from './dialog.js';
 import { hasPermission } from './rbac.js';
 import { openBlockAssign } from './tourblock.js';
-import { _queueCrewUpdate, _queueRemovedSlot } from './userView.js';
+import { _queueCrewUpdate, _queueRemovedSlot, changeTourDate } from './userView.js';
 
 export function showDD(rect,header,items){
   const menu=document.getElementById('ddMenu');
@@ -77,6 +77,18 @@ export function openDateDD(e,dateStr){
   e.stopPropagation();
   const row=TOUR_DATES.find(r=>r.date===dateStr);
   const items=[
+    {label:'📅 Datum ändern…',action:async()=>{
+      closeDD();
+      const neu=await showDatePrompt('Neues Datum für '+fmtD(dateStr)+':',dateStr);
+      if(!neu||neu===dateStr)return;
+      try{
+        const r=await changeTourDate(dateStr,neu);
+        if(r.ok)showToast('Datum geändert: '+fmtD(dateStr)+' → '+fmtD(neu)+' ✓','#4ae8a0');
+        else showToast(r.reason==='belegt'?'Am '+fmtD(neu)+' gibt es schon eine Zeile':'Ungültiges Datum','#e84a4a');
+      }catch(err){
+        showToast('Fehler – Datum nicht geändert: '+err.message,'#e84a4a');
+      }
+    }},
     {label:'→ Block zuweisen…',action:()=>{closeDD();openBlockAssign(dateStr);}},
     {label:'🗑 Zeile löschen',cls:'danger',action:async()=>{
       const ok=await showConfirm('Zeile '+fmtD(dateStr)+' wirklich löschen?','Löschen');
