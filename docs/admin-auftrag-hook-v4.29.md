@@ -42,7 +42,7 @@ Unverändert nach `docs/admin-runbook-hook-deploy.md` — **zuerst Test, messen,
 | 4 | Einen Einsatz auf `pencilled` setzen, als Crew auf `pencil_declined` setzen | wird angenommen; Mail „VORMERKUNG ABGESAGT · …“ beim Planer (Test hat keinen Mailversand: Logzeile `kein RESEND_KEY` statt Mail genügt) |
 | 5 | Derselbe Einsatz: Crew setzt `pencil_declined → pencilled` | wird angenommen; „VORMERKUNG WIEDER FREI“ |
 | 6 | Crew versucht `pencil_declined → confirmed` und `declined → pencilled` | beides mit `status_transition_denied` abgelehnt |
-| 7 | **Einladung lässt Vormerkung unverändert:** `POST /notify` mit `type: invite`, `slots` und `mailSlots` für einen Tag mit Status `pencilled` und einen Tag ohne Record | der vorgemerkte Datensatz bleibt `pencilled`, der andere wird `proposed`; die Mail führt nur den zweiten Tag (`mailSlots` wird ebenfalls gefiltert) |
+| 7 | **Einladung lässt Vormerkung unverändert:** `POST /notify` mit `type: invite`, `slots` und `mailSlots` für einen Tag mit Status `pencilled` und einen Tag ohne Record | der vorgemerkte Datensatz bleibt `pencilled`, der andere wird `proposed`; die Mail führt nur den zweiten Tag (`mailSlots` wird ebenfalls gefiltert, aber nur neue Termine; Statuszeilen und Entfallen-Einträge bleiben) |
 | 8 | `POST /notify` mit `type: pencil_info`, `mailSlots` mit zwei Terminen | Antwort `ok`, **kein** Statusdatensatz verändert, `crew_invites`-Eintrag mit Typ `pencil_info` |
 | 9 | `GET /planstatus/{id}` als Crew, mit einem `pencil_declined`-Einsatz | Status `pencil_declined` ist in der Antwort |
 | 10 | Einen `pencil_declined`-Einsatz ohne Statuswechsel erneut speichern (z. B. Planer ändert eine Notiz) | **keine** zweite Mail, Logzeile „Status unverändert, kein E-Mail gesendet“ |

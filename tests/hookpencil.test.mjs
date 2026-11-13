@@ -209,3 +209,13 @@ test('/notify: pencil_info ohne mailSlots → 400', () => {
   eq(notify({ type: 'pencil_info', mailSlots: [] }, {}).antworten[0][0], 400);
   eq(notify({ type: 'pencil_info', mailSlots: [{ date: '2027-06-01', posLabel: 'GL' }] }, {}).antworten.length, 0);
 });
+
+test('/notify update: Statuszeile (kind status, to pencilled) auf vorgemerktem Datensatz bleibt in der Mail', () => {
+  const body = { type: 'update', slots: [{ date: '2027-06-01', posId: 'gl' }, { date: '2027-06-02', posId: 'gl' }],
+    mailSlots: [{ kind: 'status', to: 'pencilled', date: '2027-06-01', posLabel: 'GL' },
+                { kind: 'removed', aid: 'x', date: '2027-06-01', posLabel: 'GL' },
+                { date: '2027-06-01', posLabel: 'GL' }, { date: '2027-06-02', posLabel: 'GL' }] };
+  const { body: b } = notify(body, { '2027-06-01|gl': 'pencilled' });
+  eq(b.mailSlots.map((m) => (m.kind || 'neu') + ':' + m.date).join(','),
+     'status:2027-06-01,removed:2027-06-01,neu:2027-06-02');
+});

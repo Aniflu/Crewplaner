@@ -1115,8 +1115,8 @@ routerAdd('POST', '/notify', function(e) {
     }
     slots = offen;
   }
-  // mailSlots (vom Client gelieferte Mail-Liste) gilt derselbe Filter; Einträge ohne passenden
-  // Vormerk-Datensatz (z. B. kind 'removed') bleiben. Übersprungene Schlüssel: Datum|posId und Datum|Label.
+  // mailSlots (vom Client gelieferte Mail-Liste) gilt derselbe Filter; Nur NEUE Termine werden entfernt;
+  // kind 'removed' und kind 'status' (Information, z. B. „jetzt vorgemerkt“) bleiben. Übersprungene Schlüssel: Datum|posId und Datum|Label.
   var uebersprungen = 0;
   var ueberKeys = {};
   if (typ === 'invite' || typ === 'reminder' || typ === 'update') {
@@ -1142,7 +1142,7 @@ routerAdd('POST', '/notify', function(e) {
         var ms = body.mailSlots[mi] || {};
         var mk1 = String(ms.date) + '|' + String(ms.posId || '');
         var mk2 = String(ms.date) + '|' + String(ms.posLabel || '');
-        if (ms.kind !== 'removed' && (ueberKeys[mk1] || ueberKeys[mk2])) continue;
+        if (ms.kind !== 'removed' && ms.kind !== 'status' && (ueberKeys[mk1] || ueberKeys[mk2])) continue;
         mFrei.push(ms);
       }
       body.mailSlots = mFrei;
