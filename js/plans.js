@@ -7,7 +7,7 @@ import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
 import { hasPermission } from './rbac.js';
 import { renderTable, hasTableView, resetTodayAutoScroll } from './render.js';
 import { renderCrew } from './crew.js';
-import { guardedPatch, reloadFromDb } from './planSync.js';
+import { guardedPatch, reloadFromDb, setPlanBase } from './planSync.js';
 
 const PLANS_INDEX_KEY = 'tourplan_plans';
 export const PLAN_PREFIX = 'tourplan_plan_';
@@ -172,6 +172,7 @@ export async function confirmNewPlan(){
       if(rec?.id){
         localStorage.setItem('tourplan_pb_'+id,rec.id);
         localStorage.setItem('tourplan_active_pb_id',rec.id);
+        setPlanBase(rec.id,null,{load:false});   // frischer Record hat leeren plan_data = Basisstand
       }
     }catch(e){
       // Sichtbar machen — ohne eigenen Record taucht der Plan nicht in der Admin-
@@ -229,12 +230,17 @@ export function _savePlanToLS(id){
         // hat. Sonst: DB-Stand übernehmen, Zwischenspeicher aktualisieren, roter Hinweis.
         pbPromise=guardedPatch(pbId,JSON.stringify(data),{
           isActive:()=>activePlanId===id,
-          onReloaded:(rec)=>{
+          onReloaded:(rec,reloaded)=>{
+            if(activePlanId===id){
+              // aktiv: reloadFromDb hat State und Zwischenspeicher schon gesetzt → nur rendern;
+              // schlug das Nachladen fehl, weder State noch Cache anfassen.
+              if(reloaded&&hasTableView()){renderCrew();renderTable();}
+              return;
+            }
             try{
               const pd=typeof rec.plan_data==='string'?rec.plan_data:JSON.stringify(rec.plan_data);
               if(pd&&pd!=='null')localStorage.setItem(PLAN_PREFIX+id,pd);
             }catch(_){}
-            if(activePlanId===id&&hasTableView()){renderCrew();renderTable();}
           }
         });
       } else if(CURRENT_USER_ID){
@@ -244,6 +250,7 @@ export function _savePlanToLS(id){
           if(rec&&rec.id){
             localStorage.setItem('tourplan_pb_'+id,rec.id);
             localStorage.setItem('tourplan_active_pb_id',rec.id);
+            setPlanBase(rec.id,data,{load:false});   // selbst geschriebener Stand = Basisstand
           }
         })();
       } else {

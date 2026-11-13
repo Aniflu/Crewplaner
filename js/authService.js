@@ -101,7 +101,7 @@ export async function _authCheckAndStart() {
     // Zwischenspeicher ist nur die Vorschau (startApp zeigt ihn schon). Sonst arbeitet und
     // speichert die Touransicht auf einem veralteten Stand.
     const knownPbId = pbPlanCached ? localStorage.getItem('tourplan_pb_' + activePlanId) : null;
-    if (knownPbId && !IS_CREW) localStorage.setItem('tourplan_active_pb_id', knownPbId);
+    if (knownPbId && IS_MANAGER) localStorage.setItem('tourplan_active_pb_id', knownPbId);
     const loadAll = IS_CREW
       ? loadPlanForCrew().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]))
       : loadPlanForManager(knownPbId || undefined)

@@ -9,7 +9,7 @@ import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert,
 import { showToast, sameCrew, getVal, dedupKnownCrew } from './utils.js';
 import { normEmail, isCrewStatusTransitionAllowed } from './pure.js';
 import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex, PLAN_PREFIX } from './plans.js';
-import { setPlanBase, registerLoader } from './planSync.js';
+import { setPlanBase, registerLoader, beginLoad, endLoad } from './planSync.js';
 
 // ── Authentifizierte Hook-Route abrufen ───────────────────────────────────────
 // Die Routen des Hooks (/myplans, /myplan/{id}) liegen am Root, nicht unter /api —
@@ -222,6 +222,8 @@ export async function loadCrewPlans() {
 // (der könnte ein fremder sein). Gibt true zurück, wenn der DB-Stand im State liegt.
 export async function loadPlanForManager(explicitPbId) {
   if (!SUPABASE_ENABLED || !IS_MANAGER) return false;
+  const loadingId = explicitPbId || localStorage.getItem('tourplan_active_pb_id');
+  beginLoad(loadingId);   // Saves für diesen Plan sind während des Ladens gesperrt (js/planSync.js)
   try {
     // GEZIELT den aktuell gewählten Plan laden (tourplan_active_pb_id), nicht blind
     // den ersten by owner — sonst überschreibt ein Reload bei mehreren Plänen den
@@ -234,15 +236,19 @@ export async function loadPlanForManager(explicitPbId) {
     // Fallback: nur wenn kein Zeiger gesetzt ist → erster Plan des Owners.
     if (!plan && !explicitPbId) plan = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
     if (!plan) { console.warn('loadPlanForManager: kein Plan gefunden'); return false; }
+    // Zwischenzeitlich auf einen anderen Plan gewechselt? Dann diese späte Antwort verwerfen.
+    if (explicitPbId && localStorage.getItem('tourplan_active_pb_id') !== explicitPbId) return false;
     if (!plan.plan_data) {
       console.warn('loadPlanForManager: plan_data ist leer');
+      // Leerer Record ist ein gültiger Basisstand: der nächste Save darf ihn füllen.
+      setPlanBase(plan.id, null);
       if (typeof showToast === 'function')
         showToast('Plan noch nicht synchronisiert — bitte in Tourview speichern', '#e8c84a');
       return false;
     }
-    // Zwischenzeitlich auf einen anderen Plan gewechselt? Dann diese späte Antwort verwerfen.
-    if (explicitPbId && localStorage.getItem('tourplan_active_pb_id') !== explicitPbId) return false;
-    const data = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
+    // plan_data kommt als Objekt oder String, ggf. doppelt kodiert
+    let data = plan.plan_data;
+    for (let i = 0; i < 2 && typeof data === 'string'; i++) data = JSON.parse(data);
     if (!data?.tourDates) return false;
     crew.length = 0; (data.crew || []).forEach(c => crew.push(c));
     if (data.positions) { POSITIONS.length = 0; data.positions.forEach(p => POSITIONS.push(p)); }
@@ -270,6 +276,8 @@ export async function loadPlanForManager(explicitPbId) {
   } catch(e) {
     console.warn('loadPlanForManager Fehler:', e.message);
     return false;
+  } finally {
+    endLoad(loadingId);
   }
 }
 

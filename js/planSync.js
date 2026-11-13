@@ -29,15 +29,35 @@ function _canon(v) {
   return v;
 }
 
+// PB liefert plan_data als Objekt (JSON-Feld) oder als String; ein String kann selbst noch
+// einmal JSON-kodiert sein. Leer (null/undefined/'') zählt als gültiger „leerer" Stand.
 export function normPlanData(pd) {
   let v = pd;
-  if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { return 'invalid:' + v; } }
+  for (let i = 0; i < 2 && typeof v === 'string'; i++) {
+    if (v === '') { v = null; break; }
+    try { v = JSON.parse(v); } catch (_) { return 'invalid:' + v; }
+  }
   return JSON.stringify(_canon(v == null ? null : v));
 }
 
-export function setPlanBase(pbId, planData) { if (pbId) _base.set(pbId, normPlanData(planData)); }
+const _epoch = new Map();  // pbId → Lade-Epoche (zählt DB-Ladevorgänge, NICHT eigene Schreibvorgänge)
+function _bump(pbId) { _epoch.set(pbId, (_epoch.get(pbId) || 0) + 1); }
+// Läuft gerade ein Laden aus der DB für diesen Plan? Dann zeigt der State noch den Zwischenspeicher
+// (oder wird gleich ersetzt) — jeder Save, der währenddessen gebaut oder ausgeführt wird, ist veraltet.
+const _loading = new Map();
+export function beginLoad(pbId) { if (pbId) _loading.set(pbId, (_loading.get(pbId) || 0) + 1); }
+export function endLoad(pbId) { if (pbId) _loading.set(pbId, Math.max(0, (_loading.get(pbId) || 0) - 1)); }
+const _isLoading = (pbId) => (_loading.get(pbId) || 0) > 0;
+export function getPlanEpoch(pbId) { return _epoch.get(pbId) || 0; }
+
+// opts.load=false: Basisstand aus eigenem Schreiben/Anlegen — hebt die Epoche NICHT an.
+export function setPlanBase(pbId, planData, opts) {
+  if (!pbId) return;
+  _base.set(pbId, normPlanData(planData));
+  if (!opts || opts.load !== false) _bump(pbId);
+}
 export function hasPlanBase(pbId) { return _base.has(pbId); }
-export function clearPlanBases() { _base.clear(); _queue.clear(); }
+export function clearPlanBases() { _base.clear(); _queue.clear(); _epoch.clear(); _loading.clear(); }
 export function registerLoader(fn) { _loader = fn; }
 
 // Plan samt Crew-Meta und Status aus der DB laden (Hilfsfunktion für switchPlan/Start).
@@ -48,32 +68,43 @@ export async function reloadFromDb(pbId) {
 
 // Prüft gegen die DB und schreibt nur bei unverändertem Basisstand.
 //   ctx.isActive():  ist dieser Plan gerade der angezeigte?
-//   ctx.onReloaded(rec): nach Mismatch aufgerufen (aktiver Plan: neu rendern; sonst Zwischenspeicher schreiben)
-// Gibt die Promise des Speichervorgangs zurück; bei Abbruch wird sie mit Error(Hinweistext) abgelehnt.
+//   ctx.onReloaded(rec, reloaded): nach Mismatch (aktiver Plan: reloaded=true heißt State ist schon
+//     aktuell, nur noch rendern; nicht aktiv: Zwischenspeicher aus rec schreiben)
+// Der gesendete Stand (sentStr) wurde zum AUFRUF-Zeitpunkt gebaut. Hat sich seither die Lade-Epoche
+// geändert (Neuladen, Start-/Wechsel-Laden), ist er veraltet → nie schreiben.
 export function guardedPatch(pbId, sentStr, ctx) {
+  const epoch = _isLoading(pbId) ? -1 : getPlanEpoch(pbId);   // -1: beim Aufruf lief ein Laden → immer veraltet
   const prev = _queue.get(pbId) || Promise.resolve();
-  const job = prev.catch(() => {}).then(() => _run(pbId, sentStr, ctx || {}));
+  const job = prev.catch(() => {}).then(() => _run(pbId, sentStr, ctx || {}, epoch));
   _queue.set(pbId, job.catch(() => {}));
   return job;
 }
 
-async function _run(pbId, sentStr, ctx) {
+function _stale() {
+  showToast(MSG_ZWISCHENDURCH, '#e84a4a');
+  return new Error(MSG_ZWISCHENDURCH);
+}
+
+async function _run(pbId, sentStr, ctx, epoch) {
   const path = '/api/collections/plans/records/' + pbId;
+  if (getPlanEpoch(pbId) !== epoch || _isLoading(pbId)) throw _stale();
   let rec;
   try { rec = await pbGet(path); }
   catch (e) {
     showToast(MSG_OFFLINE, '#e84a4a');
     throw new Error(MSG_OFFLINE);
   }
+  if (getPlanEpoch(pbId) !== epoch || _isLoading(pbId)) throw _stale();
   const cur = normPlanData(rec && rec.plan_data);
   if (!_base.has(pbId) || _base.get(pbId) !== cur) {
     // Fremdänderung (oder kein bekannter Ausgangsstand): NICHT schreiben, DB-Stand übernehmen.
-    if (ctx.isActive && ctx.isActive()) await reloadFromDb(pbId);
-    else _base.set(pbId, cur);
-    try { if (ctx.onReloaded) ctx.onReloaded(rec); } catch (e) { console.warn('[planSync] onReloaded:', e && e.message); }
+    let reloaded = false;
+    if (ctx.isActive && ctx.isActive()) reloaded = await reloadFromDb(pbId);
+    else { _base.set(pbId, cur); _bump(pbId); }
+    try { if (ctx.onReloaded) ctx.onReloaded(rec, reloaded); } catch (e) { console.warn('[planSync] onReloaded:', e && e.message); }
     showToast(MSG_ZWISCHENDURCH, '#e84a4a');
     throw new Error(MSG_ZWISCHENDURCH);
   }
   await pbPatch(path, { plan_data: sentStr });
-  _base.set(pbId, normPlanData(sentStr));
+  setPlanBase(pbId, sentStr, { load: false });
 }
