@@ -1,5 +1,7 @@
 # Auftrag an den Admin — Hook v4.29 deployen (Vormerkung als Information)
 
+> ✅ **Test erledigt 2026-11-13** (`docs/rueckmeldung-hook-v4.29-2026-11-13.md`, 13/13 bestanden). ⏳ **Live:** wartet auf Marcos Freigabe.
+
 **Datum:** 2026-11-13 · **Betrifft:** `.pb_hooks/main.pb.js` (v4.28 → v4.29)
 **Frontend:** Die App (v1.4.0) wird erst **nach** der Rückmeldung „Hook v4.29 auf Test deployt“ auf Test gebracht. Hier ist am Frontend nichts zu tun. Die Live-App v1.3.0 läuft mit v4.29 unverändert weiter (rückwärtskompatibel).
 **Schema/Regeln:** keine Änderung. `assignments.status` und `crew_invites.type` sind freie Textfelder.

@@ -1,6 +1,6 @@
 # Sicherheitsrichtlinie — Crewplanner
 
-Stand: v1.0.0 (2026-10-24) · Hook v4.28
+Stand: v1.0.0 (2026-10-24) · Hook v4.29 auf Test (2026-11-13), Live v4.28
 
 ---
 
