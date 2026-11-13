@@ -266,3 +266,26 @@ test('UI sperrt Doppelklick: busy wird in finally zurückgesetzt', () => {
 test('Mini-Menü nutzt display flex', () => {
   ok(/m\.style\.display = 'flex'/.test(_ui()));
 });
+
+test('UI lädt Status und Crew über pbListAll (alle Seiten), kein perPage=500', () => {
+  const s = _ui();
+  const b = s.slice(s.indexOf('function loadBundle'), s.indexOf('async function reloadBundles'));
+  ok(/pbListAll\('assignments'/.test(b) && /pbListAll\('crew_members'/.test(b));
+  ok(!/perPage=500/.test(s));
+  ok(!/JSON\.parse\(rec\.plan_data/.test(s), 'ein gemeinsamer Parser');
+});
+test('loadBundle: Status von Seite 2 sind vorhanden', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeMgr(g);
+  const { loadBundle } = await import('../js/tourvergleich-ui.js');
+  const mk = (n, off) => Array.from({ length: n }, (_, i) => ({ id:'r'+(off+i), date:'2026-07-09', pos_id:'p'+(off+i), status:'confirmed', crew_name:'N'+(off+i) }));
+  mockFetch((url) => {
+    if (url.includes('/collections/plans/records/')) return res({ id:'P', name:'T', plan_data: { crew:[] } });
+    if (url.includes('/collections/crew_members/')) return res({ items:[], totalPages:1 });
+    const page = Number(new URL(url, 'http://x').searchParams.get('page') || 1);
+    return res({ items: page === 1 ? mk(200, 0) : mk(50, 200), totalPages: 2, page });
+  });
+  const b = await loadBundle('P');
+  ok(b.statuses['2026-07-09'].p249, 'Eintrag von Seite 2');
+  ok(b.statuses['2026-07-09'].p0, 'Eintrag von Seite 1');
+});

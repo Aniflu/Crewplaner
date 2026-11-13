@@ -2,7 +2,7 @@
 // Hält eigene Bündel je Tour und fasst die Admin-Globals (TOUR_DATES, assignments, …) nicht an.
 // Jeder Klick schreibt direkt: Plan frisch lesen → einen Platz ändern → plan_data patchen.
 // Es werden hier NIE Mails verschickt; verdrängte Zusagen landen nur in der Update-Liste der Tour.
-import { pbGet, pbPatch } from './pb.js';
+import { pbGet, pbPatch, pbListAll, pbEscapeFilter } from './pb.js';
 import { esc } from './utils.js';
 import { sameCrew, queueAddRemoved } from './pure.js';
 import { OFFEN } from './state.js';
@@ -46,15 +46,22 @@ const posOf = (plan, id) => (plan.positions || []).find(p => p.id === id) || { i
 const posShort = (plan, id) => { const p = posOf(plan, id); return p.short || p.label || id; };
 
 // ── Laden ─────────────────────────────────────────────────────────────────────
-async function loadBundle(pbId) {
+// plan_data kommt als JSON-Text oder schon als Objekt; leer/kaputt → {}.
+function parsePlanData(v) {
+  if (!v) return {};
+  if (typeof v !== 'string') return v;
+  try { return JSON.parse(v) || {}; } catch (_) { return {}; }
+}
+
+export async function loadBundle(pbId) {
   const rec = await pbGet('/api/collections/plans/records/' + pbId);
-  let plan = {};
-  try { plan = typeof rec.plan_data === 'string' ? JSON.parse(rec.plan_data || '{}') : (rec.plan_data || {}); } catch (_) { plan = {}; }
-  const f = s => encodeURIComponent(`plan_id="${pbId}"`);
-  const crewData = await pbGet('/api/collections/crew_members/records?perPage=200&filter=' + f());
+  const plan = parsePlanData(rec.plan_data);
+  // Alle Seiten laden: bei mehr als einer Seite fehlten sonst Status → Zusage ohne Absage-Queue entfernt.
+  const filter = `plan_id = "${pbEscapeFilter(pbId)}"`;
+  const crewData = await pbListAll('crew_members', filter);
   const crewMeta = {};
   (crewData.items || []).forEach(m => { crewMeta[m.name] = { email: m.email || '', id: m.id }; });
-  const asg = await pbGet('/api/collections/assignments/records?perPage=500&filter=' + f());
+  const asg = await pbListAll('assignments', filter);
   const statuses = {};
   (asg.items || []).forEach(a => {
     if (AUSGEBLENDET.includes(a.status)) return;
@@ -280,7 +287,7 @@ async function tvApply(steps, date) {
     for (const st of steps) {
       const b = S.b[st.tour];
       const rec = await pbGet('/api/collections/plans/records/' + b.pbId);
-      const fresh = JSON.parse(rec.plan_data || '{}');
+      const fresh = parsePlanData(rec.plan_data);
       const si = b.statuses[date]?.[st.posId];
       if (si && !sameCrew(si.crewName, st.value)) {
         const r = await removeAssignmentSlot(date, st.posId, { planId: b.pbId, statuses: b.statuses });
