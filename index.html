@@ -35,21 +35,6 @@
 <link rel="stylesheet" href="theme.css?v=3">
 <link rel="stylesheet" href="styles.css?v=25">
 
-<style>
-#crewUpdateModalBody::-webkit-scrollbar {
-  width: 12px;
-}
-#crewUpdateModalBody::-webkit-scrollbar-track {
-  background: transparent;
-}
-#crewUpdateModalBody::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 6px;
-}
-#crewUpdateModalBody::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
-}
-</style>
 </head>
 <body>
 
@@ -107,12 +92,11 @@
         <button class="primary manager-only" onclick="savePlan()"><span class="sb-gl">▶</span>Speichern</button>
         <button class="manager-only" onclick="saveJSON()"><span class="sb-gl">⤓</span>Export JSON</button>
         <button class="manager-only" onclick="loadJSON()"><span class="sb-gl">▶</span>Laden</button>
-        <button class="manager-only" onclick="openCrewModal()"><span class="sb-gl">👥</span>Crew &amp; Positionen</button>
+        <button id="btnCrewKonsole" class="manager-only" onclick="window.location.href=window.getNavUrl('admin.html')+'#crew'" title="Crew, Positionen und Einladungen werden in der Konsole verwaltet"><span class="sb-gl">👥</span><span id="btnCrewKonsoleTxt" style="white-space:normal;line-height:1.3;">Crew in der Konsole verwalten</span></button>
         <button class="manager-only" onclick="openAddDate()"><span class="sb-gl">+</span>Datum hinzufügen</button>
         <button class="manager-only" onclick="openTourBlock()"><span class="sb-gl">▶</span>Tourblock einfügen</button>
         <button class="manager-only" onclick="openBlockRange()"><span class="sb-gl">▶</span>Bereich → Block</button>
         <button class="manager-only" onclick="openBulkStatusModal()"><span class="sb-gl">✎</span>Status ändern</button>
-        <button id="btnUpdateQueue" class="manager-only" onclick="_openUpdateQueueModal()" style="display:none;"><span class="sb-gl">↻</span>Updates <span id="updateQueueBadge" style="background:var(--warn);color:#fff;border-radius:50%;padding:1px 6px;font-size:.7rem;margin-left:4px;">0</span></button>
         <button onclick="scrollToToday()" title="Zur heutigen Tour-Zeile springen"><span class="sb-gl">⌖</span>→ Heute</button>
         <button onclick="toggleSidebar()" id="btnSidebar"><span class="sb-gl">◀</span>Sidebar ausblenden</button>
         <button onclick="try{localStorage.removeItem('pb_token');localStorage.removeItem('pb_user');}catch(e){};location.href='login.html'" style="border-color:rgba(232,74,74,.35);color:var(--warn);"><span class="sb-gl">⎋</span>Abmelden</button>
@@ -190,12 +174,6 @@
 <div id="meldungSubmitBar" style="position:fixed;bottom:24px;right:24px;z-index:200;display:none;">
   <button onclick="_submitMeldung()" style="background:var(--accent);color:var(--on-accent);font-family:var(--mono);font-size:.65rem;letter-spacing:2px;padding:13px 22px;border:none;border-radius:3px;cursor:pointer;font-weight:bold;box-shadow:0 4px 16px rgba(0,0,0,.4);">BEREITSCHAFT MELDEN (<span id="meldungCount">0</span>) →</button>
 </div>
-<div id="crewUpdateBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:301;background:var(--accent);color:var(--on-accent);font-family:var(--mono);font-size:.62rem;letter-spacing:2px;padding:10px 20px;flex-direction:row;align-items:center;gap:16px;">
-  ⚠ &nbsp;<span id="crewUpdateCount">0</span>&nbsp;Crew-Mitglied(er) müssen erneut bestätigen
-  <button onclick="_sendPendingUpdates()" style="background:var(--on-accent);color:var(--accent);border:none;padding:7px 16px;font-family:var(--mono);font-size:.6rem;letter-spacing:2px;cursor:pointer;border-radius:2px;font-weight:bold;">UPDATE-MAILS SENDEN →</button>
-  <span style="margin-left:auto;cursor:pointer;font-size:1rem;" onclick="_dismissCrewUpdates()">✕</span>
-</div>
-
 <!-- TAGESARTEN-MANAGER MODAL -->
 <div class="modal-bg" id="typeManagerModal">
   <div class="modal-box" style="max-width:420px;">
@@ -382,83 +360,6 @@
   </div>
 </div>
 
-<!-- CREW & POSITIONEN MODAL -->
-<div class="modal-bg" id="crewModal">
-  <div class="modal-box" style="max-width:480px;max-height:88vh;overflow-y:auto;">
-    <div class="modal-title">👥 Crew &amp; Positionen</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">
-      <div>
-        <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;" id="crewHeading">Crew</div>
-        <div id="crewList" style="margin-bottom:8px;"></div>
-        <!-- Kein Freitextfeld mehr (v0.8.3): Personen entstehen einmal global im Crew-Pool und
-             werden hier nur ausgewählt. Ein Name ohne crew_members-Datensatz bekäme keine
-             Anfrage und sähe die Tour nicht (/myplan prüft genau darauf) — der Zustand kann so
-             gar nicht erst entstehen. Neu anlegen geht im Dialog selbst („+ Neue Person"). -->
-        <div class="sb-actions manager-only" style="margin-top:8px;">
-          <button class="sm manager-only" onclick="openImportCrewModal()"><span class="sb-gl">＋</span>Crew hinzufügen</button>
-        </div>
-      </div>
-      <div>
-        <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;">Positionen</div>
-        <div id="posList"></div>
-        <div class="sb-actions manager-only" style="margin-top:8px;">
-          <button class="sm manager-only" onclick="openAddPos()"><span class="sb-gl">+</span>Position hinzufügen</button>
-        </div>
-      </div>
-    </div>
-    <div class="mactions" style="margin-top:16px;">
-      <button class="mbtn primary" onclick="closeModal('crewModal')">Schließen</button>
-    </div>
-  </div>
-</div>
-
-<!-- Crew-Pool: Personen tour-übergreifend anhaken → in diese Tour übernehmen -->
-<div class="modal-bg" id="crewImportModal" style="z-index:520;">
-  <div class="modal-box" style="width:460px;display:flex;flex-direction:column;max-height:82vh;">
-    <div class="modal-title">Crew-Pool</div>
-    <div style="font-size:.62rem;color:var(--muted);line-height:1.5;margin-bottom:10px;">
-      Anhaken → in diese Tour übernehmen (inkl. E-Mail). Der Pool = alle angelegten Crew-Mitglieder, tourübergreifend.
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-      <span style="color:var(--muted);font-size:.58rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
-      <button onclick="_importSelectAll(true)" style="background:var(--panel2);color:var(--show);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
-      <button onclick="_importSelectAll(false)" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
-    </div>
-    <div id="crewImportBody" style="overflow-y:auto;flex:1;margin-bottom:12px;padding-right:4px;"></div>
-
-    <!-- Neue Person anlegen — der einzige Weg, auf dem jemand NEU entsteht (neben der Konsole).
-         Schreibt einen Pool-Record (crew_members, plan_id="__pool__") und übernimmt direkt in
-         diese Tour. Die Adresse ist zugleich die Registrierungsfreigabe: users.createRule ist
-         `@collection.crew_members.email ?= email`. -->
-    <button id="newPersonToggle" class="mbtn" style="margin-bottom:10px;" onclick="_showNewPersonForm(true)">+ Neue Person anlegen</button>
-    <div id="newPersonForm" style="display:none;border:1px solid var(--rule-2);border-radius:4px;padding:10px;margin-bottom:10px;">
-      <div style="font-size:.58rem;color:var(--muted);line-height:1.5;margin-bottom:8px;">
-        Landet im globalen Pool (jede Tour kann sie übernehmen) und kommt sofort in diese Tour.
-        <strong>Kein Login-Konto</strong> — das entsteht erst, wenn die Person sich über den Einladungslink anmeldet.
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <input type="text"  id="npName"  class="mi" placeholder="Vor- und Nachname" style="flex:1 1 100%;font-size:.62rem;padding:5px 8px;">
-        <input type="email" id="npEmail" class="mi" placeholder="name@beispiel.de" style="flex:1 1 60%;font-size:.62rem;padding:5px 8px;"
-               onkeydown="if(event.key==='Enter')createAndTakeCrew()">
-        <select id="npRole" class="mi" style="flex:1;font-size:.62rem;padding:5px 8px;">
-          <option value="crew">Crew</option>
-          <option value="booker">Booker</option>
-          <option value="manager">Manager</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:8px;">
-        <button class="mbtn primary sm" onclick="createAndTakeCrew()">Anlegen &amp; übernehmen</button>
-        <button class="mbtn sm" onclick="_showNewPersonForm(false)">Abbrechen</button>
-      </div>
-    </div>
-
-    <div class="mactions">
-      <button class="mbtn" onclick="_closeImportCrew()">Abbrechen</button>
-      <button class="mbtn primary" onclick="confirmImportCrew()">Übernehmen</button>
-    </div>
-  </div>
-</div>
-
 <!-- TOAST -->
 <div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-family:var(--mono);font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
 
@@ -477,34 +378,7 @@
 <script src="js/auth-bootstrap.js?v=12"></script>
 
 <!-- SCRIPTS (Module entry point — cache-bust by incrementing app.js version) -->
-<script type="module" src="js/app.js?v=63"></script>
-
-<!-- UPDATE QUEUE MODAL -->
-<div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
-  <!-- ⚠️ Flex-SPALTE mit min-height:0 am Inhalt — nicht wieder auf feste Höhen umbauen.
-       Vorher hatte die Box max-height:80vh MIT overflow:hidden und der Inhalt zusätzlich
-       max-height:60vh. Mit Kopfzeile, Auswahlzeile und Fußzeile überschritt das die Boxhöhe:
-       Der Sende-Knopf wurde abgeschnitten, und weil die Box `hidden` war, kam man auch nicht
-       mehr heran — bei vielen Terminen war das Fenster damit unbedienbar.
-       `min-height:0` ist der entscheidende Teil: Ohne das schrumpft ein Flex-Kind nicht unter
-       seine Inhaltshöhe, und der Bereich scrollt nicht. -->
-  <div style="background:var(--panel2);border:1px solid var(--accent);padding:24px;max-width:520px;width:90%;max-height:85vh;display:flex;flex-direction:column;font-family:var(--mono);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-shrink:0;">
-      <span style="color:var(--accent);letter-spacing:2px;font-size:.75rem;">AUSSTEHENDE UPDATES</span>
-      <span style="cursor:pointer;color:var(--muted);" onclick="_closeUpdateQueueModal()">✕</span>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-shrink:0;flex-wrap:wrap;">
-      <span style="color:var(--muted);font-size:.6rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
-      <button onclick="_queueSelectAll(true)" style="background:var(--panel2);color:var(--show);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
-      <button onclick="_queueSelectAll(false)" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
-      <button onclick="_clearUpdateQueue()" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">QUEUE LEEREN</button>
-    </div>
-    <div id="crewUpdateModalBody" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin-bottom:12px;padding-right:4px;"></div>
-    <div style="margin-top:16px;text-align:right;flex-shrink:0;">
-      <button id="btnSendUpdates" onclick="_sendSelectedUpdates()" style="background:var(--accent);color:var(--on-accent);border:none;padding:8px 16px;cursor:pointer;font-family:var(--mono);letter-spacing:1px;font-size:.7rem;">AUSWAHL SENDEN (0) →</button>
-    </div>
-  </div>
-</div>
+<script type="module" src="js/app.js?v=64"></script>
 
 <!-- Sammel-Statuswechsel: bestätigt ⇄ vorgemerkt (v0.5.0) -->
 <div id="bulkStatusModal" class="modal-bg" style="z-index:520;">
@@ -542,31 +416,6 @@
       <button id="btnBulkStatusApply" class="mbtn primary" onclick="applyBulkStatus()">✎ 0 VORMERKEN →</button>
       <!-- Beschriftung kommt aus _updateApplyButton und trägt IMMER die Zahl der Auswahl. -->
 
-    </div>
-  </div>
-</div>
-
-<!-- E-Mail-Vorschau (pro Person, vor dem Senden) -->
-<div id="updatePreviewModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
-  <!-- ⚠️ Flex-Spalte mit begrenzter Höhe. Vorher hatte diese Box WEDER max-height NOCH
-       overflow: Bei vielen Terminen wuchs sie über den Bildschirm hinaus, und weil das
-       Overlay mittig zentriert, ragte sie oben und unten heraus — nicht scrollbar, die
-       Knöpfe nicht erreichbar. Dasselbe Muster wie beim Warteschlangen-Fenster (v0.9.3),
-       nur wurde dieses hier übersehen. `min-height:0` am Inhalt ist der entscheidende Teil. -->
-  <div style="background:var(--panel2);border:1px solid var(--accent);padding:24px;max-width:520px;width:90%;max-height:85vh;display:flex;flex-direction:column;font-family:var(--mono);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0;">
-      <span style="color:var(--accent);letter-spacing:2px;font-size:.75rem;">📧 E-MAIL-VORSCHAU</span>
-      <span style="cursor:pointer;color:var(--muted);" onclick="_updatePreviewCancel()">✕</span>
-    </div>
-    <div id="updatePreviewBody" style="flex:1;min-height:0;overflow-y:auto;font-size:.7rem;color:var(--ink-2);line-height:1.6;"></div>
-    <div style="margin-top:12px;flex-shrink:0;">
-      <label style="display:block;font-size:.58rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">PERSÖNLICHE NACHRICHT (optional)</label>
-      <textarea id="updatePreviewText" rows="3" placeholder="Text, der in der E-Mail oben hervorgehoben wird…" style="resize:vertical;width:100%;background:var(--on-accent);border:1px solid var(--rule-2);border-radius:3px;color:var(--ink);padding:8px;font-family:var(--mono);font-size:.66rem;box-sizing:border-box;"></textarea>
-    </div>
-    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap;">
-      <button onclick="_updatePreviewCancel()" style="background:var(--panel2);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Abbrechen</button>
-      <button onclick="_updatePreviewSkip()" style="background:var(--panel2);color:var(--accent);border:1px solid var(--rule-2);border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Überspringen</button>
-      <button onclick="_updatePreviewSend()" style="background:var(--accent);color:var(--on-accent);border:none;border-radius:3px;padding:7px 16px;font-family:inherit;font-size:.66rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">Senden →</button>
     </div>
   </div>
 </div>

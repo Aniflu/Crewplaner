@@ -24,7 +24,9 @@ import { dirname, join } from 'path';
 import { test, ok } from './_assert.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const html = readFileSync(join(root, 'index.html'), 'utf8');
+// Crew-Verwaltung liegt seit v1.3.0 in der Konsole (admin.html).
+const html = readFileSync(join(root, 'admin.html'), 'utf8');
+const indexHtml = readFileSync(join(root, 'index.html'), 'utf8');
 const crewJs = readFileSync(join(root, 'js/crew.js'), 'utf8');
 
 // Kommentare entfernen, sonst schlägt der Guard auf die Erklärung im Code an — dieselbe Falle
@@ -43,6 +45,12 @@ test('index.html hat kein Freitextfeld mehr für Crew', () => {
 test('der Crew-Knopf öffnet den Pool-Dialog', () => {
   ok(/openImportCrewModal\(\)/.test(html), 'kein Weg mehr, Crew hinzuzufügen');
   ok(/id="crewImportModal"/.test(html), 'Pool-Dialog fehlt');
+});
+
+test('index.html (Touransicht) hat keine Crew-Verwaltung mehr', () => {
+  for (const id of ['crewModal', 'crewImportModal', 'crewUpdateModal', 'newPersonForm'])
+    ok(!new RegExp('id="' + id + '"').test(indexHtml), '#' + id + ' ist zurück in index.html');
+  ok(!/onclick="[^"]*(openCrewModal|openAddPos|openPosMenu|_openUpdateQueueModal|_sendPendingUpdates|openImportCrewModal)\(/.test(indexHtml), 'index.html hat wieder einen Knopf zur Crew-/Positionspflege');
 });
 
 test('im Pool-Dialog kann man eine neue Person anlegen', () => {

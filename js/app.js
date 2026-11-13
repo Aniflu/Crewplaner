@@ -36,12 +36,11 @@ import { handleLogoUpload, removeLogo } from './logos.js';
 import { generateICS } from './calendar.js';
 import { openNewPlan } from './plans.js';
 import { openAddType } from './types.js';
-import { openAddPos } from './positions.js';
 import { openTourBlock, tbBack, tbStep2, tbSetAll, tbConfirm, openBlockRange } from './tourblock.js';
 import { openAddDate } from './dates.js';
 import { sendCancellations, bulkConfirmAllMySlots,
-         _openUpdateQueueModal, _closeUpdateQueueModal,
-         _sendPendingUpdates, _sendSelectedUpdates, _submitMeldung,
+         _closeUpdateQueueModal,
+         _sendSelectedUpdates, _submitMeldung,
          _ackMeineEntfallenen } from './userView.js';
 import { openModal, closeModal } from './modals.js';
 import { showToast } from './utils.js';
@@ -49,7 +48,6 @@ import { generatePDF, pdfSetView, pdfToggleAll, openPDFFilter } from './pdf.js';
 
 // ── Migrations-Fix v0.10.5: onclick-Handler die nach ES6-Migration nicht mehr global registriert waren ──
 import { openCrewDD, openDateDD, openDefaultDD, openTypeDD, requestAll, requestForPos, bulkCancelPos } from './dropdown.js';
-import { openPosMenu, openRenamePos } from './positions.js';
 import { confirmNewPlan, confirmRenamePlan, deletePlan, renamePlan, switchPlan } from './plans.js';
 import { _confirmTypeModal, deleteType, openEditType } from './types.js';
 import { adSetMode, confirmAddDate } from './dates.js';
@@ -106,7 +104,6 @@ window.removeLogo = removeLogo;
 window.generateICS = generateICS;
 window.openNewPlan = openNewPlan;
 window.openAddType = openAddType;
-window.openAddPos = openAddPos;
 window.openTourBlock = openTourBlock;
 window.openAddDate = openAddDate;
 window.openBlockRange = openBlockRange;
@@ -116,9 +113,7 @@ window.tbSetAll = tbSetAll;
 window.tbConfirm = tbConfirm;
 window.sendCancellations = sendCancellations;
 window.bulkConfirmAllMySlots = bulkConfirmAllMySlots;
-window._openUpdateQueueModal = _openUpdateQueueModal;
 window._closeUpdateQueueModal = _closeUpdateQueueModal;
-window._sendPendingUpdates = _sendPendingUpdates;
 window._sendSelectedUpdates = _sendSelectedUpdates;
 window._submitMeldung = _submitMeldung;
 window._ackMeineEntfallenen = _ackMeineEntfallenen;
@@ -138,8 +133,6 @@ window.openTypeDD = openTypeDD;
 window.requestAll = requestAll;
 window.requestForPos = requestForPos;
 window.bulkCancelPos = bulkCancelPos;
-window.openPosMenu = openPosMenu;
-window.openRenamePos = openRenamePos;
 window.confirmNewPlan = confirmNewPlan;
 window.confirmRenamePlan = confirmRenamePlan;
 window.deletePlan = deletePlan;
@@ -198,7 +191,6 @@ window.openSubscribeModal = openSubscribeModal;
 window.switchCrewPlan = switchCrewPlan;
 window.meinesMelden = meinesMelden;
 window.startLocEdit = startLocEdit;
-window._dismissCrewUpdates = function(){ const b=document.getElementById('crewUpdateBar'); if(b) b.style.display='none'; };
 
 // ── Security: Redirect to login if not authenticated ──────────────────────
 if (!localStorage.getItem('pb_token')) {

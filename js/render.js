@@ -89,11 +89,9 @@ export function renderHead(){
   h+='<th rowspan="2" style="left:88px;text-align:left;vertical-align:middle;z-index:12;">Art</th>';
   h+='<th rowspan="2" style="left:213px;text-align:left;vertical-align:middle;z-index:12;">Ort / Venue</th>';
   POSITIONS.forEach((p,i)=>{
-    h+=IS_MANAGER
-      ?`<th class="pos-h" style="cursor:pointer;" onclick="openPosMenu(event,${i})">${esc(p.short)} <span style="font-size:.5rem;opacity:.4;">▼</span></th>`
-      :`<th class="pos-h">${esc(p.short)}</th>`;
+    h+=`<th class="pos-h">${esc(p.short)}</th>`;
   });
-  h+=IS_MANAGER?`<th class="pos-h" style="cursor:pointer;color:var(--muted);min-width:44px;" onclick="openAddPos()" rowspan="2" title="Position hinzufügen">+</th>`:'<th rowspan="2"></th>';
+  h+='<th rowspan="2"></th>';
   h+='</tr><tr>';
   POSITIONS.forEach(p=>{
     const def=defaultCrew[p.id]||'';

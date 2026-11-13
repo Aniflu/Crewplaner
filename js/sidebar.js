@@ -2,12 +2,11 @@
 import { SUPABASE_ENABLED } from './config.js';
 import { IS_MANAGER, IS_CREW } from './state.js';
 import { renderTable } from './render.js';
-import { openModal } from './modals.js';
-import { renderCrew } from './crew.js';
 
+// Crew & Positionen werden seit v1.3.0 nur noch in der Konsole verwaltet. Die Funktion bleibt
+// als Weiterleitung, damit alte Aufrufer (Lesezeichen, Folgeaktion) nicht werfen.
 export function openCrewModal(){
-  renderCrew();
-  openModal('crewModal');
+  window.location.href=window.getNavUrl('admin.html')+'#crew';
 }
 
 // ── Sidebar Toggle ─────────────────────────────────────────────────────────────

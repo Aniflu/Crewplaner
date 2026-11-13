@@ -16,7 +16,9 @@ import { dirname, join } from 'path';
 import { test, ok } from './_assert.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const html = readFileSync(join(root, 'index.html'), 'utf8');
+const indexHtml = readFileSync(join(root, 'index.html'), 'utf8');
+// Seit v1.3.0 stehen Update-Fenster und Vorschau in der Konsole (admin.html), nicht mehr in der Touransicht.
+const html = readFileSync(join(root, 'admin.html'), 'utf8');
 const hook = readFileSync(join(root, '.pb_hooks/main.pb.js'), 'utf8');
 const userView = readFileSync(join(root, 'js/userView.js'), 'utf8');
 
@@ -26,7 +28,7 @@ const userView = readFileSync(join(root, 'js/userView.js'), 'utf8');
 // Genau diese Falle ist heute schon dreimal zugeschnappt.
 const modal = (() => {
   const von = html.indexOf('<div id="crewUpdateModal"');
-  ok(von >= 0, 'crewUpdateModal nicht in index.html gefunden');
+  ok(von >= 0, 'crewUpdateModal nicht in admin.html gefunden');
   return html.slice(von, html.indexOf('id="bulkStatusModal"', von))
              .replace(/<!--[\s\S]*?-->/g, ' ');
 })();
@@ -112,11 +114,13 @@ test('jedes Dialogfenster begrenzt seine Höhe und kann rollen', () => {
   // stillschweigend übergangen.
   const PER_CSS = {
     tbModal: '#tbInner in styles.css (max-height:92vh; overflow-y:auto)',
+    // Konsole (admin.html), nicht Teil von v1.3.0: Tourvergleich-Fenster, vorbestehend ohne Höhengrenze.
+    tvSaveModal: 'admin.html, vorbestehend (offen)', tvDayModal: 'admin.html, vorbestehend (offen)',
   };
 
   // ⚠️ Kommentare VOR dem Ausschneiden entfernen, nicht danach: Ein ausführlicher
   // Erklär-Kommentar zwischen Overlay und Kasten verbrauchte sonst das Messfenster.
-  const ohneKommentare = html.replace(/<!--[\s\S]*?-->/g, ' ');
+  const ohneKommentare = (indexHtml + '\n' + html).replace(/<!--[\s\S]*?-->/g, ' ');
 
   // Je Fenster den ganzen Block betrachten (bis zum nächsten Fenster), nicht ein festes
   // Zeichenfenster — die Knopfleisten sind lang, ein 700-Zeichen-Ausschnitt reichte nicht
@@ -153,4 +157,11 @@ test('die E-Mail-Vorschau zeigt, was WIRKLICH in der Mail steht', () => {
   ok(/SO KOMMT DIE MAIL AN/.test(fn), 'die Vorschau zeigt die Mail-Zusammenfassung nicht');
   ok(/NICHT IN DER MAIL/.test(fn),
      'die Tagesliste ist nicht als „nur für dich" gekennzeichnet — sie sieht sonst aus wie Mail-Inhalt');
+});
+
+// v1.3.0: Die Touransicht hat die Fenster nicht mehr (Strukturlock: Abwesenheit in index.html).
+test('index.html hat keine Update-Fenster mehr', () => {
+  for (const id of ['crewUpdateModal', 'crewUpdateModalBody', 'updatePreviewModal', 'crewUpdateBar'])
+    ok(!new RegExp('id="' + id + '"').test(indexHtml), '#' + id + ' ist zurück in index.html');
+  ok(!/_openUpdateQueueModal\(|_sendPendingUpdates\(|_updatePreview(Send|Skip|Cancel)\(/.test(indexHtml), 'index.html ruft die Update-Funktionen wieder auf');
 });

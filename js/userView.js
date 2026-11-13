@@ -668,6 +668,17 @@ export function _updateCrewUpdateBar() {
   const badge = document.getElementById('updateQueueBadge');
   if (btn) btn.style.display = (IS_MANAGER && (slotCount + liveSlotCount) > 0) ? '' : 'none';
   if (badge) badge.textContent = people.size;
+  // Touransicht: Hinweis-Knopf zur Konsole (Senden geschieht dort). Statusfarbe, sobald etwas offen ist.
+  const hint = document.getElementById('btnCrewKonsole');
+  const hintTxt = document.getElementById('btnCrewKonsoleTxt');
+  if (hint && hintTxt) {
+    const n = people.size;
+    hintTxt.textContent = n > 0 ? `↻ ${n} Update${n === 1 ? '' : 's'} offen – in der Konsole senden` : 'Crew in der Konsole verwalten';
+    hint.style.color = n > 0 ? 'var(--warn)' : '';
+    hint.style.borderColor = n > 0 ? 'var(--warn)' : '';
+    hint.style.background = n > 0 ? 'rgba(232,160,74,.15)' : '';
+    hint.dataset.open = String(n);
+  }
 }
 
 const _QBTN = "background:#23233a;color:#9ad;border:1px solid #3a3a55;border-radius:3px;padding:1px 7px;font-family:inherit;font-size:.58rem;letter-spacing:.5px;cursor:pointer;";
