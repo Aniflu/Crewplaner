@@ -2,6 +2,8 @@
 import './_setup.mjs';
 import { test, eq, deepEq, ok } from './_assert.mjs';
 import { OFFEN } from '../js/state.js';
+import { loadGraph, resetState } from './_graph.mjs';
+import { queueAddRemoved } from '../js/pure.js';
 import {
   isPerson, effective, overlapDays, slotsOf, personMatrix, dayDemand,
   candidates, applySlot, planMove, planAssign
@@ -136,4 +138,64 @@ test('robust: leere Pläne', () => {
   eq(effective({}, '2026-07-09', 'gl'), '');
   deepEq(candidates({}, B(), '2026-07-09', 'gl'), []);
   deepEq(applySlot({}, '2026-07-09', 'gl', 'X').assignments, { '2026-07-09':{ gl:'X' } });
+});
+
+// ── Task 2: Herausnehmen plan-bezogen (explizites planId) ───────────────────────
+function res(body, status = 200){ return { status, ok: status < 400, json: async () => body }; }
+function mockFetch(handler){ globalThis.fetch = async (url, opts) => handler(String(url), (opts && opts.method) || 'GET', opts); }
+function primeMgr(g){
+  g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager');
+  globalThis.localStorage.setItem('pb_token', 't');
+  globalThis.localStorage.setItem('tourplan_pb_default', 'PLAN1');
+}
+
+test('removeAssignmentSlot mit planId: patcht Record des angegebenen Plans auf cancelled', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeMgr(g);
+  g.state.setStatus('2026-07-09', 'gl', { status:'confirmed', crewName:'Wolf' });   // Global (anderer Plan) bleibt
+  const statuses = { '2026-07-09': { gl:{ status:'confirmed', crewName:'Anna Bauer' } } };
+  let filter = '', patchBody = null;
+  mockFetch((url, method, opts) => {
+    if (method === 'GET' && url.includes('/assignments/records')) { filter = decodeURIComponent(url); return res({ items:[{ id:'recB', crew_name:'Anna Bauer' }] }); }
+    if (method === 'PATCH') { patchBody = JSON.parse(opts.body); return res({ id:'recB' }); }
+    return res({});
+  });
+  const r = await g.dataService.removeAssignmentSlot('2026-07-09', 'gl', { planId:'PB_B', statuses });
+  ok(filter.includes('PB_B'), 'Filter enthält PB_B');
+  ok(!filter.includes('PLAN1'), 'nicht der aktive Plan');
+  eq(patchBody.status, 'cancelled');
+  eq(r.wasActive, true); eq(r.rec.id, 'recB'); eq(r.crewName, 'Anna Bauer');
+  eq(statuses['2026-07-09'].gl, undefined, 'opts.statuses bereinigt');
+  eq(g.state.assignmentStatuses['2026-07-09'].gl.crewName, 'Wolf', 'globale Status unberührt');
+});
+
+test('removeAssignmentSlot mit planId: vorgemerkt → DELETE, wasActive false', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeMgr(g);
+  g.state.setStatus('2026-07-09', 'gl', { status:'confirmed', crewName:'Wolf' });
+  const statuses = { '2026-07-09': { gl:{ status:'pencilled', crewName:'Anna Bauer' } } };
+  let deleted = false, patched = false, filter = '';
+  mockFetch((url, method) => {
+    if (method === 'GET' && url.includes('/assignments/records')) { filter = decodeURIComponent(url); return res({ items:[{ id:'recB' }] }); }
+    if (method === 'DELETE') { deleted = true; return res({}, 204); }
+    if (method === 'PATCH') { patched = true; return res({}); }
+    return res({});
+  });
+  const r = await g.dataService.removeAssignmentSlot('2026-07-09', 'gl', { planId:'PB_B', statuses });
+  ok(filter.includes('PB_B'));
+  ok(deleted && !patched, 'hart gelöscht');
+  eq(r.wasActive, false);
+  eq(statuses['2026-07-09'].gl, undefined);
+  eq(g.state.assignmentStatuses['2026-07-09'].gl.crewName, 'Wolf', 'globale Status unberührt');
+});
+
+test('queueAddRemoved: Form und Dedupe', () => {
+  const q = {};
+  queueAddRemoved(q, 'Anna', 'a@x.de', '2026-07-09', 'gl', 'GL', 'rec1');
+  const r = queueAddRemoved(q, 'Anna', 'a@x.de', '2026-07-09', 'gl', 'GL', 'rec1');
+  eq(r, q, 'liefert q');
+  deepEq(q, { Anna:{ email:'a@x.de', slots:[{ kind:'removed', date:'2026-07-09', posId:'gl', posLabel:'GL', aid:'rec1', changes:['Termin entfernt'] }] } });
+  const q2 = {};
+  queueAddRemoved(q2, 'Anna', '', '2026-07-09', 'gl', 'GL', 'rec1');
+  deepEq(q2, {});
 });

@@ -348,3 +348,13 @@ export function moveDateInPlan(plan, oldDate, newDate){
     for(const s of (e.slots || [])) if(s.date === oldDate) s.date = newDate;
   return { ok:true, reason:'' };
 }
+
+// Entfernten Slot in eine Update-Liste legen (Form wie userView._queueRemovedSlot, v1.2.0).
+// Mutiert und liefert q; ohne Mailadresse nichts sendbar → q bleibt unverändert; dedupliziert.
+export function queueAddRemoved(q, crewName, email, dateStr, posId, posLabel, aid) {
+  if (!email) return q;
+  if (!q[crewName]) q[crewName] = { email, slots: [] };
+  const exists = q[crewName].slots.some(s => s.kind === 'removed' && s.date === dateStr && s.posId === posId);
+  if (!exists) q[crewName].slots.push({ kind: 'removed', date: dateStr, posId, posLabel, aid, changes: ['Termin entfernt'] });
+  return q;
+}

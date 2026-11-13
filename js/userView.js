@@ -13,7 +13,7 @@ import { renderTable, resetTodayAutoScroll } from './render.js';
 import { getActivePlanId, getPlansIndex, activePlanName, _savePlanToLS } from './plans.js';
 import { closeModal, openModal } from './modals.js';
 import { icsExportRows, ICS_STATUS_LABEL, crewIcsContent, feedUrls,
-         checkDateMove, moveDateInPlan } from './pure.js';
+         checkDateMove, moveDateInPlan, queueAddRemoved } from './pure.js';
 
 // ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
 export function toggleCancellation(dateStr, posId) {
@@ -600,10 +600,7 @@ export function _queueGlobalCrewUpdate(changeDesc, dates) {
 // soft-gecancelten assignments-Records (Ziel des „GESEHEN ✓"-Mail-Buttons).
 export function _queueRemovedSlot(crewName, email, dateStr, posId, posLabel, aid) {
   if (!email) return;   // ohne Mail-Adresse nichts sendbar (wie bei Updates)
-  const q = _getCrewUpdateQueue();
-  if (!q[crewName]) q[crewName] = { email, slots: [] };
-  const exists = q[crewName].slots.some(s => s.kind === 'removed' && s.date === dateStr && s.posId === posId);
-  if (!exists) q[crewName].slots.push({ kind: 'removed', date: dateStr, posId, posLabel, aid, changes: ['Termin entfernt'] });
+  const q = queueAddRemoved(_getCrewUpdateQueue(), crewName, email, dateStr, posId, posLabel, aid);
   _saveCrewUpdateQueue(q);
   _updateCrewUpdateBar();
 }

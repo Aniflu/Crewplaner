@@ -449,9 +449,10 @@ export async function declineAssignment(dateStr, posId) {
 }
 
 // ── Anfrage zurückziehen (Admin) ──────────────────────────────────────────────
-export async function cancelProposal(dateStr, posId) {
+// opts { planId, statuses } (v1.2.0, Tourvergleich): expliziter Plan, globalen Cache nicht anfassen.
+export async function cancelProposal(dateStr, posId, opts) {
   if (!SUPABASE_ENABLED) return;
-  const planId = await _getActivePlanId();
+  const planId = opts?.planId || await _getActivePlanId();
   if (!planId) return;
 
   try {
@@ -459,7 +460,7 @@ export async function cancelProposal(dateStr, posId) {
       `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
     if (existing) {
       await pbDelete('/api/collections/assignments/records/' + existing.id);
-      clearStatus(dateStr, posId);  // ← NEW: fix stale state
+      if (!opts) clearStatus(dateStr, posId);  // ← NEW: fix stale state
     }
   } catch(e) {
     console.warn('cancelProposal Fehler:', e.message);
@@ -679,13 +680,16 @@ export async function proposeAssignmentBulk(dateStr, posId, crewName, crewEmail)
 // Das Einreihen in die Update-Queue macht der AUFRUFER: dataService darf userView nicht
 // importieren (userView importiert bereits dataService — das wäre ein Zyklus).
 // Rückgabe: { wasActive, rec, crewName } — genau das, was die Queue braucht.
-export async function removeAssignmentSlot(dateStr, posId) {
-  const si = assignmentStatuses[dateStr]?.[posId];
+// Mit opts { planId, statuses } (Tourvergleich): Plan und Status stammen aus opts,
+// die globalen assignmentStatuses/clearStatus bleiben unberührt.
+export async function removeAssignmentSlot(dateStr, posId, opts) {
+  const stat = opts ? opts.statuses : assignmentStatuses;
+  const si = stat?.[dateStr]?.[posId];
   const wasActive = !!(si && (si.status === 'confirmed' || si.status === 'proposed'));
   let rec = null;
-  if (wasActive)   rec = await softCancelAssignment(dateStr, posId);
-  else if (si)     await cancelProposal(dateStr, posId);
-  if (assignmentStatuses[dateStr]) delete assignmentStatuses[dateStr][posId];
+  if (wasActive)   rec = await softCancelAssignment(dateStr, posId, opts);
+  else if (si)     await cancelProposal(dateStr, posId, opts);
+  if (stat?.[dateStr]) delete stat[dateStr][posId];
   return { wasActive, rec, crewName: si?.crewName || '' };
 }
 
@@ -693,9 +697,9 @@ export async function removeAssignmentSlot(dateStr, posId) {
 // Statt zu löschen wird status='cancelled' gesetzt — nur so hat der „GESEHEN ✓"-
 // Button in der Änderungs-Mail ein Ziel (aid). Liefert den gepatchten Record
 // (für die Queue) oder null, wenn keiner existiert.
-export async function softCancelAssignment(dateStr, posId) {
+export async function softCancelAssignment(dateStr, posId, opts) {
   if (!SUPABASE_ENABLED) return null;
-  const planId = await _getActivePlanId();
+  const planId = opts?.planId || await _getActivePlanId();
   if (!planId) return null;
   const existing = await pbFirst('assignments',
     `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
@@ -704,7 +708,7 @@ export async function softCancelAssignment(dateStr, posId) {
     await pbPatch('/api/collections/assignments/records/' + existing.id, {
       status: 'cancelled', responded_at: new Date().toISOString()
     });
-    clearStatus(dateStr, posId);   // Zelle sofort „leer" (Cache), Record bleibt in PB
+    if (!opts) clearStatus(dateStr, posId);   // Zelle sofort „leer" (Cache), Record bleibt in PB
     return existing;
   } catch (e) {
     console.warn('softCancelAssignment Fehler:', e.message);
