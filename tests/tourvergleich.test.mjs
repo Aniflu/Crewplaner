@@ -289,3 +289,72 @@ test('loadBundle: Status von Seite 2 sind vorhanden', async () => {
   ok(b.statuses['2026-07-09'].p249, 'Eintrag von Seite 2');
   ok(b.statuses['2026-07-09'].p0, 'Eintrag von Seite 1');
 });
+
+// ---- v1.2.1: planSwitch, diffPlans, staleSlots ----
+import { planSwitch, diffPlans, staleSlots } from '../js/tourvergleich.js';
+const J = o => JSON.parse(JSON.stringify(o));
+// Konflikt: X ist Stamm auf A/gl und B/lt1, beide Touren am selben Tag
+const SA = () => J({ version:3, crew:['X Person','Y Person'], positions:[{id:'gl',label:'GL',short:'GL'},{id:'lt1',label:'L1',short:'L1'}],
+  defaultCrew:{ gl:'X Person', lt1:'Y Person' }, tourDates:[{date:'2026-08-01',type:'show',typeLabel:'Show',loc:'Q'}], assignments:{} });
+const SB = () => J({ version:3, crew:['X Person','Z Person'], positions:[{id:'lt1',label:'L1',short:'L1'},{id:'sys',label:'Sys',short:'Sys'}],
+  defaultCrew:{ lt1:'X Person', sys:'Z Person' }, tourDates:[{date:'2026-08-01',type:'show',typeLabel:'Show',loc:'Q'}], assignments:{} });
+const D1 = '2026-08-01';
+const run = (a, b, steps) => { steps.forEach(s => { if(s.tour === 'A') a = applySlot(a, D1, s.posId, s.value); else b = applySlot(b, D1, s.posId, s.value); }); return { a, b }; };
+
+test('planSwitch: A→B→A ergibt wieder den Ausgangszustand, Diff leer', () => {
+  // Ausgang: X nur in A (in B ist ihr Stammplatz per Abweichung OFFEN) – ein Konflikt selbst ist nicht herstellbar,
+  // weil jeder Wechsel einen der beiden Plätze OFFEN macht.
+  const a0 = SA(), b0 = SB(); b0.assignments[D1] = { lt1:OFFEN };
+  let a = J(a0), b = J(b0);
+  let r = planSwitch({ a, b, date:D1, name:'X Person', to:'B' });   // B/lt1 zurück auf Stamm, A/gl OFFEN
+  eq(r.needsPick, false);
+  ({ a, b } = run(a, b, r.steps));
+  eq(effective(a, D1, 'gl'), OFFEN); eq(effective(b, D1, 'lt1'), 'X Person');
+  r = planSwitch({ a, b, date:D1, name:'X Person', to:'A' });       // zurück: B-Platz OFFEN, A/gl Stamm
+  ({ a, b } = run(a, b, r.steps));
+  deepEq(a, a0); deepEq(b, b0);
+  deepEq(diffPlans(a0, a), []); deepEq(diffPlans(b0, b), []);
+});
+test('planSwitch: Person schon in to → nur Schritte der anderen Tour', () => {
+  const r = planSwitch({ a:SA(), b:SB(), date:D1, name:'X Person', to:'B' });
+  deepEq(r, { steps:[{ tour:'A', posId:'gl', value:OFFEN }], needsPick:false });
+});
+test('planSwitch: keine freie Stammposition in to → needsPick, kein Schritt für to', () => {
+  const b = SB(); b.assignments[D1] = { lt1:'Z Person' }; b.defaultCrew = { lt1:'Z Person', sys:'Z Person' };
+  const a = SA();   // X nur in A
+  const r = planSwitch({ a, b, date:D1, name:'X Person', to:'B' });
+  eq(r.needsPick, true);
+  deepEq(r.steps, [{ tour:'A', posId:'gl', value:OFFEN }]);
+  ok(!r.steps.some(s => s.tour === 'B'));
+});
+test('planSwitch: Person auf zwei Positionen in der anderen Tour → beide OFFEN', () => {
+  const a = SA(); a.assignments[D1] = { lt1:'X Person' };
+  const r = planSwitch({ a, b:SB(), date:D1, name:'x person ', to:'B' });
+  deepEq(r.steps.map(s => s.posId).sort(), ['gl','lt1']);
+  ok(r.steps.every(s => s.tour === 'A' && s.value === OFFEN));
+});
+test('planSwitch: Stammposition mit OFFEN belegt gilt als frei, Wert = Stammname', () => {
+  const b = SB(); b.assignments[D1] = { lt1:OFFEN };
+  const a = SA(); a.assignments[D1] = { gl:'Y Person' };  // X nur in B-Stamm? nein: X nicht in A
+  const r = planSwitch({ a, b, date:D1, name:'X Person', to:'B' });
+  deepEq(r, { steps:[{ tour:'B', posId:'lt1', value:'X Person' }], needsPick:false });
+});
+test('diffPlans: ein geänderter Slot → genau ein Eintrag; Abweichung = Stamm zählt nicht', () => {
+  const o = SA(), d = applySlot(o, D1, 'gl', OFFEN);
+  deepEq(diffPlans(o, d), [{ date:D1, posId:'gl', before:'X Person', after:OFFEN }]);
+  const same = J(o); same.assignments[D1] = { gl:'X Person' };
+  deepEq(diffPlans(o, same), []);
+});
+test('staleSlots: Fremdänderung am Diff-Slot erkannt, an anderem Slot ignoriert', () => {
+  const o = SA(), d = applySlot(o, D1, 'gl', OFFEN), diffs = diffPlans(o, d);
+  deepEq(staleSlots(o, applySlot(o, D1, 'gl', 'Y Person'), diffs), diffs);
+  deepEq(staleSlots(o, applySlot(o, D1, 'lt1', OFFEN), diffs), []);
+});
+test('planSwitch/diffPlans/staleSlots mutieren Eingaben nicht', () => {
+  const a = SA(), b = SB(), a0 = J(a), b0 = J(b);
+  const r = planSwitch({ a, b, date:D1, name:'X Person', to:'B' });
+  const d = applySlot(a, D1, 'gl', OFFEN), d0 = J(d);
+  const df = diffPlans(a, d), df0 = J(df);
+  staleSlots(a, b, df);
+  deepEq(a, a0); deepEq(b, b0); deepEq(d, d0); deepEq(df, df0); ok(r.steps.length === 1);
+});

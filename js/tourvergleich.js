@@ -139,3 +139,43 @@ export function planAssign({ self, other, selfTour, date, posId, name }){
   }
   return steps;
 }
+
+// „→ zu X“ (v1.2.1): `name` wechselt an `date` in die Tour `to` ('A'|'B').
+// Andere Tour: alle Plätze der Person → OFFEN. In `to`: steht sie schon dort, nichts;
+// sonst auf die erste freie Stammposition (defaultCrew), sonst needsPick (nichts raten).
+export function planSwitch({ a, b, date, name, to }){
+  const otherTour = to === 'A' ? 'B' : 'A';
+  const other = otherTour === 'A' ? a : b;
+  const target = to === 'A' ? a : b;
+  const steps = slotsOf(other, date, name).map(posId => ({ tour: otherTour, posId, value: OFFEN }));
+  let needsPick = false;
+  if(!slotsOf(target, date, name).length){
+    const dc = (target && target.defaultCrew) || {};
+    const p = _pos(target).map(x => x.id).find(id => {
+      if(!isPerson(dc[id]) || !sameCrew(dc[id], name)) return false;
+      const v = effective(target, date, id);
+      return v === '' || v === OFFEN || v === AUSSCHREIBEN;
+    });
+    if(p === undefined) needsPick = true;
+    else steps.push({ tour: to, posId: p, value: dc[p] });
+  }
+  return { steps, needsPick };
+}
+
+// Unterschiede der effektiven Besetzung zwischen geladenem und Entwurfs-Plan.
+// Sortiert nach Tag, dann Positionsreihenfolge; nur Einträge mit before !== after.
+export function diffPlans(orig, draft, dates){
+  const days = (dates || [...new Set([..._dates(orig), ..._dates(draft)])]).slice().sort();
+  const pos = _pos(draft).length ? _pos(draft) : _pos(orig);
+  const out = [];
+  days.forEach(date => pos.forEach(p => {
+    const before = effective(orig, date, p.id), after = effective(draft, date, p.id);
+    if(before !== after) out.push({ date, posId: p.id, before, after });
+  }));
+  return out;
+}
+
+// Fremdänderungen: die Einträge aus `diffs`, deren frischer Wert vom geladenen (orig) abweicht.
+export function staleSlots(orig, fresh, diffs){
+  return (diffs || []).filter(d => effective(fresh, d.date, d.posId) !== effective(orig, d.date, d.posId));
+}
