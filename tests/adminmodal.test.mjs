@@ -15,6 +15,7 @@ test('admin.html: .modal-bg.open macht Modals sichtbar (display:flex)', () => {
 });
 
 test('admin.html: openModal-abhängige Modals sind als .modal-bg angelegt', () => {
-  ok(admin.includes('id="emailPreviewModal"') && /class="modal-bg"[^>]*id="emailPreviewModal"/.test(admin),
-     'emailPreviewModal muss .modal-bg sein, damit openModal es zeigt');
+  // v1.3.0: Einladen/Absage laufen über js/crewNotify.js und das gemeinsame sharedModal
+  ok(admin.includes('id="sharedModal"') && /class="modal-bg"[^>]*id="sharedModal"/.test(admin),
+     'sharedModal muss .modal-bg sein, damit openModal es zeigt');
 });

@@ -189,7 +189,7 @@ export function openCrewDD(e,dateStr,posId){
       closeDD();
       try{
         await promotePencilledToProposed(dateStr,posId);
-        showToast('Angefragt ⏳ — Mail folgt über „Einladen"','var(--accent-b)');
+        showToast('Angefragt ⏳ — Mail über die Konsole (👥 Crew & Positionen)','var(--accent-b)');
       }catch(err){
         showToast('Fehler – nicht angefragt: '+err.message,'#e84a4a');
         await loadAssignmentStatuses();
@@ -255,7 +255,7 @@ export function openCrewDD(e,dateStr,posId){
       _queueRemovedSlot(crewName,_email,dateStr,posId,_lbl,rec.id);
     }
   };
-  // Anfragen ausschließlich über Crew-Notify-Modal (Einladen-Button)
+  // Anfragen ausschließlich über die Konsole (Karte 👥 Crew & Positionen, Einladen-Knopf)
   const _applyState=async(val)=>{
     closeDD();
     if(si){

@@ -117,9 +117,16 @@ function _renderCrewNotifyList() {
       btn = `<button class="mbtn primary sm" data-crew="${nameAttr}" data-type="invite" onclick="sendInvite(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">📧 Einladen</button>`;
     }
 
-    const cancelBtn = pendingCount > 0
-      ? `<div style="margin-top:5px;"><button class="mbtn sm" data-crew="${nameAttr}" onclick="sendCancellationSummary(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;background:#e84a4a;color:#fff;border:none;">✕ ${pendingCount} Absage${pendingCount > 1 ? 'n' : ''} senden</button></div>`
-      : '';
+    // Absage zu aktiven Einsätzen (bestätigt/angefragt) und nachträglich auch zu schon
+    // entfernten — früher nur in der Konsole (v1.3.0: in das Modul gewandert).
+    const hasActive = _getActiveSlotsForCrew(name).length > 0;
+    const cancelBtn = (pendingCount > 0 || hasActive)
+      ? `<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">`
+        + (pendingCount > 0
+          ? `<button class="mbtn sm" data-crew="${nameAttr}" onclick="sendCancellationSummary(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;background:#e84a4a;color:#fff;border:none;">✕ ${pendingCount} Absage${pendingCount > 1 ? 'n' : ''} senden</button>`
+          : '')
+        + `<button class="mbtn sm" data-crew="${nameAttr}" onclick="openCancelSelect(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;color:#e84a4a;">🚫 Einsätze absagen</button></div>`
+      : `<div style="margin-top:5px;"><button class="mbtn sm" data-crew="${nameAttr}" onclick="openCancelSelect(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;color:#e84a4a;">🚫 Absage</button></div>`;
 
     return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
       <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:5px;"></div>
@@ -156,6 +163,104 @@ export async function sendCancellationSummary(crewName) {
   } catch(e) {
     showToast('Fehler: ' + e.message, '#e84a4a');
   }
+}
+
+// ── Absage aktiver Einsätze (v1.3.0, vorher nur inline in admin.html) ────────────
+// Auswahl bestätigter/angefragter Einsätze plus manuell nachgetragene Termine (für Zuweisungen,
+// die schon entfernt wurden, bevor die Absage rausging). Eine Anfrage: Server löscht die Records
+// UND mailt (removeSlots), optional mit Freitext.
+function _getActiveSlotsForCrew(crewName) {
+  const out = [];
+  Object.entries(assignmentStatuses || {}).forEach(([date, day]) => {
+    Object.entries(day || {}).forEach(([posId, si]) => {
+      if (si.crewName !== crewName) return;
+      if (si.status !== 'confirmed' && si.status !== 'proposed') return;
+      const pos = (POSITIONS || []).find(p => p.id === posId);
+      out.push({ date, posId, posLabel: pos?.label || posId, status: si.status });
+    });
+  });
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function _fmtDateDE(iso) {
+  const p = String(iso || '').split('-');
+  return (p.length === 3 && p[0].length === 4) ? `${p[2].substring(0, 2)}.${p[1]}.${p[0]}` : iso;
+}
+
+let _cancelCrewName = '';
+let _cxlManualIdx = 0;
+
+export function openCancelSelect(crewName) {
+  if (!hasPermission('sendInvite')) return;
+  const meta = crewMeta[crewName] || {};
+  if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
+  _cancelCrewName = crewName; _cxlManualIdx = 0;
+  const slots = _getActiveSlotsForCrew(crewName);
+  const emptyNote = slots.length ? '' :
+    `<div style="color:var(--muted);margin-bottom:10px;line-height:1.5;">Keine aktive Zuweisung gefunden (z. B. weil sie schon entfernt wurde, bevor die Absage verschickt wurde). Trag den Termin unten manuell nach, um trotzdem eine Absage-Mail zu schicken.</div>`;
+  document.getElementById('sharedTitle').textContent = '🚫 Absage an ' + crewName;
+  const dlg = document.getElementById('sharedBody');
+  dlg.innerHTML =
+    `<div id="cxlBody" style="font-size:.7rem;color:var(--ink);line-height:1.6;max-height:50vh;overflow-y:auto;">
+      <div style="margin-bottom:10px;color:var(--ink-2);">Welche Einsätze von <strong>${esc(crewName)}</strong> absagen?</div>
+      ${emptyNote}
+      ${slots.map((s, i) => `<label style="display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--rule);cursor:pointer;">
+        <input type="checkbox" id="cxl_${i}" data-date="${esc(s.date)}" data-pos="${esc(s.posId)}" data-label="${esc(s.posLabel)}" checked style="width:15px;height:15px;accent-color:#e84a4a;">
+        <span style="flex:1;">${esc(_fmtDateDE(s.date))} · ${esc(s.posLabel)} <span style="color:var(--muted);">${s.status === 'confirmed' ? '✅' : '⏳'}</span></span>
+      </label>`).join('')}
+      <div id="cxlManualRows"></div>
+      <div style="display:flex;gap:6px;margin-top:12px;align-items:center;flex-wrap:wrap;">
+        <input type="date" id="cxlManualDate" class="mi" style="flex:1;min-width:130px;">
+        <input type="text" id="cxlManualPos" class="mi" placeholder="Position / Hinweis (optional)" style="flex:1;min-width:160px;">
+        <button class="mbtn sm" onclick="cxlAddManual()">＋ Termin manuell</button>
+      </div>
+      <textarea id="cxlText" rows="3" class="mi" placeholder="Text für die E-Mail (optional)…" style="resize:vertical;width:100%;margin-top:12px;"></textarea>
+    </div>
+    <div class="mactions" style="margin-top:8px;">
+      <button class="mbtn" onclick="closeCancelSelect()">Abbrechen</button>
+      <button class="mbtn primary" style="background:#e84a4a;border-color:#e84a4a;" onclick="sendSelectedCancellation()">🚫 Absage senden</button>
+    </div>`;
+  openModal('sharedModal');
+}
+
+export function closeCancelSelect() {
+  if (_notifyHostId === 'sharedBody') _renderCrewNotifyList();
+  else closeModal('sharedModal');
+}
+
+export function cxlAddManual() {
+  const dateEl = document.getElementById('cxlManualDate');
+  const posEl = document.getElementById('cxlManualPos');
+  const date = dateEl.value;
+  if (!date) { showToast('Bitte zuerst ein Datum wählen', '#e84a4a'); return; }
+  const label = posEl.value.trim() || 'Termin';
+  const i = 'm' + (_cxlManualIdx++);
+  const row = document.createElement('label');
+  row.style.cssText = 'display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--rule);cursor:pointer;';
+  row.innerHTML = `<input type="checkbox" id="cxl_${i}" data-date="${esc(date)}" data-pos="manual_${i}" data-label="${esc(label)}" checked style="width:15px;height:15px;accent-color:#e84a4a;">
+    <span style="flex:1;">${esc(_fmtDateDE(date))} · ${esc(label)} <span style="color:var(--muted);">(manuell)</span></span>`;
+  document.getElementById('cxlManualRows').appendChild(row);
+  dateEl.value = ''; posEl.value = '';
+}
+
+export async function sendSelectedCancellation() {
+  const crewName = _cancelCrewName;
+  const meta = crewMeta[crewName] || {};
+  const chosen = Array.from(document.querySelectorAll('#cxlBody input[type=checkbox]'))
+    .filter(cb => cb.checked)
+    .map(cb => ({ date: cb.dataset.date, posId: cb.dataset.pos, posLabel: cb.dataset.label }));
+  if (!chosen.length) { showToast('Nichts ausgewählt', '#5a6070'); return; }
+  const customText = (document.getElementById('cxlText')?.value || '').trim();
+  try {
+    await sendCancellationNotice(crewName, meta.email, chosen, customText || undefined);
+  } catch (e) {
+    showToast('Fehler: ' + e.message, '#e84a4a');
+    return;
+  }
+  chosen.forEach(s => { if (assignmentStatuses[s.date]) delete assignmentStatuses[s.date][s.posId]; });
+  showToast(`${crewName}: Absage gesendet ✓`, '#4ae8a0');
+  closeCancelSelect();
+  _renderCrewNotifyList();
 }
 
 // ── Alle Slots eines Crew-Mitglieds via getVal() (inkl. defaultCrew) ─────────

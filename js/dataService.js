@@ -785,7 +785,7 @@ export function logActivity(action, { planId, crewName, crewEmail, date, posLabe
 }
 
 // ── Absage-Sammel-E-Mail an Crew-Mitglied (via Pocketbase-Hook) ───────────────
-export async function sendCancellationNotice(crewName, crewEmail, slots) {
+export async function sendCancellationNotice(crewName, crewEmail, slots, customMessage) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -795,7 +795,8 @@ export async function sendCancellationNotice(crewName, crewEmail, slots) {
     // removeSlots: Die Absage LOESCHT Records. Bisher tat das der Browser in einer eigenen
     // Schleife vor dem Mailversand — brach sie ab, war die Haelfte weg und die Mail nie raus.
     await notify({ type: 'cancellation', planId, crewName, crewEmail, planName,
-                   removeSlots: slots });
+                   removeSlots: slots,
+                   ...(customMessage ? { customMessage } : {}) });
   } catch (e) {
     console.warn('sendCancellationNotice Fehler:', e.message);
     _showMailError(e.message);
