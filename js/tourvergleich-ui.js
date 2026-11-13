@@ -344,7 +344,7 @@ export async function tvDiscard() {
   if (S.busy) return;
   const n = nChanges();
   if (!n) return;
-  if (!(await showConfirm(`Alle ${n} ${n === 1 ? 'Änderung' : 'Änderungen'} verwerfen?`, 'Verwerfen'))) return;
+  if (!(await showConfirm(n === 1 ? 'Die Änderung verwerfen?' : `Alle ${n} Änderungen verwerfen?`, 'Verwerfen'))) return;
   if (S.busy) return;
   resetDrafts();
   render();
