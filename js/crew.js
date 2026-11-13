@@ -39,10 +39,12 @@ export function renderCrew(){
     el.appendChild(d);
   });
   const posEl=document.getElementById('posList');
-  posEl.innerHTML=POSITIONS.map((p,i)=>IS_MANAGER
+  if(posEl)posEl.innerHTML=POSITIONS.map((p,i)=>IS_MANAGER
     ?`<div class="sb-pos" onclick="openRenamePos(${i})" title="Position umbenennen"><span class="sb-pos-short">${esc(p.short||'')}</span><span class="sb-pos-label">${esc(p.label)}</span></div>`
     :`<div class="sb-pos"><span class="sb-pos-short">${esc(p.short||'')}</span><span class="sb-pos-label">${esc(p.label)}</span></div>`
   ).join('');
+  // Die Konsole (v1.3.0) hängt Einladestatus und Update-Zähler an dieselbe Änderung.
+  if(typeof document.dispatchEvent==='function'&&typeof CustomEvent==='function')document.dispatchEvent(new CustomEvent('crew-rendered'));
 }
 
 // Nimmt eine Person MIT Adresse in DIESE Tour auf: Name in crew[] und crew_members-Datensatz.

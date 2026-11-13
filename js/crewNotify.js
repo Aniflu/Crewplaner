@@ -62,9 +62,20 @@ function _fmtInviteDate(name, invites) {
   return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()}`;
 }
 
+// Zielcontainer der Liste: Touransicht = #sharedBody (Modal), Konsole-Karte = eigener Container
+// (v1.3.0, renderCrewNotifyInto). Die Aktionen unten rendern über _renderCrewNotifyList() neu
+// und treffen damit immer denselben Container.
+let _notifyHostId = 'sharedBody';
+
+export function renderCrewNotifyInto(hostId) {
+  _notifyHostId = hostId || 'sharedBody';
+  _renderCrewNotifyList();
+}
+
 export function openCrewNotifyModal() {
   if (!hasPermission('sendInvite')) return;
   document.getElementById('sharedTitle').textContent = 'Crew benachrichtigen';
+  _notifyHostId = 'sharedBody';
   _renderCrewNotifyList();
   openModal('sharedModal');
 }
@@ -120,14 +131,17 @@ function _renderCrewNotifyList() {
     </div>`;
   }).join('');
 
-  document.getElementById('sharedBody').innerHTML = `
+  const host = document.getElementById(_notifyHostId);
+  if (!host) return;
+  const inModal = _notifyHostId === 'sharedBody';
+  host.innerHTML = `
     <div style="font-size:.6rem;color:var(--muted);margin-bottom:14px;line-height:1.5;">
       Einladen = eine E-Mail pro Person. Crew loggt sich ein und bestätigt ihre Einsätze.
     </div>
-    ${rows}
-    <div class="mactions" style="margin-top:8px;">
+    ${rows || '<div style="font-size:.65rem;color:var(--muted);">Keine Crew-Mitglieder in diesem Plan.</div>'}
+    ${inModal ? `<div class="mactions" style="margin-top:8px;">
       <button class="mbtn" onclick="closeModal('sharedModal')">Schließen</button>
-    </div>`;
+    </div>` : ''}`;
 }
 
 export async function sendCancellationSummary(crewName) {

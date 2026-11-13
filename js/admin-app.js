@@ -21,6 +21,10 @@ import { POOL_PLAN_ID } from './config.js';
 import { generatePDF, openPDFFilter, pdfSetView, pdfToggleAll } from './pdf.js';
 import { loadPlanState, setAuthState } from './state.js';
 import { activateConsolePlan, consolePlanSnapshot } from './consoleplan.js';
+import { renderCrew, removeCrew, renameCrew, openImportCrewModal, confirmImportCrew, _importSelectAll, _closeImportCrew, _showNewPersonForm, createAndTakeCrew } from './crew.js';
+import { openRenamePos, openAddPos } from './positions.js';
+import { renderCrewNotifyInto, sendInvite, sendUpdate, sendCancellationSummary } from './crewNotify.js';
+import { _updateCrewUpdateBar, _openUpdateQueueModal, _closeUpdateQueueModal, _queueSelectAll, _queueGrpSel, _clearUpdateQueue, _deleteSlotFromQueue, _toggleSlotSelection, _sendSelectedUpdates, _updatePreviewSend, _updatePreviewSkip, _updatePreviewCancel } from './userView.js';
 import { tvInit, tvCompare, tvOpenDay, tvCloseDay, tvShiftDay, tvPickSlot, tvMove, tvRenderWithBundles, tvSave, tvSaveAsk, tvDiscard, tvLeaveCheck, tvSelChange, tvHasUnsaved } from './tourvergleich-ui.js';
 // HINWEIS: KEIN Import von calendar.js generateICS mehr — admin.html hat eine eigene
 // Inline-`adminGenerateICS`, die den GELADENEN Plan (_wrk*/TOUR_DATES) exportiert.
@@ -69,3 +73,10 @@ Object.assign(window, { tvInit, tvCompare, tvOpenDay, tvCloseDay, tvShiftDay, tv
 window.setConsoleAuth = setAuthState;
 window.activateConsolePlan = activateConsolePlan;
 window.consolePlanSnapshot = consolePlanSnapshot;
+
+// v1.3.0: Karte „Crew & Positionen“ — dieselben Module wie die Touransicht, kein eigener Code.
+Object.assign(window, { renderCrew, removeCrew, renameCrew, openImportCrewModal, confirmImportCrew, _importSelectAll, _closeImportCrew, _showNewPersonForm, createAndTakeCrew,
+  openRenamePos, openAddPos, renderCrewNotifyInto, sendInvite, sendUpdate, sendCancellationSummary,
+  _updateCrewUpdateBar, _openUpdateQueueModal, _closeUpdateQueueModal, _queueSelectAll, _queueGrpSel, _clearUpdateQueue, _deleteSlotFromQueue, _toggleSlotSelection, _sendSelectedUpdates, _updatePreviewSend, _updatePreviewSkip, _updatePreviewCancel });
+// Jede Crew-/Positionsänderung rendert die Liste neu (renderCrew) → Karte und Konsolen-Werte nachziehen.
+document.addEventListener('crew-rendered', () => { if (typeof window._crewCardRefresh === 'function') window._crewCardRefresh(); });

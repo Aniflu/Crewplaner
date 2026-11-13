@@ -17,7 +17,7 @@
 <script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="theme.css?v=3">
-<script type="module" src="js/admin-app.js?v=23"></script>
+<script type="module" src="js/admin-app.js?v=24"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -591,6 +591,30 @@ body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell
 .tv-sv-warn{display:block;font-size:.82rem;font-weight:500;margin:8px 0}
 .tv-sv-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
 @media(max-width:640px){.tv-cols{grid-template-columns:1fr}.tv-modal{padding:12px}.tv-bar-btns{margin-left:0;width:100%}.tv-bar-btns .btn{flex:1}}
+
+/* ── Karte „Crew & Positionen" (v1.3.0) — Klassen der Module (crew.js/positions.js) ───────── */
+.crewcard { border-left: 3px solid var(--show); }
+.cc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+@media (max-width: 700px) { .cc-grid { grid-template-columns: 1fr; } }
+.cc-sec { background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; min-width: 0; }
+.cc-sec h4 { margin: 0 0 8px; font-size: .62rem; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+.cc-crew h4 { color: var(--show); }
+.cc-pos { border-top: 3px solid var(--reise); } .cc-pos h4 { color: var(--reise); }
+.cc-crew { border-top: 3px solid var(--show); }
+.cc-inv { border-top: 3px solid var(--prep); margin-top: 16px; } .cc-inv h4 { color: var(--prep); }
+.cc-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.crewcard .crew-member { display: grid; grid-template-columns: 10px 1fr auto auto auto; gap: 8px; align-items: center; padding: 5px 4px; font-size: .68rem; border-bottom: 1px solid var(--rule); }
+.crewcard .crew-dot { width: 8px; height: 8px; border-radius: 50%; }
+.crewcard .crew-days { font-size: .58rem; color: var(--muted); }
+.crewcard button.sm, .modal-box button.sm { background: var(--panel2); color: var(--ink); border: 1px solid var(--rule-2); border-radius: 4px; padding: 3px 8px; font-size: .65rem; cursor: pointer; font-family: inherit; }
+.crewcard button.sm.danger { color: var(--warn); }
+.crewcard .sb-pos { display: flex; gap: 10px; align-items: center; padding: 6px 8px; margin-bottom: 4px; background: var(--panel2); border: 1px solid var(--rule); border-left: 3px solid var(--reise); border-radius: 4px; font-size: .68rem; cursor: pointer; }
+.crewcard .sb-pos-short { color: var(--reise); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: .6rem; flex-shrink: 0; }
+.crewcard .sb-pos-label { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.mi { width: 100%; box-sizing: border-box; background: var(--bg); border: 1px solid var(--rule-2); border-radius: 4px; color: var(--ink); padding: 7px 9px; font-family: inherit; font-size: .7rem; }
+.mi:focus { outline: none; border-color: var(--accent); }
+.modal-box .mbtn.sm { padding: 4px 10px; font-size: .65rem; }
+body.modal-open { overflow: hidden; }
 </style>
 </head>
 <body>
@@ -650,6 +674,37 @@ body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell
     <!-- Plan Info + Tools (nur wenn Plan geladen) -->
     <div id="wrkPlanLoaded" style="display:none;">
 
+      <!-- Crew & Positionen (v1.3.0): dieselben Module wie die Touransicht (js/crew.js, positions.js,
+           crewNotify.js, userView.js). Hier steht KEINE eigene Crew-/Positionslogik. -->
+      <div class="tool-card full-width crewcard" id="wrkCrewCard" style="margin-bottom:16px;">
+        <div class="tool-card-title">👥 Crew &amp; Positionen</div>
+        <div class="tool-card-sub">Personen und Positionen dieser Tour, Einladungen und Updates</div>
+        <div class="cc-grid">
+          <div class="cc-sec cc-crew">
+            <h4 id="crewHeading">Crew</h4>
+            <div id="crewList"></div>
+            <div class="cc-btns">
+              <button class="btn btn-green btn-sm" onclick="openImportCrewModal()">＋ Aus Crew-Pool hinzufügen</button>
+              <button class="btn btn-ghost btn-sm" onclick="_crewNewPerson()">＋ Neue Person anlegen</button>
+            </div>
+          </div>
+          <div class="cc-sec cc-pos">
+            <h4>Positionen</h4>
+            <div id="posList"></div>
+            <div class="cc-btns">
+              <button class="btn btn-ghost btn-sm" onclick="openAddPos()">＋ Position</button>
+            </div>
+          </div>
+        </div>
+        <div class="cc-sec cc-inv">
+          <h4>📧 Einladen &amp; Status</h4>
+          <div id="wrkCrewNotify"></div>
+          <div class="cc-btns">
+            <button class="btn btn-primary btn-sm" id="btnUpdateQueue" style="display:none;" onclick="_openUpdateQueueModal()">↻ Updates senden (<span id="updateQueueBadge">0</span>)</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Info -->
       <div class="tool-card full-width" style="margin-bottom:16px;">
         <div class="tool-card-title" id="wrkPlanTitle">Plan</div>
@@ -663,7 +718,7 @@ body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell
           <button class="btn btn-ghost btn-sm" onclick="_adminPlanAction('openTourBlock')">▶ Tourblock einfügen</button>
           <button class="btn btn-ghost btn-sm" onclick="_adminPlanAction('openBlockRange')">▶ Bereich → Block</button>
           <button class="btn btn-ghost btn-sm" onclick="_adminPlanAction('openAddDate')">+ Datum hinzufügen</button>
-          <button class="btn btn-ghost btn-sm" onclick="_adminPlanAction('openCrewModal')">👥 Crew &amp; Positionen</button>
+          <button class="btn btn-ghost btn-sm" onclick="_scrollToCrewCard()">👥 Crew &amp; Positionen</button>
         </div>
       </div>
 
@@ -673,13 +728,6 @@ body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell
              beim Anlegen fest (Benutzer → + Neues Crew-Mitglied bzw. der Pool-Dialog in der Tour)
              und werden im Verzeichnis unter Benutzer gepflegt. Ein eigenes Nachtrag-Werkzeug
              hätte den Zustand „Name ohne Adresse" nur weiter am Leben gehalten. -->
-
-        <!-- Crew benachrichtigen -->
-        <div class="tool-card">
-          <div class="tool-card-title">Crew benachrichtigen</div>
-          <div class="tool-card-sub">Einladung oder Erinnerung per E-Mail senden</div>
-          <div id="wrkNotifyList"></div>
-        </div>
 
         <!-- Export / Import -->
         <div class="tool-card">
@@ -1062,6 +1110,111 @@ body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell
   </div>
 </div>
 
+<!-- v1.3.0: Modale der Crew-Karte (wie index.html; Funktionen kommen aus js/crew.js, positions.js, userView.js) -->
+<div class="modal-bg" id="sharedModal">
+  <div class="modal-box">
+    <div class="modal-title" id="sharedTitle"></div>
+    <div id="sharedBody"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="crewImportModal" style="z-index:520;">
+  <div class="modal-box" style="width:460px;display:flex;flex-direction:column;max-height:82vh;">
+    <div class="modal-title">Crew-Pool</div>
+    <div style="font-size:.62rem;color:var(--muted);line-height:1.5;margin-bottom:10px;">
+      Anhaken → in diese Tour übernehmen (inkl. E-Mail). Der Pool = alle angelegten Crew-Mitglieder, tourübergreifend.
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+      <span style="color:var(--muted);font-size:.58rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
+      <button onclick="_importSelectAll(true)" style="background:var(--panel2);color:var(--show);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
+      <button onclick="_importSelectAll(false)" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.6rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
+    </div>
+    <div id="crewImportBody" style="overflow-y:auto;flex:1;margin-bottom:12px;padding-right:4px;"></div>
+
+    <!-- Neue Person anlegen — der einzige Weg, auf dem jemand NEU entsteht (neben der Konsole).
+         Schreibt einen Pool-Record (crew_members, plan_id="__pool__") und übernimmt direkt in
+         diese Tour. Die Adresse ist zugleich die Registrierungsfreigabe: users.createRule ist
+         `@collection.crew_members.email ?= email`. -->
+    <button id="newPersonToggle" class="mbtn" style="margin-bottom:10px;" onclick="_showNewPersonForm(true)">+ Neue Person anlegen</button>
+    <div id="newPersonForm" style="display:none;border:1px solid var(--rule-2);border-radius:4px;padding:10px;margin-bottom:10px;">
+      <div style="font-size:.58rem;color:var(--muted);line-height:1.5;margin-bottom:8px;">
+        Landet im globalen Pool (jede Tour kann sie übernehmen) und kommt sofort in diese Tour.
+        <strong>Kein Login-Konto</strong> — das entsteht erst, wenn die Person sich über den Einladungslink anmeldet.
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <input type="text"  id="npName"  class="mi" placeholder="Vor- und Nachname" style="flex:1 1 100%;font-size:.62rem;padding:5px 8px;">
+        <input type="email" id="npEmail" class="mi" placeholder="name@beispiel.de" style="flex:1 1 60%;font-size:.62rem;padding:5px 8px;"
+               onkeydown="if(event.key==='Enter')createAndTakeCrew()">
+        <select id="npRole" class="mi" style="flex:1;font-size:.62rem;padding:5px 8px;">
+          <option value="crew">Crew</option>
+          <option value="booker">Booker</option>
+          <option value="manager">Manager</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="mbtn primary sm" onclick="createAndTakeCrew()">Anlegen &amp; übernehmen</button>
+        <button class="mbtn sm" onclick="_showNewPersonForm(false)">Abbrechen</button>
+      </div>
+    </div>
+
+    <div class="mactions">
+      <button class="mbtn" onclick="_closeImportCrew()">Abbrechen</button>
+      <button class="mbtn primary" onclick="confirmImportCrew()">Übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<div id="crewUpdateModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
+  <!-- ⚠️ Flex-SPALTE mit min-height:0 am Inhalt — nicht wieder auf feste Höhen umbauen.
+       Vorher hatte die Box max-height:80vh MIT overflow:hidden und der Inhalt zusätzlich
+       max-height:60vh. Mit Kopfzeile, Auswahlzeile und Fußzeile überschritt das die Boxhöhe:
+       Der Sende-Knopf wurde abgeschnitten, und weil die Box `hidden` war, kam man auch nicht
+       mehr heran — bei vielen Terminen war das Fenster damit unbedienbar.
+       `min-height:0` ist der entscheidende Teil: Ohne das schrumpft ein Flex-Kind nicht unter
+       seine Inhaltshöhe, und der Bereich scrollt nicht. -->
+  <div style="background:var(--panel2);border:1px solid var(--accent);padding:24px;max-width:520px;width:90%;max-height:85vh;display:flex;flex-direction:column;font-family:var(--mono);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-shrink:0;">
+      <span style="color:var(--accent);letter-spacing:2px;font-size:.75rem;">AUSSTEHENDE UPDATES</span>
+      <span style="cursor:pointer;color:var(--muted);" onclick="_closeUpdateQueueModal()">✕</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-shrink:0;flex-wrap:wrap;">
+      <span style="color:var(--muted);font-size:.6rem;letter-spacing:1px;flex:1;">AUSWAHL</span>
+      <button onclick="_queueSelectAll(true)" style="background:var(--panel2);color:var(--show);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">ALLE</button>
+      <button onclick="_queueSelectAll(false)" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">KEINE</button>
+      <button onclick="_clearUpdateQueue()" style="background:var(--panel2);color:var(--warn);border:1px solid var(--rule-2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:.62rem;letter-spacing:1px;cursor:pointer;">QUEUE LEEREN</button>
+    </div>
+    <div id="crewUpdateModalBody" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin-bottom:12px;padding-right:4px;"></div>
+    <div style="margin-top:16px;text-align:right;flex-shrink:0;">
+      <button id="btnSendUpdates" onclick="_sendSelectedUpdates()" style="background:var(--accent);color:var(--on-accent);border:none;padding:8px 16px;cursor:pointer;font-family:var(--mono);letter-spacing:1px;font-size:.7rem;">AUSWAHL SENDEN (0) →</button>
+    </div>
+  </div>
+</div>
+
+<div id="updatePreviewModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
+  <!-- ⚠️ Flex-Spalte mit begrenzter Höhe. Vorher hatte diese Box WEDER max-height NOCH
+       overflow: Bei vielen Terminen wuchs sie über den Bildschirm hinaus, und weil das
+       Overlay mittig zentriert, ragte sie oben und unten heraus — nicht scrollbar, die
+       Knöpfe nicht erreichbar. Dasselbe Muster wie beim Warteschlangen-Fenster (v0.9.3),
+       nur wurde dieses hier übersehen. `min-height:0` am Inhalt ist der entscheidende Teil. -->
+  <div style="background:var(--panel2);border:1px solid var(--accent);padding:24px;max-width:520px;width:90%;max-height:85vh;display:flex;flex-direction:column;font-family:var(--mono);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0;">
+      <span style="color:var(--accent);letter-spacing:2px;font-size:.75rem;">📧 E-MAIL-VORSCHAU</span>
+      <span style="cursor:pointer;color:var(--muted);" onclick="_updatePreviewCancel()">✕</span>
+    </div>
+    <div id="updatePreviewBody" style="flex:1;min-height:0;overflow-y:auto;font-size:.7rem;color:var(--ink-2);line-height:1.6;"></div>
+    <div style="margin-top:12px;flex-shrink:0;">
+      <label style="display:block;font-size:.58rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">PERSÖNLICHE NACHRICHT (optional)</label>
+      <textarea id="updatePreviewText" rows="3" placeholder="Text, der in der E-Mail oben hervorgehoben wird…" style="resize:vertical;width:100%;background:var(--on-accent);border:1px solid var(--rule-2);border-radius:3px;color:var(--ink);padding:8px;font-family:var(--mono);font-size:.66rem;box-sizing:border-box;"></textarea>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap;">
+      <button onclick="_updatePreviewCancel()" style="background:var(--panel2);color:var(--ink-2);border:1px solid var(--rule-2);border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Abbrechen</button>
+      <button onclick="_updatePreviewSkip()" style="background:var(--panel2);color:var(--accent);border:1px solid var(--rule-2);border-radius:3px;padding:7px 14px;font-family:inherit;font-size:.66rem;cursor:pointer;">Überspringen</button>
+      <button onclick="_updatePreviewSend()" style="background:var(--accent);color:var(--on-accent);border:none;border-radius:3px;padding:7px 16px;font-family:inherit;font-size:.66rem;font-weight:bold;letter-spacing:1px;cursor:pointer;">Senden →</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:22px;right:22px;padding:8px 16px;border-radius:5px;font-size:.7rem;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;"></div>
 <div class="toast" id="adminToast"></div>
 
 <script>
@@ -1528,7 +1681,7 @@ async function _openCrewFromHash() {
   if (!pbId || !sel || ![...sel.options].some(o => o.value === pbId)) return;
   sel.value = pbId;
   await loadSelectedPlan();
-  const card = document.getElementById('wrkCrewCard') || document.getElementById('wrkNotifyList');
+  const card = document.getElementById('wrkCrewCard');
   if (card && card.scrollIntoView) card.scrollIntoView({ block: 'start' });
 }
 
@@ -1618,7 +1771,7 @@ async function loadSelectedPlan() {
     document.getElementById('wrkInfoCrew').textContent = crew.length;
     document.getElementById('wrkInfoPos').textContent = POSITIONS.length;
 
-    renderAdminNotify();
+    _crewCardInit();
 
     // Gespeicherten View-Link anzeigen
     if (plan.view_token) {
@@ -1634,6 +1787,37 @@ async function loadSelectedPlan() {
     errEl.textContent = 'Fehler: ' + e.message;
     errEl.style.display = 'block';
   }
+}
+
+// v1.3.0: Karte „Crew & Positionen“. Alles Rendern/Schreiben passiert in den Modulen
+// (window.renderCrew u. a. aus js/admin-app.js); hier nur Anzeige nachziehen und scrollen.
+function _crewCardRefresh() {
+  // Konsolen-Werte (PDF, ICS, Export) aus dem aktuellen State, damit sie nach Änderungen stimmen.
+  if (_wrkPlanData && window.consolePlanSnapshot) {
+    _wrkPlanData = window.consolePlanSnapshot();
+    TOUR_DATES = _wrkPlanData.tourDates || [];  POSITIONS = _wrkPlanData.positions || [];
+    crew = _wrkPlanData.crew || [];  assignments = _wrkPlanData.assignments || {};  defaultCrew = _wrkPlanData.defaultCrew || {};
+    const c = document.getElementById('wrkInfoCrew'); if (c) c.textContent = crew.length;
+    const p = document.getElementById('wrkInfoPos');  if (p) p.textContent = POSITIONS.length;
+  }
+  if (window.renderCrewNotifyInto) window.renderCrewNotifyInto('wrkCrewNotify');
+  if (window._updateCrewUpdateBar) window._updateCrewUpdateBar();
+}
+window._crewCardRefresh = _crewCardRefresh;
+
+function _crewCardInit() {
+  // erster Aufruf nach dem Laden: Liste der Karte füllen (renderCrew löst danach _crewCardRefresh aus)
+  if (window.renderCrew) window.renderCrew();
+}
+
+async function _crewNewPerson() {
+  await window.openImportCrewModal();
+  window._showNewPersonForm(true);
+}
+
+function _scrollToCrewCard() {
+  const card = document.getElementById('wrkCrewCard');
+  if (card && card.scrollIntoView) card.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 // ── Werkzeuge: Crew benachrichtigen ───────────────────────────────────────────
