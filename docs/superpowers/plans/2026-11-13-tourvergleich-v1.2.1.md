@@ -53,3 +53,14 @@ Umsetzung per Subagent (Sonnet für 1–3, Haiku für 4), dazu ein kombiniertes 
   6. Menü auf einer Zelle ohne Konflikt (Zustand A) vorhanden. Nicht-Treffer: Eine Person nur in einer Crew öffnet direkt die Tagestafel.
 - Sichtprüfung von Leiste, Bestätigungsdialog und Menü mit ✓ (hell, dunkel, 390 px), danach Server und Chrome beenden.
 - Push auf `main` (Test), der Nutzer prüft dort. **Live erst nach Freigabe.**
+
+## Nachtrag (vom Nutzer freigegeben 2026-11-13): Touransicht lädt nie mehr veraltet und überschreibt nicht blind
+
+**Befund:** Manager-Touransicht lädt beim Start (`js/authService.js` ~98–103: `pbPlanCached ? Promise.resolve() : loadPlanForManager()`) und beim Tourwechsel (`switchPlan` → `_loadPlanFromLS`, js/plans.js:76) nur den Browser-Zwischenspeicher. `_savePlanToLS` (32 Aufrufer, Autospeichern) patcht diesen Stand blind in PocketBase → überschreibt Änderungen aus Tourvergleich, Admin-Werkzeugen oder anderen Geräten.
+
+**Lösung:**
+1. **Immer aus der DB laden:** Start und `switchPlan` zeigen den Zwischenspeicher nur als Vorschau und laden danach `loadPlanForManager()` + `loadCrewMeta()` + `loadAssignmentStatuses()` für den Plan mit bekannter PB-ID, dann neu rendern und den Zwischenspeicher mit dem DB-Stand überschreiben.
+2. **Schutz vor Überschreiben in `_savePlanToLS`:** Je PB-Plan wird beim Laden aus der DB ein Basisstand gemerkt (normalisiertes `plan_data`). Vor jedem PATCH: Plan frisch lesen; weicht er vom Basisstand ab (oder gibt es keinen Basisstand) → **nicht schreiben**, DB-Stand laden und anzeigen (wenn aktiver Plan), Zwischenspeicher aktualisieren, roter Hinweis „Die Tour wurde zwischendurch woanders geändert – neu geladen. Bitte deine letzte Änderung wiederholen.“ Nach erfolgreichem PATCH ist der gesendete Stand der neue Basisstand. Speichervorgänge je Plan nacheinander (keine Fehlalarme durch eigene, gleichzeitige Saves). Neu-Anlage ohne PB-ID unverändert.
+3. **Tourvergleich** aktualisiert nach dem Speichern den Zwischenspeicher `tourplan_plan_<lokaleId>` dieses Browsers für jede gespeicherte Tour (Zuordnung über `tourplan_pb_<lokaleId>` = PB-ID).
+
+**Prüfung:** Unit-Tests mit gemocktem fetch (loadGraph): (a) Basis gleich → PATCH; (b) DB zwischendurch geändert → kein PATCH, State = DB-Stand, Hinweis; (c) kein Basisstand → kein PATCH; (d) zwei schnelle Saves hintereinander → beide PATCH, kein Fehlalarm; (e) Start mit gecachtem Plan lädt trotzdem aus der DB; (f) switchPlan lädt aus der DB. Rot-Nachweis für (b). Bestehende Tests (plans/phantomplan/flows) bleiben grün.
