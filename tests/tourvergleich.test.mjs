@@ -212,3 +212,36 @@ test('removeAssignmentSlot mit leerem planId: wirft, kein PATCH/DELETE (kein Fal
   eq(writes, 0, 'keine Schreibzugriffe');
   ok(statuses['2026-07-09'].gl, 'Status unverändert');
 });
+
+// ── Struktursperren Admin-Tab (Task 3) ─────────────────────────────────────────
+import { readFileSync as _rf } from 'node:fs';
+const _ui = () => _rf(new URL('../js/tourvergleich-ui.js', import.meta.url), 'utf8');
+const _admin = () => _rf(new URL('../admin.html', import.meta.url), 'utf8');
+
+test('UI ruft removeAssignmentSlot mit planId', () => {
+  ok(/removeAssignmentSlot\([^)]*\{\s*planId/.test(_ui()), 'Aufruf mit { planId');
+});
+test('UI kopiert keine Herausnahme', () => {
+  const s = _ui();
+  ok(!/status:\s*'cancelled'/.test(s), 'kein eigenes cancelled');
+  ok(!/\/api\/collections\/assignments\/records\/[^;]*(pbPatch|pbDelete)|(pbPatch|pbDelete)\([^)]*collections\/assignments/.test(s), 'kein PATCH/DELETE auf assignments');
+});
+test('UI verschickt keine Mails', () => {
+  ok(!/notify\(|send[A-Z]\w*Notice|sendCrewInvite/.test(_ui()));
+});
+test('UI liest Plan vor dem Patch frisch (tvApply)', () => {
+  const s = _ui();
+  const i = s.indexOf('async function tvApply');
+  ok(i >= 0, 'tvApply vorhanden');
+  const body = s.slice(i);
+  const g = body.indexOf('pbGet('), p = body.indexOf('pbPatch(');
+  ok(g >= 0 && p >= 0 && g < p, 'pbGet vor pbPatch');
+});
+test('UI verweigert gleiche Tour', () => {
+  ok(/Bitte zwei verschiedene Touren/.test(_ui()));
+});
+test('admin.html hat Tab und Abschnitt', () => {
+  const h = _admin();
+  ok(h.includes('data-tab="tourvergleich"'));
+  ok(h.includes('id="tabTourvergleich"'));
+});
