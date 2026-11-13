@@ -17,7 +17,7 @@
 <script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="theme.css?v=3">
-<script type="module" src="js/admin-app.js?v=22"></script>
+<script type="module" src="js/admin-app.js?v=23"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -603,7 +603,7 @@ body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v1.2.2</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v1.2.3</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -1405,11 +1405,17 @@ async function deletePlanAdmin(planId, planName) {
 
 // ── Werkzeuge: Plan in Touransicht laden ──────────────────────────────────────
 function _adminPlanAction(action) {
-  localStorage.setItem('tourplan_pending_action', action);
-  window.location.href = 'index.html';
+  _transferPlanToTourview(action);
 }
 
 function loadPlanIntoTourview() {
+  _transferPlanToTourview();
+}
+
+// Gemeinsame Übergabe: der in der Konsole geladene Plan wird zum aktiven Plan der
+// Touransicht (js/authService.js wertet _planTransfer_* aus und lädt ihn frisch aus der DB).
+// `action` (optional) läuft danach in der Touransicht (js/init.js _checkPendingAction).
+function _transferPlanToTourview(action) {
   if (!_wrkPlanData) { adminToast('Kein Plan geladen', 'var(--warn)'); return; }
 
   // Versuche localStorage zu nutzen
@@ -1419,6 +1425,9 @@ function loadPlanIntoTourview() {
     localStorage.setItem('_planTransfer_name', _wrkPlanName || 'Plan');
     localStorage.setItem('_planTransfer_pbid', _wrkPbPlanId || '');
     localStorage.setItem('_planTransfer_flag', '1');
+    // Folgeaktion: liegt im selben localStorage wie die Übergabe. Ist localStorage
+    // blockiert, geht sie verloren (akzeptiert: Plan wird per URL-Fallback trotzdem übergeben).
+    if (action) localStorage.setItem('tourplan_pending_action', action);
 
     // Verifiziere
     const verify = localStorage.getItem('_planTransfer_data');
