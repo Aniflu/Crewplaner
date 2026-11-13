@@ -58,9 +58,32 @@ export function renderCrew(){
 // Tabelle und war für das System trotzdem nicht Teil der Tour.
 //
 // Wirft weiter — die Aufrufer melden pro Person, was schiefging.
+// v1.3.0: Der Plan muss GESPEICHERT sein, bevor crew_members oder Status-Datensätze angefasst werden.
+// Lehnt der Speicherschutz (planSync) ab oder ist man offline, bleibt die DB unberührt; der Speicherschutz
+// hat den DB-Stand für den aktiven Plan schon neu geladen und den roten Hinweis gezeigt. `_savePlanToLS`
+// liefert ohne PB-Weg ein aufgelöstes Promise; wirft es, wird hier nur der lokale Stand bereinigt.
+function _snap(){
+  return JSON.stringify({crew,defaultCrew,assignments,meta:crewMeta});
+}
+function _restore(snap){
+  const d=JSON.parse(snap);
+  crew.length=0;d.crew.forEach(c=>crew.push(c));
+  Object.keys(defaultCrew).forEach(k=>delete defaultCrew[k]);Object.assign(defaultCrew,d.defaultCrew);
+  Object.keys(assignments).forEach(k=>delete assignments[k]);Object.assign(assignments,d.assignments);
+  Object.keys(crewMeta).forEach(k=>delete crewMeta[k]);Object.assign(crewMeta,d.meta);
+}
+async function _saveOk(){
+  try{ await _savePlanToLS(getActivePlanId()); return true; }
+  catch(_){ return false; }   // Hinweis (rot) kam vom Speicherschutz bzw. Speicher-Fehler
+}
+
 async function _takeIntoTour(name, email){
   crew.push(name);
-  _savePlanToLS(getActivePlanId());
+  if(!await _saveOk()){
+    const i=crew.indexOf(name);
+    if(i>=0)crew.splice(i,1);   // nicht mehr da, wenn der Speicherschutz neu geladen hat
+    const e=new Error('Plan nicht gespeichert');e.planNotSaved=true;throw e;
+  }
   try{
     await saveCrewLink(name, email);
   }catch(e){
@@ -71,18 +94,25 @@ async function _takeIntoTour(name, email){
   }
 }
 
-export function removeCrew(i){
+export async function removeCrew(i){
   if(!IS_MANAGER)return;
   const name=crew[i];
+  const snap=_snap();
   crew.splice(i,1);
   Object.keys(assignments).forEach(d=>{
     Object.keys(assignments[d]||{}).forEach(p=>{
       if(assignments[d][p]===name)delete assignments[d][p];
     });
   });
-  _savePlanToLS(getActivePlanId());
   renderCrew();
   renderTable();
+  if(!await _saveOk()){
+    // Nicht gespeichert: crew_members bleibt unberührt. Hat der Speicherschutz neu geladen, steht die Person
+    // wieder in crew; sonst (offline) stellen wir den Stand von vorher her.
+    if(!crew.includes(name))_restore(snap);
+    renderCrew();renderTable();
+    return;
+  }
   // PB-crew_members-Record mitlöschen (sonst bleibt eine Leiche → Dublette beim Neuanlegen)
   deleteCrewMember(name);
 }
@@ -97,14 +127,20 @@ export async function renameCrew(i){
   const n=(val||'').trim();
   if(!n||n===oldName)return;
   if(crew.includes(n)){showToast('Name bereits vorhanden','#e84a4a');return;}
+  const snap=_snap();
   // lokal überall ersetzen
   crew[i]=n;
   Object.keys(defaultCrew).forEach(k=>{if(defaultCrew[k]===oldName)defaultCrew[k]=n;});
   Object.keys(assignments).forEach(d=>{Object.keys(assignments[d]||{}).forEach(p=>{if(assignments[d][p]===oldName)assignments[d][p]=n;});});
   if(crewMeta[oldName]){crewMeta[n]=crewMeta[oldName];delete crewMeta[oldName];}
-  _savePlanToLS(getActivePlanId());
   renderCrew();
   renderTable();
+  if(!await _saveOk()){
+    // Nicht gespeichert: crew_members/assignments bleiben unberührt (Hinweis kam vom Speicherschutz).
+    if(crew.includes(n)&&!crew.includes(oldName))_restore(snap);   // offline: lokalen Stand zurücknehmen
+    renderCrew();renderTable();
+    return;
+  }
   // PB: bestehende Records umbenennen (keine Dublette)
   try{
     await renameCrewMember(oldName,n);
@@ -214,6 +250,7 @@ export async function createAndTakeCrew(){
     await _takeIntoTour(n,email);
   }catch(e){
     renderCrew();
+    if(e.planNotSaved)return;   // roter Hinweis kam vom Speicherschutz
     showToast(`${n} im Pool angelegt, Übernahme in die Tour fehlgeschlagen: ${e.message}`,'#e8c84a');
     return;
   }
@@ -243,7 +280,7 @@ export async function confirmImportCrew(){
   for(const k of chosen){
     if(crew.some(n=>normCrewName(n)===normCrewName(k.name)))continue;
     try{ await _takeIntoTour(k.name,k.email); added++; }
-    catch(e){ failed.push(k.name); console.warn('Crew-Übernahme fehlgeschlagen:',k.name,e.message); }
+    catch(e){ if(e.planNotSaved){ renderCrew(); renderTable(); return; } failed.push(k.name); console.warn('Crew-Übernahme fehlgeschlagen:',k.name,e.message); }
   }
   renderCrew();
   renderTable();
