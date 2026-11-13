@@ -1947,6 +1947,9 @@ const ACTIVITY_LABEL = {
   confirmed:    { txt: 'hat zugesagt',            ic: '✓', col: 'var(--show)' },
   declined:     { txt: 'hat abgelehnt',           ic: '✗', col: 'var(--warn)' },
   cancel_acked: { txt: 'hat die Absage gesehen',  ic: '👁', col: 'var(--pencilled)' },
+  pencil_seen:      { txt: 'hat die Vormerkung gesehen',          ic: '👁', col: 'var(--pencilled)' },
+  pencil_declined:  { txt: 'hat eine Vormerkung abgesagt',        ic: '✎✗', col: 'var(--pencilled)' },
+  pencil_restored:  { txt: 'hat eine Vormerkung wieder angenommen', ic: '↩', col: 'var(--show)' },
 };
 function _activityLine(r) {
   const l = ACTIVITY_LABEL[r.action] || { txt: r.action, ic: '·', col: 'var(--muted)' };

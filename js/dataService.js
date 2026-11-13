@@ -931,6 +931,28 @@ export async function sendCrewInvite(crewName, crewEmail, type, slots, customMes
   }
 }
 
+// ── Vormerkung mitteilen (v1.4.0): reine Info-Mail, KEIN Statuswechsel ───────────
+// planId = Plan der Konsole/des Tabs (über _getActivePlanId), nie ein globaler Zeiger.
+// mailSlots muss gefüllt sein, sonst antwortet der Hook mit 400.
+export async function sendPencilInfo(crewName, crewEmail, slots, customMessage) {
+  if (!SUPABASE_ENABLED || !crewEmail) return;
+  const mailSlots = (slots || []).map(s => ({ date: s.date, posLabel: s.posLabel || '' }));
+  if (!mailSlots.length) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
+  const planName = plans.find(p => p.id === getActivePlanId())?.name || 'Tour Plan';
+  const appUrl = window.location.origin + window.location.pathname;
+  try {
+    await notify({ type: 'pencil_info', planId, crewName, crewEmail, planName, appUrl, mailSlots,
+                   ...(customMessage ? { customMessage } : {}) });
+  } catch (e) {
+    console.warn('sendPencilInfo Fehler:', e.message);
+    _showMailError(e.message);
+    throw e;
+  }
+}
+
 // ── Crew-Mitglied mit E-Mail verknüpfen (Admin) ───────────────────────────────
 // ── Alle je angelegten Crew-Mitglieder tour-übergreifend laden (für Import) ──────
 // Kein plan_id-Filter: genau die planübergreifende Liste ist gewünscht. Single-Owner-

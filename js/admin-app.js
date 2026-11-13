@@ -23,7 +23,7 @@ import { loadPlanState, setAuthState } from './state.js';
 import { activateConsolePlan, consolePlanSnapshot } from './consoleplan.js';
 import { renderCrew, removeCrew, renameCrew, openImportCrewModal, confirmImportCrew, _importSelectAll, _closeImportCrew, _showNewPersonForm, createAndTakeCrew } from './crew.js';
 import { openRenamePos, openAddPos } from './positions.js';
-import { renderCrewNotifyInto, sendInvite, sendUpdate, sendCancellationSummary, openCancelSelect, closeCancelSelect, cxlAddManual, sendSelectedCancellation, openInvitePreview, openUpdatePreview, closeSendPreview, confirmSendPreview } from './crewNotify.js';
+import { renderCrewNotifyInto, sendInvite, sendUpdate, sendCancellationSummary, openCancelSelect, closeCancelSelect, cxlAddManual, sendSelectedCancellation, openInvitePreview, openUpdatePreview, closeSendPreview, confirmSendPreview, openPencilInfoPreview } from './crewNotify.js';
 import { _updateCrewUpdateBar, _openUpdateQueueModal, _closeUpdateQueueModal, _queueSelectAll, _queueGrpSel, _clearUpdateQueue, _deleteSlotFromQueue, _toggleSlotSelection, _sendSelectedUpdates, _updatePreviewSend, _updatePreviewSkip, _updatePreviewCancel } from './userView.js';
 import { tvInit, tvCompare, tvOpenDay, tvCloseDay, tvShiftDay, tvPickSlot, tvMove, tvRenderWithBundles, tvSave, tvSaveAsk, tvDiscard, tvLeaveCheck, tvSelChange, tvHasUnsaved } from './tourvergleich-ui.js';
 // HINWEIS: KEIN Import von calendar.js generateICS mehr — admin.html hat eine eigene
@@ -76,7 +76,7 @@ window.consolePlanSnapshot = consolePlanSnapshot;
 
 // v1.3.0: Karte „Crew & Positionen“ — dieselben Module wie die Touransicht, kein eigener Code.
 Object.assign(window, { renderCrew, removeCrew, renameCrew, openImportCrewModal, confirmImportCrew, _importSelectAll, _closeImportCrew, _showNewPersonForm, createAndTakeCrew,
-  openRenamePos, openAddPos, renderCrewNotifyInto, sendInvite, sendUpdate, sendCancellationSummary, openCancelSelect, closeCancelSelect, cxlAddManual, sendSelectedCancellation, openInvitePreview, openUpdatePreview, closeSendPreview, confirmSendPreview,
+  openRenamePos, openAddPos, renderCrewNotifyInto, sendInvite, sendUpdate, sendCancellationSummary, openCancelSelect, closeCancelSelect, cxlAddManual, sendSelectedCancellation, openInvitePreview, openUpdatePreview, closeSendPreview, confirmSendPreview, openPencilInfoPreview,
   _updateCrewUpdateBar, _openUpdateQueueModal, _closeUpdateQueueModal, _queueSelectAll, _queueGrpSel, _clearUpdateQueue, _deleteSlotFromQueue, _toggleSlotSelection, _sendSelectedUpdates, _updatePreviewSend, _updatePreviewSkip, _updatePreviewCancel });
 // Jede Crew-/Positionsänderung rendert die Liste neu (renderCrew) → Karte und Konsolen-Werte nachziehen.
 document.addEventListener('crew-rendered', () => { if (typeof window._crewCardRefresh === 'function') window._crewCardRefresh(); });

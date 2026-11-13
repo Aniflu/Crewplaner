@@ -3,8 +3,9 @@ import { crew, assignments, assignmentStatuses, TOUR_DATES, POSITIONS,
          CURRENT_USER_EMAIL, IS_MANAGER, crewMeta, CREW_COLORS } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
 import { showToast, isPending, getVal, esc } from './utils.js';
-import { sendCrewInvite, sendCancellationNotice,
+import { sendCrewInvite, sendCancellationNotice, sendPencilInfo, _getActivePlanId,
          sendUpdateNotice, loadAssignmentStatuses } from './dataService.js';
+import { pbListAll, pbEscapeFilter } from './pb.js';
 import { hasPermission } from './rbac.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
 import { openModal, closeModal } from './modals.js';
@@ -13,6 +14,7 @@ import { openModal, closeModal } from './modals.js';
 // aus tourplan_pb_<lokale ID>, sonst die lokale ID). Alte globale Schlüssel ohne Suffix werden
 // beim Lesen vorsichtig übernommen (siehe _migrate*), nur was nachweislich zu diesem Plan gehört.
 const CREW_INVITES_KEY = 'tourplan_crew_invites';
+const PENCIL_INFO_KEY = 'tourplan_pencil_info';
 const PENDING_CANCELLATIONS_KEY = 'tourplan_pending_cancellations';
 function _planScoped(base) {
   const lid = getActivePlanId() || '';
@@ -92,6 +94,50 @@ function _saveInvite(name) {
   localStorage.setItem(_planScoped(CREW_INVITES_KEY), JSON.stringify(inv));
 }
 
+// v1.4.0: Vermerk „Vormerkung mitgeteilt“ je Plan (gleiches Muster wie die Einlade-Vermerke)
+function _loadPencilInfos() { return _readJson(_planScoped(PENCIL_INFO_KEY)); }
+function _savePencilInfo(name) {
+  const m = _loadPencilInfos();
+  m[name] = new Date().toISOString();
+  try { localStorage.setItem(_planScoped(PENCIL_INFO_KEY), JSON.stringify(m)); } catch (_) {}
+}
+function _fmtDay(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+}
+function _pencilledSlots(name, email) {
+  return _getAllSlotsForCrew(name, email).filter(s => assignmentStatuses[s.date]?.[s.posId]?.status === 'pencilled');
+}
+function _pencilDeclinedCount(name) {
+  let n = 0;
+  Object.values(assignmentStatuses || {}).forEach(day => Object.values(day).forEach(s => {
+    if (s && s.crewName === name && s.status === 'pencil_declined') n++;
+  }));
+  return n;
+}
+
+// „gesehen ✓“: jüngster activity_log-Eintrag pencil_seen je Person für DIESEN Plan. Pro Render
+// einmal geladen (Cache je Plan); crew_email hat Vorrang vor crew_name.
+let _seenRows = [];
+let _seenPlan = '';
+async function _refreshPencilSeen() {
+  try {
+    const pid = await _getActivePlanId();
+    if (!pid) { _seenRows = []; _seenPlan = ''; return; }
+    const r = await pbListAll('activity_log',
+      `plan_id = "${pbEscapeFilter(pid)}" && action = "pencil_seen"`, '-ts');
+    _seenRows = r?.items || []; _seenPlan = pid;
+  } catch (e) { console.warn('pencil_seen laden:', e.message); }
+}
+function _pencilSeenTs(name, email) {
+  const em = (email || '').toLowerCase();
+  const rows = _seenRows.filter(r => r.action === 'pencil_seen');
+  const hit = (em && rows.find(r => (r.crew_email || '').toLowerCase() === em))
+           || rows.find(r => !r.crew_email && r.crew_name === name);
+  return hit ? hit.ts : '';
+}
+
 function _getCrewInviteStatus(name, invites) {
   const inv = invites || _loadInvites();
   const hasConfirmed = Object.values(assignmentStatuses || {}).some(day =>
@@ -120,6 +166,7 @@ let _notifyHostId = 'sharedBody';
 export function renderCrewNotifyInto(hostId) {
   _notifyHostId = hostId || 'sharedBody';
   _renderCrewNotifyList();
+  return _refreshPencilSeen().then(() => _renderCrewNotifyList());
 }
 
 export function openCrewNotifyModal() {
@@ -128,11 +175,13 @@ export function openCrewNotifyModal() {
   _notifyHostId = 'sharedBody';
   _renderCrewNotifyList();
   openModal('sharedModal');
+  _refreshPencilSeen().then(() => { if (_notifyHostId === 'sharedBody' && !_previewCtx) _renderCrewNotifyList(); });
 }
 
 function _renderCrewNotifyList() {
   const pending = _loadCancellations();
   const invites = _loadInvites();
+  const pencilInfos = _loadPencilInfos();
   const rows = crew.map((name, i) => {
     const meta = crewMeta[name] || {};
     const dot = CREW_COLORS[i % CREW_COLORS.length];
@@ -178,11 +227,27 @@ function _renderCrewNotifyList() {
         + `<button class="mbtn sm" data-crew="${nameAttr}" onclick="openCancelSelect(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;color:#e84a4a;">🚫 Einsätze absagen</button></div>`
       : `<div style="margin-top:5px;"><button class="mbtn sm" data-crew="${nameAttr}" onclick="openCancelSelect(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;color:#e84a4a;">🚫 Absage</button></div>`;
 
+    // v1.4.0: Vormerkung = reine Information. Knopf nur bei ≥1 vorgemerktem Tag.
+    const pencilled = _pencilledSlots(name, meta.email);
+    const pdecl = _pencilDeclinedCount(name);
+    let pencilBlock = '';
+    if (pencilled.length || pdecl) {
+      const sent = pencilInfos[name] ? `<span style="font-size:.58rem;color:var(--muted);">mitgeteilt am ${esc(_fmtDay(pencilInfos[name]))}</span>` : '';
+      const seenTs = _pencilSeenTs(name, meta.email);
+      const seen = seenTs ? `<span style="font-size:.58rem;color:#4ae8a0;">gesehen ✓ ${esc(_fmtDay(seenTs))}</span>` : '';
+      const declTxt = pdecl ? `<span style="font-size:.58rem;color:var(--pencilled);">✎✗ ${pdecl} Vormerkung${pdecl > 1 ? 'en' : ''} abgesagt</span>` : '';
+      pencilBlock = `<div style="margin-top:5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">`
+        + (pencilled.length
+          ? `<button class="mbtn sm" data-crew="${nameAttr}" onclick="openPencilInfoPreview(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;">✉ Vormerkung mitteilen</button>`
+          : '')
+        + sent + seen + declTxt + `</div>`;
+    }
+
     return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
       <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:5px;"></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:.65rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}</div>
-        ${badge}${cancelBtn}
+        ${badge}${pencilBlock}${cancelBtn}
       </div>
       ${btn}
     </div>`;
@@ -262,6 +327,34 @@ export function openInvitePreview(crewName, type) {
     slots);
 }
 
+export function openPencilInfoPreview(crewName) {
+  if (!hasPermission('sendInvite')) return;
+  const meta = crewMeta[crewName] || {};
+  if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
+  const slots = _pencilledSlots(crewName, meta.email);
+  if (!slots.length) { showToast('Keine vorgemerkten Termine', '#5a6070'); return; }
+  _openSendPreview({ kind: 'pencil_info', crewName, email: meta.email }, '✉ Vormerkung an ' + crewName,
+    'Vormerkung – nur Information · ' + _planNameForPreview(),
+    `Du bist für diese Termine vorgemerkt (<strong>${esc(_planNameForPreview())}</strong>). Das ist <strong>keine Anfrage</strong>. Halte dir die Tage bitte frei.`, slots);
+}
+
+export async function sendPencilInfoTo(crewName, customMessage) {
+  const meta = crewMeta[crewName] || {};
+  if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
+  const slots = _pencilledSlots(crewName, meta.email);
+  if (!slots.length) { showToast('Keine vorgemerkten Termine', '#5a6070'); return; }
+  try {
+    await sendPencilInfo(crewName, meta.email, slots, customMessage);
+  } catch (e) {
+    showToast(`${crewName}: nicht gesendet — ${_einladungsFehlerText(e)}`, '#e84a4a');
+    _renderCrewNotifyList();
+    throw e;
+  }
+  _savePencilInfo(crewName);
+  showToast(`${crewName}: Vormerkung mitgeteilt ✓`, '#4ae8a0');
+  _renderCrewNotifyList();
+}
+
 export function openUpdatePreview(crewName) {
   if (!hasPermission('sendInvite')) return;
   const meta = crewMeta[crewName] || {};
@@ -287,6 +380,7 @@ export async function confirmSendPreview() {
   if (_notifyHostId !== 'sharedBody') closeModal('sharedModal');
   try {
     if (ctx.kind === 'update') await sendUpdate(ctx.crewName, text || undefined);
+    else if (ctx.kind === 'pencil_info') await sendPencilInfoTo(ctx.crewName, text || undefined);
     else await sendInvite(ctx.crewName, ctx.kind, text || undefined);
   } catch (e) {
     // sendInvite meldet seinen Fehler (z. B. die 429-Erklärung) selbst — nicht mit einer
