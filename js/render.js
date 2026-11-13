@@ -199,6 +199,9 @@ export function renderBody(){
           // sagen „geht bei mir nicht", und der Manager plante weiter auf Sand.
           // openSlotConfirmModal erkennt den Status und bietet dann kein „Bestätigen" an.
           b+=`<button class="assign-btn" onclick="openSlotConfirmModal('${row.date}','${p.id}')" style="color:var(--pencilled);border-color:var(--pencilled-wash-2);background:var(--pencilled-wash);">✎ ${esc(si.crewName||myName)}</button>`;
+        }else if(si.status==='pencil_declined'){
+          // Eigene abgesagte Vormerkung (v1.4.0): klickbar, nur „Wieder vormerken".
+          b+=`<button class="assign-btn" title="Vormerkung abgesagt" onclick="openSlotConfirmModal('${row.date}','${p.id}')" style="color:var(--pencilled);border-color:var(--pencilled-wash-2);text-decoration:line-through;">✎✗ ${esc(si.crewName||myName)}</button>`;
         }else{
           b+=`<span class="${cls}" style="${style};cursor:default;">${icHtml?icHtml+' ':''}${esc(display)}</span>`;
         }

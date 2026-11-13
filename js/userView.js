@@ -7,11 +7,13 @@ import { getVal, isPending, esc, showToast, fmtD, fmtDParts, sameCrew } from './
 import { pbPatch, pbPost, pbFirst } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
          sendAvailabilityNotice, loadPlanForCrew, loadCrewMeta,
-         loadCrewPlans, ackCancelledAssignments, moveAssignmentDate } from './dataService.js';
+         loadCrewPlans, ackCancelledAssignments, moveAssignmentDate,
+         restorePencilled, logActivity } from './dataService.js';
 import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable, resetTodayAutoScroll } from './render.js';
 import { getActivePlanId, getPlansIndex, activePlanName, _savePlanToLS } from './plans.js';
 import { closeModal, openModal } from './modals.js';
+import { showConfirm } from './dialog.js';
 import { icsExportRows, ICS_STATUS_LABEL, crewIcsContent, feedUrls,
          checkDateMove, moveDateInPlan, queueAddRemoved } from './pure.js';
 
@@ -118,7 +120,7 @@ export function getMyPendingSlots() {
       // fehlte, fragte der Login nach vorgemerkten Tagen und die Antwort hob sie still auf
       // bestätigt, obwohl den Status ausschließlich Admin/Tourmanager bewegen darf.
       // Absagen kann die Crew sie trotzdem — dafür gibt es getMyPencilledSlots().
-      if (si && si.status === 'pencilled') return;
+      if (si && (si.status === 'pencilled' || si.status === 'pencil_declined')) return;   // v1.4.0
       slots.push({ date: day.date, posId: pos.id });
     });
   });
@@ -148,9 +150,90 @@ export function getMyPencilledSlots() {
   return slots;
 }
 
+// Meine abgesagten Vormerkungen (v1.4.0) — einzige Aktion: „↩ Wieder vormerken".
+export function getMyPencilDeclinedSlots() {
+  const myName = getMyCrewName();
+  if (!myName) return [];
+  const _dates = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []);
+  const _pos   = (typeof POSITIONS  !== 'undefined' ? POSITIONS  : []);
+  const slots = [];
+  _dates.forEach(day => {
+    _pos.forEach(pos => {
+      if (!sameCrew(getVal(day.date, pos.id), myName)) return;
+      const si = (assignmentStatuses[day.date] || {})[pos.id];
+      if (!si || si.status !== 'pencil_declined') return;
+      slots.push({ date: day.date, posId: pos.id });
+    });
+  });
+  slots.sort((a, b) => a.date.localeCompare(b.date));
+  return slots;
+}
+
+// ── Info-Popup „Nur zur Information" (v1.4.0) ────────────────────────────────
+// Erscheint für Vormerkungen, die die Person noch nicht mit OK bestätigt hat. Gemerkt wird je
+// Plan im Browser (crew_pencil_seen_<PB>), zusätzlich EIN pencil_seen-Eintrag je OK (der Planer
+// sieht „gesehen ✓"). Kein Absagen im Popup, kein Bestätigen irgendwo.
+export function _pencilSeenKey() {
+  let pb = '';
+  try { pb = localStorage.getItem('tourplan_active_pb_id') || ''; } catch(_) {}
+  return 'crew_pencil_seen_' + pb;
+}
+function _readPencilSeen() {
+  try { const a = JSON.parse(localStorage.getItem(_pencilSeenKey()) || '[]'); return Array.isArray(a) ? a : []; }
+  catch(_) { return []; }
+}
+// Rein: nur Schlüssel `date|posId`, die noch nicht in `seen` stehen.
+export function unseenPencilSlots(slots, seen) {
+  const s = new Set(seen || []);
+  return (slots || []).filter(x => !s.has(x.date + '|' + x.posId));
+}
+let _pencilShown = [];
+export function checkPencilInfoPopup() {
+  if (IS_MANAGER || !IS_CREW) return false;
+  const neu = unseenPencilSlots(getMyPencilledSlots(), _readPencilSeen());
+  if (!neu.length) return false;
+  _pencilShown = neu;
+  const zeilen = neu.map(({ date, posId }) => {
+    const [y, m, d] = date.split('-');
+    const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
+    const td  = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []).find(x => x.date === date);
+    const ort = td && td.loc ? ' · ' + esc(td.loc) : '';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule);">'
+      + '<span style="color:var(--pencilled);flex-shrink:0;">✎</span>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:.66rem;color:var(--ink);">' + d + '.' + m + '.' + y + '</div>'
+      + '<div style="font-size:.58rem;color:var(--muted);">' + esc(pos?.label || posId) + ort + '</div>'
+      + '</div></div>';
+  }).join('');
+  document.getElementById('sharedTitle').textContent = 'ℹ Nur zur Information';
+  document.getElementById('sharedBody').innerHTML =
+    '<div style="font-size:.64rem;color:var(--ink);line-height:1.6;margin-bottom:10px;">'
+    + 'Das ist <strong>keine Anfrage</strong>. Du bist für diese Termine vorgemerkt. Halte dir die Tage bitte frei. '
+    + 'Ob du wirklich gebraucht wirst, erfährst du mit einer Anfrage. '
+    + 'Wenn du schon weißt, dass du nicht kannst, sag bitte in der App ab.</div>'
+    + '<div style="max-height:40vh;overflow-y:auto;">' + zeilen + '</div>'
+    + '<div class="mactions"><button class="mbtn primary" onclick="pencilInfoOk()">OK, verstanden</button></div>';
+  openModal('sharedModal');
+  return true;
+}
+export function pencilInfoOk() {
+  const seen = new Set(_readPencilSeen());
+  _pencilShown.forEach(x => seen.add(x.date + '|' + x.posId));
+  try { localStorage.setItem(_pencilSeenKey(), JSON.stringify([...seen])); } catch(_) {}
+  _pencilShown = [];
+  let pb = '';
+  try { pb = localStorage.getItem('tourplan_active_pb_id') || ''; } catch(_) {}
+  logActivity('pencil_seen', { planId: pb, crewName: getMyCrewName() || '', crewEmail: CURRENT_USER_EMAIL || '' });
+  closeModal('sharedModal');
+  // Danach greifen die normalen Öffnungsregeln (offene Anfragen / entfallene Tage).
+  if (getMyPendingSlots().length > 0 || meineEntfallenen.length > 0) openMyScheduleModal();
+}
+
 // ── Modal automatisch öffnen wenn offene Slots vorhanden ─────────────────────
 export function checkAndOpenMySchedule() {
   if (IS_MANAGER) return;
+  // v1.4.0: Neue Vormerkungen haben Vorrang (Info-Popup); das OK öffnet danach ggf. die Liste.
+  if (checkPencilInfoPopup()) return;
   // Auch bei ausschließlich ENTFALLENEN Tagen öffnen (v0.9.3). Vorher nur bei offenen Slots —
   // seit die Update-Mail keine Daten mehr aufzählt, wäre ein entfallener Tag sonst nirgends
   // zu sehen: Er steht in keinem plan_data mehr und taucht in der Tabelle nicht auf.
@@ -246,18 +329,42 @@ function _renderMySchedule(myName) {
       + '<div style="font-size:.62rem;color:var(--pencilled);font-weight:bold;margin-bottom:4px;">'
       + '✎ Vorgemerkt (' + getMyPencilledSlots().length + ')</div>'
       + '<div style="font-size:.58rem;color:var(--muted);margin-bottom:8px;line-height:1.5;">'
-      + 'Noch keine Anfrage — die Tourleitung plant hier erst. Du musst nichts tun. '
+      + 'Nur zur Information, keine Anfrage — die Tourleitung plant hier erst. Du musst nichts tun. '
       + 'Wenn du jetzt schon weißt, dass es nicht geht, sag bitte ab.</div>'
       + '<div style="max-height:30vh;overflow-y:auto;">' + vormerkZeilen + '</div>'
+      + '<div style="margin-top:10px;"><button class="mbtn" onclick="declineAllMyPencilled()">✗ Alle absagen</button></div>'
+      + '</div>'
+    : '';
+
+  // Abgesagte Vormerkungen (v1.4.0): zurücknehmen möglich, sonst nichts.
+  const abgesagtZeilen = getMyPencilDeclinedSlots().map(({ date, posId }) => {
+    const [y, m, d] = date.split('-');
+    const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule);">'
+      + '<span style="color:var(--pencilled);flex-shrink:0;text-decoration:line-through;">✎</span>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:.66rem;color:var(--muted);text-decoration:line-through;">' + d + '.' + m + '.' + y + '</div>'
+      + '<div style="font-size:.58rem;color:var(--muted);">' + esc(pos?.label || posId) + ' · Vormerkung abgesagt</div>'
+      + '</div>'
+      + '<button class="mbtn" style="flex-shrink:0;font-size:.58rem;padding:4px 8px;" '
+      + 'onclick="restoreMyPencil(\'' + date + '\',\'' + posId + '\')">↩ Wieder vormerken</button>'
+      + '</div>';
+  }).join('');
+  const abgesagtHTML = abgesagtZeilen
+    ? '<div style="margin-top:18px;border-top:1px solid var(--rule);padding-top:14px;">'
+      + '<div style="font-size:.62rem;color:var(--muted);font-weight:bold;margin-bottom:8px;">'
+      + '✎✗ Vormerkung abgesagt (' + getMyPencilDeclinedSlots().length + ')</div>'
+      + '<div style="max-height:30vh;overflow-y:auto;">' + abgesagtZeilen + '</div>'
       + '</div>'
     : '';
 
   if (slots.length === 0) {
     document.getElementById('sharedBody').innerHTML = `
-      ${(meineEntfallenen.length || vormerkZeilen) ? '' : `<p style="font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">
+      ${(meineEntfallenen.length || vormerkZeilen || abgesagtZeilen) ? '' : `<p style="font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">
         Keine offenen Einsätze — alles erledigt ✅
       </p>`}
       ${vormerkHTML}
+      ${abgesagtHTML}
       ${entfallenHTML}
       <div class="mactions"><button class="mbtn primary" onclick="closeModal('sharedModal')">Schließen</button></div>`;
     return;
@@ -297,6 +404,7 @@ function _renderMySchedule(myName) {
     </div>
     <div style="max-height:45vh;overflow-y:auto;margin-bottom:14px;">${rows}</div>
     ${vormerkHTML}
+    ${abgesagtHTML}
     ${entfallenHTML}
     <div class="mactions">
       <button class="mbtn" onclick="closeModal('sharedModal')">Später</button>
@@ -349,7 +457,9 @@ export function openSlotConfirmModal(dateStr, posId) {
   // Vorgemerkt → nur absagen (v0.13.0). Ein „✓ Bestätigen" wäre hier gelogen: Der Klick
   // würde vom Guard in dataService.js abgewiesen und die Crew stünde vor einem Knopf, der
   // nichts tut. Lieber gar nicht anbieten, was das System nicht annimmt.
-  const istVorgemerkt = (assignmentStatuses||{})[dateStr]?.[posId]?.status === 'pencilled';
+  const _st = (assignmentStatuses||{})[dateStr]?.[posId]?.status;
+  const istVorgemerkt = _st === 'pencilled';
+  const istVormAbgesagt = _st === 'pencil_declined';
   // ⚠️ Beide Blöcke VOR dem Template bauen, nicht als verschachteltes `${… ? `…` : ''}` —
   // dieselbe Falle wie in _renderMySchedule: tests/imports.test.mjs entfernt Template-Literale
   // per `\$\{[^}]*\}`, verschluckt sich an den inneren Backticks und meldet danach Unsinn.
@@ -364,7 +474,18 @@ export function openSlotConfirmModal(dateStr, posId) {
     ? ''
     : '<button class="mbtn primary" onclick="confirmMySlot(\'' + dateStr + '\',\'' + posId + '\');closeModal(\'sharedModal\')" '
       + 'style="background:#4ae8a0;color:#1a1a2e;">✓ Bestätigen</button>';
-  document.getElementById('sharedTitle').textContent = istVorgemerkt ? 'Vorgemerkter Einsatz' : 'Einsatz bestätigen';
+  document.getElementById('sharedTitle').textContent = istVorgemerkt ? 'Vorgemerkter Einsatz' : istVormAbgesagt ? 'Vormerkung abgesagt' : 'Einsatz bestätigen';
+  if (istVormAbgesagt) {
+    document.getElementById('sharedBody').innerHTML =
+      '<div style="font-size:.68rem;color:var(--ink);margin-bottom:16px;line-height:1.7;">'
+      + '<strong>' + dateLabel + '</strong> · ' + esc(posLabel) + (loc ? ' · ' + esc(loc) : '') + '</div>'
+      + '<div style="font-size:.6rem;color:var(--muted);margin-bottom:16px;line-height:1.6;">'
+      + 'Du hast diese Vormerkung abgesagt. Wenn es doch geht, kannst du sie zurücknehmen.</div>'
+      + '<div class="mactions"><button class="mbtn" onclick="closeModal(\'sharedModal\')">Schließen</button>'
+      + '<button class="mbtn primary" onclick="restoreMyPencil(\'' + dateStr + '\',\'' + posId + '\');closeModal(\'sharedModal\')">↩ Wieder vormerken</button></div>';
+    openModal('sharedModal');
+    return;
+  }
   document.getElementById('sharedBody').innerHTML = `
     <div style="font-size:.68rem;color:var(--ink);margin-bottom:16px;line-height:1.7;">
       <strong>${dateLabel}</strong> · ${posLabel}${loc ? ' · ' + loc : ''}
@@ -411,6 +532,34 @@ export async function declineMySlot(dateStr, posId) {
     await loadAssignmentStatuses();
   }
   renderTable();
+}
+
+export async function restoreMyPencil(dateStr, posId) {
+  try {
+    await restorePencilled(dateStr, posId);
+    showToast('Wieder vorgemerkt ↩', '#4ae8a0');
+  } catch(e) {
+    showToast('Nicht gespeichert: ' + e.message, '#e84a4a');
+    await loadAssignmentStatuses();
+  }
+  renderTable();
+  if (document.getElementById('sharedModal')?.classList?.contains('open')) openMyScheduleModal();
+}
+
+// „Alle absagen": NUR Vormerkungen (pencilled) — nie Anfragen oder Bestätigte.
+export async function declineAllMyPencilled() {
+  const slots = getMyPencilledSlots();
+  if (!slots.length) return;
+  const ok = await showConfirm('Alle ' + slots.length + ' Vormerkungen absagen?', 'Absagen');
+  if (!ok) return;
+  let fehler = 0;
+  for (const { date, posId } of slots) {
+    try { await declineAssignment(date, posId); } catch(e) { fehler++; }
+  }
+  if (fehler) { showToast(fehler + ' Absage(n) nicht gespeichert', '#e84a4a'); await loadAssignmentStatuses(); }
+  else showToast('Vormerkungen abgesagt', '#e84a4a');
+  renderTable();
+  openMyScheduleModal();
 }
 
 // ── Bereitschaftsmeldung Draft ────────────────────────────────────────────────

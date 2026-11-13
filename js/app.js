@@ -55,7 +55,7 @@ import { removeCrew, renameCrew, openImportCrewModal, confirmImportCrew,
          _importSelectAll, _closeImportCrew, _showNewPersonForm, createAndTakeCrew } from './crew.js';
 import { sendCancellationSummary, sendInvite, sendUpdate, openCancelSelect, closeCancelSelect, cxlAddManual, sendSelectedCancellation, openInvitePreview, openUpdatePreview, closeSendPreview, confirmSendPreview } from './crewNotify.js';
 import { tbChangeLoc, tbChangeType } from './tourblock.js';
-import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
+import { confirmMySlot, declineMySlot, restoreMyPencil, declineAllMyPencilled, pencilInfoOk, openSlotConfirmModal, toggleCancellation,
          _bulkConfirmMySlots, _deleteSlotFromQueue, _toggleSlotSelection, meinesMelden,
          _queueSelectAll, _queueGrpSel, _clearUpdateQueue,
          _updatePreviewSend, _updatePreviewSkip, _updatePreviewCancel,
@@ -166,6 +166,9 @@ window.tbChangeLoc = tbChangeLoc;
 window.tbChangeType = tbChangeType;
 window.confirmMySlot = confirmMySlot;
 window.declineMySlot = declineMySlot;
+window.restoreMyPencil = restoreMyPencil;
+window.declineAllMyPencilled = declineAllMyPencilled;
+window.pencilInfoOk = pencilInfoOk;
 window.openSlotConfirmModal = openSlotConfirmModal;
 window.toggleCancellation = toggleCancellation;
 window._bulkConfirmMySlots = _bulkConfirmMySlots;
