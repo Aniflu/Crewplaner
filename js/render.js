@@ -50,6 +50,8 @@ let _autoScrolledToday=false;
 export function resetTodayAutoScroll(){ _autoScrolledToday=false; }
 
 export function renderTable(){
+  // Zentraler Schutz (v1.3.0): in der Konsole (admin.html) gibt es keine Tabelle.
+  if(!hasTableView())return;
   // Always update stats
   if(CURRENT_VIEW==='table'){renderHead();renderBody();}
   else if(CURRENT_VIEW==='blocks'){renderBlockView();}

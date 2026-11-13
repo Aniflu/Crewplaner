@@ -201,7 +201,8 @@ test('der Dialog schließt auch dann, wenn das Neuzeichnen scheitert', async () 
   let geschlossen = false, gemeldet = '';
   const realGet = globalThis.document.getElementById;
   globalThis.document.getElementById = (id) => {
-    if (id === 'tBody' || id === 'tHead') return null;          // lässt renderTable werfen
+    if (id === 'tBody') return {};                               // Tabelle „vorhanden“ (hasTableView), aber ohne Inhalt
+    if (id === 'tHead') return null;                             // lässt renderTable werfen
     if (id === 'bulkStatusModal') return { classList: { add(){}, remove(k){ if (k === 'open') geschlossen = true; },
                                                         contains(){ return false; } } };
     if (id === 'toast') return { set textContent(v) { gemeldet += v + '|'; }, get textContent() { return gemeldet; }, style: {} };

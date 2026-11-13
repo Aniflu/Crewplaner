@@ -14,6 +14,7 @@ import { hasPermission } from './rbac.js';
 
 export function renderCrew(){
   const el=document.getElementById('crewList');
+  if(!el)return;   // Konsole ohne Crew-Liste (v1.3.0)
   el.innerHTML='';
   const hdr=document.getElementById('crewHeading');
   if(hdr)hdr.textContent='Crew — '+crew.length;

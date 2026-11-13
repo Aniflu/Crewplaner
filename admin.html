@@ -73,6 +73,9 @@
   function _runAdminInit(user) {
     const role = user.role || 'crew';
     _IS_SUPERADMIN_CONSOLE = (role === 'superadmin');
+    // v1.3.0: Rolle in den gemeinsamen Modulen bekannt machen (IS_MANAGER, hasPermission …).
+    // Das Modul admin-app.js läuft vor DOMContentLoaded, window.setConsoleAuth ist hier da.
+    if (typeof window.setConsoleAuth === 'function') window.setConsoleAuth(user.id || null, user.email || '', role);
 
     const badge = document.getElementById('adminUserBadge');
     if (badge) badge.textContent = user.email + ' · ' + role;
@@ -88,7 +91,7 @@
 
     _loadAdminLogos();
     renderAdminLogos();
-    loadAdminPlans();
+    loadAdminPlans().then(_openCrewFromHash);
     switchTab('werkzeuge');
     checkNewActivity();
   }
@@ -1516,6 +1519,19 @@ function copyViewLink() {
     .catch(() => adminToast('Kopieren fehlgeschlagen', 'var(--warn)'));
 }
 
+// v1.3.0: Aufruf mit #crew (Knopf der Touransicht): den dort aktiven Plan wählen, laden, zur Crew scrollen.
+async function _openCrewFromHash() {
+  if (location.hash !== '#crew') return;
+  let pbId = '';
+  try { pbId = localStorage.getItem('tourplan_active_pb_id') || ''; } catch (_) {}
+  const sel = document.getElementById('wrkPlanSelect');
+  if (!pbId || !sel || ![...sel.options].some(o => o.value === pbId)) return;
+  sel.value = pbId;
+  await loadSelectedPlan();
+  const card = document.getElementById('wrkCrewCard') || document.getElementById('wrkNotifyList');
+  if (card && card.scrollIntoView) card.scrollIntoView({ block: 'start' });
+}
+
 // ── Werkzeuge: Plan laden ──────────────────────────────────────────────────────
 async function loadAdminPlans() {
   const sel = document.getElementById('wrkPlanSelect');
@@ -1564,7 +1580,13 @@ async function loadSelectedPlan() {
       return;
     }
 
-    _wrkPlanData = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
+    // v1.3.0: Der Plan wird zum aktiven Plan der gemeinsamen Module (js/consoleplan.js):
+    // lokale ID, tourplan_active_pb_id, Basisstand für den Speicherschutz. Danach liegt der
+    // frische DB-Stand im State; die Konsolen-Werte unten werden daraus befüllt.
+    const activated = await window.activateConsolePlan(pbPlanId, _wrkPlanName);
+    if (_wrkPbPlanId !== pbPlanId) return;   // inzwischen anderer Plan gewählt: späte Antwort verwerfen
+    if (!activated) throw new Error('Plan konnte nicht geladen werden');
+    _wrkPlanData = window.consolePlanSnapshot();
 
     // Set globals for pdf.js
     TOUR_DATES  = _wrkPlanData.tourDates || [];
