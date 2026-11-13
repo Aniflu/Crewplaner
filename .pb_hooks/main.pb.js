@@ -1,7 +1,15 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.28
-console.log('[hook] main.pb.js v4.28 geladen');
+// Version: 4.29
+// CHANGELOG
+// v4.29 Vormerkung als reine Information (App v1.4.0):
+//   · neuer Crew-Status pencil_declined (Absage einer Vormerkung); pencilled→declined bleibt
+//     nur für die alte App v1.3.0 erlaubt
+//   · Admin-Mail „VORMERKUNG ABGESAGT" bei pencil_declined, „VORMERKUNG WIEDER FREI" bei
+//     pencil_declined→pencilled; „ABGELEHNT" nur noch bei declined
+//   · /notify: neuer Typ pencil_info (Info-Mail, schreibt keinen Status); invite/reminder/update
+//     setzen pencilled/pencil_declined NIE auf proposed und führen sie nicht in der Mail-Liste
+console.log('[hook] main.pb.js v4.29 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -250,6 +258,31 @@ onRecordAfterCreateSuccess(function(e) {
       mkBtn(appUrl, 'KONTO ERSTELLEN &rarr;') +
       mkBtn(_guideUrl, 'ANLEITUNG LESEN &rarr;', '#f8f9fb', '#555570')
     ));
+  } else if (type === 'pencil_info') {
+    // v4.29: Vormerkung = reine Information, KEINE Anfrage, ohne Aktions-Knopf; /notify
+    // schreibt für diesen Typ keinen Status (Typ-Tabelle: slots:false). Die Terminliste kommt
+    // wie bei cancellation/availability als JSON in app_url.
+    var piSlots = [];
+    try { piSlots = JSON.parse(appUrl || '[]'); } catch (_) {}
+    if (!Array.isArray(piSlots)) piSlots = [];
+    var piRows = '';
+    for (var pi = 0; pi < piSlots.length; pi++) {
+      var ps = piSlots[pi] || {};
+      piRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + esc(ps.posLabel) + '</td>' +
+        '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">' + fmtISO(ps.date) + '</td></tr>';
+    }
+    sendMail(email, 'Vormerkung – nur Information · ' + plan, wrap(
+      '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Nur zur Information.</h1>' +
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">VORMERKUNG · ' + ePlan + '</p>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey ' + eName + ',<br><br>du bist f&uuml;r diese Termine vorgemerkt. Das ist <strong style="color:#1a1a2e;">keine Anfrage</strong>. Halte dir die Tage bitte frei. Ob du wirklich gebraucht wirst, erf&auml;hrst du mit einer Anfrage. Wenn du schon wei&szlig;t, dass du nicht kannst, sag bitte in der App ab.</p>' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
+      '<tr style="background:#f8f9fb;"><td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td>' +
+      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td></tr>' +
+      piRows + '</table>' +
+      noteBlock(customMsg) +
+      mkBtn('https://crewplanner.nyxlightwork.de', 'APP &Ouml;FFNEN &rarr;', '#f8f9fb', '#555570')
+    ));
+    console.log('[hook] pencil_info email sent to ' + email + ' (' + piSlots.length + ' slots)');
   }
   } catch(outerErr) { console.error('[hook] crew_invites UNCAUGHT:', String(outerErr)); }
 
@@ -357,7 +390,8 @@ onRecordUpdateRequest(function(e) {
   var CREW_STATUS_TRANSITIONS = {
     proposed:  ['confirmed', 'declined'],
     confirmed: ['declined'],
-    pencilled: ['declined'],
+    pencilled: ['pencil_declined', 'declined'],
+    pencil_declined: ['pencilled'],
     cancelled: ['cancel_acked']
   };
   var erlaubt = function(von, nach) {
@@ -539,7 +573,19 @@ onRecordAfterUpdateSuccess(function(e) {
     return;
   }
 
-  if (status !== 'declined') return;
+  // v4.29: Absage einer Vormerkung und deren Rücknahme bekommen eigene Betreffs; die
+  // „ABGELEHNT"-Mail bleibt echten Absagen (declined) vorbehalten.
+  var mBetreff, mTitel, mKicker, mSatz;
+  if (status === 'pencil_declined') {
+    mBetreff = 'VORMERKUNG ABGESAGT'; mTitel = 'Vormerkung abgesagt.'; mKicker = 'VORMERKUNG ABGESAGT'; mSatz = 'hat die Vormerkung abgesagt:';
+  } else if (status === 'pencilled') {
+    var vorher = '';
+    try { var origP = r.original(); vorher = origP ? origP.get('status') : ''; } catch (errO) { vorher = ''; }
+    if (vorher !== 'pencil_declined') return;
+    mBetreff = 'VORMERKUNG WIEDER FREI'; mTitel = 'Wieder frei.'; mKicker = 'VORMERKUNG WIEDER FREI'; mSatz = 'hat die Absage der Vormerkung zurückgenommen:';
+  } else if (status === 'declined') {
+    mBetreff = 'ABGELEHNT'; mTitel = 'Abgelehnt.'; mKicker = 'CREW ABSAGE'; mSatz = 'hat abgelehnt:';
+  } else { return; }
 
   var crewName = r.get('crew_name');
   var eCrewName3 = esc(crewName);
@@ -550,16 +596,16 @@ onRecordAfterUpdateSuccess(function(e) {
     console.error('[hook] ADMIN_EMAIL ist nicht gesetzt — Absage-Meldung an den Planer entfaellt');
     return;
   }
-  sendMail(adminEmail, 'ABGELEHNT · ' + posLabel + ' · ' + fdate,
+  sendMail(adminEmail, mBetreff + ' · ' + posLabel + ' · ' + fdate + (status === 'declined' ? '' : ' · ' + crewName),
     '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
     '<body style="margin:0;padding:0;background:#f8f9fb;font-family:\'Courier New\',Courier,monospace;">' +
     '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;padding:48px 20px;"><tr><td align="center">' +
     '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e8e8e8;border-radius:4px;">' +
     '<tr><td style="padding:28px 36px;border-bottom:2px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
     '<tr><td style="padding:36px 36px;">' +
-    '<h1 style="font-size:36px;color:#e84a4a;margin:0 0 6px 0;">Abgelehnt.</h1>' +
-    '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">CREW ABSAGE</p>' +
-    '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;"><strong style="color:#e84a4a;">' + eCrewName3 + '</strong> hat abgelehnt:</p>' +
+    '<h1 style="font-size:36px;color:#e84a4a;margin:0 0 6px 0;">' + mTitel + '</h1>' +
+    '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">' + mKicker + '</p>' +
+    '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;"><strong style="color:#e84a4a;">' + eCrewName3 + '</strong> ' + mSatz + '</p>' +
     '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
     '<tr style="background:#f8f9fb;"><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #e8e8e8;">POSITION</td>' +
     '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + ePosLabel + '</td></tr>' +
@@ -995,6 +1041,7 @@ routerAdd('POST', '/notify', function(e) {
     update:       { wer: 'owner', slots: true,  loeschen: false },
     cancellation: { wer: 'owner', slots: false, loeschen: true  },
     availability: { wer: 'crew',  slots: false, loeschen: false },
+    pencil_info:  { wer: 'owner', slots: false, loeschen: false },
     staff_invite: { wer: 'super', slots: false, loeschen: false }
   };
   var regel = TABELLE[typ];
@@ -1033,6 +1080,28 @@ routerAdd('POST', '/notify', function(e) {
   // Slots an eine Absage hängt, soll keine Termine anlegen — aber die Absage soll rausgehen.
   if (!regel.slots)    slots = [];
   if (!regel.loeschen) weg   = [];
+
+  // v4.29: Vormerkung bleibt Vormerkung. Einladung, Erinnerung und Update dürfen einen
+  // Datensatz im Status pencilled/pencil_declined NIE auf proposed setzen (das machte aus einer
+  // Information still eine Anfrage) und führen ihn auch nicht in der Mail-Liste. Aus vorgemerkt
+  // wird nur durch den Planer eine Anfrage (Status direkt setzen, nicht über diese Route).
+  var VORMERK = { pencilled: true, pencil_declined: true };
+  if (slots.length) {
+    var offen = [];
+    for (var vi = 0; vi < slots.length; vi++) {
+      var vs = slots[vi];
+      if (!vs || !vs.date || !vs.posId) continue;
+      var vda = null;
+      try {
+        vda = $app.findFirstRecordByFilter('assignments',
+          'plan_id = {:p} && date = {:d} && pos_id = {:q}',
+          { p: planId, d: String(vs.date), q: String(vs.posId) });
+      } catch (errV) { vda = null; }
+      if (vda && VORMERK[vda.getString('status')]) continue;
+      offen.push(vs);
+    }
+    slots = offen;
+  }
 
   // Die Mail-Nutzlast (app_url) ist NICHT dasselbe wie die zu schreibenden Slots:
   //   · invite/cancellation → eine Terminliste {date, posLabel}
@@ -1073,6 +1142,7 @@ routerAdd('POST', '/notify', function(e) {
             'plan_id = {:p} && date = {:d} && pos_id = {:q}',
             { p: planId, d: String(s.date), q: String(s.posId) });
         } catch (err4) { da = null; }
+        if (da && VORMERK[da.getString('status')]) continue;   // v4.29, Absicherung in der Transaktion
         var r = da || new Record(col);
         if (!da) {
           r.set('plan_id', planId);

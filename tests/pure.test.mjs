@@ -176,8 +176,16 @@ test('Crew-Übergänge: vorgemerkt darf NICHT selbst bestätigt werden (der geme
      'vorgemerkt → bestätigt durch die Crew ist genau der Fehler, um den es geht');
 });
 
-test('Crew-Übergänge: vorgemerkt darf die Crew absagen', () =>
-  ok(isCrewStatusTransitionAllowed('pencilled', 'declined')));
+test('Crew-Übergänge: vorgemerkt darf die Crew absagen (neu pencil_declined, alt declined weiter erlaubt)', () => {
+  ok(isCrewStatusTransitionAllowed('pencilled', 'pencil_declined'));
+  ok(isCrewStatusTransitionAllowed('pencilled', 'declined'), 'alte App v1.3.0 sendet noch declined');
+});
+
+test('Crew-Übergänge: eigene Vormerkungs-Absage zurücknehmen, aber nie bestätigen', () => {
+  ok(isCrewStatusTransitionAllowed('pencil_declined', 'pencilled'));
+  ok(!isCrewStatusTransitionAllowed('pencil_declined', 'confirmed'));
+  ok(!isCrewStatusTransitionAllowed('pencil_declined', 'declined'));
+});
 
 test('Crew-Übergänge: bestätigt darf die Crew noch absagen, aber nicht erneut bestätigen', () => {
   ok(isCrewStatusTransitionAllowed('confirmed', 'declined'), 'späte Absage muss möglich bleiben');
@@ -190,7 +198,7 @@ test('Crew-Übergänge: eine Absage nimmt nur der Planer zurück', () => {
   ok(!isCrewStatusTransitionAllowed('declined', 'pencilled'));
 });
 
-test('Crew-Übergänge: niemand vermerkt sich selbst vor', () => {
+test('Crew-Übergänge: niemand vermerkt sich selbst vor (außer Rücknahme der eigenen Vormerkungs-Absage)', () => {
   for (const von of ['proposed', 'confirmed', 'declined', 'pencilled', '', null])
     ok(!isCrewStatusTransitionAllowed(von, 'pencilled'), `${von} → pencilled darf die Crew nicht`);
 });
@@ -215,6 +223,7 @@ test('Crew-Übergänge: Tabellenform ist festgenagelt (Anker gegen Drift zum Hoo
   deepEq(CREW_STATUS_TRANSITIONS, {
     proposed:  ['confirmed', 'declined'],
     confirmed: ['declined'],
-    pencilled: ['declined'],
+    pencilled: ['pencil_declined', 'declined'],
+    pencil_declined: ['pencilled'],
     cancelled: ['cancel_acked']
   }));

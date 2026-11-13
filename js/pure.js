@@ -174,7 +174,8 @@ export const ICS_STATUS_LABEL = { confirmed:'Bestätigt', proposed:'Angefragt', 
 export const CREW_STATUS_TRANSITIONS = {
   proposed:  ['confirmed', 'declined'],  // Antwort auf die Anfrage
   confirmed: ['declined'],               // späte Absage — Hook mailt dem Admin
-  pencilled: ['declined'],               // vorgemerkt: absagen ja, bestätigen nein
+  pencilled: ['pencil_declined', 'declined'], // vorgemerkt: absagen ja, bestätigen nein; declined nur für die alte App v1.3.0
+  pencil_declined: ['pencilled'],        // eigene Vormerkungs-Absage zurücknehmen
   cancelled: ['cancel_acked']            // „Gesehen"-Quittung zur Absage des Managers
 };
 
