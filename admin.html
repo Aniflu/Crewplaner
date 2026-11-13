@@ -573,6 +573,7 @@ body {
 .tv-cand{background:var(--panel2);border:1px solid var(--rule-2);color:var(--ink);border-radius:5px;padding:6px 8px;text-align:left;cursor:pointer;font:inherit;font-size:.82rem}
 .tv-cand small{color:var(--muted)}
 .tv-freebar{margin-top:12px;font-size:.82rem;color:var(--ink-2)}
+body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell,body.tv-busy .tv-row,body.tv-busy .tv-cand,body.tv-busy .tv-menu button{pointer-events:none;opacity:.6}
 @media(max-width:640px){.tv-cols{grid-template-columns:1fr}.tv-modal{padding:12px}}
 </style>
 </head>

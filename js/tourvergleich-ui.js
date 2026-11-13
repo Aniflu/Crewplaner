@@ -24,7 +24,8 @@ const S = {
   onlyOverlap: true, onlyShared: true,
   day: null,                 // geöffneter Tag (ISO)
   pick: null,                // { tour, posId } – gewählter Platz in der Tagestafel
-  notice: '',
+  notices: [],               // Hinweise { ok, text } zur Update-Liste
+  busy: false,               // Speichern läuft: weitere Klicks ignorieren
   plans: null
 };
 const $ = id => document.getElementById(id);
@@ -94,14 +95,14 @@ export async function tvCompare() {
   $('tvResult').innerHTML = '<div class="tv-note">Lade …</div>';
   try {
     const [A, B] = await Promise.all([loadBundle(a), loadBundle(b)]);
-    S.b.A = A; S.b.B = B; S.day = null; S.pick = null; S.notice = '';
+    S.b.A = A; S.b.B = B; S.day = null; S.pick = null; S.notices = [];
     render();
   } catch (e) { $('tvResult').innerHTML = ''; toast('Laden fehlgeschlagen: ' + e.message, 'var(--warn)'); }
 }
 
 // Für die Demo-/Sichtprüfung: zwei fertige Bündel direkt rendern.
 export function tvRenderWithBundles(a, b) {
-  S.b.A = a; S.b.B = b; S.day = null; S.pick = null; S.notice = '';
+  S.b.A = a; S.b.B = b; S.day = null; S.pick = null; S.notices = [];
   render();
 }
 
@@ -124,13 +125,17 @@ function summary(ov) {
   return { days, people: people.size };
 }
 
+function noticeHtml() {
+  return S.notices.map(n => `<div class="tv-sum ${n.ok ? 'ok' : 'bad'}" style="font-size:.8rem;display:block">${esc(n.text)}</div>`).join('');
+}
+
 function render() {
   const { A, B } = S.b;
   if (!A || !B) return;
   const ov = overlapDays(A.plan, B.plan);
   const days = S.onlyOverlap ? ov : allDays();
   const sm = summary(ov);
-  let h = `<div class="tv-sum ${sm.days ? 'bad' : 'ok'}">` +
+  let h = noticeHtml() + `<div class="tv-sum ${sm.days ? 'bad' : 'ok'}">` +
     (sm.days ? `⚠ ${sm.days} Konflikttage · ${sm.people} Personen doppelt` : '✓ keine Doppelbelegung') + '</div>';
   h += `<div class="tv-legend"><span class="tv-dot" style="background:${TOUR_COLOR.A}"></span>A: ${esc(A.name)}` +
        ` <span class="tv-dot" style="background:${TOUR_COLOR.B}"></span>B: ${esc(B.name)}</div>`;
@@ -229,7 +234,7 @@ function renderDay() {
     `<b>${esc(fmtDay(date))}</b><button class="btn btn-ghost btn-sm" data-act="shift" data-d="1">›</button>` +
     `<button class="btn btn-ghost btn-sm" data-act="close" style="margin-left:auto">✕</button></div>`;
   if (!ov.includes(date)) h += '<div class="tv-note">Dieser Tag liegt nur in einer der Touren.</div>';
-  if (S.notice) h += `<div class="tv-sum bad" style="font-size:.8rem">${esc(S.notice)}</div>`;
+  h += noticeHtml();
   h += `<div class="tv-cols">${dayColHtml('A', date)}${dayColHtml('B', date)}</div>`;
   h += '<div class="tv-freebar"><b>Frei an diesem Tag:</b> ' +
     (free.length ? free.map(p => esc(p.name)).join(' · ') : '–') + '</div>';
@@ -237,7 +242,7 @@ function renderDay() {
 }
 
 export function tvOpenDay(date) {
-  S.day = date; S.pick = null; S.notice = '';
+  S.day = date; S.pick = null;
   hideMenu();
   renderDay();
   openModal('tvDayModal');
@@ -249,7 +254,7 @@ export function tvShiftDay(dir) {
   const i = ov.indexOf(S.day);
   const next = i < 0 ? (dir > 0 ? ov.find(d => d > S.day) : [...ov].reverse().find(d => d < S.day)) : ov[i + dir];
   if (!next) return;
-  S.day = next; S.pick = null; S.notice = '';
+  S.day = next; S.pick = null;
   renderDay();
 }
 export function tvPickSlot(tour, date, posId) {
@@ -267,7 +272,10 @@ export function tvMove(name, date, keep) {
 // Je Schritt: Plan frisch lesen, einen Platz ändern, patchen. So bleiben Änderungen, die
 // zwischenzeitlich anderswo am Plan passiert sind, erhalten.
 async function tvApply(steps, date) {
-  S.notice = '';
+  if (S.busy) return;
+  S.busy = true;
+  document.body.classList.add('tv-busy');
+  S.notices = [];
   try {
     for (const st of steps) {
       const b = S.b[st.tour];
@@ -278,8 +286,11 @@ async function tvApply(steps, date) {
         const r = await removeAssignmentSlot(date, st.posId, { planId: b.pbId, statuses: b.statuses });
         if (r.wasActive && r.rec) {
           const email = (b.crewMeta[r.crewName] && b.crewMeta[r.crewName].email) || r.rec.crew_email;
-          queueRemoved(b, r, email, date, st.posId);
-          S.notice = `Absage für ${r.crewName} liegt in der Update-Liste von ${b.name} – Versand dort über „Updates senden“.`;
+          if (queueRemoved(b, r, email, date, st.posId)) {
+            S.notices.push({ ok: true, text: `Absage für ${r.crewName} liegt in der Update-Liste von ${b.name} – Versand dort über „Updates senden“.` });
+          } else {
+            S.notices.push({ ok: false, text: `⚠ Keine Mailadresse für ${r.crewName} – Absage NICHT in der Update-Liste, bitte ${r.crewName} selbst informieren.` });
+          }
         }
       }
       const next = applySlot(fresh, date, st.posId, st.value);
@@ -293,6 +304,9 @@ async function tvApply(steps, date) {
     try { await reloadBundles(); } catch (_) { /* Anzeige bleibt wie sie war */ }
     S.pick = null;
     render();
+  } finally {
+    S.busy = false;
+    document.body.classList.remove('tv-busy');
   }
 }
 
@@ -300,9 +314,11 @@ function queueRemoved(b, r, email, date, posId) {
   try {
     const key = 'crewplan_updates_' + b.pbId;
     const q = JSON.parse(localStorage.getItem(key) || '{}');
+    if (!email) return false;
     queueAddRemoved(q, r.crewName, email, date, posId, posOf(b.plan, posId).label || posId, r.rec.id);
     localStorage.setItem(key, JSON.stringify(q));
-  } catch (_) { /* ohne localStorage keine Update-Liste */ }
+    return true;
+  } catch (_) { return false; /* ohne localStorage keine Update-Liste */ }
 }
 
 // ── Klick-Verteilung und Mini-Menü ────────────────────────────────────────────
@@ -314,7 +330,7 @@ function showMenu(td, date, name) {
     `<button data-act="move" data-keep="B" data-date="${esc(date)}" data-name="${esc(name)}">→ nur ${esc(S.b.B.name)} (B)</button>` +
     `<button data-act="day" data-date="${esc(date)}">📋 Tagestafel</button>`;
   const r = td.getBoundingClientRect();
-  m.style.display = 'block';
+  m.style.display = 'flex';
   m.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 230)) + 'px';
   m.style.top = (r.bottom + 4) + 'px';
 }

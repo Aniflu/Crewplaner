@@ -245,3 +245,24 @@ test('admin.html hat Tab und Abschnitt', () => {
   ok(h.includes('data-tab="tourvergleich"'));
   ok(h.includes('id="tabTourvergleich"'));
 });
+
+test('UI meldet Update-Liste nur, wenn die Queue-Funktion true liefert', () => {
+  const s = _ui();
+  ok(/if \(queueRemoved\(/.test(s), 'Hinweis hängt am Rückgabewert');
+  ok(/Keine Mailadresse für/.test(s), 'Warnung ohne Mailadresse');
+  ok(/return true;/.test(s.slice(s.indexOf('function queueRemoved'))), 'liefert true');
+});
+test('UI sammelt Hinweise statt sie zu überschreiben', () => {
+  const s = _ui();
+  ok(/S\.notices\.push\(/.test(s) && !/S\.notice\s*=[^=]/.test(s));
+  ok(/function render\(\)[\s\S]*?noticeHtml\(\)/.test(s), 'Hinweise auch ohne Tagestafel im Raster');
+});
+test('UI sperrt Doppelklick: busy wird in finally zurückgesetzt', () => {
+  const s = _ui();
+  const b = s.slice(s.indexOf('async function tvApply'), s.indexOf('function queueRemoved'));
+  ok(/if \(S\.busy\) return;/.test(b));
+  ok(/finally\s*\{[^}]*S\.busy = false/.test(b));
+});
+test('Mini-Menü nutzt display flex', () => {
+  ok(/m\.style\.display = 'flex'/.test(_ui()));
+});
