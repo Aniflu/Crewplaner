@@ -150,7 +150,7 @@ export function renderBody(){
       // nie aus User-Input) — display bleibt reiner Text und wird an JEDER Ausgabestelle wie
       // bisher mit esc() behandelt (Crew-/Positionsnamen dürfen NIE ungeschützt in innerHTML,
       // siehe v0.23.3-Härtung). Getrennt halten, sonst killt esc() das Icon-<span> (v0.29.0-Bug).
-      let style='',cls='assign-btn',display='—',icHtml='';
+      let style='',cls='assign-btn',display='—',icHtml='',tip='';
       if(val===OFFEN){style='color:#e07060;border-color:rgba(220,80,60,.4);background:rgba(220,80,60,.07);font-weight:600;';display='⚠ Offen';}
       else if(isDef){style='color:#6a8aaa;font-style:italic;border-color:rgba(79,129,189,.12);background:rgba(79,129,189,.04);';display=val;}
       else if(isOv&&val){const ch=val!==(defaultCrew[p.id]||'');if(ch&&defaultCrew[p.id])style='font-weight:600;border-color:rgba(212,184,74,.4);background:rgba(212,184,74,.09);color:#d4c87a;';else{cls+=' filled';style='border:1px solid rgba(150,185,210,.3);';}display=val;}
@@ -164,6 +164,7 @@ export function renderBody(){
         else if(si.status==='confirmed'){icHtml=_statIc('✓');display=sn;style='color:var(--show);border-color:var(--show-wash-2);background:var(--show-wash);';}
         else if(si.status==='pencilled'){icHtml=_statIc('✎');display=sn;style='color:var(--pencilled);border-color:var(--pencilled-wash-2);background:var(--pencilled-wash);';}
         else if(si.status==='declined'){icHtml=_statIc('✗');display=sn;style='color:var(--warn);border-color:var(--warn-wash-2);background:var(--warn-wash);';}
+        else if(si.status==='pencil_declined'){icHtml=_statIc('✎✗');display=sn;style='color:var(--pencilled);border-color:var(--pencilled-wash-2);background:var(--pencilled-wash);text-decoration:line-through;';tip='Vormerkung abgesagt';}
       } else if(val===OFFDAY){style='color:#70ad47;border-color:rgba(112,173,71,.4);background:rgba(112,173,71,.07);font-weight:600;';display='🏖 Offday';}
       else if(val===REISE_TAG){style='color:#4f81bd;border-color:rgba(79,129,189,.4);background:rgba(79,129,189,.07);font-weight:600;';display='✈ Reise';}
       else if(val===AUSSCHREIBEN){style='color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);font-weight:600;';display='📋 Ausschr.';}
@@ -184,6 +185,7 @@ export function renderBody(){
         if(si.status==='confirmed'){b+=`<span style="font-size:.6rem;color:var(--show);display:block;text-align:center;">${esc(si.crewName)}</span>`;}
         else if(si.status==='declined'){b+=`<span style="font-size:.6rem;color:var(--warn);display:block;text-align:center;">${esc(si.crewName)}</span>`;}
         else if(si.status==='pencilled'){b+=`<span style="font-size:.6rem;color:var(--pencilled);display:block;text-align:center;">${esc(si.crewName)}</span>`;}
+        else if(si.status==='pencil_declined'){b+=`<span style="font-size:.6rem;color:var(--pencilled);text-decoration:line-through;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
         else{b+=`<span style="font-size:.6rem;color:var(--accent);display:block;text-align:center;">${esc(si.crewName)}</span>`;}
       }else if(IS_CREW&&si&&si.crewName===myName){
         const _pkey=row.date+'|'+p.id;
@@ -203,7 +205,7 @@ export function renderBody(){
       }else if(IS_CREW&&!si&&val&&val!==OFFEN&&val!==OFFDAY&&val!==REISE_TAG&&val!==AUSSCHREIBEN){
         b+=`<span style="font-size:.6rem;color:#5a6070;display:block;text-align:center;">${esc(val)}</span>`;
       }else if(IS_MANAGER||!SUPABASE_ENABLED){
-        b+=`<button class="${cls}" style="${style}" onclick="openCrewDD(event,'${row.date}','${p.id}')">${icHtml?icHtml+' ':''}${esc(display)}</button>`;
+        b+=`<button class="${cls}" style="${style}"${tip?` title="${tip}"`:''} onclick="openCrewDD(event,'${row.date}','${p.id}')">${icHtml?icHtml+' ':''}${esc(display)}</button>`;
       }else if(IS_BOOKER){
         b+=`<span class="${cls}" style="${style};cursor:default;">${icHtml?icHtml+' ':''}${esc(display)}</span>`;
       }else if(!IS_CREW){

@@ -465,18 +465,48 @@ export async function declineAssignment(dateStr, posId) {
       // Absagen darf die Crew aus angefragt, bestätigt UND vorgemerkt (v0.13.0) — „ich kann
       // nicht" muss immer möglich sein. Der Guard fängt hier nur die sinnlosen Fälle ab
       // (bereits abgesagt, bereits entfallen), damit kein leerer PATCH rausgeht.
-      if (IS_CREW && !IS_MANAGER && !isCrewStatusTransitionAllowed(existing.status, 'declined'))
+      // v1.4.0: eine Vormerkung sagt die Crew mit eigenem Status ab (pencil_declined), damit der
+      // Planer „Vormerkung abgesagt" von „Anfrage abgelehnt" unterscheiden kann.
+      const _ziel = existing.status === 'pencilled' ? 'pencil_declined' : 'declined';
+      if (IS_CREW && !IS_MANAGER && !isCrewStatusTransitionAllowed(existing.status, _ziel))
         throw new Error('Diesen Status kannst du nicht selbst ändern – bitte Admin fragen');
       await pbPatch('/api/collections/assignments/records/' + existing.id, {
-        status: 'declined', responded_at: new Date().toISOString()
+        status: _ziel, responded_at: new Date().toISOString()
       });
       // Lokal NUR bei echtem Record. E-Mail an Admin via Pocketbase-Hook.
-      if (si) si.status = 'declined';
-      if (IS_CREW && !IS_MANAGER) logActivity('declined', { planId, crewName: existing.crew_name, crewEmail: existing.crew_email, date: dateStr, posLabel: existing.pos_label });
+      if (si) si.status = _ziel;
+      if (IS_CREW && !IS_MANAGER) logActivity(_ziel, { planId, crewName: existing.crew_name, crewEmail: existing.crew_email, date: dateStr, posLabel: existing.pos_label });
     }
   } catch (e) {
     console.warn('declineAssignment Fehler:', e.message);
     throw e; // Aufrufer muss Fehler sehen (Resync + Toast)
+  }
+}
+
+// ── Vormerkungs-Absage zurücknehmen (Crew, v1.4.0) ────────────────────────────
+// pencil_declined → pencilled; erlaubt nur für den eigenen Einsatz.
+export async function restorePencilled(dateStr, posId) {
+  if (!SUPABASE_ENABLED) return;
+  const planId = await _getActivePlanId();
+  if (!planId) return;
+  const si = assignmentStatuses[dateStr]?.[posId];
+  const _myEmail = (CURRENT_USER_EMAIL || '').toLowerCase();
+  try {
+    const existing = await pbFirst('assignments',
+      `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);
+    if (!existing) return;
+    if (IS_CREW && !IS_MANAGER && (existing.crew_email || '').toLowerCase() !== _myEmail)
+      throw new Error('Zugriff verweigert – nicht dein Einsatz');
+    if (IS_CREW && !IS_MANAGER && !isCrewStatusTransitionAllowed(existing.status, 'pencilled'))
+      throw new Error('Diesen Status kannst du nicht selbst ändern – bitte Admin fragen');
+    await pbPatch('/api/collections/assignments/records/' + existing.id, {
+      status: 'pencilled', responded_at: new Date().toISOString()
+    });
+    if (si) si.status = 'pencilled';
+    if (IS_CREW && !IS_MANAGER) logActivity('pencil_restored', { planId, crewName: existing.crew_name, crewEmail: existing.crew_email, date: dateStr, posLabel: existing.pos_label });
+  } catch (e) {
+    console.warn('restorePencilled Fehler:', e.message);
+    throw e;
   }
 }
 

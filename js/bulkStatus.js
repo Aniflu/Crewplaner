@@ -56,6 +56,7 @@ const ZUSTAND = {
   proposed:  { zeichen: '⏳', farbe: 'var(--accent)', titel: 'angefragt, Antwort steht aus' },
   confirmed: { zeichen: '✓', farbe: 'var(--show)',   titel: 'bestätigt' },
   declined:  { zeichen: '✗', farbe: 'var(--warn)',   titel: 'abgelehnt' },
+  pencil_declined: { zeichen: '✎✗', farbe: 'var(--pencilled)', titel: 'Vormerkung abgesagt' },
 };
 const _zustand = (s) => ZUSTAND[s == null ? 'null' : s] || ZUSTAND.null;
 

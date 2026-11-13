@@ -252,7 +252,7 @@ export function openInvitePreview(crewName, type) {
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
   const planned = _getAllSlotsForCrew(crewName, meta.email);
   if (!planned.length) { showToast('Keine eingeplanten Termine', '#5a6070'); return; }   // wie die alte Konsole: nichts zu senden
-  const slots = planned.filter(sl => assignmentStatuses[sl.date]?.[sl.posId]?.status !== 'confirmed');
+  const slots = planned.filter(_einladbar);
   const pn = esc(_planNameForPreview());
   const isInv = type !== 'reminder';
   _openSendPreview({ kind: type, crewName, email: meta.email }, (isInv ? '📧 Einladung an ' : '🔔 Erinnerung an ') + crewName,
@@ -411,6 +411,14 @@ function _getAllSlotsForCrew(crewName, crewEmail) {
   return slots;
 }
 
+// Einladung/Erinnerung (v1.4.0): weder bestätigte noch vorgemerkte Tage. Eine Vormerkung ist
+// reine Information und wird NICHT angefragt (Hook v4.29 setzt sie ebenfalls nicht auf proposed).
+// Eigene Mitteilung dafür: pencil_info.
+function _einladbar(s) {
+  const st = assignmentStatuses[s.date]?.[s.posId]?.status;
+  return st !== 'confirmed' && st !== 'pencilled' && st !== 'pencil_declined';
+}
+
 export function _getNewSlotsForCrew(crewName, crewEmail) {
   return _getAllSlotsForCrew(crewName, crewEmail).filter(s => {
     const existing = assignmentStatuses[s.date]?.[s.posId];
@@ -436,10 +444,7 @@ export async function sendInvite(crewName, type, customMessage) {
   // Fehlschlag muss sichtbar bleiben und die Person auf „⚪ Nicht eingeladen" stehen lassen —
   // sonst wartet der Planer auf eine Antwort, um die nie jemand gebeten wurde (v0.10.5).
   // Alle nicht-bestätigten Slots — der Server setzt sie auf „angefragt"
-  const allSlots = _getAllSlotsForCrew(crewName, meta.email).filter(s => {
-    const existing = assignmentStatuses[s.date]?.[s.posId];
-    return !existing || existing.status !== 'confirmed';
-  });
+  const allSlots = _getAllSlotsForCrew(crewName, meta.email).filter(_einladbar);
 
   // Seit v0.11.0 EIN Aufruf: Der Server schreibt die Termine und löst die Mail in derselben
   // Transaktion aus. Die frühere Vorab-Anlage im Browser (bulkProposeCrew) entfällt samt

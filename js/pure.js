@@ -189,7 +189,7 @@ export function isCrewStatusTransitionAllowed(fromStatus, toStatus){
 }
 
 // Welche Status landen im Kalender — und in welcher Rangfolge sie den Tagesstatus
-// bestimmen (bestätigt schlägt vorgemerkt). 'declined'/'cancelled'/'cancel_acked'
+// bestimmen (bestätigt schlägt vorgemerkt). 'declined'/'pencil_declined'/'cancelled'/'cancel_acked'
 // fehlen bewusst: abgesagte Einsätze gehören in keinen Kalender.
 const _ICS_RANK = { confirmed:2, pencilled:1 };
 

@@ -341,7 +341,7 @@ test('declineAssignment: Crew DARF eine Vormerkung absagen', async () => {
   });
   await g.dataService.declineAssignment('2026-07-01', 'gl');
   ok(patched, '„ich kann nicht" muss immer möglich sein');
-  eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'declined', 'lokal abgesagt');
+  eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'pencil_declined', 'lokal abgesagt');
 });
 
 test('confirmAssignment: der MANAGER darf eine Vormerkung weiterhin bestätigen', async () => {

@@ -19,7 +19,7 @@ import {
 const TOUR_COLOR = { A: '#2bb5a0', B: '#f08a3c' };
 const STATUS_ICON = { confirmed: '✓', proposed: '⏳', pencilled: '✎' };
 const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-const AUSGEBLENDET = ['cancelled', 'cancel_acked', 'declined'];
+const AUSGEBLENDET = ['cancelled', 'cancel_acked', 'declined', 'pencil_declined'];
 
 const S = {
   b: { A: null, B: null },   // Bündel { pbId, name, orig (geladen), draft (Arbeitskopie), statuses, crewMeta }
