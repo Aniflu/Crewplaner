@@ -41,4 +41,5 @@ export function resetState(g){
   for(const o of [s.assignments, s.assignmentStatuses, s.defaultCrew, s.crewMeta])
     Object.keys(o).forEach(k => delete o[k]);
   s.setAuthState(null, '', 'manager'); // Default: Manager (für gated Funktionen)
+  if (g.plans?.setActivePlanId) g.plans.setActivePlanId(null); // Plan-Zeiger pro Test frisch
 }

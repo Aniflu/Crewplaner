@@ -9,11 +9,21 @@ import { hasPermission } from './rbac.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
 import { openModal, closeModal } from './modals.js';
 
+// v1.3.0: Einladungs-Vermerke und Absage-Queue gehören zum Plan DIESES Tabs (Suffix = PB-Plan-ID
+// aus tourplan_pb_<lokale ID>, sonst die lokale ID). Die alten globalen Schlüssel ohne Suffix
+// werden bewusst NICHT mehr gelesen und nicht angefasst: ihr Plan ist nicht mehr feststellbar,
+// und eine ungeprüfte Übernahme würde Absagen/Vermerke dem falschen Plan zuschreiben.
 const CREW_INVITES_KEY = 'tourplan_crew_invites';
 const PENDING_CANCELLATIONS_KEY = 'tourplan_pending_cancellations';
+function _planScoped(base) {
+  const lid = getActivePlanId() || '';
+  let pb = '';
+  try { if (lid) pb = localStorage.getItem('tourplan_pb_' + lid) || ''; } catch (_) {}
+  return base + '_' + (pb || lid || 'default');
+}
 
 function _loadCancellations() {
-  try { return JSON.parse(localStorage.getItem(PENDING_CANCELLATIONS_KEY) || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem(_planScoped(PENDING_CANCELLATIONS_KEY)) || '{}'); } catch { return {}; }
 }
 
 // Exportiert (v0.29.2) — wird auch von dropdown.js beim Entfernen/Ersetzen einer
@@ -24,23 +34,23 @@ export function _storePendingCancellation(crewName, email, dateStr, posLabel) {
   if (!q[crewName]) q[crewName] = { email, slots: [] };
   const exists = q[crewName].slots.some(s => s.date === dateStr && s.posLabel === posLabel);
   if (!exists) q[crewName].slots.push({ date: dateStr, posLabel });
-  localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(q));
+  localStorage.setItem(_planScoped(PENDING_CANCELLATIONS_KEY), JSON.stringify(q));
 }
 
 function _clearPendingCancellations(crewName) {
   const q = _loadCancellations();
   delete q[crewName];
-  localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(q));
+  localStorage.setItem(_planScoped(PENDING_CANCELLATIONS_KEY), JSON.stringify(q));
 }
 
 function _loadInvites() {
-  try { return JSON.parse(localStorage.getItem(CREW_INVITES_KEY) || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem(_planScoped(CREW_INVITES_KEY)) || '{}'); } catch { return {}; }
 }
 
 function _saveInvite(name) {
   const inv = _loadInvites();
   inv[name] = new Date().toISOString();
-  localStorage.setItem(CREW_INVITES_KEY, JSON.stringify(inv));
+  localStorage.setItem(_planScoped(CREW_INVITES_KEY), JSON.stringify(inv));
 }
 
 function _getCrewInviteStatus(name, invites) {
@@ -201,7 +211,9 @@ export function openInvitePreview(crewName, type) {
   if (!hasPermission('sendInvite')) return;
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
-  const slots = _getAllSlotsForCrew(crewName, meta.email).filter(sl => assignmentStatuses[sl.date]?.[sl.posId]?.status !== 'confirmed');
+  const planned = _getAllSlotsForCrew(crewName, meta.email);
+  if (!planned.length) { showToast('Keine eingeplanten Termine', '#5a6070'); return; }   // wie die alte Konsole: nichts zu senden
+  const slots = planned.filter(sl => assignmentStatuses[sl.date]?.[sl.posId]?.status !== 'confirmed');
   const pn = esc(_planNameForPreview());
   const isInv = type !== 'reminder';
   _openSendPreview({ kind: type, crewName, email: meta.email }, (isInv ? '📧 Einladung an ' : '🔔 Erinnerung an ') + crewName,
@@ -238,7 +250,9 @@ export async function confirmSendPreview() {
     if (ctx.kind === 'update') await sendUpdate(ctx.crewName, text || undefined);
     else await sendInvite(ctx.crewName, ctx.kind, text || undefined);
   } catch (e) {
-    showToast('Fehler: ' + e.message, '#e84a4a');
+    // sendInvite meldet seinen Fehler (z. B. die 429-Erklärung) selbst — nicht mit einer
+    // allgemeinen Meldung überschreiben. Nur der Update-Weg hat keinen eigenen Toast.
+    if (ctx.kind === 'update') showToast('Fehler: ' + _einladungsFehlerText(e), '#e84a4a');
   }
 }
 

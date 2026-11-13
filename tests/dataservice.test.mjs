@@ -225,6 +225,7 @@ test('ein 429 wird einmal wiederholt, statt den ganzen Lauf zu kippen', async ()
   g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager');
   globalThis.localStorage.setItem('pb_token', 't');
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  globalThis.localStorage.setItem('tourplan_pb_default', 'PLAN1');  // Plan dieses Tabs (kein Zeiger-Rückfall mehr)
   g.state.POSITIONS.push({ id: 'gl', label: 'GL' });
 
   let schreibversuche = 0;

@@ -22,8 +22,8 @@ test('admin.html: keine eigene Einlade-Logik mehr, die Karte ruft die Module', (
      'admin.html baut keine eigene notify-Nutzlast für Einladung/Erinnerung/Update/Absage');
 });
 
-const INV = 'tourplan_crew_invites';
-const CANC = 'tourplan_pending_cancellations';
+const INV = 'tourplan_crew_invites_PBY';   // v1.3.0: je Plan
+const CANC = 'tourplan_pending_cancellations_PBY';
 
 async function setup() {
   const g = await loadGraph(); if (!g) return null;
@@ -247,4 +247,55 @@ test('Update-Liste der Konsole: Schlüssel crewplan_updates_<PB-ID> (PBY), nicht
     await withEls({ crewUpdateModalBody: body }, () => g.userView._openUpdateQueueModal());
     ok(body.innerHTML.includes('Anna'), 'Modal liest die Queue von PBY');
   } finally { globalThis.fetch = orig; }
+});
+
+// ── Review-Funde v1.3.0 (M3, M5, M6) ────────────────────────────────────────────────
+function toastEl(log) {
+  return { style: {}, set textContent(v) { log.push(v); }, get textContent() { return log[log.length - 1] || ''; } };
+}
+
+test('M3: eine für Plan X vorgemerkte Absage ist in Plan Y nicht sichtbar und wird dort nicht gesendet', async () => {
+  const g = await setup(); if (!g) return 'SKIP';
+  const posts = capture();
+  const cn = await import('../js/crewNotify.js');
+  g.plans.setActivePlanId('pbplan_PBX');
+  cn._storePendingCancellation('Anna', 'anna@x.de', '2027-06-01', 'GL');          // im Tab von Plan X vorgemerkt
+  eq(globalThis.localStorage.getItem('tourplan_pending_cancellations_PBX') !== null, true, 'liegt unter dem Schlüssel von X');
+  g.plans.setActivePlanId('pbplan_PBY');
+  await cn.sendCancellationSummary('Anna');
+  eq(posts.length, 0, 'für Plan Y wird nichts gesendet');
+  g.plans.setActivePlanId('pbplan_PBX');
+  await cn.sendCancellationSummary('Anna');
+  eq(posts.length, 1, 'in Plan X ist sie da');
+  eq(posts[0].planId, 'PBX');
+});
+
+test('M5: Person ohne eingeplante Termine — keine Vorschau, Hinweis statt Versand', async () => {
+  const g = await setup(); if (!g) return 'SKIP';
+  g.state.crewMeta['Bob'] = { email: 'bob@x.de' };      // in der Crew, aber nirgends eingeplant
+  const cn = await import('../js/crewNotify.js');
+  const log = []; const body = { innerHTML: '' };
+  await withEls({ toast: toastEl(log), sharedBody: body, sharedTitle: {} }, async () => {
+    cn.openInvitePreview('Bob', 'invite');
+    cn.openInvitePreview('Bob', 'reminder');
+  });
+  eq(body.innerHTML, '', 'keine Vorschau geöffnet');
+  ok(log.includes('Keine eingeplanten Termine'), 'Hinweis „Keine eingeplanten Termine": ' + JSON.stringify(log));
+});
+
+test('M6: schlägt der Versand mit 429 fehl, bleibt die konkrete Meldung stehen', async () => {
+  const g = await setup(); if (!g) return 'SKIP';
+  globalThis.fetch = async (url, opts) => ((opts && opts.method) === 'POST')
+    ? { status: 429, ok: false, json: async () => ({ message: 'Too many requests.' }) }
+    : { status: 200, ok: true, json: async () => ({ items: [], page: 1, perPage: 200, totalPages: 1 }) };
+  const cn = await import('../js/crewNotify.js');
+  const log = []; const w = console.warn; console.warn = () => {};
+  try {
+    await withEls({ toast: toastEl(log), sendPreviewText: { value: '' }, sharedBody: { innerHTML: '' }, sharedTitle: {} }, async () => {
+      cn.openInvitePreview('Anna', 'invite');
+      await cn.confirmSendPreview();
+    });
+  } finally { console.warn = w; }
+  ok(log.length > 0, 'es gab eine Meldung');
+  ok(/halbe Minute/.test(log[log.length - 1]), 'letzte Meldung ist die 429-Erklärung, war: ' + log[log.length - 1]);
 });

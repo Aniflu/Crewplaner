@@ -77,6 +77,20 @@ if (!g) {
     } finally { pb.restore(); }
   });
 
+  test('konsoleplan (M7): Plan-Index bekommt je pbplan_<id> genau einen Eintrag, auch bei Altlasten', async () => {
+    const pb = setup();
+    try {
+      localStorage.setItem('tourplan_plans', JSON.stringify([
+        { id: 'pbplan_PBY', name: 'alt' }, { id: 'pbplan_PBX', name: 'X' }, { id: 'pbplan_PBY', name: 'doppelt' }]));
+      await cp.activateConsolePlan('PBY', 'Tour Y');
+      await cp.activateConsolePlan('PBY', 'Tour Y neu');
+      const idx = JSON.parse(localStorage.getItem('tourplan_plans'));
+      eq(idx.filter(p => p.id === 'pbplan_PBY').length, 1, 'genau ein Eintrag für PBY');
+      ok(idx.find(p => p.id === 'pbplan_PBY').name !== 'alt', 'Name aktualisiert (kommt aus dem DB-Stand)');
+      eq(idx.filter(p => p.id === 'pbplan_PBX').length, 1, 'andere Pläne bleiben');
+    } finally { pb.restore(); }
+  });
+
   test('konsoleplan (c): renderCrew und renderTable ohne DOM werfen nicht', () => {
     g.crew.renderCrew();
     const r = import('../js/render.js').then(m => m.renderTable());

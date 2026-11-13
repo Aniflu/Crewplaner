@@ -6,6 +6,8 @@ import { renderTable } from './render.js';
 // Crew & Positionen werden seit v1.3.0 nur noch in der Konsole verwaltet. Die Funktion bleibt
 // als Weiterleitung, damit alte Aufrufer (Lesezeichen, Folgeaktion) nicht werfen.
 export function openCrewModal(){
+  // Nur Planer haben die Konsole; für alle anderen bleibt der Aufruf wirkungslos.
+  if(!IS_MANAGER)return;
   window.location.href=window.getNavUrl('admin.html')+'#crew';
 }
 

@@ -58,7 +58,7 @@ function _showMailError(msg) {
 let _planIdPromise = null;
 let _planIdPromiseKey = null;
 
-async function _getActivePlanId() {
+export async function _getActivePlanId() {
   if (!SUPABASE_ENABLED || !CURRENT_USER_ID) return null;
 
   // Crew: immer frisch aus PB via crew_members-Email laden — kein localStorage-Cache
@@ -128,10 +128,8 @@ async function _createOrFetchPlanId(key) {
   const plans = getPlansIndex();
   const activePlanId = getActivePlanId();
 
-  // 1) Gepinnter Plan ist die verlässliche Quelle (von loadPlanForManager/switchPlan gepflegt).
-  let pinned = '';
-  try { pinned = localStorage.getItem('tourplan_active_pb_id') || ''; } catch(_) {}
-  if (pinned) { localStorage.setItem(key, pinned); return pinned; }
+  // 1) Kein Rückfall auf den globalen Zeiger tourplan_active_pb_id (ein anderer Tab kann ihn auf
+  //    einen fremden Plan gesetzt haben) — der Plan dieses Tabs kommt nur aus tourplan_pb_<lid>.
 
   // 2) Nur mit echtem lokalen Plan-Namen per Name suchen (kein 'Tour Plan'-Default mehr).
   const planName = plans.find(p => p.id === activePlanId)?.name || '';
@@ -237,7 +235,13 @@ export async function loadPlanForManager(explicitPbId) {
     if (!plan && !explicitPbId) plan = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
     if (!plan) { console.warn('loadPlanForManager: kein Plan gefunden'); return false; }
     // Zwischenzeitlich auf einen anderen Plan gewechselt? Dann diese späte Antwort verwerfen.
-    if (explicitPbId && localStorage.getItem('tourplan_active_pb_id') !== explicitPbId) return false;
+    // Maßgeblich ist der Plan DIESES Tabs (lokale ID → tourplan_pb_<lid>), nicht der globale Zeiger
+    // tourplan_active_pb_id, den die Konsole in einem anderen Tab umsetzen kann.
+    if (explicitPbId) {
+      const ownLid = getActivePlanId();
+      const ownPb = ownLid ? localStorage.getItem('tourplan_pb_' + ownLid) : '';
+      if (ownPb && ownPb !== explicitPbId) return false;
+    }
     if (!plan.plan_data) {
       console.warn('loadPlanForManager: plan_data ist leer');
       // Leerer Record ist ein gültiger Basisstand: der nächste Save darf ihn füllen.

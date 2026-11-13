@@ -15,6 +15,7 @@ import './_setup.mjs';
 
 const state = await import('../js/state.js');
 const bulk  = await import('../js/bulkStatus.js');
+const plansMod = await import('../js/plans.js');
 
 // bulkStatus hält seine Auswahl im Modulzustand; _collect ist nicht exportiert. Gemessen wird
 // deshalb über das gerenderte Markup — dasselbe, was der Manager sieht.
@@ -130,6 +131,7 @@ test('Anzeige: jeder Einsatz trägt sein Zustandszeichen', () => {
 async function anwenden() {
   globalThis.localStorage.setItem('pb_token', 't');
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  plansMod.setActivePlanId('PLAN1'); localStorage.setItem('tourplan_pb_' + 'PLAN1', 'PLAN1');
   globalThis.localStorage.removeItem('crewplan_updates_PLAN1');
   globalThis.fetch = async (url, opts) => ((opts && opts.method) === 'POST' || (opts && opts.method) === 'PATCH')
     ? { status: 200, ok: true, json: async () => ({ id: 'rec1' }) }
@@ -159,6 +161,7 @@ test('vorher bestätigter Einsatz landet SCHON in der Update-Queue', async () =>
   fangen(() => { bulk.openBulkStatusModal(); bulk._bulkStatusSelectAll(true); });
   globalThis.localStorage.setItem('pb_token', 't');
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  plansMod.setActivePlanId('PLAN1'); localStorage.setItem('tourplan_pb_' + 'PLAN1', 'PLAN1');
   globalThis.localStorage.removeItem('crewplan_updates_PLAN1');
   globalThis.fetch = async (url, opts) => ((opts && opts.method) === 'POST' || (opts && opts.method) === 'PATCH')
     ? { status: 200, ok: true, json: async () => ({ id: 'rec1' }) }
@@ -193,6 +196,7 @@ test('der Dialog schließt auch dann, wenn das Neuzeichnen scheitert', async () 
   aufbauen({ assign: { '2026-09-01': { gl: 'Wolf Geffenius' } } });
   globalThis.localStorage.setItem('pb_token', 't');
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  plansMod.setActivePlanId('PLAN1'); localStorage.setItem('tourplan_pb_' + 'PLAN1', 'PLAN1');
   globalThis.fetch = async (url, opts) => (opts && opts.method && opts.method !== 'GET')
     ? { status: 200, ok: true, json: async () => ({ id: 'rec1' }) }
     : { status: 200, ok: true, json: async () => ({ items: [], page: 1, perPage: 200, totalPages: 1 }) };
@@ -269,6 +273,7 @@ test('ein zweiter Klick während des Laufs schreibt nichts', async () => {
   aufbauen({ assign: { '2026-09-01': { gl: 'Wolf Geffenius' }, '2026-09-02': { gl: 'Wolf Geffenius' } } });
   globalThis.localStorage.setItem('pb_token', 't');
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  plansMod.setActivePlanId('PLAN1'); localStorage.setItem('tourplan_pb_' + 'PLAN1', 'PLAN1');
   let schreib = 0;
   globalThis.fetch = async (url, opts) => {
     const m = (opts && opts.method) || 'GET';

@@ -59,6 +59,7 @@ function setup(g){
   localStorage.setItem('pb_token', 't');
   localStorage.setItem('tourplan_pb_default', PID);
   localStorage.setItem('tourplan_active_pb_id', PID);
+  g.plans.setActivePlanId(PID); localStorage.setItem('tourplan_pb_' + PID, PID);
   localStorage.removeItem('crewplan_updates_' + PID);
   const { TOUR_DATES, POSITIONS, crewMeta, setAssignment, setStatus } = g.state;
   POSITIONS.push({ id:'gl', label:'Gewerkeleitung', short:'GL' });

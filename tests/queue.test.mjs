@@ -15,6 +15,7 @@ function setup(g) {
   resetState(g);
   localStorage.removeItem(QKEY);
   localStorage.setItem('tourplan_active_pb_id', PID);
+  g.plans.setActivePlanId(PID); localStorage.setItem('tourplan_pb_' + PID, PID);
 }
 
 test('_queueGlobalCrewUpdate: befüllt aus getVal nur die übergebenen Tage', async () => {
@@ -185,4 +186,23 @@ test('removed-Slots überleben den Self-Heal (getVal ist für sie leer)', async 
   ok(q['Pascal'], 'Eintrag existiert nach Self-Heal noch');
   eq(q['Pascal'].slots[0].kind, 'removed', 'kind=removed gespeichert');
   eq(q['Pascal'].slots[0].aid, 'rec1', 'aid für GESEHEN-Button gespeichert');
+});
+
+// v1.3.0 (I1): Die Queue gehört zum Plan DIESES Tabs. Setzt ein zweiter Tab (Konsole) den
+// globalen Zeiger auf Plan Y, darf Tab X weder in Y's Queue schreiben noch sie aufräumen.
+test('Queue-Key folgt dem Plan des Tabs, nicht dem globalen Zeiger', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g);
+  g.state.TOUR_DATES.push({ date:'2026-08-01', loc:'X' });
+  g.state.POSITIONS.push({ id:'gl', label:'GL', short:'GL' });
+  localStorage.setItem('tourplan_pb_localX', 'PBX');
+  g.plans.setActivePlanId('localX');                       // Tab X
+  localStorage.setItem('tourplan_active_pb_id', 'PBY');    // anderer Tab hat den Zeiger auf Y gesetzt
+  const yQueue = { Fremd: { email: 'f@x.de', slots: [{ date: '2030-01-01', posLabel: 'GL' }] } };
+  localStorage.setItem('crewplan_updates_PBY', JSON.stringify(yQueue));
+  localStorage.removeItem('crewplan_updates_PBX');
+  g.userView._queueRemovedSlot('Pascal', 'p@x.de', '2026-08-01', 'gl', 'GL', 'rec1');
+  const x = JSON.parse(localStorage.getItem('crewplan_updates_PBX') || '{}');
+  ok(x['Pascal'], 'Eintrag liegt in der Queue von X');
+  eq(localStorage.getItem('crewplan_updates_PBY'), JSON.stringify(yQueue), 'Queue von Y unverändert (kein Self-Heal, kein Schreiben)');
 });

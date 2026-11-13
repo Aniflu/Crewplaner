@@ -54,6 +54,18 @@ test('openCrewModal leitet in die Konsole #crew um, wirft nicht', async () => {
   } finally { m.restore(); }
 });
 
+test('openCrewModal: Nicht-Planer bleiben, keine Weiterleitung (M9)', async () => {
+  const g = await loadGraph(); if (!g) return 'SKIP';
+  const sidebar = await import('../js/sidebar.js');
+  const m = mockLocation();
+  try {
+    g.state.setAuthState('uid-crew', 'c@x.de', 'crew');
+    const before = m.loc.href;
+    sidebar.openCrewModal();
+    eq(m.loc.href, before, 'Crew wird nicht in die Konsole geschickt');
+  } finally { g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager'); m.restore(); }
+});
+
 test('Folgeaktion tourplan_pending_action=openCrewModal landet in der Konsole #crew', async () => {
   const g = await loadGraph(); if (!g) return 'SKIP';
   const init = await import('../js/init.js');

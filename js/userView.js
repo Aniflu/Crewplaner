@@ -451,10 +451,12 @@ export function meinesMelden(dateStr, posId) {
 // activePlanId. Verhindert den alten Sammel-Topf mit leerem Suffix (loadPlanForManager
 // setzt kein activePlanId → früher kippten ALLE Pläne in 'crewplan_updates_').
 function _queuePlanKey() {
+  // Aus dem EIGENEN Plan dieses Tabs (im Speicher) — nie aus dem globalen Zeiger
+  // tourplan_active_pb_id, den ein zweiter Tab (Konsole) jederzeit umsetzen kann.
+  const lid = getActivePlanId() || '';
   let pid = '';
-  try { pid = localStorage.getItem('tourplan_active_pb_id') || ''; } catch(_) {}
-  if (!pid) pid = getActivePlanId() || '';
-  return 'crewplan_updates_' + pid;
+  try { if (lid) pid = localStorage.getItem('tourplan_pb_' + lid) || ''; } catch(_) {}
+  return 'crewplan_updates_' + (pid || lid);
 }
 let _legacyQueueMigrated = false;
 function _migrateLegacyQueue() {

@@ -19,7 +19,14 @@ export async function activateConsolePlan(pbId, name) {
     localStorage.setItem('tourplan_pb_' + lid, pbId);
     localStorage.setItem('tourplan_active_pb_id', pbId);
     localStorage.setItem('tourplan_active_plan', lid);
-    const idx = getPlansIndex().filter(p => p && p.id);
+    // Genau ein Eintrag je lokaler ID: vorhandene Doppelte (z. B. aus zwei Tabs) fallen weg.
+    let seen = false;
+    const idx = getPlansIndex().filter(p => {
+      if (!p || !p.id) return false;
+      if (p.id !== lid) return true;
+      if (seen) return false;
+      seen = true; return true;
+    });
     const hit = idx.find(p => p.id === lid);
     if (hit) { if (name) hit.name = name; }
     else idx.push({ id: lid, name: name || 'Plan', created: _today(), modified: _today() });

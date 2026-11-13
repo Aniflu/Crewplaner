@@ -110,6 +110,7 @@ test('gesendet wird nur, was der Hook liest — und das passt ins Feld', async (
   g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager');
   globalThis.localStorage.setItem('pb_token', 't');
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  g.plans.setActivePlanId('PLAN1'); localStorage.setItem('tourplan_pb_' + 'PLAN1', 'PLAN1');
 
   // 59 Einsätze wie in einer echten Tour, mit allen Altlast-Feldern in der Queue.
   const slots = [];

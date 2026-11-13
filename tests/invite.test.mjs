@@ -9,7 +9,7 @@
 import { test, eq, ok } from './_assert.mjs';
 import { loadGraph, resetState } from './_graph.mjs';
 
-const INVITES_KEY = 'tourplan_crew_invites';
+const INVITES_KEY = 'tourplan_crew_invites_default';   // v1.3.0: je Plan (hier: kein Plan → default)
 
 function primePlan(g){
   g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager');

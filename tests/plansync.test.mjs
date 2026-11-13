@@ -286,6 +286,25 @@ if (!g) {
     } finally { pb.setGate(null); pb.restore(); }
   });
 
+  test('plansync (I2): Zeiger von anderem Tab auf Y gesetzt → Reload von X im Tab X klappt', async () => {
+    const pb = setup('Wolf', plan('Wolf'));
+    try {
+      localStorage.setItem('tourplan_active_pb_id', 'PB2');     // Konsole (anderer Tab) hat den Zeiger umgesetzt
+      const okLoad = await g.dataService.loadPlanForManager('PB1');   // Tab X (p1 → PB1) lädt sich neu
+      eq(okLoad, true, 'Reload des eigenen Plans darf nicht am fremden Zeiger scheitern');
+    } finally { pb.restore(); }
+  });
+
+  test('plansync (M4): ohne tourplan_pb_<lid> kein Rückfall auf den globalen Zeiger', async () => {
+    const pb = setup('Wolf', plan('Wolf'));
+    try {
+      localStorage.removeItem('tourplan_pb_p1');
+      localStorage.setItem('tourplan_active_pb_id', 'PB2');     // fremder Plan
+      const id = await quiet(() => g.dataService._getActivePlanId());
+      ok(id !== 'PB2', 'Plan des Tabs darf nicht der fremde Zeiger sein, war ' + id);
+    } finally { pb.restore(); }
+  });
+
   test('plansync (C3): switch A→B, während A noch lädt → A-Antwort schreibt nichts in Plan B', async () => {
     const pb = setup('Wolf', plan('Wolf'));
     try {
