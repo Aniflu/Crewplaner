@@ -10,9 +10,8 @@ import { getActivePlanId, getPlansIndex } from './plans.js';
 import { openModal, closeModal } from './modals.js';
 
 // v1.3.0: Einladungs-Vermerke und Absage-Queue gehören zum Plan DIESES Tabs (Suffix = PB-Plan-ID
-// aus tourplan_pb_<lokale ID>, sonst die lokale ID). Die alten globalen Schlüssel ohne Suffix
-// werden bewusst NICHT mehr gelesen und nicht angefasst: ihr Plan ist nicht mehr feststellbar,
-// und eine ungeprüfte Übernahme würde Absagen/Vermerke dem falschen Plan zuschreiben.
+// aus tourplan_pb_<lokale ID>, sonst die lokale ID). Alte globale Schlüssel ohne Suffix werden
+// beim Lesen vorsichtig übernommen (siehe _migrate*), nur was nachweislich zu diesem Plan gehört.
 const CREW_INVITES_KEY = 'tourplan_crew_invites';
 const PENDING_CANCELLATIONS_KEY = 'tourplan_pending_cancellations';
 function _planScoped(base) {
@@ -22,8 +21,40 @@ function _planScoped(base) {
   return base + '_' + (pb || lid || 'default');
 }
 
+function _readJson(key) {
+  try { const v = JSON.parse(localStorage.getItem(key) || '{}'); return (v && typeof v === 'object') ? v : {}; } catch { return {}; }
+}
+
+// Alte globale Absagen: nur Einträge, deren Person in der Crew DIESES Plans steht und deren Slots
+// auf Tage dieses Plans fallen, wandern in den Plan-Schlüssel und verschwinden aus dem globalen —
+// so können sie nicht in einen zweiten Plan wandern. Der Rest bleibt liegen.
+function _migrateCancellations() {
+  const old = _readJson(PENDING_CANCELLATIONS_KEY);
+  const names = Object.keys(old);
+  if (!names.length || !TOUR_DATES.length) return;
+  const dates = new Set(TOUR_DATES.map(r => r.date));
+  const key = _planScoped(PENDING_CANCELLATIONS_KEY);
+  const cur = _readJson(key);
+  let moved = false;
+  for (const n of names) {
+    const e = old[n];
+    const slots = (e && e.slots) || [];
+    if (!crew.includes(n) || !slots.length || !slots.every(sl => dates.has(sl.date))) continue;
+    if (!cur[n]) cur[n] = { email: e.email, slots: [] };
+    for (const sl of slots)
+      if (!cur[n].slots.some(x => x.date === sl.date && x.posLabel === sl.posLabel)) cur[n].slots.push(sl);
+    delete old[n]; moved = true;
+  }
+  if (!moved) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(cur));
+    localStorage.setItem(PENDING_CANCELLATIONS_KEY, JSON.stringify(old));
+  } catch (_) {}
+}
+
 function _loadCancellations() {
-  try { return JSON.parse(localStorage.getItem(_planScoped(PENDING_CANCELLATIONS_KEY)) || '{}'); } catch { return {}; }
+  _migrateCancellations();
+  return _readJson(_planScoped(PENDING_CANCELLATIONS_KEY));
 }
 
 // Exportiert (v0.29.2) — wird auch von dropdown.js beim Entfernen/Ersetzen einer
@@ -43,8 +74,16 @@ function _clearPendingCancellations(crewName) {
   localStorage.setItem(_planScoped(PENDING_CANCELLATIONS_KEY), JSON.stringify(q));
 }
 
+// Alter globaler Einlade-Vermerk: gilt für Personen, die in der Crew dieses Plans stehen und im
+// Plan-Schlüssel noch keinen Eintrag haben (der Zeitstempel bleibt global unverändert liegen).
 function _loadInvites() {
-  try { return JSON.parse(localStorage.getItem(_planScoped(CREW_INVITES_KEY)) || '{}'); } catch { return {}; }
+  const cur = _readJson(_planScoped(CREW_INVITES_KEY));
+  const old = _readJson(CREW_INVITES_KEY);
+  let moved = false;
+  for (const n of Object.keys(old))
+    if (!cur[n] && crew.includes(n)) { cur[n] = old[n]; moved = true; }
+  if (moved) { try { localStorage.setItem(_planScoped(CREW_INVITES_KEY), JSON.stringify(cur)); } catch (_) {} }
+  return cur;
 }
 
 function _saveInvite(name) {
