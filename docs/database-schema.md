@@ -100,7 +100,7 @@ PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.28 depl
 | `pos_label` | Text | Positions-Bezeichnung (für E-Mail) |
 | `crew_name` | Text | Name der zugewiesenen Crew |
 | `crew_email` | Email | E-Mail für Hook-Benachrichtigung |
-| `status` | **Text** (kein Select — 2026-07-21 live geprüft, entgegen früherer Doku-Annahme) | `proposed` → `confirmed` / `declined` / `pencilled` (v0.29.0, „vorgemerkt"). Da es ein freies Textfeld ist, braucht ein neuer Status-Wert KEINE Schema-Änderung. |
+| `status` | **Text** (kein Select — 2026-07-21 live geprüft, entgegen früherer Doku-Annahme) | `proposed` → `confirmed` / `declined` / `pencilled` (v0.29.0, „vorgemerkt") / `pencil_declined` (v1.4.0, „Vormerkung abgesagt“, ab Hook v4.29 (Deploy ausstehend); zählt wie `declined`). Da es ein freies Textfeld ist, braucht ein neuer Status-Wert KEINE Schema-Änderung. |
 | `proposed_by` | **Text** | Quelle der Anfrage: `'bulk'` / `'update'` / `'manual'` (NICHT E-Mail) |
 | `responded_at` | DateTime | Zeitstempel der **Antwort** — nur bei bestätigen/absagen/stornieren/quittieren. Ein vom Planer angelegter Slot hat hier nichts; als Entstehungszeit taugt das Feld deshalb NICHT |
 | `created` | **autodate** (`onCreate`) | Seit v0.13.6 (Test + Live). Die 1004 Zeilen von vorher bleiben **leer** und damit ehrlich als „unbekannt" erkennbar — PocketBase füllt Altbestand nicht nach (an einer Wegwerf-Collection gemessen, bevor irgendetwas angefasst wurde) |
@@ -119,6 +119,7 @@ PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.28 depl
 **Erlaubte Statuswechsel für CREW (Hook v4.26 / v0.13.0 — serverseitig erzwungen, auf Test gemessen):**
 `proposed → confirmed|declined`, `confirmed → declined`, `pencilled → declined`,
 `cancelled → cancel_acked`, sowie „kein Record" → `confirmed|declined` für einen geplanten Slot.
+**Ab Hook v4.29 (Deploy ausstehend)** gilt zusätzlich: `pencilled → pencil_declined|declined` und `pencil_declined → pencilled` (Vormerkung absagen bzw. eigene Absage zurücknehmen); `declined` aus `pencilled` bleibt nur für die alte App v1.3.0 erlaubt. Wörtlich: `proposed:['confirmed','declined'], confirmed:['declined'], pencilled:['pencil_declined','declined'], pencil_declined:['pencilled'], cancelled:['cancel_acked']`.
 Alles andere ist Planer-Sache — insbesondere **`pencilled → confirmed`** und **jedes** Setzen von
 `pencilled`. Leitprinzip: Die Crew bewegt einen Status nur abwärts; die einzige Aufwärtsbewegung,
 die ihr gehört, ist die Antwort auf eine Anfrage. Die Tabelle steht in `js/pure.js`

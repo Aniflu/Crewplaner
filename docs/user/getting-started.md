@@ -36,12 +36,15 @@ App.
 Nach dem Einloggen öffnet sich deshalb das Fenster **„Meine Einsätze"**. Dort stehen:
 
 - **offene Anfragen** — mit Haken bestätigen, Haken entfernen heißt „nicht verfügbar"
-- **Vormerkungen** (seit v0.13.0) — Tage, für die dich die Tourleitung grob eingeplant hat. Hier
-  gibt es bewusst kein Häkchen, nur **„Absagen"**: Bestätigen musst du eine Vormerkung nicht, sie
-  wird zur Anfrage, sobald es verbindlich wird. Kannst du an einem Tag nicht, sag es hier, dann
-  plant die Tourleitung nicht ins Leere. Dasselbe geht per Klick auf die eigene Vormerkung in der
-  Tabelle. Das Fenster öffnet sich beim Login nur bei echten Anfragen, die Vormerkungen erreichst
-  du jederzeit über die Schaltfläche.
+- **Vormerkungen** (seit v1.4.0 reine Information) — Tage, für die dich die Tourleitung grob
+  eingeplant hat. Sie sind **nur zur Information**: Es gibt kein Häkchen und nichts zu bestätigen,
+  eine Vormerkung wird erst zur Anfrage, wenn es verbindlich wird. Beim ersten Öffnen erscheint
+  das Fenster **„ℹ Nur zur Information“**, mit **„OK, verstanden“** schließt du es (die
+  Tourleitung sieht dann „gesehen ✓“). Kannst du an einem Tag nicht, nutze **„✗ Absagen“** (oder
+  **„✗ Alle absagen“**), dann plant die Tourleitung nicht ins Leere. Hast du dich vertan, holt
+  **„↩ Wieder vormerken“** die Vormerkung zurück. Dasselbe geht per Klick auf die eigene
+  Vormerkung in der Tabelle. Das Anfragen-Fenster öffnet sich beim Login nur bei echten
+  Anfragen, die Vormerkungen erreichst du jederzeit über die Schaltfläche.
 - **entfallene Tage** — Tage, für die du nicht mehr eingeplant bist, mit einem „Gesehen"-Knopf
 
 Der Knopf **„ÄNDERUNGEN GESEHEN ✓"** in der Mail macht dasselbe wie „Gesehen" im Fenster; du
@@ -121,7 +124,12 @@ Für Termine weit in der Zukunft gibt es zusätzlich **„Vorgemerkt"** (✎, vi
 Vorplanung, wenn Termine/Besetzung noch nicht verbindlich feststehen; es wird **keine**
 Anfrage-Mail verschickt. Im Zellen-Menü kannst du jede Person direkt über **„✎ Vorgemerkt: Name"**
 vormerken (auch in einer leeren Zelle). Über „→ Jetzt anfragen" wird daraus später eine normale
-Anfrage.
+Anfrage. Eine Vormerkung ist **keine Anfrage**: Die Person muss nichts bestätigen. Mit
+**„✉ Vormerkung mitteilen“** (Konsole, Karte „Crew & Positionen“) schickst du ihr eine
+Info-Mail mit Vorschau und optionalem Freitext; danach steht dort „gesehen ✓ {Datum}“, sobald
+sie das Info-Fenster bestätigt hat. Sagt sie eine Vormerkung ab, bekommst du eine Mail
+„VORMERKUNG ABGESAGT“ (bzw. „VORMERKUNG WIEDER FREI“, wenn sie die Absage zurücknimmt). Einladungen
+nehmen vorgemerkte Tage nicht mit.
 
 Entfernst du eine bereits bestätigte oder angefragte Person aus einem Tag, landet das
 automatisch in der Sidebar unter **„↻ Updates"** — von dort verschickst du gesammelt die
