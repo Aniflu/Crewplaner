@@ -157,8 +157,15 @@ async function _createOrFetchPlanId(key) {
 }
 
 // ── Plan-Daten für Crew-Mitglieder aus PocketBase laden ───────────────────────
+// Plan, den DIESER Tab für die Crew wirklich geladen hat (im Speicher, je Tab). Der globale
+// Zeiger tourplan_active_pb_id kann von einem zweiten Tab umgesetzt werden.
+let _crewLoadedPb = '';
+export function getCrewLoadedPlanId() { return _crewLoadedPb; }
+export function _setCrewLoadedPlanId(id) { _crewLoadedPb = id || ''; }
+
 export async function loadPlanForCrew() {
   if (!SUPABASE_ENABLED || !IS_CREW) return;
+  _crewLoadedPb = '';
   const planId = await _getActivePlanId();
   if (!planId) return;
   // Der gemerkte Tourname gehört zur VORIGEN Tour, bis die neue wirklich geladen ist. Bricht
@@ -193,6 +200,7 @@ export async function loadPlanForCrew() {
     TOUR_DATES.length = 0; data.tourDates.forEach(d => TOUR_DATES.push(d));
     Object.keys(assignments).forEach(k => delete assignments[k]);
     Object.assign(assignments, data.assignments || {});
+    _crewLoadedPb = planId;
     localStorage.setItem('tourplan_active_pb_id', planId);
   } catch(e) {
     console.warn('loadPlanForCrew Fehler:', e.message);

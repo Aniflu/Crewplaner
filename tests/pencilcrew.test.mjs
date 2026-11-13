@@ -12,6 +12,8 @@ function setup(g, statuses){
   globalThis.localStorage.setItem('pb_token', 't');
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
   globalThis.localStorage.removeItem('crew_pencil_seen_PLAN1');
+  globalThis.localStorage.removeItem('crew_pencil_seen_PLAN2');
+  if (g.dataService._setCrewLoadedPlanId) g.dataService._setCrewLoadedPlanId('PLAN1');
   g.state.crewMeta[ME] = { email: 'crew@example.com', userId: 'uid-crew' };
   g.state.POSITIONS.push({ id: 'gl', label: 'Gruppenleitung' }, { id: 'fa', label: 'Fahrer' });
   Object.entries(statuses).forEach(([k, st]) => {
@@ -87,6 +89,37 @@ test('OK schreibt genau ein pencil_seen (planId, Name, Mail), keine Tageszeilen'
     eq(seen.length, 1); eq(seen[0].body.action, 'pencil_seen');
     eq(seen[0].body.plan_id, 'PLAN1'); eq(seen[0].body.crew_name, ME); eq(seen[0].body.crew_email, 'crew@example.com');
     eq(seen[0].body.date, '');
+  } finally { dom.restore(); }
+});
+
+test('Popup/OK nutzen den GELADENEN Plan des Tabs, nicht den globalen Zeiger', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  const st = { '2026-07-01|gl': 'pencilled' };
+  setup(g, st); mock(st); const dom = captureDom();
+  // Ein zweiter Tab hat den globalen Zeiger auf eine andere Tour umgesetzt.
+  globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN2');
+  try {
+    ok(g.userView.checkPencilInfoPopup() === true);
+    g.userView.pencilInfoOk(); await flush();
+    const seen = log.posts.filter(p => p.url.includes('activity_log'));
+    eq(seen.length, 1); eq(seen[0].body.plan_id, 'PLAN1');
+    ok((globalThis.localStorage.getItem('crew_pencil_seen_PLAN1') || '').includes('2026-07-01|gl'), 'Schlüssel unter PLAN1');
+    eq(globalThis.localStorage.getItem('crew_pencil_seen_PLAN2'), null);
+    // Doppelklick auf OK schreibt keinen zweiten Eintrag.
+    g.userView.pencilInfoOk(); await flush();
+    eq(log.posts.filter(p => p.url.includes('activity_log')).length, 1);
+  } finally { dom.restore(); }
+});
+
+test('Ohne geladenen Plan kein Popup und kein Log', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  const st = { '2026-07-01|gl': 'pencilled' };
+  setup(g, st); mock(st); const dom = captureDom();
+  if (g.dataService._setCrewLoadedPlanId) g.dataService._setCrewLoadedPlanId('');
+  try {
+    ok(g.userView.checkPencilInfoPopup() === false);
+    g.userView.pencilInfoOk(); await flush();
+    eq(log.posts.filter(p => p.url.includes('activity_log')).length, 0);
   } finally { dom.restore(); }
 });
 

@@ -128,7 +128,7 @@ async function _refreshPencilSeen() {
     const r = await pbListAll('activity_log',
       `plan_id = "${pbEscapeFilter(pid)}" && action = "pencil_seen"`, '-ts');
     _seenRows = r?.items || []; _seenPlan = pid;
-  } catch (e) { console.warn('pencil_seen laden:', e.message); }
+  } catch (e) { _seenRows = []; _seenPlan = ''; console.warn('pencil_seen laden:', e.message); }
 }
 function _pencilSeenTs(name, email) {
   const em = (email || '').toLowerCase();

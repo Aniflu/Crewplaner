@@ -8,7 +8,7 @@ import { pbPatch, pbPost, pbFirst } from './pb.js';
 import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
          sendAvailabilityNotice, loadPlanForCrew, loadCrewMeta,
          loadCrewPlans, ackCancelledAssignments, moveAssignmentDate,
-         restorePencilled, logActivity } from './dataService.js';
+         restorePencilled, logActivity, getCrewLoadedPlanId } from './dataService.js';
 import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable, resetTodayAutoScroll } from './render.js';
 import { getActivePlanId, getPlansIndex, activePlanName, _savePlanToLS } from './plans.js';
@@ -173,13 +173,12 @@ export function getMyPencilDeclinedSlots() {
 // Erscheint für Vormerkungen, die die Person noch nicht mit OK bestätigt hat. Gemerkt wird je
 // Plan im Browser (crew_pencil_seen_<PB>), zusätzlich EIN pencil_seen-Eintrag je OK (der Planer
 // sieht „gesehen ✓"). Kein Absagen im Popup, kein Bestätigen irgendwo.
-export function _pencilSeenKey() {
-  let pb = '';
-  try { pb = localStorage.getItem('tourplan_active_pb_id') || ''; } catch(_) {}
-  return 'crew_pencil_seen_' + pb;
+// Plan-ID aus dem im Tab GELADENEN Crew-Plan, nie aus dem globalen Zeiger (zweiter Tab).
+export function _pencilSeenKey(pb = getCrewLoadedPlanId()) {
+  return 'crew_pencil_seen_' + (pb || '');
 }
-function _readPencilSeen() {
-  try { const a = JSON.parse(localStorage.getItem(_pencilSeenKey()) || '[]'); return Array.isArray(a) ? a : []; }
+function _readPencilSeen(pb) {
+  try { const a = JSON.parse(localStorage.getItem(_pencilSeenKey(pb)) || '[]'); return Array.isArray(a) ? a : []; }
   catch(_) { return []; }
 }
 // Rein: nur Schlüssel `date|posId`, die noch nicht in `seen` stehen.
@@ -188,11 +187,15 @@ export function unseenPencilSlots(slots, seen) {
   return (slots || []).filter(x => !s.has(x.date + '|' + x.posId));
 }
 let _pencilShown = [];
+let _pencilPlan = '';
 export function checkPencilInfoPopup() {
   if (IS_MANAGER || !IS_CREW) return false;
-  const neu = unseenPencilSlots(getMyPencilledSlots(), _readPencilSeen());
+  const pb = getCrewLoadedPlanId();
+  if (!pb) return false;
+  const neu = unseenPencilSlots(getMyPencilledSlots(), _readPencilSeen(pb));
   if (!neu.length) return false;
   _pencilShown = neu;
+  _pencilPlan = pb;
   const zeilen = neu.map(({ date, posId }) => {
     const [y, m, d] = date.split('-');
     const pos = (typeof POSITIONS !== 'undefined' ? POSITIONS : []).find(p => p.id === posId);
@@ -217,14 +220,15 @@ export function checkPencilInfoPopup() {
   return true;
 }
 export function pencilInfoOk() {
-  const seen = new Set(_readPencilSeen());
-  _pencilShown.forEach(x => seen.add(x.date + '|' + x.posId));
-  try { localStorage.setItem(_pencilSeenKey(), JSON.stringify([...seen])); } catch(_) {}
-  _pencilShown = [];
-  let pb = '';
-  try { pb = localStorage.getItem('tourplan_active_pb_id') || ''; } catch(_) {}
-  logActivity('pencil_seen', { planId: pb, crewName: getMyCrewName() || '', crewEmail: CURRENT_USER_EMAIL || '' });
+  const pb = _pencilPlan;
+  const shown = _pencilShown;
+  _pencilShown = []; _pencilPlan = '';
   closeModal('sharedModal');
+  if (!pb || !shown.length) return;   // Doppelklick bzw. kein Popup offen: nichts schreiben
+  const seen = new Set(_readPencilSeen(pb));
+  shown.forEach(x => seen.add(x.date + '|' + x.posId));
+  try { localStorage.setItem(_pencilSeenKey(pb), JSON.stringify([...seen])); } catch(_) {}
+  logActivity('pencil_seen', { planId: pb, crewName: getMyCrewName() || '', crewEmail: CURRENT_USER_EMAIL || '' });
   // Danach greifen die normalen Öffnungsregeln (offene Anfragen / entfallene Tage).
   if (getMyPendingSlots().length > 0 || meineEntfallenen.length > 0) openMyScheduleModal();
 }
