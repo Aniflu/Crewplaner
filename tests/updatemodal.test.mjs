@@ -114,8 +114,6 @@ test('jedes Dialogfenster begrenzt seine Höhe und kann rollen', () => {
   // stillschweigend übergangen.
   const PER_CSS = {
     tbModal: '#tbInner in styles.css (max-height:92vh; overflow-y:auto)',
-    // Konsole (admin.html), nicht Teil von v1.3.0: Tourvergleich-Fenster, vorbestehend ohne Höhengrenze.
-    tvSaveModal: 'admin.html, vorbestehend (offen)', tvDayModal: 'admin.html, vorbestehend (offen)',
   };
 
   // ⚠️ Kommentare VOR dem Ausschneiden entfernen, nicht danach: Ein ausführlicher

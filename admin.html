@@ -17,7 +17,7 @@
 <script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="theme.css?v=3">
-<script type="module" src="js/admin-app.js?v=24"></script>
+<script type="module" src="js/admin-app.js?v=25"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -620,7 +620,7 @@ body.modal-open { overflow: hidden; }
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v1.2.3</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v1.3.0</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -992,10 +992,10 @@ body.modal-open { overflow: hidden; }
 <!-- TOURVERGLEICH: Tagestafel -->
 <div id="tvMenu" class="tv-menu" style="display:none"></div>
 <div class="modal-bg" id="tvSaveModal">
-  <div class="modal-box tv-modal tv-savebox"><div id="tvSaveBody"></div></div>
+  <div class="modal-box tv-modal tv-savebox" style="max-height:92vh;overflow-y:auto"><div id="tvSaveBody"></div></div>
 </div>
 <div class="modal-bg" id="tvDayModal">
-  <div class="modal-box tv-modal"><div id="tvDayBody"></div></div>
+  <div class="modal-box tv-modal" style="max-height:92vh;overflow-y:auto"><div id="tvDayBody"></div></div>
 </div>
 
 <!-- PDF MODAL -->
