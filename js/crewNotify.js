@@ -6,6 +6,7 @@ import { showToast, isPending, getVal, esc } from './utils.js';
 import { sendCrewInvite, sendCancellationNotice,
          sendUpdateNotice, loadAssignmentStatuses } from './dataService.js';
 import { hasPermission } from './rbac.js';
+import { getActivePlanId, getPlansIndex } from './plans.js';
 import { openModal, closeModal } from './modals.js';
 
 const CREW_INVITES_KEY = 'tourplan_crew_invites';
@@ -101,20 +102,20 @@ function _renderCrewNotifyList() {
     const hasNew = newSlots.length > 0;
     const nameAttr = esc(name);
 
+    const updBtn = hasNew
+      ? `<button class="mbtn sm" data-crew="${nameAttr}" onclick="openUpdatePreview(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
+      : '';
     let badge, btn;
     if (status === 'confirmed') {
       badge = `<span style="font-size:.58rem;color:#4ae8a0;">✅ Bestätigt</span>`;
-      btn = hasNew
-        ? `<button class="mbtn sm" data-crew="${nameAttr}" onclick="sendUpdate(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
-        : '';
+      btn = updBtn;
     } else if (status === 'invited_pending') {
       badge = `<span style="font-size:.58rem;color:#e8c84a;">🟡 Eingeladen ${_fmtInviteDate(name, invites)}</span>`;
-      btn = hasNew
-        ? `<button class="mbtn sm" data-crew="${nameAttr}" onclick="sendUpdate(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
-        : `<button class="mbtn sm" data-crew="${nameAttr}" data-type="reminder" onclick="sendInvite(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">🔔 Erinnerung</button>`;
+      // Erinnerung immer für eingeladene Personen, auch wenn es neue Termine gibt (Update zusätzlich)
+      btn = `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">${updBtn}<button class="mbtn sm" data-crew="${nameAttr}" data-type="reminder" onclick="openInvitePreview(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">🔔 Erinnerung</button></div>`;
     } else {
       badge = `<span style="font-size:.58rem;color:#5a6070;">⚪ Nicht eingeladen</span>`;
-      btn = `<button class="mbtn primary sm" data-crew="${nameAttr}" data-type="invite" onclick="sendInvite(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">📧 Einladen</button>`;
+      btn = `<button class="mbtn primary sm" data-crew="${nameAttr}" data-type="invite" onclick="openInvitePreview(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">📧 Einladen</button>`;
     }
 
     // Absage zu aktiven Einsätzen (bestätigt/angefragt) und nachträglich auch zu schon
@@ -161,6 +162,82 @@ export async function sendCancellationSummary(crewName) {
     showToast(`${crewName}: Absage-Mail gesendet ✓`, '#4ae8a0');
     _renderCrewNotifyList();
   } catch(e) {
+    showToast('Fehler: ' + e.message, '#e84a4a');
+  }
+}
+
+// ── Vorschau mit optionalem Freitext vor Einladung/Erinnerung/Update (v1.3.0) ────
+// Früher nur in der Konsole (openEmailPreview). Der Freitext geht als `customMessage` an den
+// Hook — derselbe Feldname wie zuvor. Abbrechen sendet nichts.
+let _previewCtx = null;
+
+function _openSendPreview(ctx, title, subject, intro, slots) {
+  _previewCtx = ctx;
+  const rows = slots.map(sl => `<tr><td style="padding:4px 8px;border-bottom:1px solid var(--rule);">${esc(sl.dateLabel || _fmtDateDE(sl.date))}</td><td style="padding:4px 8px;border-bottom:1px solid var(--rule);">${esc(sl.posLabel || '')}</td></tr>`).join('');
+  document.getElementById('sharedTitle').textContent = title;
+  const dlg = document.getElementById('sharedBody');
+  dlg.innerHTML = `<div style="font-size:.7rem;color:var(--ink);line-height:1.6;">
+      <div><strong style="color:var(--ink-2);">An:</strong> ${esc(ctx.email)}</div>
+      <div><strong style="color:var(--ink-2);">Betreff:</strong> ${esc(subject)}</div>
+      <div style="margin-top:8px;color:var(--ink-2);">${intro}</div>
+      ${rows ? `<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:.62rem;color:var(--ink-2);">${rows}</table>` : ''}
+      <textarea id="sendPreviewText" rows="3" class="mi" placeholder="Persönliche Nachricht für die E-Mail (optional)…" style="resize:vertical;width:100%;margin-top:12px;"></textarea>
+    </div>
+    <div class="mactions" style="margin-top:8px;">
+      <button class="mbtn" onclick="closeSendPreview()">Abbrechen</button>
+      <button class="mbtn primary" onclick="confirmSendPreview()">📧 Senden →</button>
+    </div>`;
+  openModal('sharedModal');
+}
+
+function _planNameForPreview() {
+  try {
+    const idx = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
+    return idx.find(p => p.id === getActivePlanId())?.name || 'Tour Plan';
+  } catch (_) { return 'Tour Plan'; }
+}
+
+export function openInvitePreview(crewName, type) {
+  if (!hasPermission('sendInvite')) return;
+  const meta = crewMeta[crewName] || {};
+  if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
+  const slots = _getAllSlotsForCrew(crewName, meta.email).filter(sl => assignmentStatuses[sl.date]?.[sl.posId]?.status !== 'confirmed');
+  const pn = esc(_planNameForPreview());
+  const isInv = type !== 'reminder';
+  _openSendPreview({ kind: type, crewName, email: meta.email }, (isInv ? '📧 Einladung an ' : '🔔 Erinnerung an ') + crewName,
+    (isInv ? 'CREW INVITE · ' : 'REMINDER · ') + _planNameForPreview(),
+    isInv ? `Einladung zu <strong>${pn}</strong> — bitte bestätige deine ${slots.length} Einsätze:`
+          : `Erinnerung, ausstehende Einsätze für <strong>${pn}</strong> zu bestätigen.`,
+    slots);
+}
+
+export function openUpdatePreview(crewName) {
+  if (!hasPermission('sendInvite')) return;
+  const meta = crewMeta[crewName] || {};
+  if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
+  const slots = _getNewSlotsForCrew(crewName, meta.email);
+  if (!slots.length) { showToast('Keine neuen Termine', '#5a6070'); return; }
+  _openSendPreview({ kind: 'update', crewName, email: meta.email }, '↻ Update an ' + crewName,
+    'ÄNDERUNG · ' + _planNameForPreview(),
+    `${slots.length} neue Einsätze für <strong>${esc(_planNameForPreview())}</strong> — Crew bestätigt erneut.`, slots);
+}
+
+export function closeSendPreview() {
+  _previewCtx = null;
+  if (_notifyHostId === 'sharedBody') _renderCrewNotifyList();
+  else closeModal('sharedModal');
+}
+
+export async function confirmSendPreview() {
+  const ctx = _previewCtx;
+  if (!ctx) { closeSendPreview(); return; }
+  const text = (document.getElementById('sendPreviewText')?.value || '').trim();
+  _previewCtx = null;
+  if (_notifyHostId !== 'sharedBody') closeModal('sharedModal');
+  try {
+    if (ctx.kind === 'update') await sendUpdate(ctx.crewName, text || undefined);
+    else await sendInvite(ctx.crewName, ctx.kind, text || undefined);
+  } catch (e) {
     showToast('Fehler: ' + e.message, '#e84a4a');
   }
 }
@@ -298,7 +375,7 @@ function _einladungsFehlerText(e) {
   return roh;
 }
 
-export async function sendInvite(crewName, type) {
+export async function sendInvite(crewName, type, customMessage) {
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
 
@@ -315,7 +392,7 @@ export async function sendInvite(crewName, type) {
   // Transaktion aus. Die frühere Vorab-Anlage im Browser (bulkProposeCrew) entfällt samt
   // ihrer Drosselung und Fortschrittsanzeige — eine Anfrage kann keine Mengengrenze reißen.
   try {
-    await sendCrewInvite(crewName, meta.email, type, allSlots);
+    await sendCrewInvite(crewName, meta.email, type, allSlots, customMessage);
   } catch (e) {
     showToast(`${crewName}: nicht gesendet — ${_einladungsFehlerText(e)}`, '#e84a4a');
     _renderCrewNotifyList();
@@ -334,7 +411,7 @@ export async function sendInvite(crewName, type) {
   _renderCrewNotifyList();
 }
 
-export async function sendUpdate(crewName) {
+export async function sendUpdate(crewName, customMessage) {
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
   const newSlots = _getNewSlotsForCrew(crewName, meta.email);
@@ -345,7 +422,7 @@ export async function sendUpdate(crewName) {
   }));
   // Schreiben und mailen in EINEM Aufruf (v0.11.0) — kein vorgelagertes bulkProposeCrew
   // mehr, das auf halber Strecke stehenbleiben konnte.
-  await sendUpdateNotice(crewName, meta.email, updateSlots, undefined, newSlots);
+  await sendUpdateNotice(crewName, meta.email, updateSlots, customMessage || undefined, newSlots);
   newSlots.forEach(s => {
     if (!assignmentStatuses[s.date]) assignmentStatuses[s.date] = {};
     assignmentStatuses[s.date][s.posId] = { status: 'proposed', proposedBy: 'update', crewName };

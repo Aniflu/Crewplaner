@@ -159,3 +159,92 @@ test('Absage aktiver Einsätze: Zeile der Person bietet 🚫 und die Funktionen 
   for (const f of ['openCancelSelect', 'sendSelectedCancellation', 'cxlAddManual', 'closeCancelSelect'])
     ok(app.includes(f) && adm.includes(f), f + ' in app.js und admin-app.js verdrahtet');
 });
+
+// ── Fix-Runde 1: Vorschau mit Freitext, Erinnerung, Queue-Schlüssel ───────────────
+// Freitext geht als `customMessage` an den Hook — derselbe Feldname wie in der alten
+// Konsolen-Logik (git show be0cdd2:admin.html, openEmailPreview/sendAdmin*). Ohne Freitext fehlt
+// das Feld ganz (nicht leer), wie zuvor.
+test('Freitext: customMessage in Einladung, Erinnerung, Update und Absage (Feldname festgenagelt)', async () => {
+  const g = await setup(); if (!g) return 'SKIP';
+  const posts = capture();
+  const cn = await import('../js/crewNotify.js');
+  await cn.sendInvite('Anna', 'invite', 'Hallo A');
+  await cn.sendInvite('Anna', 'reminder', 'Hallo B');
+  Object.keys(g.state.assignmentStatuses).forEach(k => delete g.state.assignmentStatuses[k]);  // Einladung hat sie angefragt
+  await cn.sendUpdate('Anna', 'Hallo C');
+  await g.dataService.sendCancellationNotice('Anna', 'anna@x.de', [{ date: '2027-06-01', posId: 'gl', posLabel: 'GL' }], 'Hallo D');
+  eq(posts.map(p => p.type).join(','), 'invite,reminder,update,cancellation');
+  eq(posts.map(p => p.customMessage).join(','), 'Hallo A,Hallo B,Hallo C,Hallo D', 'Feldname customMessage');
+  ok(posts.every(p => p.planId === 'PBY'));
+});
+
+function withEls(map, fn) {
+  const orig = document.getElementById;
+  document.getElementById = id => map[id] || orig.call(document, id);
+  return Promise.resolve().then(fn).finally(() => { document.getElementById = orig; });
+}
+
+test('Vorschau: Abbrechen sendet nichts, Senden schickt den Freitext aus dem Feld', async () => {
+  const g = await setup(); if (!g) return 'SKIP';
+  const posts = capture();
+  const cn = await import('../js/crewNotify.js');
+  const ta = { value: '  Bitte kurz melden  ' };
+  await withEls({ sendPreviewText: ta }, async () => {
+    cn.openInvitePreview('Anna', 'invite');
+    cn.closeSendPreview();
+    eq(posts.length, 0, 'Abbrechen: kein POST');
+    cn.openInvitePreview('Anna', 'invite');
+    await cn.confirmSendPreview();
+    eq(posts.length, 1, 'Senden: genau ein POST');
+    eq(posts[0].customMessage, 'Bitte kurz melden', 'Freitext getrimmt im Feld customMessage');
+    ta.value = '';
+    Object.keys(g.state.assignmentStatuses).forEach(k => delete g.state.assignmentStatuses[k]);
+    cn.openUpdatePreview('Anna');
+    await cn.confirmSendPreview();
+    eq(posts.length, 2);
+    ok(!('customMessage' in posts[1]), 'leerer Freitext: Feld fehlt');
+    eq(posts[1].type, 'update');
+  });
+});
+
+test('Liste: Erinnerung für eingeladene Person auch bei neuen Terminen (Update zusätzlich)', async () => {
+  const g = await setup(); if (!g) return 'SKIP';
+  globalThis.localStorage.setItem(INV, JSON.stringify({ Anna: new Date().toISOString() }));
+  g.state.assignmentStatuses['2027-06-01'] = { gl: { status: 'proposed', crewName: 'Anna' } };  // 06-02 ist neu
+  const host = { innerHTML: '' };
+  const cn = await import('../js/crewNotify.js');
+  await withEls({ hostX: host }, () => cn.renderCrewNotifyInto('hostX'));
+  ok(host.innerHTML.includes('Erinnerung'), 'Erinnerung fehlt');
+  ok(/Update \(1\)/.test(host.innerHTML), 'Update fehlt');
+  ok(host.innerHTML.includes('openInvitePreview') && !/onclick="sendInvite\(/.test(host.innerHTML), 'Knöpfe öffnen die Vorschau');
+});
+
+test('Update-Liste der Konsole: Schlüssel crewplan_updates_<PB-ID> (PBY), nicht die lokale ID', async () => {
+  const g = await loadGraph(); if (!g) return 'SKIP';
+  resetState(g); g.planSync.clearPlanBases();
+  g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager');
+  const ls = globalThis.localStorage; ls.clear();
+  ls.setItem('pb_token', 't');
+  ls.setItem('tourplan_plans', JSON.stringify([{ id: 'pbplan_PBX', name: 'X' }]));
+  ls.setItem('tourplan_pb_pbplan_PBX', 'PBX'); ls.setItem('tourplan_active_pb_id', 'PBX');
+  g.plans.setActivePlanId('pbplan_PBX');
+  const planY = { version: 3, crew: ['Anna'], positions: [{ id: 'gl', label: 'GL', short: 'GL' }], defaultCrew: {},
+    tourDates: [{ date: '2027-06-01', loc: 'Berlin', type: 'show', typeLabel: 'Show' }], assignments: {} };
+  const orig = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const m = String(url).match(/plans\/records\/([^/?]+)$/);
+    const b = m ? { id: m[1], name: 'Y', plan_data: JSON.stringify(planY) } : { items: [] };
+    return { ok: true, status: 200, json: async () => b };
+  };
+  try {
+    const cp = await import('../js/consoleplan.js');
+    ok(await cp.activateConsolePlan('PBY', 'Y'));
+    g.userView._queueRemovedSlot('Anna', 'anna@x.de', '2027-06-01', 'gl', 'GL', 'aid1');
+    ok(ls.getItem('crewplan_updates_PBY'), 'Eintrag liegt unter crewplan_updates_PBY');
+    ok(!ls.getItem('crewplan_updates_pbplan_PBY'), 'nicht unter der lokalen ID');
+    ok(!ls.getItem('crewplan_updates_PBX'), 'nicht beim vorher aktiven Plan');
+    const body = { innerHTML: '' };
+    await withEls({ crewUpdateModalBody: body }, () => g.userView._openUpdateQueueModal());
+    ok(body.innerHTML.includes('Anna'), 'Modal liest die Queue von PBY');
+  } finally { globalThis.fetch = orig; }
+});

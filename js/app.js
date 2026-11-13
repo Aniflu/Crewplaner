@@ -55,7 +55,7 @@ import { _confirmTypeModal, deleteType, openEditType } from './types.js';
 import { adSetMode, confirmAddDate } from './dates.js';
 import { removeCrew, renameCrew, openImportCrewModal, confirmImportCrew,
          _importSelectAll, _closeImportCrew, _showNewPersonForm, createAndTakeCrew } from './crew.js';
-import { sendCancellationSummary, sendInvite, sendUpdate, openCancelSelect, closeCancelSelect, cxlAddManual, sendSelectedCancellation } from './crewNotify.js';
+import { sendCancellationSummary, sendInvite, sendUpdate, openCancelSelect, closeCancelSelect, cxlAddManual, sendSelectedCancellation, openInvitePreview, openUpdatePreview, closeSendPreview, confirmSendPreview } from './crewNotify.js';
 import { tbChangeLoc, tbChangeType } from './tourblock.js';
 import { confirmMySlot, declineMySlot, openSlotConfirmModal, toggleCancellation,
          _bulkConfirmMySlots, _deleteSlotFromQueue, _toggleSlotSelection, meinesMelden,
@@ -165,6 +165,10 @@ window.openCancelSelect = openCancelSelect;
 window.closeCancelSelect = closeCancelSelect;
 window.cxlAddManual = cxlAddManual;
 window.sendSelectedCancellation = sendSelectedCancellation;
+window.openInvitePreview = openInvitePreview;
+window.openUpdatePreview = openUpdatePreview;
+window.closeSendPreview = closeSendPreview;
+window.confirmSendPreview = confirmSendPreview;
 window.tbChangeLoc = tbChangeLoc;
 window.tbChangeType = tbChangeType;
 window.confirmMySlot = confirmMySlot;
