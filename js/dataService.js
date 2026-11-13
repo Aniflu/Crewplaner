@@ -452,7 +452,8 @@ export async function declineAssignment(dateStr, posId) {
 // opts { planId, statuses } (v1.2.0, Tourvergleich): expliziter Plan, globalen Cache nicht anfassen.
 export async function cancelProposal(dateStr, posId, opts) {
   if (!SUPABASE_ENABLED) return;
-  const planId = opts?.planId || await _getActivePlanId();
+  if (opts && !opts.planId) throw new Error('planId fehlt');   // fail closed: nie auf aktiven Plan zurückfallen
+  const planId = opts ? opts.planId : await _getActivePlanId();
   if (!planId) return;
 
   try {
@@ -683,6 +684,7 @@ export async function proposeAssignmentBulk(dateStr, posId, crewName, crewEmail)
 // Mit opts { planId, statuses } (Tourvergleich): Plan und Status stammen aus opts,
 // die globalen assignmentStatuses/clearStatus bleiben unberührt.
 export async function removeAssignmentSlot(dateStr, posId, opts) {
+  if (opts && !opts.planId) throw new Error('planId fehlt');   // vor jedem Request
   const stat = opts ? opts.statuses : assignmentStatuses;
   const si = stat?.[dateStr]?.[posId];
   const wasActive = !!(si && (si.status === 'confirmed' || si.status === 'proposed'));
@@ -699,7 +701,8 @@ export async function removeAssignmentSlot(dateStr, posId, opts) {
 // (für die Queue) oder null, wenn keiner existiert.
 export async function softCancelAssignment(dateStr, posId, opts) {
   if (!SUPABASE_ENABLED) return null;
-  const planId = opts?.planId || await _getActivePlanId();
+  if (opts && !opts.planId) throw new Error('planId fehlt');   // fail closed: nie auf aktiven Plan zurückfallen
+  const planId = opts ? opts.planId : await _getActivePlanId();
   if (!planId) return null;
   const existing = await pbFirst('assignments',
     `plan_id = "${pbEscapeFilter(planId)}" && date = "${pbEscapeFilter(dateStr)}" && pos_id = "${pbEscapeFilter(posId)}"`);

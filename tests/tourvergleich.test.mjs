@@ -199,3 +199,16 @@ test('queueAddRemoved: Form und Dedupe', () => {
   queueAddRemoved(q2, 'Anna', '', '2026-07-09', 'gl', 'GL', 'rec1');
   deepEq(q2, {});
 });
+
+test('removeAssignmentSlot mit leerem planId: wirft, kein PATCH/DELETE (kein Fallback auf aktiven Plan)', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); primeMgr(g);
+  const statuses = { '2026-07-09': { gl:{ status:'confirmed', crewName:'Anna Bauer' } } };
+  let writes = 0;
+  mockFetch((url, method) => { if (method !== 'GET') writes++; return res({ items:[{ id:'recX' }] }); });
+  let threw = false;
+  try { await g.dataService.removeAssignmentSlot('2026-07-09', 'gl', { planId:'', statuses }); } catch(_) { threw = true; }
+  ok(threw, 'wirft');
+  eq(writes, 0, 'keine Schreibzugriffe');
+  ok(statuses['2026-07-09'].gl, 'Status unverändert');
+});
