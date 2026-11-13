@@ -136,7 +136,7 @@ function render() {
   const days = S.onlyOverlap ? ov : allDays();
   const sm = summary(ov);
   let h = noticeHtml() + `<div class="tv-sum ${sm.days ? 'bad' : 'ok'}">` +
-    (sm.days ? `⚠ ${sm.days} Konflikttage · ${sm.people} Personen doppelt` : '✓ keine Doppelbelegung') + '</div>';
+    (sm.days ? `⚠ ${sm.days} ${sm.days === 1 ? 'Konflikttag' : 'Konflikttage'} · ${sm.people} ${sm.people === 1 ? 'Person' : 'Personen'} doppelt` : '✓ keine Doppelbelegung') + '</div>';
   h += `<div class="tv-legend"><span class="tv-dot" style="background:${TOUR_COLOR.A}"></span>A: ${esc(A.name)}` +
        ` <span class="tv-dot" style="background:${TOUR_COLOR.B}"></span>B: ${esc(B.name)}</div>`;
   if (!ov.length) h += '<div class="tv-note">Die Touren überschneiden sich an keinem Tag.</div>';
