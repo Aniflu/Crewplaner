@@ -17,12 +17,16 @@ Eine **Vormerkung** soll nur noch eine Information sein („halte dir die Tage f
 ## Was v4.29 ändert
 
 - **Statusregeln der Crew** (Wächter auf `assignments`): `pencilled → pencil_declined` und `pencil_declined → pencilled` sind neu erlaubt. `pencilled → declined` bleibt erlaubt, nur damit die alte App v1.3.0 weiter funktioniert. Weiter verboten: `declined → pencilled`, `pencil_declined → confirmed`, `pencilled → confirmed`.
-- **Mail an den Planer** (nach Statuswechsel): bei `pencil_declined` der Betreff „VORMERKUNG ABGESAGT · Position · Datum · Name“, bei `pencil_declined → pencilled` „VORMERKUNG WIEDER FREI · …“. Die Mail „ABGELEHNT“ kommt nur noch bei `declined`.
+- **Mail an den Planer** (nach Statuswechsel): bei `pencil_declined` der Betreff „VORMERKUNG ABGESAGT · Position · Datum · Name“, bei `pencil_declined → pencilled` „VORMERKUNG WIEDER FREI · …“. Die Mail „ABGELEHNT“ kommt nur noch bei `declined`. Alle diese Mails gehen nur bei einem **echten Statuswechsel** raus, nicht bei jedem erneuten Speichern.
 - **`POST /notify`:** neuer Typ `pencil_info` (Betreff „Vormerkung – nur Information · «Tour»“, schreibt **keinen** Status, legt nur den Mail-Auslöser an). Bei Einladung, Erinnerung und Update werden Datensätze mit Status `pencilled` oder `pencil_declined` übersprungen und nicht in die Terminliste der Mail aufgenommen.
 - **`GET /planstatus`:** unverändert im Code. Der Filter schließt `pencil_declined` nicht aus, die Crew sieht es also.
 - Version und Logzeile auf 4.29.
 
 ⚠️ **Bitte nicht „aufräumen“:** Die Statustabelle steht bewusst doppelt (App `js/pure.js` und Hook), und die Handler-Logik ist je Handler lokal (Goja-Isolation, Lehre aus v4.25). `tests/statusguard.test.mjs` und `tests/hookpencil.test.mjs` halten das fest.
+
+## Bekannter harmloser Unterschied (alte App v1.3.0)
+
+Solange auf Live noch die App v1.3.0 läuft: Eine Einladung mit vorgemerkten Tagen lässt diese Tage jetzt **vorgemerkt** (früher wurden sie still „angefragt“). Die alte App kann sie lokal bis zum Neuladen als „angefragt“ zeigen. Das ist gewollt und kein Fehler.
 
 ## Deploy
 
@@ -38,10 +42,13 @@ Unverändert nach `docs/admin-runbook-hook-deploy.md` — **zuerst Test, messen,
 | 4 | Einen Einsatz auf `pencilled` setzen, als Crew auf `pencil_declined` setzen | wird angenommen; Mail „VORMERKUNG ABGESAGT · …“ beim Planer (Test hat keinen Mailversand: Logzeile `kein RESEND_KEY` statt Mail genügt) |
 | 5 | Derselbe Einsatz: Crew setzt `pencil_declined → pencilled` | wird angenommen; „VORMERKUNG WIEDER FREI“ |
 | 6 | Crew versucht `pencil_declined → confirmed` und `declined → pencilled` | beides mit `status_transition_denied` abgelehnt |
-| 7 | **Einladung lässt Vormerkung unverändert:** `POST /notify` mit `type: invite` für einen Tag mit Status `pencilled` und einen Tag ohne Record | der vorgemerkte Datensatz bleibt `pencilled`, der andere wird `proposed`; die Mail führt nur den zweiten Tag |
+| 7 | **Einladung lässt Vormerkung unverändert:** `POST /notify` mit `type: invite`, `slots` und `mailSlots` für einen Tag mit Status `pencilled` und einen Tag ohne Record | der vorgemerkte Datensatz bleibt `pencilled`, der andere wird `proposed`; die Mail führt nur den zweiten Tag (`mailSlots` wird ebenfalls gefiltert) |
 | 8 | `POST /notify` mit `type: pencil_info`, `mailSlots` mit zwei Terminen | Antwort `ok`, **kein** Statusdatensatz verändert, `crew_invites`-Eintrag mit Typ `pencil_info` |
 | 9 | `GET /planstatus/{id}` als Crew, mit einem `pencil_declined`-Einsatz | Status `pencil_declined` ist in der Antwort |
-| 10 | `auxiliary.db` (`_logs`, `level > 0`) | kein `ReferenceError` / `TypeError` |
+| 10 | Einen `pencil_declined`-Einsatz ohne Statuswechsel erneut speichern (z. B. Planer ändert eine Notiz) | **keine** zweite Mail, Logzeile „Status unverändert, kein E-Mail gesendet“ |
+| 11 | `POST /notify` mit `type: pencil_info` ohne `mailSlots` (oder leer) | Antwort 400 „mailSlots fehlen“, kein `crew_invites`-Eintrag |
+| 12 | `POST /notify` `type: invite` für einen Tag, der nur aus einem `pencilled`-Einsatz besteht | Antwort `{ok:true, skipped:'keine Termine'}`, keine Mail, kein Datensatz verändert |
+| 13 | `auxiliary.db` (`_logs`, `level > 0`) | kein `ReferenceError` / `TypeError` |
 
 **Messung 2 ist die wichtigste.** Bricht das Zu- und Absagen, ist das ein Ausfall für die ganze Crew: **nicht auf Live gehen**, zurückrollen und melden.
 
@@ -51,7 +58,7 @@ Wenn eine Messung fehlschlägt: die gesicherte `main.pb.js` **v4.28** zurückspi
 
 ## Rückmeldung
 
-Bitte als `docs/rueckmeldung-hook-v4.29-<datum>.md` (je Umgebung: Test, Live) mit den zehn Messungen, `RestartCount` und dem Befund aus `_logs`. Erst danach gilt der Hook als deployt.
+Bitte als `docs/rueckmeldung-hook-v4.29-<datum>.md` (je Umgebung: Test, Live) mit den dreizehn Messungen, `RestartCount` und dem Befund aus `_logs`. Erst danach gilt der Hook als deployt.
 
 ## Danach (macht Claude)
 

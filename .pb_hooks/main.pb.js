@@ -29,9 +29,10 @@ onRecordAfterCreateSuccess(function(e) {
 
   // ISO "YYYY-MM-DD" → "DD.MM.YYYY" — direkt aus String, KEINE TZ-Konvertierung
   var fmtISO = function(s) {
-    var p = String(s || '').split('-');
-    if (p.length < 3 || p[0].length !== 4) return esc(s);
-    return (p[2] || '').substring(0,2) + '.' + p[1] + '.' + p[0];
+    // v4.29: nur echte ISO-Daten durchlassen, alles andere maskiert (kein HTML aus Fremdeingaben)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))) return esc(s);
+    var p = String(s).split('-');
+    return p[2] + '.' + p[1] + '.' + p[0];
   };
 
   var sendMail = function(to, subject, html) {
@@ -501,9 +502,10 @@ onRecordAfterUpdateSuccess(function(e) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   };
   var fmtISO = function(s) {
-    var p = String(s || '').split('-');
-    if (p.length < 3 || p[0].length !== 4) return esc(s);
-    return (p[2] || '').substring(0,2) + '.' + p[1] + '.' + p[0];
+    // v4.29: nur echte ISO-Daten durchlassen, alles andere maskiert (kein HTML aus Fremdeingaben)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))) return esc(s);
+    var p = String(s).split('-');
+    return p[2] + '.' + p[1] + '.' + p[0];
   };
 
   var date     = r.get('date');
@@ -576,6 +578,17 @@ onRecordAfterUpdateSuccess(function(e) {
   // v4.29: Absage einer Vormerkung und deren Rücknahme bekommen eigene Betreffs; die
   // „ABGELEHNT"-Mail bleibt echten Absagen (declined) vorbehalten.
   var mBetreff, mTitel, mKicker, mSatz;
+  // Jede spätere Speicherung desselben Datensatzes (Planer, Sammelvorgang, changed_by) feuert
+  // diesen Hook erneut: nur ein ECHTER Statuswechsel mailt. Fällt die Prüfung aus, geht lieber
+  // eine Mail zu viel raus als eine zu wenig.
+  if (status === 'pencil_declined' || status === 'declined') {
+    var vorherS = null;
+    try { var origS = r.original(); vorherS = origS ? origS.get('status') : null; } catch (errS) { vorherS = null; }
+    if (vorherS === status) {
+      console.log('[hook] UPDATE ' + status + ': Status unverändert, kein E-Mail gesendet', aid);
+      return;
+    }
+  }
   if (status === 'pencil_declined') {
     mBetreff = 'VORMERKUNG ABGESAGT'; mTitel = 'Vormerkung abgesagt.'; mKicker = 'VORMERKUNG ABGESAGT'; mSatz = 'hat die Vormerkung abgesagt:';
   } else if (status === 'pencilled') {
@@ -1102,6 +1115,46 @@ routerAdd('POST', '/notify', function(e) {
     }
     slots = offen;
   }
+  // mailSlots (vom Client gelieferte Mail-Liste) gilt derselbe Filter; Einträge ohne passenden
+  // Vormerk-Datensatz (z. B. kind 'removed') bleiben. Übersprungene Schlüssel: Datum|posId und Datum|Label.
+  var uebersprungen = 0;
+  var ueberKeys = {};
+  if (typ === 'invite' || typ === 'reminder' || typ === 'update') {
+    var alleS = Array.isArray(body.slots) ? body.slots : [];
+    for (var ui = 0; ui < alleS.length; ui++) {
+      var us = alleS[ui];
+      if (!us || !us.date || !us.posId) continue;
+      var uda = null;
+      try {
+        uda = $app.findFirstRecordByFilter('assignments',
+          'plan_id = {:p} && date = {:d} && pos_id = {:q}',
+          { p: planId, d: String(us.date), q: String(us.posId) });
+      } catch (errU) { uda = null; }
+      if (uda && VORMERK[uda.getString('status')]) {
+        uebersprungen++;
+        ueberKeys[String(us.date) + '|' + String(us.posId)] = true;
+        ueberKeys[String(us.date) + '|' + String(us.posLabel || uda.getString('pos_label') || us.posId)] = true;
+      }
+    }
+    if (Array.isArray(body.mailSlots) && uebersprungen) {
+      var mFrei = [];
+      for (var mi = 0; mi < body.mailSlots.length; mi++) {
+        var ms = body.mailSlots[mi] || {};
+        var mk1 = String(ms.date) + '|' + String(ms.posId || '');
+        var mk2 = String(ms.date) + '|' + String(ms.posLabel || '');
+        if (ms.kind !== 'removed' && (ueberKeys[mk1] || ueberKeys[mk2])) continue;
+        mFrei.push(ms);
+      }
+      body.mailSlots = mFrei;
+    }
+    // Blieb nach dem Filter nichts übrig, geht keine leere Mail raus.
+    if (uebersprungen && (typ === 'invite' || typ === 'reminder') && !slots.length
+        && !(Array.isArray(body.mailSlots) && body.mailSlots.length)) {
+      return e.string(200, JSON.stringify({ ok: true, skipped: 'keine Termine' }));
+    }
+  }
+  if (typ === 'pencil_info' && !(Array.isArray(body.mailSlots) && body.mailSlots.length))
+    return e.string(400, 'mailSlots fehlen');
 
   // Die Mail-Nutzlast (app_url) ist NICHT dasselbe wie die zu schreibenden Slots:
   //   · invite/cancellation → eine Terminliste {date, posLabel}

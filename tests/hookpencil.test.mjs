@@ -118,3 +118,94 @@ test('/planstatus filtert pencil_declined nicht weg (die Crew muss zurücknehmen
   const f = p.match(/'plan_id = \{:p\} && status != [^']*'/)[0];
   ok(!/pencil_declined|pencilled/.test(f), 'Filter darf Vormerk-Stati nicht ausschließen: ' + f);
 });
+
+// ── Review-Fixes (Runde 1) ────────────────────────────────────────────────────
+const mIdx = hook.indexOf('var mBetreff');
+const aStart = hook.lastIndexOf('onRecordAfterUpdateSuccess(', mIdx);
+const aEnd = hook.indexOf("}, 'assignments');", mIdx) + "}, 'assignments');".length;
+const afterSrc = hook.slice(aStart, aEnd);
+
+function nachUpdate(alt, neu) {
+  let handler = null; let mails = 0;
+  const env = { RESEND_KEY: 'k', ADMIN_EMAIL: 'admin@example.invalid' };
+  const $http = { send: () => { mails++; return { statusCode: 200 }; } };
+  const rec = {
+    id: 'a1',
+    get: (k) => ({ status: neu, date: '2027-06-01', pos_id: 'gl', pos_label: 'GL', crew_name: 'Max', crew_email: 'm@example.invalid' }[k]),
+    original: () => ({ get: () => alt }),
+  };
+  // eslint-disable-next-line no-new-func
+  new Function('onRecordAfterUpdateSuccess', '$os', '$http', 'console', afterSrc)(
+    (fn) => { handler = fn; }, { getenv: (k) => env[k] }, $http, { log() {}, error() {} });
+  handler({ next() {}, record: rec });
+  return mails;
+}
+
+test('Admin-Mail: erneutes Speichern ohne Statuswechsel mailt NICHT noch einmal', () => {
+  eq(nachUpdate('pencil_declined', 'pencil_declined'), 0, 'pencil_declined unverändert');
+  eq(nachUpdate('declined', 'declined'), 0, 'declined unverändert');
+});
+
+test('Admin-Mail: ein echter Wechsel mailt genau einmal', () => {
+  eq(nachUpdate('pencilled', 'pencil_declined'), 1);
+  eq(nachUpdate('proposed', 'declined'), 1);
+  eq(nachUpdate('pencil_declined', 'pencilled'), 1);
+  eq(nachUpdate('pencilled', 'pencilled'), 0);
+});
+
+// fmtISO beider Kopien
+test('fmtISO: nur echte ISO-Daten, alles andere wird maskiert', () => {
+  const kopien = [...hook.matchAll(/var fmtISO = function\(s\) \{[\s\S]*?\n  \};/g)].map((m) => m[0]);
+  eq(kopien.length, 2, 'beide Kopien');
+  for (const k of kopien) {
+    // eslint-disable-next-line no-new-func
+    const f = new Function('esc', k + '; return fmtISO;')((x) => String(x || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'));
+    eq(f('2027-06-01'), '01.06.2027');
+    eq(f('2027-06-01<img src=x>'), '2027-06-01&lt;img src=x&gt;');
+    eq(f('<b>-01-02'), '&lt;b&gt;-01-02');
+  }
+});
+
+// /notify: mailSlots-Filter, Skip, pencil_info
+function notify(body, statusJe) {
+  const rs = route;
+  const start = rs.indexOf('var VORMERK');
+  const ende = rs.indexOf("return e.string(400, 'mailSlots fehlen');") + "return e.string(400, 'mailSlots fehlen');".length;
+  const src = rs.slice(start, ende);
+  const $app = {
+    findFirstRecordByFilter: (_c, _f, p) => {
+      const st = statusJe[p.d + '|' + p.q];
+      if (!st) throw new Error('nf');
+      return { getString: (k) => (k === 'status' ? st : 'GL') };
+    },
+  };
+  const antworten = [];
+  const e = { string: (c, t) => { antworten.push([c, t]); return antworten.length; } };
+  const slots = Array.isArray(body.slots) ? body.slots : [];
+  // eslint-disable-next-line no-new-func
+  const fn = new Function('$app', 'e', 'body', 'typ', 'planId', 'slots',
+    'return (function(){ ' + src + '\n return {slots: slots}; })();');
+  const r = fn($app, e, body, body.type, 'PLAN1', slots);
+  return { r, antworten, body };
+}
+
+test('/notify: mailSlots werden wie slots um Vormerkungen bereinigt', () => {
+  const body = { type: 'invite', slots: [{ date: '2027-06-01', posId: 'gl', posLabel: 'GL' }, { date: '2027-06-02', posId: 'gl', posLabel: 'GL' }],
+    mailSlots: [{ date: '2027-06-01', posLabel: 'GL' }, { date: '2027-06-02', posLabel: 'GL' }] };
+  const { body: b } = notify(body, { '2027-06-01|gl': 'pencilled' });
+  eq(b.mailSlots.map((m) => m.date).join(','), '2027-06-02');
+});
+
+test('/notify: Einladung, deren einziger Tag vorgemerkt ist → 200 skipped, keine Mail', () => {
+  const body = { type: 'invite', slots: [{ date: '2027-06-01', posId: 'gl' }], mailSlots: [{ date: '2027-06-01', posLabel: 'GL' }] };
+  const { antworten } = notify(body, { '2027-06-01|gl': 'pencil_declined' });
+  eq(antworten.length, 1);
+  eq(antworten[0][0], 200);
+  ok(/keine Termine/.test(antworten[0][1]));
+});
+
+test('/notify: pencil_info ohne mailSlots → 400', () => {
+  eq(notify({ type: 'pencil_info' }, {}).antworten[0][0], 400);
+  eq(notify({ type: 'pencil_info', mailSlots: [] }, {}).antworten[0][0], 400);
+  eq(notify({ type: 'pencil_info', mailSlots: [{ date: '2027-06-01', posLabel: 'GL' }] }, {}).antworten.length, 0);
+});
