@@ -402,8 +402,8 @@ export function tvSaveAsk() {
 }
 
 // Je Tour: Plan frisch lesen → Schutzprüfung (Fremdänderung genau an einem geänderten Platz → Tour
-// überspringen, Entwurf bleibt) → Absagen über removeAssignmentSlot + Update-Liste → alle Änderungen auf
-// den frischen Plan → EIN Patch je Tour. Danach Bündel neu laden; eine übersprungene Tour behält
+// überspringen, Entwurf bleibt) → alle Änderungen auf den frischen Plan → EIN Patch je Tour → erst danach
+// Absagen über removeAssignmentSlot + Update-Liste. Danach Bündel neu laden; eine übersprungene Tour behält
 // orig UND draft (die Schutzprüfung greift dann bei jedem weiteren Speichern erneut, bis neu verglichen wird).
 export async function tvSave() {
   if (S.busy) return;
@@ -411,7 +411,7 @@ export async function tvSave() {
   S.busy = true;
   document.body.classList.add('tv-busy');
   S.notices = [];
-  const skipped = [];
+  const skipped = [], written = [];
   try {
     for (const t of ['A', 'B']) {
       const b = S.b[t];
@@ -427,9 +427,15 @@ export async function tvSave() {
         continue;
       }
       let next = fresh;
+      for (const d of diffs) next = applySlot(next, d.date, d.posId, d.after);
+      await pbPatch('/api/collections/plans/records/' + b.pbId, { plan_data: JSON.stringify(next) });
+      written.push(t);
+      cacheSavedTour(b.pbId, next);
+      // Erst NACH erfolgreichem Plan-Patch absagen: schlägt der Patch fehl, bleiben Status und Update-Liste unberührt.
       for (const d of diffs) {
         const si = b.statuses[d.date]?.[d.posId];
-        if (si && !sameCrew(si.crewName, d.after)) {
+        if (!si || sameCrew(si.crewName, d.after)) continue;
+        try {
           const r = await removeAssignmentSlot(d.date, d.posId, { planId: b.pbId, statuses: b.statuses });
           if (r.wasActive && r.rec) {
             const email = (b.crewMeta[r.crewName] && b.crewMeta[r.crewName].email) || r.rec.crew_email;
@@ -439,11 +445,10 @@ export async function tvSave() {
               S.notices.push({ ok: false, text: `⚠ Keine Mailadresse für ${r.crewName} – Absage NICHT in der Update-Liste, bitte ${r.crewName} selbst informieren.` });
             }
           }
+        } catch (_) {
+          S.notices.push({ ok: false, text: `Absage für ${si.crewName} am ${fmtDay(d.date)} konnte nicht vermerkt werden – bitte in der Touransicht prüfen` });
         }
-        next = applySlot(next, d.date, d.posId, d.after);
       }
-      await pbPatch('/api/collections/plans/records/' + b.pbId, { plan_data: JSON.stringify(next) });
-      cacheSavedTour(b.pbId, next);
     }
     await reloadBundles(['A', 'B'].filter(t => !skipped.includes(t)));
     S.pick = null;
@@ -451,7 +456,8 @@ export async function tvSave() {
     if (!skipped.length) toast('💾 Gespeichert', 'var(--show)');
   } catch (e) {
     toast('Speichern fehlgeschlagen: ' + (e && e.message || e), 'var(--warn)');
-    try { await reloadBundles(); } catch (_) { /* Anzeige bleibt wie sie war */ }
+    // Nur erfolgreich geschriebene Touren neu laden; eine fehlgeschlagene/ungeschriebene behält orig + draft.
+    try { await reloadBundles(written); } catch (_) { /* Anzeige bleibt wie sie war */ }
     S.pick = null;
     render();
   } finally {

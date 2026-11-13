@@ -236,6 +236,12 @@ test('UI schreibt nur in tvSave: pbPatch und removeAssignmentSlot nirgends sonst
   ok(/removeAssignmentSlot\([^)]*\{\s*planId/.test(_save().body), 'Absage mit { planId in tvSave');
   ok(!/pbPost\(|pbDelete\(/.test(s), 'kein POST/DELETE');
 });
+test('UI: in tvSave kommt der Plan-Patch vor der Absage; Fehlerpfad lädt nur geschriebene Touren', () => {
+  const { body } = _save();
+  ok(body.indexOf('pbPatch(') < body.indexOf('removeAssignmentSlot('), 'pbPatch vor removeAssignmentSlot');
+  ok(/reloadBundles\(written\)/.test(body) && !/reloadBundles\(\)/.test(body), 'nur geschriebene Touren');
+  ok(/konnte nicht vermerkt werden/.test(body));
+});
 test('UI: Entwurf – Schutzprüfung staleSlots vor dem Patch, Meldung bei Fremdänderung', () => {
   const { body } = _save();
   ok(/staleSlots\(/.test(body) && body.indexOf('staleSlots(') < body.indexOf('pbPatch('));
