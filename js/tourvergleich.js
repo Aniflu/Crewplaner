@@ -121,13 +121,6 @@ export function applySlot(planData, date, posId, value){
   return r;
 }
 
-// Konflikt auflösen: `name` bleibt in `keep`, alle Plätze in der anderen Tour werden OFFEN.
-export function planMove({ a, b, date, name, keep }){
-  const tour = keep === 'A' ? 'B' : 'A';
-  const plan = tour === 'A' ? a : b;
-  return slotsOf(plan, date, name).map(posId => ({ tour, posId, value: OFFEN }));
-}
-
 // Slot besetzen; steht die Person in der anderen Tour am Tag, werden dort deren Plätze OFFEN.
 // name === null → zurück zur Stammbesetzung.
 export function planAssign({ self, other, selfTour, date, posId, name }){

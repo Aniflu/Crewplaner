@@ -574,7 +574,20 @@ body {
 .tv-cand small{color:var(--muted)}
 .tv-freebar{margin-top:12px;font-size:.82rem;color:var(--ink-2)}
 body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell,body.tv-busy .tv-row,body.tv-busy .tv-cand,body.tv-busy .tv-menu button{pointer-events:none;opacity:.6}
-@media(max-width:640px){.tv-cols{grid-template-columns:1fr}.tv-modal{padding:12px}}
+.tv-bar{position:sticky;bottom:0;z-index:50;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:12px;padding:10px 12px;background:var(--panel2);border:1px solid var(--rule-2);border-radius:8px;box-shadow:0 -4px 14px rgba(0,0,0,.25)}
+.tv-count{font-size:.85rem;font-weight:600;color:var(--muted)}
+.tv-count.dirty{color:var(--accent)}.tv-count.bad{color:var(--warn)}
+.tv-bar-btns{display:flex;gap:8px;margin-left:auto}
+.tv-bar button:disabled{opacity:.45;cursor:not-allowed}
+.tv-pen{position:absolute;bottom:1px;right:3px;font-size:.68rem;color:var(--accent)}
+.tv-cell.tv-chg{box-shadow:inset 0 0 0 2px var(--accent)}
+.tv-row.changed{border-left:3px solid var(--accent)}
+.tv-savebox{width:560px}
+.tv-sv-tour{font-weight:700;margin:10px 0 4px}
+.tv-sv-list{margin:0 0 6px;padding-left:18px;font-size:.85rem;line-height:1.5}
+.tv-sv-warn{display:block;font-size:.82rem;font-weight:500;margin:8px 0}
+.tv-sv-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+@media(max-width:640px){.tv-cols{grid-template-columns:1fr}.tv-modal{padding:12px}.tv-bar-btns{margin-left:0;width:100%}.tv-bar-btns .btn{flex:1}}
 </style>
 </head>
 <body>
@@ -920,22 +933,26 @@ body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell
   <!-- TOURVERGLEICH -->
   <div class="section" id="tabTourvergleich">
     <div class="section-title">🔀 Tourvergleich</div>
-    <div class="section-sub">Zwei Touren nebeneinander: Doppelbelegungen finden und Personen umsetzen. Jeder Klick wird sofort gespeichert.</div>
+    <div class="section-sub">Zwei Touren nebeneinander: Doppelbelegungen finden und Personen umsetzen.</div>
     <div class="tv-head">
-      <select id="tvSelA" class="tv-sel" style="border-left:4px solid #2bb5a0"><option value="">– Tour A –</option></select>
-      <select id="tvSelB" class="tv-sel" style="border-left:4px solid #f08a3c"><option value="">– Tour B –</option></select>
+      <select id="tvSelA" class="tv-sel" onchange="tvSelChange()" style="border-left:4px solid #2bb5a0"><option value="">– Tour A –</option></select>
+      <select id="tvSelB" class="tv-sel" onchange="tvSelChange()" style="border-left:4px solid #f08a3c"><option value="">– Tour B –</option></select>
       <button class="btn btn-primary btn-sm" onclick="tvCompare()">🔀 Vergleichen</button>
       <label class="tv-chk"><input type="checkbox" id="tvOnlyOverlap" checked> nur Überschneidungstage</label>
       <label class="tv-chk"><input type="checkbox" id="tvOnlyShared" checked> nur gemeinsame Leute</label>
     </div>
-    <div class="tv-hint">ℹ Beide Touren nicht gleichzeitig in der Touransicht offen haben – deren Auto-Speichern würde überschreiben.</div>
+    <div class="tv-hint">ℹ Änderungen werden erst mit 💾 Speichern in die Touren übernommen. Beide Touren nicht gleichzeitig in der Touransicht offen haben – deren Auto-Speichern würde überschreiben.</div>
     <div id="tvResult"></div>
+    <div id="tvBar" class="tv-bar" style="display:none"></div>
   </div>
 
 </div><!-- admin-content -->
 
 <!-- TOURVERGLEICH: Tagestafel -->
 <div id="tvMenu" class="tv-menu" style="display:none"></div>
+<div class="modal-bg" id="tvSaveModal">
+  <div class="modal-box tv-modal tv-savebox"><div id="tvSaveBody"></div></div>
+</div>
 <div class="modal-bg" id="tvDayModal">
   <div class="modal-box tv-modal"><div id="tvDayBody"></div></div>
 </div>
@@ -1087,6 +1104,7 @@ let _wrkAssignmentStatuses = {};
 
 // ── Tab Switching ──────────────────────────────────────────────────────────────
 function switchTab(name) {
+  if (window.tvLeaveCheck && !window.tvLeaveCheck(name)) return;   // Tourvergleich: ungespeicherte Änderungen
   document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
   const sec = document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1));

@@ -6,7 +6,7 @@ import { loadGraph, resetState } from './_graph.mjs';
 import { queueAddRemoved } from '../js/pure.js';
 import {
   isPerson, effective, overlapDays, slotsOf, personMatrix, dayDemand,
-  candidates, applySlot, planMove, planAssign
+  candidates, applySlot, planAssign
 } from '../js/tourvergleich.js';
 
 // Echte PB-Form: JSON-String geparst wie in loadSelectedPlan
@@ -109,15 +109,6 @@ test('applySlot: setzt Abweichung, behält andere Einträge', () => {
   eq(r.assignments['2026-07-08'].gl, 'Max Mustermann'); eq(r.assignments['2026-07-08'].lt1, 'Max Mustermann');
   const r2 = applySlot(A(), '2026-07-09', 'gl', 'Max Mustermann');
   eq(r2.assignments['2026-07-09'].gl, 'Max Mustermann');
-});
-test('planMove: keep A öffnet alle B-Plätze', () => {
-  const b = B(); b.assignments['2026-07-09'].gl = 'Tom Richter'; // Tom auf gl (Abweichung) + sys (Stamm)
-  const steps = planMove({ a:A(), b, date:'2026-07-09', name:'Tom Richter', keep:'A' });
-  deepEq(steps, [{ tour:'B', posId:'gl', value:OFFEN }, { tour:'B', posId:'sys', value:OFFEN }]);
-});
-test('planMove: keep B öffnet A-Plätze', () => {
-  deepEq(planMove({ a:A(), b:B(), date:'2026-07-09', name:'Anna Bauer', keep:'B' }),
-    [{ tour:'A', posId:'gl', value:OFFEN }]);
 });
 test('planAssign: zieht Person aus anderer Tour ab', () => {
   const steps = planAssign({ self:A(), other:B(), selfTour:'A', date:'2026-07-09', posId:'lt1', name:'Tom Richter' });
@@ -229,13 +220,34 @@ test('UI kopiert keine Herausnahme', () => {
 test('UI verschickt keine Mails', () => {
   ok(!/notify\(|send[A-Z]\w*Notice|sendCrewInvite/.test(_ui()));
 });
-test('UI liest Plan vor dem Patch frisch (tvApply)', () => {
-  const s = _ui();
-  const i = s.indexOf('async function tvApply');
-  ok(i >= 0, 'tvApply vorhanden');
-  const body = s.slice(i);
+// Rumpf von tvSave (bis zur nächsten Top-Level-Funktion)
+const _save = () => { const s = _ui(); const i = s.indexOf('export async function tvSave'); const j = s.indexOf('\nfunction queueRemoved'); return { s, i, j, body: s.slice(i, j) }; };
+test('UI liest Plan vor dem Patch frisch (tvSave)', () => {
+  const { i, body } = _save();
+  ok(i >= 0, 'tvSave vorhanden');
   const g = body.indexOf('pbGet('), p = body.indexOf('pbPatch(');
   ok(g >= 0 && p >= 0 && g < p, 'pbGet vor pbPatch');
+});
+test('UI schreibt nur in tvSave: pbPatch und removeAssignmentSlot nirgends sonst, genau ein Patch-Aufruf', () => {
+  const { s, i, j } = _save();
+  const outside = s.slice(0, i) + s.slice(j);
+  ok(!/pbPatch\(|removeAssignmentSlot\(/.test(outside), 'kein Schreibaufruf außerhalb von tvSave');
+  eq((s.match(/pbPatch\(/g) || []).length, 1, 'genau ein pbPatch-Aufruf');
+  ok(/removeAssignmentSlot\([^)]*\{\s*planId/.test(_save().body), 'Absage mit { planId in tvSave');
+  ok(!/pbPost\(|pbDelete\(/.test(s), 'kein POST/DELETE');
+});
+test('UI: Entwurf – Schutzprüfung staleSlots vor dem Patch, Meldung bei Fremdänderung', () => {
+  const { body } = _save();
+  ok(/staleSlots\(/.test(body) && body.indexOf('staleSlots(') < body.indexOf('pbPatch('));
+  ok(/wurde zwischendurch geändert/.test(body) && /bitte neu vergleichen/.test(body));
+});
+test('UI: Rückfragen bei ungespeicherten Änderungen (Compare, Select, Tab, beforeunload)', () => {
+  const s = _ui();
+  ok(/export async function tvCompare[\s\S]*?confirmDiscard\(\)/.test(s), 'tvCompare');
+  ok(/export function tvSelChange/.test(s) && /tvLeaveCheck/.test(s) && /beforeunload/.test(s));
+  ok(/Ungespeicherte Änderungen verwerfen\?/.test(s));
+  const h = _admin();
+  ok(/tvSelChange\(\)/.test(h) && /function switchTab\(name\) \{\s*if \(window\.tvLeaveCheck/.test(h), 'admin.html Hooks');
 });
 test('UI verweigert gleiche Tour', () => {
   ok(/Bitte zwei verschiedene Touren/.test(_ui()));
@@ -258,8 +270,7 @@ test('UI sammelt Hinweise statt sie zu überschreiben', () => {
   ok(/function render\(\)[\s\S]*?noticeHtml\(\)/.test(s), 'Hinweise auch ohne Tagestafel im Raster');
 });
 test('UI sperrt Doppelklick: busy wird in finally zurückgesetzt', () => {
-  const s = _ui();
-  const b = s.slice(s.indexOf('async function tvApply'), s.indexOf('function queueRemoved'));
+  const b = _save().body;
   ok(/if \(S\.busy\) return;/.test(b));
   ok(/finally\s*\{[^}]*S\.busy = false/.test(b));
 });
@@ -269,7 +280,7 @@ test('Mini-Menü nutzt display flex', () => {
 
 test('UI lädt Status und Crew über pbListAll (alle Seiten), kein perPage=500', () => {
   const s = _ui();
-  const b = s.slice(s.indexOf('function loadBundle'), s.indexOf('async function reloadBundles'));
+  const b = s.slice(s.indexOf('function loadBundle'), s.indexOf('function reloadBundles'));
   ok(/pbListAll\('assignments'/.test(b) && /pbListAll\('crew_members'/.test(b));
   ok(!/perPage=500/.test(s));
   ok(!/JSON\.parse\(rec\.plan_data/.test(s), 'ein gemeinsamer Parser');

@@ -20,7 +20,7 @@ import { loadAssignmentStatuses, loadCrewMeta, createPoolMember, notify } from '
 import { POOL_PLAN_ID } from './config.js';
 import { generatePDF, openPDFFilter, pdfSetView, pdfToggleAll } from './pdf.js';
 import { loadPlanState } from './state.js';
-import { tvInit, tvCompare, tvOpenDay, tvCloseDay, tvShiftDay, tvPickSlot, tvMove, tvRenderWithBundles } from './tourvergleich-ui.js';
+import { tvInit, tvCompare, tvOpenDay, tvCloseDay, tvShiftDay, tvPickSlot, tvMove, tvRenderWithBundles, tvSave, tvSaveAsk, tvDiscard, tvLeaveCheck, tvSelChange, tvHasUnsaved } from './tourvergleich-ui.js';
 // HINWEIS: KEIN Import von calendar.js generateICS mehr — admin.html hat eine eigene
 // Inline-`adminGenerateICS`, die den GELADENEN Plan (_wrk*/TOUR_DATES) exportiert.
 // Der frühere `window.adminGenerateICS = generateICS` überschrieb sie und las `state.js`
@@ -62,4 +62,4 @@ window.openPDFFilter = openPDFFilter;
 window.pdfSetView = pdfSetView;
 window.pdfToggleAll = pdfToggleAll;
 // Tourvergleich (v1.2.0): Tab-Handler für admin.html (Inline-Skript kann nicht importieren).
-Object.assign(window, { tvInit, tvCompare, tvOpenDay, tvCloseDay, tvShiftDay, tvPickSlot, tvMove, tvRenderWithBundles });
+Object.assign(window, { tvInit, tvCompare, tvOpenDay, tvCloseDay, tvShiftDay, tvPickSlot, tvMove, tvRenderWithBundles, tvSave, tvSaveAsk, tvDiscard, tvLeaveCheck, tvSelChange, tvHasUnsaved });
