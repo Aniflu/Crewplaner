@@ -10,6 +10,7 @@ import { OFFEN, AUSSCHREIBEN } from './state.js';
 import { TYPE_COLOR_DEFAULTS } from './types.js';
 import { removeAssignmentSlot } from './dataService.js';
 import { openModal, closeModal } from './modals.js';
+import { showConfirm } from './dialog.js';
 import {
   isPerson, effective, overlapDays, slotsOf, personMatrix, dayDemand,
   candidates, applySlot, planSwitch, planAssign, diffPlans, staleSlots
@@ -108,7 +109,7 @@ export async function tvCompare() {
   S.onlyShared = $('tvOnlyShared').checked;
   if (!a || !b) { toast('Bitte beide Touren wählen', 'var(--warn)'); return; }
   if (a === b) { toast('Bitte zwei verschiedene Touren wählen', 'var(--warn)'); return; }
-  if (!confirmDiscard()) return;
+  if (!(await confirmDiscard())) return;
   $('tvResult').innerHTML = '<div class="tv-note">Lade …</div>';
   try {
     const [A, B] = await Promise.all([loadBundle(a), loadBundle(b)]);
@@ -332,35 +333,36 @@ function resetDrafts() {
 }
 
 // Rückfrage bei offenen Änderungen; bei OK wird der Entwurf verworfen (kein Schreibzugriff).
-function confirmDiscard() {
+async function confirmDiscard() {
   if (!tvHasUnsaved()) return true;
-  if (!confirm('Ungespeicherte Änderungen verwerfen?')) return false;
+  if (!(await showConfirm('Ungespeicherte Änderungen verwerfen?', 'Verwerfen'))) return false;
   resetDrafts();
   return true;
 }
 
-export function tvDiscard() {
+export async function tvDiscard() {
   if (S.busy) return;
   const n = nChanges();
   if (!n) return;
-  if (!confirm(`Alle ${n} ${n === 1 ? 'Änderung' : 'Änderungen'} verwerfen?`)) return;
+  if (!(await showConfirm(`Alle ${n} ${n === 1 ? 'Änderung' : 'Änderungen'} verwerfen?`, 'Verwerfen'))) return;
+  if (S.busy) return;
   resetDrafts();
   render();
 }
 
-// Tabwechsel (Hook in switchTab): true = darf wechseln.
-export function tvLeaveCheck(name) {
+// Tabwechsel (Hook in switchTab): Promise<boolean>, true = darf wechseln.
+export async function tvLeaveCheck(name) {
   const sec = $('tabTourvergleich');
   if (name === 'tourvergleich' || !sec || !sec.classList.contains('active')) return true;
-  if (!confirmDiscard()) return false;
+  if (!(await confirmDiscard())) return false;
   if (S.b.A && S.b.B) render();
   return true;
 }
 
 // Tour-Select geändert: bei Entwurf nachfragen, bei „Abbrechen“ alte Auswahl zurück.
-export function tvSelChange() {
+export async function tvSelChange() {
   if (!tvHasUnsaved()) return;
-  if (confirmDiscard()) { render(); return; }
+  if (await confirmDiscard()) { render(); return; }
   $('tvSelA').value = S.prev.A; $('tvSelB').value = S.prev.B;
 }
 
@@ -538,6 +540,7 @@ if (typeof document !== 'undefined') {
   const hook = () => {
     ['tvResult', 'tvDayBody', 'tvMenu', 'tvBar', 'tvSaveBody'].forEach(id => { const el = $(id); if (el && !el._tv) { el._tv = 1; el.addEventListener('click', onClick); } });
     document.addEventListener('click', ev => { if (!ev.target.closest('#tvMenu, .tv-cell')) hideMenu(); });
+    // Einzige Ausnahme vom Verbot nativer Dialoge: beim Schließen/Neuladen des Browser-Tabs erlauben Browser nur ihren eigenen Hinweis.
     if (typeof window.addEventListener === 'function') window.addEventListener('beforeunload', ev => { if (tvHasUnsaved()) { ev.preventDefault(); ev.returnValue = ''; } });
     const mod = $('tvDayModal');
     if (mod && !mod._tv) { mod._tv = 1; mod.addEventListener('click', ev => { if (ev.target === mod) tvCloseDay(); }); }

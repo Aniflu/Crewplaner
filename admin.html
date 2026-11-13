@@ -17,7 +17,7 @@
 <script>try{var _m=localStorage.getItem('cp_mode');if(_m==='light'||_m==='dark')document.documentElement.dataset.theme=_m;}catch(e){}</script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="theme.css?v=3">
-<script type="module" src="js/admin-app.js?v=21"></script>
+<script type="module" src="js/admin-app.js?v=22"></script>
 
 <!-- Configure PocketBase URL for auth-bootstrap.js -->
 <script>
@@ -603,7 +603,7 @@ body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell
     </svg>
     <h1>Crewplanner</h1>
     <span class="badge" id="consoleBadge">Konsole</span>
-    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v1.2.1</span>
+    <span style="font-size:.55rem;color:var(--muted);letter-spacing:.08em;margin-left:8px;">v1.2.2</span>
   </div>
   <div class="header-actions">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">☾</button>
@@ -615,7 +615,7 @@ body.tv-busy #tvResult,body.tv-busy #tvDayBody{cursor:wait}body.tv-busy .tv-cell
 
 <div class="admin-nav" id="adminNav">
   <button class="nav-tab active" data-tab="werkzeuge" onclick="switchTab('werkzeuge')">Werkzeuge</button>
-  <button class="nav-tab" data-tab="tourvergleich" onclick="switchTab('tourvergleich'); tvInit()">🔀 Tourvergleich</button>
+  <button class="nav-tab" data-tab="tourvergleich" onclick="switchTab('tourvergleich').then(() => { if (document.getElementById('tabTourvergleich').classList.contains('active')) tvInit(); })">🔀 Tourvergleich</button>
   <button class="nav-tab superadmin-only" data-tab="users" onclick="switchTab('users')" style="display:none;">Benutzer</button>
   <button class="nav-tab superadmin-only" data-tab="roles" onclick="switchTab('roles')" style="display:none;">Rollen</button>
   <button class="nav-tab superadmin-only" data-tab="plans" onclick="switchTab('plans')" style="display:none;">Pläne</button>
@@ -1103,8 +1103,8 @@ let _wrkCrewMeta = {}; // { name: { email, id } }
 let _wrkAssignmentStatuses = {};
 
 // ── Tab Switching ──────────────────────────────────────────────────────────────
-function switchTab(name) {
-  if (window.tvLeaveCheck && !window.tvLeaveCheck(name)) return;   // Tourvergleich: ungespeicherte Änderungen
+async function switchTab(name) {
+  if (window.tvLeaveCheck && !(await window.tvLeaveCheck(name))) return;   // Tourvergleich: ungespeicherte Änderungen (eigener Dialog)
   document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
   const sec = document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1));
@@ -1295,7 +1295,7 @@ async function saveDirectoryEntry(i) {
 async function removeDirectoryPool(i) {
   const e = _directory[i];
   if (!e || !e.pool) return;
-  if (!confirm(`„${e.name || e.email}" aus dem Crew-Pool entfernen?`)) return;
+  if (!(await window.showConfirm(`„${e.name || e.email}" aus dem Crew-Pool entfernen?`, 'Löschen'))) return;
   try {
     await pbDelete('/api/collections/crew_members/records/' + e.pool.id);
     adminToast('Aus Pool entfernt ✓', 'var(--show)');
@@ -1338,7 +1338,7 @@ function filterDirectory() {
 }
 
 async function removeUser(userId, email) {
-  if (!confirm(`Login-Konto „${email}" wirklich löschen?\nDiese Aktion kann nicht rückgängig gemacht werden.\n(Crew-Pool-/Tour-Einträge bleiben erhalten.)`)) return;
+  if (!(await window.showConfirm(`Login-Konto „${email}" wirklich löschen?\nDiese Aktion kann nicht rückgängig gemacht werden.\n(Crew-Pool-/Tour-Einträge bleiben erhalten.)`, 'Löschen'))) return;
   try {
     await pbDelete('/api/collections/users/records/' + userId);
     adminToast('Konto gelöscht ✓', 'var(--show)');
@@ -1393,7 +1393,7 @@ async function loadPlans() {
 }
 
 async function deletePlanAdmin(planId, planName) {
-  if (!confirm(`Plan „${planName}" wirklich löschen?\nAlle Daten dieses Plans werden permanent gelöscht.`)) return;
+  if (!(await window.showConfirm(`Plan „${planName}" wirklich löschen?\nAlle Daten dieses Plans werden permanent gelöscht.`, 'Löschen'))) return;
   try {
     await pbDelete('/api/collections/plans/records/' + planId);
     adminToast('Plan gelöscht ✓', 'var(--show)');

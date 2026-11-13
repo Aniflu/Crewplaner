@@ -13,7 +13,7 @@ export function initDialogSystem(){
 #sp-dlg-box.sp-danger{border-top-color:#e84a4a;}
 #sp-dlg-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#e8c84a;margin-bottom:10px;}
 #sp-dlg-box.sp-danger #sp-dlg-title{color:#e84a4a;}
-#sp-dlg-msg{color:#ccc;font-size:.82rem;line-height:1.5;margin-bottom:16px;}
+#sp-dlg-msg{white-space:pre-line;color:#ccc;font-size:.82rem;line-height:1.5;margin-bottom:16px;}
 #sp-dlg-input{width:100%;background:#1a1a2e;border:1px solid #e8c84a44;color:#e0e0e0;padding:7px 10px;border-radius:4px;font-family:inherit;font-size:.82rem;margin-bottom:16px;box-sizing:border-box;}
 #sp-dlg-btns{display:flex;gap:8px;justify-content:flex-end;}
 .sp-btn-cancel{background:#2a2a4a;color:#888;border:1px solid #333;padding:7px 16px;border-radius:4px;font-size:.75rem;font-family:inherit;cursor:pointer;}

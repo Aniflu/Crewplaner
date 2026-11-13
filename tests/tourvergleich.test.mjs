@@ -250,8 +250,8 @@ test('UI: Entwurf – Schutzprüfung staleSlots vor dem Patch, Meldung bei Fremd
 test('UI: Rückfragen bei ungespeicherten Änderungen (Compare, Select, Tab, beforeunload)', () => {
   const s = _ui();
   ok(/export async function tvCompare[\s\S]*?confirmDiscard\(\)/.test(s), 'tvCompare');
-  ok(/export function tvSelChange/.test(s) && /tvLeaveCheck/.test(s) && /beforeunload/.test(s));
-  ok(/Ungespeicherte Änderungen verwerfen\?/.test(s));
+  ok(/export async function tvSelChange/.test(s) && /tvLeaveCheck/.test(s) && /beforeunload/.test(s));
+  ok(/Ungespeicherte Änderungen verwerfen\?/.test(s) && !/(^|[^\w.$])confirm\s*\(/.test(s), 'kein natives confirm');
   const h = _admin();
   ok(/tvSelChange\(\)/.test(h) && /function switchTab\(name\) \{\s*if \(window\.tvLeaveCheck/.test(h), 'admin.html Hooks');
 });
