@@ -14,6 +14,7 @@ export async function loadGraph(){
     m.crewNotify= await import('../js/crewNotify.js');
     m.userView  = await import('../js/userView.js');
     m.plans     = await import('../js/plans.js');
+    m.planSync  = await import('../js/planSync.js');
     m.dataService = await import('../js/dataService.js');
     m.stats     = await import('../js/stats.js');
     // Die Anlage-Drossel (pb.js) rechnet in echten 5-Sekunden-Fenstern. Ungebremst würde

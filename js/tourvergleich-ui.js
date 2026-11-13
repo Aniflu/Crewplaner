@@ -443,6 +443,7 @@ export async function tvSave() {
         next = applySlot(next, d.date, d.posId, d.after);
       }
       await pbPatch('/api/collections/plans/records/' + b.pbId, { plan_data: JSON.stringify(next) });
+      cacheSavedTour(b.pbId, next);
     }
     await reloadBundles(['A', 'B'].filter(t => !skipped.includes(t)));
     S.pick = null;
@@ -457,6 +458,23 @@ export async function tvSave() {
     S.busy = false;
     document.body.classList.remove('tv-busy');
   }
+}
+
+// v1.2.1: Zwischenspeicher dieses Browsers nachziehen, sonst zeigt die Touransicht beim
+// nächsten Öffnen kurz den alten Stand. Zuordnung: tourplan_pb_<lokaleId> = PB-ID.
+// Gleiche Form wie _savePlanToLS (js/plans.js).
+function cacheSavedTour(pbId, plan) {
+  try {
+    const data = { version: 3, crew: plan.crew, positions: plan.positions, defaultCrew: plan.defaultCrew, tourDates: plan.tourDates, assignments: plan.assignments };
+    const json = JSON.stringify(data);
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    keys.forEach(k => {
+      if (k && k.indexOf('tourplan_pb_') === 0 && localStorage.getItem(k) === pbId) {
+        localStorage.setItem('tourplan_plan_' + k.slice('tourplan_pb_'.length), json);
+      }
+    });
+  } catch (_) { /* Zwischenspeicher ist nur Komfort */ }
 }
 
 function queueRemoved(b, r, email, date, posId) {

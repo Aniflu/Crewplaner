@@ -7,6 +7,7 @@ import { pbGet, pbPost, pbPatch, pbDelete, pbList } from './pb.js';
 import { hasPermission } from './rbac.js';
 import { renderTable, hasTableView, resetTodayAutoScroll } from './render.js';
 import { renderCrew } from './crew.js';
+import { guardedPatch, reloadFromDb } from './planSync.js';
 
 const PLANS_INDEX_KEY = 'tourplan_plans';
 export const PLAN_PREFIX = 'tourplan_plan_';
@@ -83,9 +84,16 @@ export function switchPlan(id){
   if(pb)localStorage.setItem('tourplan_active_pb_id',pb);
   else localStorage.removeItem('tourplan_active_pb_id');
   resetTodayAutoScroll();   // neuer Plan → einmalig wieder zu „heute" scrollen
-  _loadPlanFromLS(id);
+  _loadPlanFromLS(id);   // nur Vorschau aus dem Zwischenspeicher
   renderPlanList();
   showToast('Plan geladen ✓','#4f81bd');
+  // v1.2.1: danach IMMER den echten Stand aus der DB holen (Manager, Plan mit PB-ID),
+  // sonst zeigt/speichert die Touransicht einen veralteten Zwischenspeicher.
+  if(IS_MANAGER&&pb){
+    reloadFromDb(pb).then(okLoad=>{
+      if(okLoad&&activePlanId===id&&hasTableView()){renderCrew();renderTable();}
+    });
+  }
 }
 
 export async function deletePlan(id){
@@ -216,7 +224,19 @@ export function _savePlanToLS(id){
     if(typeof SUPABASE_ENABLED!=='undefined'&&SUPABASE_ENABLED&&IS_MANAGER){
       const pbId=localStorage.getItem('tourplan_pb_'+id);
       if(pbId){
-        pbPromise=pbPatch('/api/collections/plans/records/'+pbId,{plan_data:JSON.stringify(data)});
+        // Nie blind patchen (v1.2.1): guardedPatch liest den Record vorher frisch und schreibt
+        // nur, wenn er noch dem Stand entspricht, den dieser Browser zuletzt geladen/geschrieben
+        // hat. Sonst: DB-Stand übernehmen, Zwischenspeicher aktualisieren, roter Hinweis.
+        pbPromise=guardedPatch(pbId,JSON.stringify(data),{
+          isActive:()=>activePlanId===id,
+          onReloaded:(rec)=>{
+            try{
+              const pd=typeof rec.plan_data==='string'?rec.plan_data:JSON.stringify(rec.plan_data);
+              if(pd&&pd!=='null')localStorage.setItem(PLAN_PREFIX+id,pd);
+            }catch(_){}
+            if(activePlanId===id&&hasTableView()){renderCrew();renderTable();}
+          }
+        });
       } else if(CURRENT_USER_ID){
         const planName=(p&&p.name)||'Plan';
         pbPromise=(async()=>{

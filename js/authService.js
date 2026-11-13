@@ -97,9 +97,14 @@ export async function _authCheckAndStart() {
     // Für Manager: Plan aus PB laden wenn kein echter PB-verknüpfter Plan in localStorage liegt
     const activePlanId = getActivePlanId();
     const pbPlanCached = activePlanId && !!localStorage.getItem('tourplan_pb_' + activePlanId);
+    // v1.2.1: Manager laden IMMER aus der DB, sobald eine PB-ID bekannt ist — der
+    // Zwischenspeicher ist nur die Vorschau (startApp zeigt ihn schon). Sonst arbeitet und
+    // speichert die Touransicht auf einem veralteten Stand.
+    const knownPbId = pbPlanCached ? localStorage.getItem('tourplan_pb_' + activePlanId) : null;
+    if (knownPbId && !IS_CREW) localStorage.setItem('tourplan_active_pb_id', knownPbId);
     const loadAll = IS_CREW
       ? loadPlanForCrew().then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]))
-      : (pbPlanCached ? Promise.resolve() : loadPlanForManager())
+      : loadPlanForManager(knownPbId || undefined)
           .then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]));
 
     loadAll

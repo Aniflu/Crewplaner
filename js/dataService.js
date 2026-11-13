@@ -8,7 +8,8 @@ import {
 import { pbGet, pbPost, pbPatch, pbDelete, pbList, pbListAll, pbFirst, pbUpsert, pbEscapeFilter } from './pb.js';
 import { showToast, sameCrew, getVal, dedupKnownCrew } from './utils.js';
 import { normEmail, isCrewStatusTransitionAllowed } from './pure.js';
-import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex } from './plans.js';
+import { activePlanId, getActivePlanId, getPlansIndex, savePlansIndex, PLAN_PREFIX } from './plans.js';
+import { setPlanBase, registerLoader } from './planSync.js';
 
 // ── Authentifizierte Hook-Route abrufen ───────────────────────────────────────
 // Die Routen des Hooks (/myplans, /myplan/{id}) liegen am Root, nicht unter /api —
@@ -217,28 +218,32 @@ export async function loadCrewPlans() {
 }
 
 // ── Plan-Daten für Manager aus PocketBase laden ────────────────────────────
-export async function loadPlanForManager() {
-  if (!SUPABASE_ENABLED || !IS_MANAGER) return;
+// `explicitPbId` (v1.2.1): genau diesen Record laden, ohne Rückfall auf „erster Plan des Owners"
+// (der könnte ein fremder sein). Gibt true zurück, wenn der DB-Stand im State liegt.
+export async function loadPlanForManager(explicitPbId) {
+  if (!SUPABASE_ENABLED || !IS_MANAGER) return false;
   try {
     // GEZIELT den aktuell gewählten Plan laden (tourplan_active_pb_id), nicht blind
     // den ersten by owner — sonst überschreibt ein Reload bei mehreren Plänen den
     // angezeigten Plan mit einem fremden (v0.14.6 Datenverlust-Symptom).
-    const pinned = localStorage.getItem('tourplan_active_pb_id');
+    const pinned = explicitPbId || localStorage.getItem('tourplan_active_pb_id');
     let plan = null;
     if (pinned) {
       try { plan = await pbGet('/api/collections/plans/records/' + pinned); } catch(_) { plan = null; }
     }
     // Fallback: nur wenn kein Zeiger gesetzt ist → erster Plan des Owners.
-    if (!plan) plan = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
-    if (!plan) { console.warn('loadPlanForManager: kein Plan für owner gefunden'); return; }
+    if (!plan && !explicitPbId) plan = await pbFirst('plans', `owner = "${pbEscapeFilter(CURRENT_USER_ID)}"`);
+    if (!plan) { console.warn('loadPlanForManager: kein Plan gefunden'); return false; }
     if (!plan.plan_data) {
       console.warn('loadPlanForManager: plan_data ist leer');
       if (typeof showToast === 'function')
         showToast('Plan noch nicht synchronisiert — bitte in Tourview speichern', '#e8c84a');
-      return;
+      return false;
     }
+    // Zwischenzeitlich auf einen anderen Plan gewechselt? Dann diese späte Antwort verwerfen.
+    if (explicitPbId && localStorage.getItem('tourplan_active_pb_id') !== explicitPbId) return false;
     const data = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
-    if (!data?.tourDates) return;
+    if (!data?.tourDates) return false;
     crew.length = 0; (data.crew || []).forEach(c => crew.push(c));
     if (data.positions) { POSITIONS.length = 0; data.positions.forEach(p => POSITIONS.push(p)); }
     Object.keys(defaultCrew).forEach(k => delete defaultCrew[k]);
@@ -246,19 +251,34 @@ export async function loadPlanForManager() {
     TOUR_DATES.length = 0; data.tourDates.forEach(d => TOUR_DATES.push(d));
     Object.keys(assignments).forEach(k => delete assignments[k]);
     Object.assign(assignments, data.assignments || {});
+    // Basisstand für den Überschreib-Schutz in _savePlanToLS (js/planSync.js)
+    setPlanBase(plan.id, data);
     // PB-Plan-ID im localStorage cachen für _savePlanToLS
     if (activePlanId) localStorage.setItem('tourplan_pb_' + activePlanId, plan.id);
     localStorage.setItem('tourplan_active_pb_id', plan.id);
+    // Zwischenspeicher mit dem DB-Stand überschreiben (gleiche Form wie _savePlanToLS)
+    if (activePlanId) {
+      try { localStorage.setItem(PLAN_PREFIX + activePlanId, JSON.stringify(data)); } catch (_) { /* Speicher voll */ }
+    }
     // Plans-Index aktualisieren
     if (activePlanId && typeof savePlansIndex === 'function') {
       const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
       const found = plans.find(p => p.id === activePlanId);
       if (found) { found.name = plan.name; savePlansIndex(plans); }
     }
+    return true;
   } catch(e) {
     console.warn('loadPlanForManager Fehler:', e.message);
+    return false;
   }
 }
+
+// Für planSync/plans.js (die dataService nicht importieren dürfen): Plan + Crew-Meta + Status laden.
+registerLoader(async (pbId) => {
+  const okLoad = await loadPlanForManager(pbId);
+  if (okLoad) await Promise.all([loadCrewMeta(), loadAssignmentStatuses()]);
+  return okLoad;
+});
 
 // ── Crew-Meta laden (E-Mail + user_id pro Crew-Name) ──────────────────────────
 export async function loadCrewMeta() {
