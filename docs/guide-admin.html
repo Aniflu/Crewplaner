@@ -197,7 +197,7 @@ body {
     </div>
     <div class="step">
       <div class="step-num">5</div>
-      <div class="step-text"><strong>Tagestafel:</strong> Klick auf einen Tagesnamen oder eine freie Zelle öffnet die Tagestafel mit Tour A links und Tour B rechts. Bei einer ⚠-Konfliktzelle öffnet sich zuerst das Menü, dort steht „📋 Tagestafel". Mit ‹ und › springst du zum vorigen oder nächsten Überschneidungstag. Die Leiste „Frei an diesem Tag" zeigt Personen ohne Einsatz.</div>
+      <div class="step-text"><strong>Tagestafel:</strong> Klick auf einen Tagesnamen oder eine freie Zelle öffnet die Tagestafel mit Tour A links und Tour B rechts. Bei einer Zelle mit einer Person aus beiden Crews öffnet sich zuerst das Menü, dort steht „📋 Tagestafel". Mit ‹ und › springst du zum vorigen oder nächsten Überschneidungstag. Die Leiste „Frei an diesem Tag" zeigt Personen ohne Einsatz.</div>
     </div>
     <div class="step">
       <div class="step-num">6</div>
@@ -205,14 +205,23 @@ body {
     </div>
     <div class="step">
       <div class="step-num">7</div>
-      <div class="step-text"><strong>Schnell entscheiden:</strong> Klick auf eine Konflikt-Zelle öffnet ein Menü mit <strong>„→ nur A"</strong> bzw. <strong>„→ nur B"</strong>. Die Person bleibt in der gewählten Tour, ihr Platz in der anderen wird Offen.</div>
+      <div class="step-text"><strong>Schnell entscheiden:</strong> Klick auf eine Zelle mit einer Person, die in beiden Crews ist, öffnet immer ein Menü, auch ohne Konflikt an diesem Tag. Dort gibt es <strong>„→ Tourname (A)"</strong> und <strong>„→ Tourname (B)"</strong>, dazu <strong>„📋 Tagestafel"</strong>. Ein Haken ✓ zeigt, in welcher Tour die Person an diesem Tag schon steht. „→ zu X" setzt die Person auf ihre <strong>Stammposition in X</strong> zurück; ihr Platz in der anderen Tour wird Offen. Gibt es in X keine freie Stammposition, öffnet sich die Tagestafel, und du wählst den Platz.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-text"><strong>Entwurf, nichts wird sofort gespeichert:</strong> Alle Klicks ändern nur den Entwurf. Unten erscheint eine Leiste mit <strong>„✎ n Änderungen · ⚠ m Konflikte übrig"</strong> sowie <strong>„💾 Speichern"</strong> und <strong>„↩ Verwerfen"</strong>. Geänderte Zellen sind mit ✎ markiert. Klickst du hin und her und landest am Ausgangsplatz, gilt das nicht als Änderung und erzeugt auch keine Absage.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">9</div>
+      <div class="step-text"><strong>Speichern:</strong> Vor dem Speichern kommt eine Bestätigungsliste mit jeder Änderung (Tag, Platz, vorher → nachher) und allen Absagen. Erst nach „💾 Speichern" wird geschrieben, und zwar je Tour einmal. „↩ Verwerfen" setzt den Entwurf auf den gespeicherten Stand zurück. Willst du den Vergleich mit ungespeicherten Änderungen verlassen (Tour wechseln, Tab wechseln oder Seite schließen), fragt dich die App zuerst nach.</div>
     </div>
     <div class="highlight">
       <strong>Was passiert mit bestätigten oder angefragten Leuten?</strong><br>
       Wird eine Person aus einer Tour genommen, die sie bestätigt oder angefragt hat, wird die Zusage storniert. Die Absage landet in der <strong>Update-Liste dieser Tour</strong>. Den Versand startest du dort über „Updates senden". Der Tourvergleich verschickt selbst keine Mails. Hat die Person nur „vorgemerkt" oder „abgelehnt", wird der Eintrag einfach entfernt.
     </div>
-    <div class="warn">
-      Beide Touren nicht gleichzeitig in der Touransicht geöffnet haben. Die Touransicht speichert automatisch und würde die Änderungen aus dem Vergleich überschreiben.
+    <div class="highlight">
+      <strong>Touransicht und Vergleich</strong><br>
+      Die Touransicht lädt jetzt immer frisch aus der Datenbank. Vor jedem Speichern prüft die App, ob die Tour zwischendurch woanders geändert wurde. Ist das der Fall, wird nicht gespeichert, sondern neu geladen. Dann erscheint der rote Hinweis <strong>„Die Tour wurde zwischendurch woanders geändert – neu geladen. Bitte deine letzte Änderung wiederholen."</strong> Wiederhole in diesem Fall deine letzte Änderung.
     </div>
   </div>
 
