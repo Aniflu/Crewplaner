@@ -13,7 +13,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const hook = readFileSync(join(root, '.pb_hooks/main.pb.js'), 'utf8');
 
 // ── Statuswächter (Update-Request-Handler auf assignments) ────────────────────
-const tStart = hook.indexOf('var CREW_STATUS_TRANSITIONS');
+const tStart = hook.indexOf("throw new BadRequestError('status_transition_denied");   // v4.30: Tabelle steht in /crewsave
 const hStart = hook.lastIndexOf('onRecordUpdateRequest(', tStart);
 const hEnd   = hook.indexOf("}, 'assignments');", tStart);
 const guardSrc = hook.slice(hStart, hEnd + "}, 'assignments');".length);
@@ -38,19 +38,22 @@ function guard(alt, neu) {
   return weiter ? 'erlaubt' : 'nichts';
 }
 
-test('Hook-Wächter: Absage einer Vormerkung (neu pencil_declined, alt declined) wird angenommen', () => {
-  eq(guard('pencilled', 'pencil_declined'), 'erlaubt');
-  eq(guard('pencilled', 'declined'), 'erlaubt');
-});
-
-test('Hook-Wächter: eigene Vormerkungs-Absage zurücknehmen geht', () =>
-  eq(guard('pencil_declined', 'pencilled'), 'erlaubt'));
-
-test('Hook-Wächter: declined → pencilled und pencil_declined → confirmed lehnt der Hook ab', () => {
+// v4.30: Crew ändert keinen Status mehr über die normale API (alles läuft über /crewsave).
+test('Hook-Wächter v4.30: jede Statusänderung der Crew wird abgelehnt', () => {
+  eq(guard('pencilled', 'pencil_declined'), 'abgelehnt');
+  eq(guard('pencilled', 'declined'), 'abgelehnt');
+  eq(guard('pencil_declined', 'pencilled'), 'abgelehnt');
+  eq(guard('proposed', 'confirmed'), 'abgelehnt');
+  eq(guard('confirmed', 'declined'), 'abgelehnt');
   eq(guard('declined', 'pencilled'), 'abgelehnt');
   eq(guard('pencil_declined', 'confirmed'), 'abgelehnt');
   eq(guard('pencilled', 'confirmed'), 'abgelehnt');
   eq(guard('confirmed', 'pencilled'), 'abgelehnt');
+});
+
+test('Hook-Wächter v4.30: unveränderter Status (andere Felder) geht durch', () => {
+  eq(guard('confirmed', 'confirmed'), 'erlaubt');
+  eq(guard('pencilled', 'pencilled'), 'erlaubt');
 });
 
 // ── /notify: Vormerkung bleibt Vormerkung ─────────────────────────────────────
@@ -107,10 +110,9 @@ test('Mail-Hook: Vorlage pencil_info hat den Spec-Text, keinen Bestätigen-Knopf
   ok(!/BESTÄTIGEN|confirmUrl/i.test(b), 'kein Bestätigen-Knopf');
 });
 
-test('Admin-Mail: pencil_declined → VORMERKUNG ABGESAGT, Rücknahme → VORMERKUNG WIEDER FREI, ABGELEHNT nur bei declined', () => {
-  ok(/status === 'pencil_declined'\)[\s\S]{0,200}mBetreff = 'VORMERKUNG ABGESAGT'/.test(hook));
-  ok(/vorher !== 'pencil_declined'\) return;[\s\S]{0,120}mBetreff = 'VORMERKUNG WIEDER FREI'/.test(hook));
-  ok(/status === 'declined'\) \{\s*mBetreff = 'ABGELEHNT'/.test(hook));
+test('Admin-Mail v4.30: keine Planer-Einzelmail mehr (ABGELEHNT / VORMERKUNG ABGESAGT / WIEDER FREI)', () => {
+  ok(!/mBetreff|VORMERKUNG WIEDER FREI|VORMERKUNG ABGESAGT|'ABGELEHNT'/.test(hook.replace(/^\s*\/\/.*$/gm, '')),
+     'Die Planer-Einzelmails sind durch die Sammelmail crew_changes ersetzt');
 });
 
 test('/planstatus filtert pencil_declined nicht weg (die Crew muss zurücknehmen können)', () => {
@@ -119,10 +121,9 @@ test('/planstatus filtert pencil_declined nicht weg (die Crew muss zurücknehmen
   ok(!/pencil_declined|pencilled/.test(f), 'Filter darf Vormerk-Stati nicht ausschließen: ' + f);
 });
 
-// ── Review-Fixes (Runde 1) ────────────────────────────────────────────────────
-const mIdx = hook.indexOf('var mBetreff');
-const aStart = hook.lastIndexOf('onRecordAfterUpdateSuccess(', mIdx);
-const aEnd = hook.indexOf("}, 'assignments');", mIdx) + "}, 'assignments');".length;
+// ── v4.30: der assignments-Update-Hook mailt dem Planer nichts mehr ───────────
+const aStart = hook.lastIndexOf('onRecordAfterUpdateSuccess(', hook.indexOf("status === 'proposed'"));
+const aEnd = hook.indexOf("}, 'assignments');", aStart) + "}, 'assignments');".length;
 const afterSrc = hook.slice(aStart, aEnd);
 
 function nachUpdate(alt, neu) {
@@ -141,16 +142,15 @@ function nachUpdate(alt, neu) {
   return mails;
 }
 
-test('Admin-Mail: erneutes Speichern ohne Statuswechsel mailt NICHT noch einmal', () => {
-  eq(nachUpdate('pencil_declined', 'pencil_declined'), 0, 'pencil_declined unverändert');
-  eq(nachUpdate('declined', 'declined'), 0, 'declined unverändert');
+test('Admin-Mail v4.30: Crew-Statuswechsel (declined, pencil_declined, Rücknahme) mailen dem Planer NICHT mehr', () => {
+  eq(nachUpdate('pencilled', 'pencil_declined'), 0);
+  eq(nachUpdate('proposed', 'declined'), 0);
+  eq(nachUpdate('confirmed', 'declined'), 0);
+  eq(nachUpdate('pencil_declined', 'pencilled'), 0);
 });
 
-test('Admin-Mail: ein echter Wechsel mailt genau einmal', () => {
-  eq(nachUpdate('pencilled', 'pencil_declined'), 1);
-  eq(nachUpdate('proposed', 'declined'), 1);
-  eq(nachUpdate('pencil_declined', 'pencilled'), 1);
-  eq(nachUpdate('pencilled', 'pencilled'), 0);
+test('Admin-Mail v4.30: die ANFRAGE an die Crew (proposed) geht weiter raus', () => {
+  eq(nachUpdate('pencilled', 'proposed'), 1);
 });
 
 // fmtISO beider Kopien

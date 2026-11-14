@@ -1,7 +1,19 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.29
+// Version: 4.30
 // CHANGELOG
+// v4.30 Einladung mit Status, Crew speichert gesammelt (App v1.5.0):
+//   · Mail-Regel „Liste oder Zählung": mehr als 5 Einträge → nur Zählung + Satz (MAIL_LISTE_MAX);
+//     Einladung mit Status je Termin; keine Schreib-Knöpfe in Mails (kein confirm/decline/ackcancel);
+//     email_log auch ohne RESEND_KEY (success 'skipped')
+//   · /notify invite: Status je Termin aus der DB, vorhandene Datensätze bleiben unangetastet
+//     (nur fehlend/cancelled/cancel_acked wird proposed); über 5 Termine kompakte Nutzlast [{status}]
+//   · NEU POST /crewsave: Crew speichert alle Änderungen in EINEM Aufruf (alles oder nichts, eine
+//     Transaktion, activity_log je Änderung, 409 {stale} bei veraltetem `from`, 400 {denied}),
+//     dazu EIN crew_invites-Datensatz Typ crew_changes → eine Planer-Mail „CREW-ÄNDERUNGEN"
+//   · assignments-Guard: Crew-Konten (Nicht-Planer) dürfen über die normale API weder einen Status
+//     ändern noch Datensätze anlegen; Crew schreibt nur noch über /crewsave
+//   · Wegfall der Planer-Einzelmails ABGELEHNT / VORMERKUNG ABGESAGT / VORMERKUNG WIEDER FREI
 // v4.29 Vormerkung als reine Information (App v1.4.0):
 //   · neuer Crew-Status pencil_declined (Absage einer Vormerkung); pencilled→declined bleibt
 //     nur für die alte App v1.3.0 erlaubt
@@ -9,7 +21,7 @@
 //     pencil_declined→pencilled; „ABGELEHNT" nur noch bei declined
 //   · /notify: neuer Typ pencil_info (Info-Mail, schreibt keinen Status); invite/reminder/update
 //     setzen pencilled/pencil_declined NIE auf proposed und führen sie nicht in der Mail-Liste
-console.log('[hook] main.pb.js v4.29 geladen');
+console.log('[hook] main.pb.js v4.30 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -323,6 +335,44 @@ onRecordAfterCreateSuccess(function(e) {
       mkBtn('https://crewplanner.nyxlightwork.de', 'APP &Ouml;FFNEN &rarr;', '#f8f9fb', '#555570')
     ));
     console.log('[hook] pencil_info email sent to ' + email + ' (' + piSlots.length + ' slots)');
+  } else if (type === 'crew_changes') {
+    // v4.30: EINE Planer-Mail je Speichern der Crew (POST /crewsave). app_url = JSON
+    // [{date, posLabel, from, to}] (Bereitschaft: to 'availability'); über 5 Einträge liegt nur
+    // [{to}] dort (Platz) — dann gibt es die Zählung, nie eine Tabelle mit leeren Zeilen.
+    var ccSlots = [];
+    try { ccSlots = JSON.parse(appUrl || '[]'); } catch (_) {}
+    if (!Array.isArray(ccSlots)) ccSlots = [];
+    var ccRows = [];
+    for (var cc = 0; cc < ccSlots.length; cc++) { if (ccSlots[cc]) ccRows.push(ccSlots[cc]); }
+    var ccText = {
+      confirmed:       { sym: '✅',  text: 'bestätigt' },
+      declined:        { sym: '✗',   text: 'abgesagt' },
+      pencil_declined: { sym: '✎✗', text: 'Vormerkung abgesagt' },
+      pencilled:       { sym: '✎',   text: 'wieder vorgemerkt' },
+      cancel_acked:    { sym: '👁',  text: 'Entfall gesehen' },
+      availability:    { sym: '📋',  text: 'Bereitschaft' }
+    };
+    var ccGruppe = function(sl) { return ccText[sl.to] ? sl.to : 'confirmed'; };
+    var ccOhneDatum = false;
+    for (var cd = 0; cd < ccRows.length; cd++) { if (!ccRows[cd].date) ccOhneDatum = true; }
+    var ccListe = mailListe(ccRows, [
+      { kopf: 'DATUM',    wert: function(sl) { return fmtISO(sl.date); } },
+      { kopf: 'POSITION', wert: function(sl) { return esc(sl.posLabel); } },
+      { kopf: '&Auml;NDERUNG', wert: function(sl) { var t = ccText[ccGruppe(sl)]; return t.sym + ' ' + t.text; } }
+    ], ccGruppe, ccText, ccOhneDatum);
+    var ccAdmin = $os.getenv('ADMIN_EMAIL');
+    if (!ccAdmin) {
+      console.error('[hook] ADMIN_EMAIL ist nicht gesetzt — Crew-Änderungs-Mail an den Planer entfaellt');
+      return;
+    }
+    sendMail(ccAdmin, 'CREW-ÄNDERUNGEN · ' + name + ' · ' + plan, wrap(
+      '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Crew-&Auml;nderungen.</h1>' +
+      '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">CREW-&Auml;NDERUNGEN · ' + ePlan + '</p>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;"><strong style="color:#1a1a2e;">' + eName + '</strong> hat gespeichert:</p>' +
+      ccListe +
+      mkBtn('https://crewplanner.nyxlightwork.de', 'PLAN &Ouml;FFNEN &rarr;', '#f8f9fb', '#555570')
+    ));
+    console.log('[hook] crew_changes email sent to admin for ' + name + ' (' + ccRows.length + ' Einträge)');
   }
   } catch(outerErr) { console.error('[hook] crew_invites UNCAUGHT:', String(outerErr)); }
 
@@ -410,12 +460,10 @@ onRecordUpdateRequest(function (e) {
 // bekam beim Login „kannst du an diesen Terminen?" und hob mit der Antwort still auf
 // bestätigt. Der Filter im Frontend (v0.13.0) behebt die Frage, nicht die Lücke.
 //
-// Regel: Die Crew bewegt einen Status nur ABWÄRTS, Richtung Absage. Die einzige
-// Aufwärtsbewegung, die ihr gehört, ist die Antwort auf eine Anfrage: proposed → confirmed.
-// Vormerken und Wiederbeleben sind Sache von Admin/Tourmanager.
-//
-// ⚠️ HANDKOPIE von CREW_STATUS_TRANSITIONS aus js/pure.js — Goja kennt hier kein `import`.
-// Wer dort etwas ändert, MUSS hier nachziehen; tests/statusguard.test.mjs vergleicht beide.
+// Regel (v4.30): Ein Crew-Konto ändert über diese API KEINEN Status mehr. Die Übergangsregeln
+// (Crew bewegt nur Richtung Absage, Antwort auf Anfrage proposed → confirmed, usw.) gelten
+// unverändert, stehen aber in POST /crewsave als HANDKOPIE von CREW_STATUS_TRANSITIONS aus
+// js/pure.js — Goja kennt hier kein `import`; tests/statusguard.test.mjs vergleicht beide.
 //
 // ⚠️⚠️ ALLES steht INNERHALB der Handler, bewusst doppelt. Jeder Hook-Handler läuft in einer
 // eigenen VM, in der er als `/pb.js` erscheint — Deklarationen auf oberster Ebene der Datei
@@ -427,18 +475,6 @@ onRecordUpdateRequest(function (e) {
 
 onRecordUpdateRequest(function(e) {
   // ── handler-lokal, siehe /pb.js-Isolation oben ──────────────────────────────
-  var CREW_STATUS_TRANSITIONS = {
-    proposed:  ['confirmed', 'declined'],
-    confirmed: ['declined'],
-    pencilled: ['pencil_declined', 'declined'],
-    pencil_declined: ['pencilled'],
-    cancelled: ['cancel_acked']
-  };
-  var erlaubt = function(von, nach) {
-    if (!von) return nach === 'confirmed' || nach === 'declined';
-    var l = CREW_STATUS_TRANSITIONS[von];
-    return !!l && l.indexOf(nach) !== -1;
-  };
   // Planer und Plan-Owner dürfen alles. Bewusst eine OBERMENGE der heutigen updateRule:
   // Wer heute schreiben darf, muss es auch nach diesem Guard noch dürfen — ein Guard, der
   // nebenbei Rechte entzieht, fällt beim nächsten Bulk-Vorgang auf und wird dann pauschal
@@ -472,10 +508,13 @@ onRecordUpdateRequest(function(e) {
   // catch und ist deshalb nie aufgefallen).
   var neu = rec.get('status');
   var alt = rec.original().get('status');
-  if (alt !== neu && !erlaubt(alt, neu)) {
+  // v4.30: Eine Crew ändert KEINEN Status mehr über die normale API — weder auf- noch abwärts.
+  // Crew speichert gesammelt über POST /crewsave (dort steht die Übergangstabelle). Dadurch
+  // erreicht keine Crew-Änderung den Plan ohne Planer-Mail, auch nicht aus einer alten App.
+  if (alt !== neu) {
     console.log('[hook] status_transition_denied', alt, '->', neu, 'von', meine, 'rec:', rec.id);
     throw new BadRequestError('status_transition_denied: ' + alt + ' → ' + neu
-      + ' darfst du nicht selbst setzen. Vormerkungen bewegt nur die Tourleitung.');
+      + ' — Änderungen der Crew gehen nur über Speichern in der App.');
   }
   e.next();   // NACH der Prüfung — e.next() führt den Schreibvorgang aus.
 }, 'assignments');
@@ -501,14 +540,14 @@ onRecordCreateRequest(function(e) {
 
   var auth = e.auth;
   if (auth && !istPlaner(auth, e.record.get('plan_id'))) {
+    // v4.30: Crew legt nichts mehr direkt an (auch nicht den eigenen Slot als bestätigt) —
+    // das läuft über POST /crewsave, damit der Planer genau eine Mail bekommt.
     var meine  = (auth.getString('email') || '').toLowerCase();
     var fuer   = String(e.record.get('crew_email') || '').toLowerCase();
     var status = e.record.get('status');
-    if (fuer !== meine || status !== 'confirmed') {
-      console.log('[hook] assignment_create_denied', status, 'fuer', fuer, 'von', meine);
-      throw new BadRequestError('assignment_create_denied: als Crew kannst du nur deinen '
-        + 'eigenen Einsatz anlegen, und nur als bestätigt.');
-    }
+    console.log('[hook] assignment_create_denied', status, 'fuer', fuer, 'von', meine);
+    throw new BadRequestError('assignment_create_denied: als Crew legst du Einsätze nicht '
+      + 'direkt an — Änderungen gehen nur über Speichern in der App.');
   }
   e.next();
 }, 'assignments');
@@ -611,63 +650,9 @@ onRecordAfterUpdateSuccess(function(e) {
     return;
   }
 
-  // v4.29: Absage einer Vormerkung und deren Rücknahme bekommen eigene Betreffs; die
-  // „ABGELEHNT"-Mail bleibt echten Absagen (declined) vorbehalten.
-  var mBetreff, mTitel, mKicker, mSatz;
-  // Jede spätere Speicherung desselben Datensatzes (Planer, Sammelvorgang, changed_by) feuert
-  // diesen Hook erneut: nur ein ECHTER Statuswechsel mailt. Fällt die Prüfung aus, geht lieber
-  // eine Mail zu viel raus als eine zu wenig.
-  if (status === 'pencil_declined' || status === 'declined') {
-    var vorherS = null;
-    try { var origS = r.original(); vorherS = origS ? origS.get('status') : null; } catch (errS) { vorherS = null; }
-    if (vorherS === status) {
-      console.log('[hook] UPDATE ' + status + ': Status unverändert, kein E-Mail gesendet', aid);
-      return;
-    }
-  }
-  if (status === 'pencil_declined') {
-    mBetreff = 'VORMERKUNG ABGESAGT'; mTitel = 'Vormerkung abgesagt.'; mKicker = 'VORMERKUNG ABGESAGT'; mSatz = 'hat die Vormerkung abgesagt:';
-  } else if (status === 'pencilled') {
-    var vorher = '';
-    try { var origP = r.original(); vorher = origP ? origP.get('status') : ''; } catch (errO) { vorher = ''; }
-    if (vorher !== 'pencil_declined') return;
-    mBetreff = 'VORMERKUNG WIEDER FREI'; mTitel = 'Wieder frei.'; mKicker = 'VORMERKUNG WIEDER FREI'; mSatz = 'hat die Absage der Vormerkung zurückgenommen:';
-  } else if (status === 'declined') {
-    mBetreff = 'ABGELEHNT'; mTitel = 'Abgelehnt.'; mKicker = 'CREW ABSAGE'; mSatz = 'hat abgelehnt:';
-  } else { return; }
-
-  var crewName = r.get('crew_name');
-  var eCrewName3 = esc(crewName);
-  // v0.8.0: siehe Begründung beim Bereitschafts-Versand — keine fest verdrahtete Adresse
-  // mehr in einer öffentlich ausgelieferten Datei.
-  var adminEmail = $os.getenv('ADMIN_EMAIL');
-  if (!adminEmail) {
-    console.error('[hook] ADMIN_EMAIL ist nicht gesetzt — Absage-Meldung an den Planer entfaellt');
-    return;
-  }
-  sendMail(adminEmail, mBetreff + ' · ' + posLabel + ' · ' + fdate + (status === 'declined' ? '' : ' · ' + crewName),
-    '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
-    '<body style="margin:0;padding:0;background:#f8f9fb;font-family:\'Courier New\',Courier,monospace;">' +
-    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;padding:48px 20px;"><tr><td align="center">' +
-    '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e8e8e8;border-radius:4px;">' +
-    '<tr><td style="padding:28px 36px;border-bottom:2px solid #e8c84a;"><span style="font-size:10px;letter-spacing:4px;color:#e8c84a;text-transform:uppercase;">nyx lightwork</span></td></tr>' +
-    '<tr><td style="padding:36px 36px;">' +
-    '<h1 style="font-size:36px;color:#e84a4a;margin:0 0 6px 0;">' + mTitel + '</h1>' +
-    '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">' + mKicker + '</p>' +
-    '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;"><strong style="color:#e84a4a;">' + eCrewName3 + '</strong> ' + mSatz + '</p>' +
-    '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
-    '<tr style="background:#f8f9fb;"><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #e8e8e8;">POSITION</td>' +
-    '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + ePosLabel + '</td></tr>' +
-    '<tr style="background:#f8f9fb;"><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #e8e8e8;">DATUM</td>' +
-    '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;border-bottom:1px solid #e8e8e8;">' + fdate + '</td></tr>' +
-    '<tr><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;">CREW</td>' +
-    '<td style="padding:11px 16px;font-size:13px;color:#e84a4a;font-weight:bold;">' + eCrewName3 + '</td></tr>' +
-    '</table>' +
-    '<table cellpadding="0" cellspacing="0"><tr><td style="background:#f8f9fb;border:1px solid #e8e8e8;border-radius:2px;"><a href="https://crewplanner.nyxlightwork.de" style="display:block;padding:13px 24px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#555570;text-decoration:none;letter-spacing:3px;">PLAN ÖFFNEN →</a></td></tr></table>' +
-    '</td></tr>' +
-    '<tr><td style="padding:20px 36px;border-top:1px solid #e8e8e8;"><p style="font-size:9px;color:#999999;letter-spacing:2px;margin:0;text-transform:uppercase;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr>' +
-    '</table></td></tr></table></body></html>'
-  );
+  // v4.30: Die Planer-Einzelmails ABGELEHNT / VORMERKUNG ABGESAGT / VORMERKUNG WIEDER FREI sind
+  // entfallen: Crew-Änderungen laufen über POST /crewsave und lösen genau EINE Sammelmail
+  // (crew_invites Typ crew_changes) aus. Hier bleibt nur die ANFRAGE an die Crew (oben).
 }, 'assignments');
 
 // ── 3. Auto-Verify + Pool-Rolle bei neuen Users ───────────────────────────────
@@ -1229,6 +1214,14 @@ routerAdd('POST', '/notify', function(e) {
       if (ida && AKTIV[ida.getString('status')]) ist = ida.getString('status');
       iListe.push({ date: iq.date, posLabel: iq.posLabel || iq.posId, status: ist });
     }
+    // Über MAIL_LISTE_MAX Termine zählt die Mail nur (Regel „Liste oder Zählung"): dann reicht
+    // [{status}] je Eintrag — ohne date/posLabel passen auch 60 Termine in die 5000 Zeichen.
+    var MAIL_LISTE_MAX = 5;
+    if (iListe.length > MAIL_LISTE_MAX) {
+      var iKompakt = [];
+      for (var ik = 0; ik < iListe.length; ik++) iKompakt.push({ status: iListe[ik].status });
+      iListe = iKompakt;
+    }
     nutzlast = JSON.stringify(iListe);
   } else if (Array.isArray(body.mailSlots)) {
     nutzlast = JSON.stringify(body.mailSlots);
@@ -1312,6 +1305,193 @@ routerAdd('POST', '/notify', function(e) {
   return e.string(200, JSON.stringify({
     ok: true, angelegt: angelegt, aktualisiert: aktualisiert, geloescht: geloescht
   }));
+}, $apis.requireAuth());
+
+
+// ── 6e. Crew speichert gesammelt (v4.30) ─────────────────────────────────────
+// POST /crewsave  (authentifiziert)  Body { planId, changes:[{date,posId,from,to}], availability:[{date,posId}] }
+//
+// Warum: Die Crew sammelt ihre Änderungen in der App (Entwurf) und speichert sie in EINEM Aufruf.
+// Der Server prüft JEDE Änderung, schreibt alle in EINER Transaktion und legt zuletzt EINEN
+// crew_invites-Datensatz (Typ crew_changes) an: Der Mail-Hook feuert erst nach dem Commit, es gibt
+// also genau eine Planer-Mail je Speichern — oder, bei einem Fehler, weder Änderung noch Mail.
+// Der assignments-Guard (2b) lässt Crew-Konten sonst nichts mehr ändern, damit dies der einzige Weg ist.
+//
+// Antworten: 401 ohne Konto · 404 Plan fehlt oder Konto nicht in crew_members · 400 'keine
+// Änderungen' · 409 {stale:[{date,posId,now}]} (aktueller Status ≠ from) · 400 {denied:[{date,
+// posId,reason}]} (fremder Datensatz, verbotener Übergang) · 200 {ok,saved}. Bei 409/400 ist nichts geschrieben.
+// Goja-Isolation: alle Helfer/Literale INNERHALB des Handlers.
+routerAdd('POST', '/crewsave', function(e) {
+  var auth = e.auth;
+  if (!auth) return e.string(401, 'unauthorized');
+
+  var body = {};
+  try { body = e.requestInfo().body || {}; } catch (errB) { body = {}; }
+  var planId  = String(body.planId || '');
+  var changes = Array.isArray(body.changes) ? body.changes : [];
+  var verf    = Array.isArray(body.availability) ? body.availability : [];
+  var meineMail = (auth.getString('email') || '').toLowerCase();
+  if (!planId) return e.string(400, 'planId fehlt');
+
+  // ⚠️ HANDKOPIE von CREW_STATUS_TRANSITIONS aus js/pure.js (Goja kennt kein import).
+  // Wer dort etwas ändert, MUSS hier nachziehen; tests/statusguard.test.mjs vergleicht beide.
+  var CREW_STATUS_TRANSITIONS = {
+    proposed:  ['confirmed', 'declined'],
+    confirmed: ['declined'],
+    pencilled: ['pencil_declined', 'declined'],
+    pencil_declined: ['pencilled'],
+    cancelled: ['cancel_acked']
+  };
+  var AKTIV = { pencilled: true, pencil_declined: true, proposed: true, confirmed: true, declined: true };
+  var ZIELE = { confirmed: true, declined: true, pencil_declined: true, pencilled: true, cancel_acked: true };
+  var MAIL_LISTE_MAX = 5;
+
+  var plan;
+  try { plan = $app.findRecordById('plans', planId); } catch (errP) { plan = null; }
+  if (!plan) return e.string(404, 'not found');
+  var mitglied = null;
+  try {
+    mitglied = $app.findFirstRecordByFilter('crew_members',
+      'plan_id = {:p} && email = {:m}', { p: planId, m: meineMail });
+  } catch (errM) { mitglied = null; }
+  if (!mitglied) return e.string(404, 'not found');
+  var meinName = mitglied.getString('name') || '';
+
+  if (!changes.length && !verf.length) return e.string(400, 'keine Änderungen');
+
+  // plan_data: Slot-Zuordnung (Fall `none`) und Positionsnamen
+  var pd = null;
+  var pdText = '';
+  try { pdText = plan.getString('plan_data') || ''; } catch (errT) { pdText = ''; }
+  if (pdText) { try { pd = JSON.parse(pdText); } catch (errJ) { pd = null; } }
+  if (!pd) { try { pd = plan.get('plan_data') || null; } catch (errG) { pd = null; } }
+  if (!pd || typeof pd !== 'object') pd = {};
+  var labelVon = function(posId) {
+    var ps = Array.isArray(pd.positions) ? pd.positions : [];
+    for (var pi = 0; pi < ps.length; pi++) { if (ps[pi] && ps[pi].id === posId) return String(ps[pi].label || posId).slice(0, 60); }
+    return String(posId).slice(0, 60);
+  };
+  // Gehört der Slot (Datum, Position) laut plan_data dieser Person? Wirksame Zelle =
+  // assignments[date][posId], wenn der Schlüssel vorhanden ist, sonst defaultCrew[posId] (nur an Tourtagen).
+  var gehoertMir = function(date, posId) {
+    var tage = Array.isArray(pd.tourDates) ? pd.tourDates : [];
+    var amTag = false;
+    for (var ti = 0; ti < tage.length; ti++) { if (tage[ti] && tage[ti].date === date) amTag = true; }
+    var zelle = null;
+    var ad = pd.assignments && pd.assignments[date];
+    if (ad && Object.prototype.hasOwnProperty.call(ad, posId)) zelle = ad[posId];
+    else if (amTag && pd.defaultCrew) zelle = pd.defaultCrew[posId];
+    return !!meinName && !!zelle && String(zelle) === meinName;
+  };
+  var slotRecord = function(date, posId) {
+    try {
+      return $app.findFirstRecordByFilter('assignments',
+        'plan_id = {:p} && date = {:d} && pos_id = {:q}', { p: planId, d: date, q: posId });
+    } catch (errF) { return null; }
+  };
+
+  // ── Prüfen (nichts geschrieben, bevor ALLES geprüft ist) ──
+  var stale = [], denied = [], ops = [], gesehen = {};
+  for (var i = 0; i < changes.length; i++) {
+    var c = changes[i] || {};
+    var date = String(c.date || ''), posId = String(c.posId || '');
+    var von = String(c.from || ''), nach = String(c.to || '');
+    var key = date + '|' + posId;
+    if (!date || !posId || !von || !ZIELE[nach]) { denied.push({ date: date, posId: posId, reason: 'ungültige Angabe' }); continue; }
+    if (gesehen[key]) { denied.push({ date: date, posId: posId, reason: 'doppelt' }); continue; }
+    gesehen[key] = true;
+    var rec = slotRecord(date, posId);
+    var jetzt = rec ? (rec.getString('status') || 'none') : 'none';
+    if (jetzt !== von) { stale.push({ date: date, posId: posId, now: jetzt }); continue; }
+    if (rec) {
+      if (String(rec.getString('crew_email') || '').toLowerCase() !== meineMail) { denied.push({ date: date, posId: posId, reason: 'fremder Termin' }); continue; }
+      var erl = CREW_STATUS_TRANSITIONS[jetzt];
+      if (!erl || erl.indexOf(nach) === -1) { denied.push({ date: date, posId: posId, reason: 'Übergang nicht erlaubt: ' + jetzt + ' → ' + nach }); continue; }
+    } else {
+      if (nach !== 'confirmed' && nach !== 'declined') { denied.push({ date: date, posId: posId, reason: 'Übergang nicht erlaubt: none → ' + nach }); continue; }
+      if (!gehoertMir(date, posId)) { denied.push({ date: date, posId: posId, reason: 'nicht dein Termin' }); continue; }
+    }
+    ops.push({ date: date, posId: posId, from: von, to: nach, rec: rec, label: rec ? (rec.getString('pos_label') || labelVon(posId)) : labelVon(posId) });
+  }
+  e.response.header().set('Content-Type', 'application/json; charset=utf-8');
+  if (stale.length) return e.string(409, JSON.stringify({ stale: stale }));
+  if (denied.length) return e.string(400, JSON.stringify({ denied: denied }));
+
+  // Bereitschaften: nur für Slots ohne aktiven Datensatz (sonst still ignoriert, nicht in der Mail)
+  var bereit = [];
+  for (var v = 0; v < verf.length; v++) {
+    var bv = verf[v] || {};
+    var bd = String(bv.date || ''), bp = String(bv.posId || '');
+    if (!bd || !bp || gesehen[bd + '|' + bp]) continue;
+    gesehen[bd + '|' + bp] = true;
+    var brec = slotRecord(bd, bp);
+    if (brec && AKTIV[brec.getString('status')]) continue;
+    bereit.push({ date: bd, posLabel: labelVon(bp), from: 'none', to: 'availability' });
+  }
+
+  var liste = [];
+  for (var k = 0; k < ops.length; k++) liste.push({ date: ops[k].date, posLabel: ops[k].label, from: ops[k].from, to: ops[k].to });
+  for (var b = 0; b < bereit.length; b++) liste.push(bereit[b]);
+  if (!liste.length) return e.string(200, JSON.stringify({ ok: true, saved: 0 }));
+  // Regel „Liste oder Zählung": über MAIL_LISTE_MAX Einträge zählt die Mail nur → [{to}] (Platz in app_url)
+  if (liste.length > MAIL_LISTE_MAX) {
+    var kompakt = [];
+    for (var kk = 0; kk < liste.length; kk++) kompakt.push({ to: liste[kk].to });
+    liste = kompakt;
+  }
+  var nutzlast = JSON.stringify(liste);
+  var planName = plan.getString('name') || 'Tour Plan';
+  var jetztIso = new Date().toISOString();
+
+  try {
+    $app.runInTransaction(function (tx) {
+      var col = tx.findCollectionByNameOrId('assignments');
+      var lcol = tx.findCollectionByNameOrId('activity_log');
+      for (var w = 0; w < ops.length; w++) {
+        var op = ops[w];
+        var r = op.rec;
+        if (!r) {
+          r = new Record(col);
+          r.set('plan_id', planId);
+          r.set('date', op.date);
+          r.set('pos_id', op.posId);
+          r.set('pos_label', op.label);
+          r.set('crew_name', meinName);
+          r.set('crew_email', meineMail);
+          r.set('proposed_by', 'manual');
+        }
+        r.set('status', op.to);
+        r.set('responded_at', jetztIso);
+        r.set('changed_by', auth.id);
+        tx.save(r);
+        var lg = new Record(lcol);
+        lg.set('plan_id', planId);
+        lg.set('crew_name', meinName);
+        lg.set('crew_email', meineMail);
+        lg.set('action', op.to === 'pencilled' ? 'pencil_restored' : op.to);
+        lg.set('date', op.date);
+        lg.set('pos_label', op.label);
+        lg.set('ts', jetztIso);
+        tx.save(lg);
+      }
+      // Auslöse-Record ZULETZT, gleiche Transaktion: Mail-Hook feuert erst nach dem Commit.
+      var iCol = tx.findCollectionByNameOrId('crew_invites');
+      var inv = new Record(iCol);
+      inv.set('plan_id', planId);
+      inv.set('crew_name', meinName);
+      inv.set('crew_email', meineMail);
+      inv.set('type', 'crew_changes');
+      inv.set('plan_name', planName);
+      inv.set('app_url', nutzlast);
+      tx.save(inv);
+    });
+  } catch (errTx) {
+    console.error('[hook] /crewsave Transaktion fehlgeschlagen:', String(errTx));
+    return e.string(500, 'nicht gespeichert');
+  }
+
+  console.log('[hook] /crewsave ' + meineMail + ' · ' + ops.length + ' Änderungen, ' + bereit.length + ' Bereitschaften');
+  return e.string(200, JSON.stringify({ ok: true, saved: ops.length + bereit.length }));
 }, $apis.requireAuth());
 
 

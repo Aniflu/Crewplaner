@@ -40,12 +40,15 @@ test('Hook: blockierender Update-Guard auf assignments existiert', () => {
   ok(/onRecordUpdateRequest\([\s\S]*?,\s*'assignments'\)/.test(code), 'der Update-Guard hängt nicht an assignments');
 });
 
-test('Hook: der Update-Guard vergleicht ALTEN mit NEUEM Status', () => {
+test('Hook: der Update-Guard vergleicht ALTEN mit NEUEM Status (v4.30: jede Änderung abgelehnt)', () => {
   const m = handlerMit('onRecordUpdateRequest', 'status_transition_denied');
   ok(m, 'Update-Guard-Block nicht gefunden (Kennung status_transition_denied)');
   ok(/\.original\(\)\.get\('status'\)/.test(m),
      'liest den vorherigen Status nicht über original() — ohne ihn kann er keinen Übergang prüfen');
-  ok(/erlaubt\(alt, neu\)/.test(m), 'wendet die Übergangstabelle nicht an');
+  // v4.30: keine Übergangstabelle mehr im Guard, jede Änderung eines Crew-Kontos wird abgelehnt;
+  // die Tabelle steht in /crewsave (Test weiter unten).
+  ok(/if \(alt !== neu\) \{/.test(m), 'lehnt nicht JEDE Statusänderung ab');
+  ok(!/erlaubt\(alt, neu\)/.test(m), 'der Guard darf keine Übergänge mehr durchlassen (v4.30)');
 });
 
 test('Hook: Planer und Plan-Owner kommen am Guard vorbei (sonst sperrt er die Falschen ein)', () => {
@@ -106,8 +109,12 @@ test('Hook: Create-Guard schließt den Zweitrecord-Weg', () => {
 test('Hook: Übergangstabelle ist mit js/pure.js identisch (Handkopie darf nicht driften)', () => {
   // Goja kennt kein `import`, deshalb führt der Hook eine zweite Fassung derselben Tabelle
   // (gleiches Muster wie ICS_STATUS_LABEL ↔ LABEL). Genau solche Kopien laufen auseinander.
-  const m = code.match(/var CREW_STATUS_TRANSITIONS\s*=\s*(\{[\s\S]*?\});/);
-  ok(m, 'CREW_STATUS_TRANSITIONS fehlt im Hook');
+  // v4.30: die Kopie steht im Handler von POST /crewsave (nicht mehr im Guard).
+  const crewsave = code.slice(code.indexOf("routerAdd('POST', '/crewsave'"));
+  const alle = code.match(/var CREW_STATUS_TRANSITIONS\s*=/g) || [];
+  ok(alle.length === 1, 'genau eine Kopie der Übergangstabelle erwartet, gefunden: ' + alle.length);
+  const m = crewsave.match(/var CREW_STATUS_TRANSITIONS\s*=\s*(\{[\s\S]*?\});/);
+  ok(m, 'CREW_STATUS_TRANSITIONS fehlt in /crewsave');
   // eslint-disable-next-line no-new-func — Testcode, Eingabe ist die repo-eigene Hook-Datei
   const imHook = new Function('return ' + m[1])();
   deepEq(imHook, CREW_STATUS_TRANSITIONS,
@@ -118,6 +125,6 @@ test('Hook: die Version ist mitgezogen worden', () => {
   const m = hook.match(/^\/\/ Version:\s*([\d.]+)/m);
   ok(m, 'Versionszeile fehlt');
   const [maj, min] = m[1].split('.').map(Number);
-  ok(maj > 4 || (maj === 4 && min >= 26),
-     'Hook-Version muss mit dem Guard auf mindestens 4.26 stehen — bekommen: ' + m[1]);
+  ok(maj > 4 || (maj === 4 && min >= 30),
+     'Hook-Version muss mit /crewsave auf mindestens 4.30 stehen — bekommen: ' + m[1]);
 });
