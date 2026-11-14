@@ -423,3 +423,38 @@ test('invite-Mail zählt aus der kompakten Nutzlast korrekt', () => {
   ok(h.includes('mehr als 5 Einträge'));
   ok(!h.includes('Bitte in der App bestätigen oder absagen.'), 'keine proposed → kein Anfrage-Satz');
 });
+
+// Schlussprüfung v1.5.0: entfallene Termine (cancelled/cancel_acked) zählen für from:'none' als „kein aktiver Datensatz“.
+test('crewsave: cancel_acked-Datensatz + from none → confirmed aktualisiert den vorhandenen Datensatz (kein neuer)', () => {
+  const alt = R('2027-06-01', 'gl', 'cancel_acked', 'eva@x.de');
+  alt.f.crew_name = 'Eva';
+  const w = welt({ records: [alt] });
+  const a = w.aufruf({ planId: 'PLAN1', changes: [C('2027-06-01', 'gl', 'none', 'confirmed')], availability: [] });
+  eq(a.code, 200);
+  const asg = w.gespeichert.filter((r) => r.col === 'assignments');
+  eq(asg.length, 1);
+  ok(asg[0] === alt, 'derselbe Datensatz (Unique-Index)');
+  eq(alt.f.status, 'confirmed');
+  eq(alt.f.crew_name, 'Max');
+  eq(alt.f.crew_email, 'max@x.de');
+});
+test('crewsave: cancelled + from none → declined wird ebenso übernommen', () => {
+  const alt = R('2027-06-01', 'gl', 'cancelled');
+  const w = welt({ records: [alt] });
+  eq(w.aufruf({ planId: 'PLAN1', changes: [C('2027-06-01', 'gl', 'none', 'declined')], availability: [] }).code, 200);
+  eq(alt.f.status, 'declined');
+});
+test('crewsave: cancelled + from cancelled → cancel_acked funktioniert weiter', () => {
+  const alt = R('2027-06-01', 'gl', 'cancelled');
+  const w = welt({ records: [alt] });
+  eq(w.aufruf({ planId: 'PLAN1', changes: [C('2027-06-01', 'gl', 'cancelled', 'cancel_acked')], availability: [] }).code, 200);
+  eq(alt.f.status, 'cancel_acked');
+});
+test('crewsave: cancel_acked + from none für nicht zugewiesenen Slot → 400 denied, nichts geschrieben', () => {
+  const alt = R('2027-06-02', 'gl', 'cancel_acked', 'eva@x.de');
+  const w = welt({ records: [alt] });
+  const a = w.aufruf({ planId: 'PLAN1', changes: [C('2027-06-02', 'gl', 'none', 'confirmed')], availability: [] });
+  eq(a.code, 400);
+  eq(w.gespeichert.length, 0);
+  eq(alt.f.status, 'cancel_acked');
+});

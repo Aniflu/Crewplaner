@@ -937,7 +937,7 @@ export async function sendUpdateNotice(crewName, crewEmail, slots, customMessage
 export async function sendCrewInvite(crewName, crewEmail, type, slots, customMessage, mailSlots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
-  if (!planId) return;
+  if (!planId) throw new Error('Plan nicht gefunden – bitte neu laden');
   const plans = typeof getPlansIndex === 'function' ? getPlansIndex() : [];
   const planName = plans.find(p => p.id === activePlanId)?.name || 'Tour Plan';
   const appUrl = window.location.origin + window.location.pathname;

@@ -1402,17 +1402,22 @@ routerAdd('POST', '/crewsave', function(e) {
     gesehen[key] = true;
     var rec = slotRecord(date, posId);
     // v4.30: Fremder Datensatz ZUERST — ein 409 darf nie den Status einer anderen Person verraten.
-    if (rec && String(rec.getString('crew_email') || '').toLowerCase() !== meineMail) { denied.push({ date: date, posId: posId, reason: 'fremder Termin' }); continue; }
-    var jetzt = rec ? (rec.getString('status') || 'none') : 'none';
+    // v4.30: Ein entfallener Termin (cancelled/cancel_acked) ist „kein aktiver Datensatz“, wenn der Client
+    // von 'none' kommt: gleiche Regel wie ohne Datensatz (nur confirmed/declined, nur laut plan_data eigener
+    // Slot), der vorhandene Datensatz wird wiederverwendet (Unique-Index plan_id,date,pos_id). cancelled →
+    // cancel_acked (from:'cancelled') bleibt unverändert.
+    var entfallen = !!rec && von === 'none' && (rec.getString('status') === 'cancelled' || rec.getString('status') === 'cancel_acked');
+    if (rec && !entfallen && String(rec.getString('crew_email') || '').toLowerCase() !== meineMail) { denied.push({ date: date, posId: posId, reason: 'fremder Termin' }); continue; }
+    var jetzt = (rec && !entfallen) ? (rec.getString('status') || 'none') : 'none';
     if (jetzt !== von) { stale.push({ date: date, posId: posId, now: jetzt }); continue; }
-    if (rec) {
+    if (rec && !entfallen) {
       var erl = CREW_STATUS_TRANSITIONS[jetzt];
       if (!erl || erl.indexOf(nach) === -1) { denied.push({ date: date, posId: posId, reason: 'Übergang nicht erlaubt: ' + jetzt + ' → ' + nach }); continue; }
     } else {
       if (nach !== 'confirmed' && nach !== 'declined') { denied.push({ date: date, posId: posId, reason: 'Übergang nicht erlaubt: none → ' + nach }); continue; }
       if (!gehoertMir(date, posId)) { denied.push({ date: date, posId: posId, reason: 'nicht dein Termin' }); continue; }
     }
-    ops.push({ date: date, posId: posId, from: von, to: nach, rec: rec, label: rec ? (rec.getString('pos_label') || labelVon(posId)) : labelVon(posId) });
+    ops.push({ date: date, posId: posId, from: von, to: nach, rec: rec, entfallen: entfallen, label: rec ? (rec.getString('pos_label') || labelVon(posId)) : labelVon(posId) });
   }
   // Bereitschaften: nur echtes ISO-Datum und eine Position aus plan_data (sonst denied)
   var posBekannt = function(posId) {
@@ -1462,8 +1467,8 @@ routerAdd('POST', '/crewsave', function(e) {
       for (var w = 0; w < ops.length; w++) {
         var op = ops[w];
         var r = op.rec;
-        if (!r) {
-          r = new Record(col);
+        if (!r || op.entfallen) {
+          if (!r) r = new Record(col);
           r.set('plan_id', planId);
           r.set('date', op.date);
           r.set('pos_id', op.posId);

@@ -11,6 +11,8 @@ const EMAIL_TYPE_LABELS = {
   update:       '↻ Update',
   love_invite:  '♥ Partner-Einladung',
   staff_invite: '👤 Staff-Einladung',
+  crew_changes: '👥 Crew-Änderungen',
+  pencil_info:  '✎ Vormerkung',
 };
 
 let _emailLogRecords = [];
@@ -59,11 +61,14 @@ function _renderEmailLogFilters() {
         <option value="update">↻ Update</option>
         <option value="love_invite">♥ Partner</option>
         <option value="staff_invite">👤 Staff</option>
+        <option value="crew_changes">👥 Crew-Änderungen</option>
+        <option value="pencil_info">✎ Vormerkung</option>
       </select>
 
       <button id="elStatusAll"  class="btn btn-sm" style="background:rgba(232,200,74,.15);border:1px solid rgba(232,200,74,.4);color:#e8c84a;" onclick="_setEmailLogStatus('all')">Alle</button>
       <button id="elStatusOk"   class="btn btn-sm" onclick="_setEmailLogStatus('ok')">✅ Erfolg</button>
       <button id="elStatusFail" class="btn btn-sm" onclick="_setEmailLogStatus('fail')">❌ Fehler</button>
+      <button id="elStatusSkipped" class="btn btn-sm" onclick="_setEmailLogStatus('skipped')">⏭ Test – nicht versendet</button>
     </div>
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
@@ -99,6 +104,7 @@ function _applyEmailLogFilters() {
     if (type && rec.email_type !== type) return false;
     if (status === 'ok'   && rec.success !== 'true')  return false;
     if (status === 'fail' && rec.success !== 'false') return false;
+    if (status === 'skipped' && rec.success !== 'skipped') return false;
     if (dateFrom && rec.sent_at.substring(0, 10) < dateFrom) return false;
     if (dateTo   && rec.sent_at.substring(0, 10) > dateTo)   return false;
     return true;
@@ -185,6 +191,12 @@ function _setEmailLogStatus(val) {
   document.getElementById('elStatusFail').style.borderColor = val === 'fail'
     ? 'rgba(232,200,74,.4)' : '#2a2a40';
   document.getElementById('elStatusFail').style.color = val === 'fail' ? '#e8c84a' : '#c8cdd5';
+
+  document.getElementById('elStatusSkipped').style.background = val === 'skipped'
+    ? 'rgba(232,200,74,.15)' : 'transparent';
+  document.getElementById('elStatusSkipped').style.borderColor = val === 'skipped'
+    ? 'rgba(232,200,74,.4)' : '#2a2a40';
+  document.getElementById('elStatusSkipped').style.color = val === 'skipped' ? '#e8c84a' : '#c8cdd5';
 
   _applyEmailLogFilters();
 }

@@ -60,3 +60,20 @@ test('geht die Mail raus: kein lokaler Vermerk, email_log wird neu geladen', asy
   eq(logGets.length, 1, 'email_log nach dem Senden neu geladen');
   ok(/sort=-sent_at/.test(logGets[0]) || /sent_at/.test(decodeURIComponent(logGets[0])), 'Sortierung nach sent_at');
 });
+
+// Schlussprüfung v1.5.0: Ohne Plan-ID darf sendCrewInvite nicht still zurückkehren, sonst meldet
+// sendInvite „Einladung gesendet ✓", obwohl nichts rausging.
+test('ohne Plan-ID wirft sendInvite weiter (kein stilles Erfolgs-Toast, kein lokaler Status)', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  resetState(g); mitTermin(g);
+  g.state.setAuthState(null, null, null);
+  const toasts = [];
+  globalThis.showToast = (t) => toasts.push(String(t));
+  globalThis.fetch = async () => ({ status:200, ok:true, json: async () => ({ items: [] }) });
+  let geworfen = null;
+  try { await g.crewNotify.sendInvite('Neu Person', 'invite'); }
+  catch(e) { geworfen = e; }
+  ok(geworfen && /Plan nicht gefunden/.test(geworfen.message), 'wirft „Plan nicht gefunden“');
+  ok(!toasts.some(t => /gesendet ✓/.test(t)), 'kein „gesendet ✓“');
+  eq(g.state.assignmentStatuses['2027-06-01'], undefined, 'lokal kein Status');
+});
