@@ -2,7 +2,7 @@
 import { crew, assignments, assignmentStatuses, TOUR_DATES, POSITIONS,
          CURRENT_USER_EMAIL, IS_MANAGER, crewMeta, CREW_COLORS } from './state.js';
 import { SUPABASE_ENABLED } from './config.js';
-import { showToast, isPending, getVal, esc } from './utils.js';
+import { showToast, getVal, esc } from './utils.js';
 import { sendCrewInvite, sendCancellationNotice, sendPencilInfo, _getActivePlanId,
          sendUpdateNotice, loadAssignmentStatuses } from './dataService.js';
 import { pbListAll, pbEscapeFilter } from './pb.js';
@@ -10,10 +10,9 @@ import { hasPermission } from './rbac.js';
 import { getActivePlanId, getPlansIndex } from './plans.js';
 import { openModal, closeModal } from './modals.js';
 
-// v1.3.0: Einladungs-Vermerke und Absage-Queue gehören zum Plan DIESES Tabs (Suffix = PB-Plan-ID
+// v1.3.0: Pencil-Vermerke und Absage-Queue gehören zum Plan DIESES Tabs (Suffix = PB-Plan-ID
 // aus tourplan_pb_<lokale ID>, sonst die lokale ID). Alte globale Schlüssel ohne Suffix werden
 // beim Lesen vorsichtig übernommen (siehe _migrate*), nur was nachweislich zu diesem Plan gehört.
-const CREW_INVITES_KEY = 'tourplan_crew_invites';
 const PENCIL_INFO_KEY = 'tourplan_pencil_info';
 const PENDING_CANCELLATIONS_KEY = 'tourplan_pending_cancellations';
 function _planScoped(base) {
@@ -76,22 +75,28 @@ function _clearPendingCancellations(crewName) {
   localStorage.setItem(_planScoped(PENDING_CANCELLATIONS_KEY), JSON.stringify(q));
 }
 
-// Alter globaler Einlade-Vermerk: gilt für Personen, die in der Crew dieses Plans stehen und im
-// Plan-Schlüssel noch keinen Eintrag haben (der Zeitstempel bleibt global unverändert liegen).
-function _loadInvites() {
-  const cur = _readJson(_planScoped(CREW_INVITES_KEY));
-  const old = _readJson(CREW_INVITES_KEY);
-  let moved = false;
-  for (const n of Object.keys(old))
-    if (!cur[n] && crew.includes(n)) { cur[n] = old[n]; moved = true; }
-  if (moved) { try { localStorage.setItem(_planScoped(CREW_INVITES_KEY), JSON.stringify(cur)); } catch (_) {} }
-  return cur;
+// v1.5.0: „eingeladen“ sagt der Mailserver (email_log), nicht der Browser. Pro Render einmal
+// geladen (Cache je Plan). Zustand: 'loading' | 'ok' | 'error' (Fehler → „❔ Status unbekannt“).
+let _logRows = [];
+let _logState = 'loading';
+async function _refreshInviteLog() {
+  try {
+    const pid = await _getActivePlanId();
+    if (!pid) { _logRows = []; _logState = 'error'; return; }
+    const r = await pbListAll('email_log', `plan_id = "${pbEscapeFilter(pid)}"`, '-sent_at');
+    _logRows = r?.items || []; _logState = 'ok';
+  } catch (e) { _logRows = []; _logState = 'error'; console.warn('email_log laden:', e.message); }
 }
 
-function _saveInvite(name) {
-  const inv = _loadInvites();
-  inv[name] = new Date().toISOString();
-  localStorage.setItem(_planScoped(CREW_INVITES_KEY), JSON.stringify(inv));
+// Jüngster invite-Eintrag mit success true|skipped. Treffer per crew_email (klein), sonst per
+// crew_name — der Name nur, wenn es keinen Adress-Treffer gibt.
+export function inviteStateFromLog(rows, name, email) {
+  const em = (email || '').toLowerCase();
+  const ok = (rows || []).filter(r => r && r.email_type === 'invite' && (r.success === 'true' || r.success === 'skipped'));
+  const newest = list => list.reduce((a, r) => (!a || String(r.sent_at) > String(a.sent_at)) ? r : a, null);
+  const byMail = em ? ok.filter(r => (r.crew_email || '').toLowerCase() === em) : [];
+  const hit = byMail.length ? newest(byMail) : newest(ok.filter(r => r.crew_name === name));
+  return hit ? { at: hit.sent_at, skipped: hit.success === 'skipped' } : null;
 }
 
 // v1.4.0: Vermerk „Vormerkung mitgeteilt“ je Plan (gleiches Muster wie die Einlade-Vermerke)
@@ -138,24 +143,30 @@ function _pencilSeenTs(name, email) {
   return hit ? hit.ts : '';
 }
 
-function _getCrewInviteStatus(name, invites) {
-  const inv = invites || _loadInvites();
-  const hasConfirmed = Object.values(assignmentStatuses || {}).some(day =>
-    Object.values(day).some(s => s.crewName === name && s.status === 'confirmed')
-  );
-  if (hasConfirmed) return 'confirmed';
-  const hasActive = Object.values(assignmentStatuses || {}).some(day =>
-    Object.values(day).some(s => s.crewName === name && isPending(s))
-  );
-  if (inv[name] && hasActive) return 'invited_pending';
-  return 'not_invited';
+// Status-Zählung über alle Tabellentermine der Person (Termin ohne Status zählt nicht;
+// pencil_declined zählt zu declined).
+export function statusCounts(name) {
+  const c = { pencilled: 0, proposed: 0, confirmed: 0, declined: 0 };
+  _getAllSlotsForCrew(name).forEach(s => {
+    const st = assignmentStatuses[s.date]?.[s.posId]?.status;
+    if (st === 'pencil_declined') c.declined++;
+    else if (st in c) c[st]++;
+  });
+  return c;
 }
 
-function _fmtInviteDate(name, invites) {
-  const inv = invites || _loadInvites();
-  if (!inv[name]) return '';
-  const d = new Date(inv[name]);
-  return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()}`;
+// Einladung (v1.5.0): ALLE Tabellentermine der Person als mailSlots mit Status; slots = nur die
+// ohne aktiven Datensatz (die fragt der Server an). cancelled/cancel_acked gelten als „keiner“.
+export function buildInvitePayload(name, email) {
+  const all = _getAllSlotsForCrew(name, email);
+  const slots = [], mailSlots = [];
+  all.forEach(s => {
+    const st = assignmentStatuses[s.date]?.[s.posId]?.status;
+    const none = !st || st === 'cancelled' || st === 'cancel_acked';
+    mailSlots.push({ date: s.date, posId: s.posId, posLabel: s.posLabel, status: none ? 'proposed' : st });
+    if (none) slots.push(s);
+  });
+  return { slots, mailSlots };
 }
 
 // Zielcontainer der Liste: Touransicht = #sharedBody (Modal), Konsole-Karte = eigener Container
@@ -165,27 +176,27 @@ let _notifyHostId = 'sharedBody';
 
 export function renderCrewNotifyInto(hostId) {
   _notifyHostId = hostId || 'sharedBody';
+  _logState = 'loading';
   _renderCrewNotifyList();
-  return _refreshPencilSeen().then(() => _renderCrewNotifyList());
+  return Promise.all([_refreshInviteLog(), _refreshPencilSeen()]).then(() => _renderCrewNotifyList());
 }
 
 export function openCrewNotifyModal() {
   if (!hasPermission('sendInvite')) return;
   document.getElementById('sharedTitle').textContent = 'Crew benachrichtigen';
   _notifyHostId = 'sharedBody';
+  _logState = 'loading';
   _renderCrewNotifyList();
   openModal('sharedModal');
-  _refreshPencilSeen().then(() => { if (_notifyHostId === 'sharedBody' && !_previewCtx) _renderCrewNotifyList(); });
+  Promise.all([_refreshInviteLog(), _refreshPencilSeen()]).then(() => { if (_notifyHostId === 'sharedBody' && !_previewCtx) _renderCrewNotifyList(); });
 }
 
 function _renderCrewNotifyList() {
   const pending = _loadCancellations();
-  const invites = _loadInvites();
   const pencilInfos = _loadPencilInfos();
   const rows = crew.map((name, i) => {
     const meta = crewMeta[name] || {};
     const dot = CREW_COLORS[i % CREW_COLORS.length];
-    const status = _getCrewInviteStatus(name, invites);
     const pendingCount = pending[name]?.slots?.length || 0;
 
     if (!meta.email) {
@@ -203,18 +214,33 @@ function _renderCrewNotifyList() {
     const updBtn = hasNew
       ? `<button class="mbtn sm" data-crew="${nameAttr}" onclick="openUpdatePreview(this.dataset.crew)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">↻ Update (${newSlots.length})</button>`
       : '';
-    let badge, btn;
-    if (status === 'confirmed') {
-      badge = `<span style="font-size:.58rem;color:#4ae8a0;">✅ Bestätigt</span>`;
-      btn = updBtn;
-    } else if (status === 'invited_pending') {
-      badge = `<span style="font-size:.58rem;color:#e8c84a;">🟡 Eingeladen ${_fmtInviteDate(name, invites)}</span>`;
-      // Erinnerung immer für eingeladene Personen, auch wenn es neue Termine gibt (Update zusätzlich)
-      btn = `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">${updBtn}<button class="mbtn sm" data-crew="${nameAttr}" data-type="reminder" onclick="openInvitePreview(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">🔔 Erinnerung</button></div>`;
-    } else {
-      badge = `<span style="font-size:.58rem;color:#5a6070;">⚪ Nicht eingeladen</span>`;
-      btn = `<button class="mbtn primary sm" data-crew="${nameAttr}" data-type="invite" onclick="openInvitePreview(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">📧 Einladen</button>`;
-    }
+    // v1.5.0: Badge aus dem Mail-Log, Status-Zählung getrennt davon, Hauptknopf mit Terminzahl.
+    const inv = _logState === 'ok' ? inviteStateFromLog(_logRows, name, meta.email) : null;
+    let badge;
+    if (_logState === 'error') badge = `<span style="font-size:.58rem;color:#e8c84a;">❔ Status unbekannt</span>`;
+    else if (_logState === 'loading') badge = `<span style="font-size:.58rem;color:#5a6070;">… Status wird geladen</span>`;
+    else if (inv) badge = `<span style="font-size:.58rem;color:#4ae8a0;">📧 Eingeladen am ${esc(_fmtDay(inv.at))}</span>`
+      + (inv.skipped ? ` <span style="font-size:.58rem;color:#e8c84a;">Test – nicht versendet</span>` : '');
+    else badge = `<span style="font-size:.58rem;color:#8a92a0;">⚪ Noch nicht eingeladen</span>`;
+
+    const cnt = statusCounts(name);
+    const cntParts = [['✎', cnt.pencilled, 'vorgemerkt', '#c9a8f0'], ['⏳', cnt.proposed, 'angefragt', '#e8c84a'],
+                      ['✅', cnt.confirmed, 'bestätigt', '#4ae8a0'], ['✗', cnt.declined, 'abgesagt', '#e84a4a']]
+      .filter(p => p[1] > 0)
+      .map(p => `<span style="color:${p[3]};">${p[0]} ${p[1]} ${p[2]}</span>`);
+    const countLine = cntParts.length
+      ? `<div style="font-size:.58rem;margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;">${cntParts.join('')}</div>` : '';
+
+    const total = _getAllSlotsForCrew(name, meta.email).length;
+    const mainLabel = inv ? `📧 Erneut einladen (${total})` : `📧 Einladen (${total} Termine)`;
+    const mainBtn = total > 0
+      ? `<button class="mbtn primary sm" data-crew="${nameAttr}" data-type="invite" onclick="openInvitePreview(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">${mainLabel}</button>`
+      : `<button class="mbtn primary sm" disabled title="Keine Termine in der Tabelle" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;opacity:.4;cursor:not-allowed;filter:grayscale(1);">📧 Einladen (0 Termine)</button>
+         <span style="font-size:.55rem;color:#e8c84a;">Keine Termine in der Tabelle</span>`;
+    // Erinnerung nur für laut Log Eingeladene mit ≥ 1 angefragtem Termin (Update zusätzlich)
+    const remBtn = (inv && cnt.proposed > 0)
+      ? `<button class="mbtn sm" data-crew="${nameAttr}" data-type="reminder" onclick="openInvitePreview(this.dataset.crew,this.dataset.type)" style="font-size:.58rem;padding:3px 7px;flex-shrink:0;">🔔 Erinnerung</button>` : '';
+    const btn = `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">${mainBtn}${updBtn}${remBtn}</div>`;
 
     // Absage zu aktiven Einsätzen (bestätigt/angefragt) und nachträglich auch zu schon
     // entfernten — früher nur in der Konsole (v1.3.0: in das Modul gewandert).
@@ -247,7 +273,7 @@ function _renderCrewNotifyList() {
       <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:5px;"></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:.65rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}</div>
-        ${badge}${pencilBlock}${cancelBtn}
+        ${badge}${countLine}${pencilBlock}${cancelBtn}
       </div>
       ${btn}
     </div>`;
@@ -283,6 +309,7 @@ export async function sendCancellationSummary(crewName) {
 // ── Vorschau mit optionalem Freitext vor Einladung/Erinnerung/Update (v1.3.0) ────
 // Früher nur in der Konsole (openEmailPreview). Der Freitext geht als `customMessage` an den
 // Hook — derselbe Feldname wie zuvor. Abbrechen sendet nichts.
+const MAIL_LISTE_MAX = 5;   // wie im Hook: darüber keine Einzeldaten in der Mail
 let _previewCtx = null;
 
 function _openSendPreview(ctx, title, subject, intro, slots) {
@@ -316,15 +343,31 @@ export function openInvitePreview(crewName, type) {
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
   const planned = _getAllSlotsForCrew(crewName, meta.email);
-  if (!planned.length) { showToast('Keine eingeplanten Termine', '#5a6070'); return; }   // wie die alte Konsole: nichts zu senden
-  const slots = planned.filter(_einladbar);
+  if (!planned.length) { showToast('Keine eingeplanten Termine', '#5a6070'); return; }   // nichts zu senden
   const pn = esc(_planNameForPreview());
   const isInv = type !== 'reminder';
-  _openSendPreview({ kind: type, crewName, email: meta.email }, (isInv ? '📧 Einladung an ' : '🔔 Erinnerung an ') + crewName,
-    (isInv ? 'CREW INVITE · ' : 'REMINDER · ') + _planNameForPreview(),
-    isInv ? `Einladung zu <strong>${pn}</strong> — bitte bestätige deine ${slots.length} Einsätze:`
-          : `Erinnerung, ausstehende Einsätze für <strong>${pn}</strong> zu bestätigen.`,
-    slots);
+  if (!isInv) {
+    const slots = planned.filter(_einladbar);
+    _openSendPreview({ kind: type, crewName, email: meta.email }, '🔔 Erinnerung an ' + crewName,
+      'REMINDER · ' + _planNameForPreview(),
+      `Erinnerung, ausstehende Einsätze für <strong>${pn}</strong> zu bestätigen.`, slots);
+    return;
+  }
+  // Einladung: alle Termine mit Status; über MAIL_LISTE_MAX nur die Zählung, wie die Mail.
+  const { mailSlots } = buildInvitePayload(crewName, meta.email);
+  const SYM = { pencilled: '✎ vorgemerkt', pencil_declined: '✗ abgesagt', proposed: '⏳ angefragt', confirmed: '✅ bestätigt', declined: '✗ abgesagt' };
+  const many = mailSlots.length > MAIL_LISTE_MAX;
+  const rows = many ? [] : mailSlots.map(m => ({ date: m.date, posLabel: m.posLabel + ' · ' + (SYM[m.status] || m.status) }));
+  const c = statusCounts(crewName);
+  const countTxt = [['✎', c.pencilled, 'vorgemerkt'], ['⏳', c.proposed, 'angefragt'], ['✅', c.confirmed, 'bestätigt'], ['✗', c.declined, 'abgesagt']]
+    .filter(p => p[1] > 0).map(p => `${p[0]} ${p[1]} ${p[2]}`).join(' · ');
+  const none = mailSlots.filter(m => !assignmentStatuses[m.date]?.[m.posId]?.status).length;   // werden angefragt
+  const extra = many
+    ? `<div style="margin-top:6px;">${mailSlots.length} Termine: ${esc(countTxt)}${none ? ` · ⏳ ${none} ohne Status werden angefragt` : ''}<br>Es gibt mehr als ${MAIL_LISTE_MAX} Einträge. Bitte logg dich ein und schau nach.</div>` : '';
+  _openSendPreview({ kind: 'invite', crewName, email: meta.email }, '📧 Einladung an ' + crewName,
+    'CREW INVITE · ' + _planNameForPreview(),
+    `Einladung zu <strong>${pn}</strong> — ${mailSlots.length} Termine. Die Einladung teilt den Status mit, ändert ihn nicht.${extra}`,
+    rows);
 }
 
 export function openPencilInfoPreview(crewName) {
@@ -534,32 +577,35 @@ export async function sendInvite(crewName, type, customMessage) {
   const meta = crewMeta[crewName] || {};
   if (!meta.email) { showToast('Keine E-Mail hinterlegt', '#e84a4a'); return; }
 
-  // Der Vermerk „eingeladen" wird NUR gesetzt, wenn wirklich eine Mail rausging. Ein
-  // Fehlschlag muss sichtbar bleiben und die Person auf „⚪ Nicht eingeladen" stehen lassen —
-  // sonst wartet der Planer auf eine Antwort, um die nie jemand gebeten wurde (v0.10.5).
-  // Alle nicht-bestätigten Slots — der Server setzt sie auf „angefragt"
-  const allSlots = _getAllSlotsForCrew(crewName, meta.email).filter(_einladbar);
+  // Ein Fehlschlag muss sichtbar bleiben (v0.10.5). Seit v1.5.0 gibt es keinen lokalen Vermerk
+  // mehr: „eingeladen“ liest die Konsole nach dem Senden aus dem email_log.
+  const isInv = type !== 'reminder';
+  let slots, mailSlots;
+  if (isInv) {
+    ({ slots, mailSlots } = buildInvitePayload(crewName, meta.email));
+    if (!mailSlots.length) { showToast('Keine Termine in der Tabelle', '#5a6070'); return; }   // nie eine Mail ohne Termine
+  } else {
+    slots = _getAllSlotsForCrew(crewName, meta.email).filter(_einladbar);
+  }
 
-  // Seit v0.11.0 EIN Aufruf: Der Server schreibt die Termine und löst die Mail in derselben
-  // Transaktion aus. Die frühere Vorab-Anlage im Browser (bulkProposeCrew) entfällt samt
-  // ihrer Drosselung und Fortschrittsanzeige — eine Anfrage kann keine Mengengrenze reißen.
+  // EIN Aufruf: Der Server schreibt die Termine ohne Datensatz (→ angefragt) und mailt in derselben
+  // Transaktion; bestehende Status bleiben unberührt.
   try {
-    await sendCrewInvite(crewName, meta.email, type, allSlots, customMessage);
+    await sendCrewInvite(crewName, meta.email, type, slots, customMessage, isInv ? mailSlots : undefined);
   } catch (e) {
     showToast(`${crewName}: nicht gesendet — ${_einladungsFehlerText(e)}`, '#e84a4a');
     _renderCrewNotifyList();
     throw e;
   }
 
-  // Geschrieben hat der Server — der lokale Status muss nachziehen, sonst zeigt die Liste
-  // die Person weiter als „nicht angefragt".
-  allSlots.forEach(s => {
+  // Der lokale Status zieht nur für die vom Server angefragten Termine nach.
+  slots.forEach(s => {
     if (!assignmentStatuses[s.date]) assignmentStatuses[s.date] = {};
     assignmentStatuses[s.date][s.posId] = { status: 'proposed', proposedBy: 'bulk', crewName };
   });
-  _saveInvite(crewName);
   const label = type === 'reminder' ? 'Erinnerung gesendet ✓' : 'Einladung gesendet ✓';
   showToast(`${crewName}: ${label}`, '#4ae8a0');
+  await _refreshInviteLog();
   _renderCrewNotifyList();
 }
 
@@ -579,7 +625,6 @@ export async function sendUpdate(crewName, customMessage) {
     if (!assignmentStatuses[s.date]) assignmentStatuses[s.date] = {};
     assignmentStatuses[s.date][s.posId] = { status: 'proposed', proposedBy: 'update', crewName };
   });
-  _saveInvite(crewName);
   showToast(`${crewName}: Update gesendet ✓`, '#4ae8a0');
   _renderCrewNotifyList();
 }

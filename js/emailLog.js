@@ -98,7 +98,7 @@ function _applyEmailLogFilters() {
                 && !rec.crew_email.toLowerCase().includes(search)) return false;
     if (type && rec.email_type !== type) return false;
     if (status === 'ok'   && rec.success !== 'true')  return false;
-    if (status === 'fail' && rec.success === 'true')  return false;
+    if (status === 'fail' && rec.success !== 'false') return false;
     if (dateFrom && rec.sent_at.substring(0, 10) < dateFrom) return false;
     if (dateTo   && rec.sent_at.substring(0, 10) > dateTo)   return false;
     return true;
@@ -123,7 +123,9 @@ function _renderEmailLogTable(records) {
     const label = EMAIL_TYPE_LABELS[rec.email_type] || rec.email_type;
     const status = rec.success === 'true'
       ? '<span style="color:#4ae8a0;">✅</span>'
-      : '<span style="color:#e84a4a;">❌</span>';
+      : rec.success === 'skipped'
+        ? '<span style="color:#e8c84a;" title="Test – nicht versendet">⏭ Test – nicht versendet</span>'
+        : '<span style="color:#e84a4a;">❌</span>';
     return '<tr>' +
       '<td style="color:#c8cdd5;">' + dateStr + '</td>' +
       '<td style="color:#c8cdd5;">' + esc(rec.crew_name) + '</td>' +

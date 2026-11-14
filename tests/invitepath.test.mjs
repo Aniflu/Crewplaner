@@ -72,7 +72,8 @@ test('Einladung: Nutzlast trägt den Konsolen-Plan (PBY), nicht den Zeiger der T
   const b = posts[0];
   eq(b.type, 'invite'); eq(b.planId, 'PBY', 'planId ist der geladene Plan, nicht PBX');
   eq(b.crewName, 'Anna'); eq(b.crewEmail, 'anna@x.de');
-  eq(keys(b), 'appUrl,crewEmail,crewName,planId,planName,slots,type', 'Feldmenge der Einladung');
+  // v1.5.0: Einladung trägt zusätzlich mailSlots (alle Termine mit Status)
+  eq(keys(b), 'appUrl,crewEmail,crewName,mailSlots,planId,planName,slots,type', 'Feldmenge der Einladung');
   ok(/^Plan Y · 01\.06\.27–02\.06\.27$/.test(b.planName), 'planName mit Zeitraum: ' + b.planName);
   eq(b.slots.length, 2, 'alle eingeplanten, nicht bestätigten Termine (getVal inkl. defaultCrew)');
   eq(keys(b.slots[0]), 'crewEmail,crewName,date,dateLabel,loc,posId,posLabel', 'Feldmenge eines Slots');
@@ -210,7 +211,10 @@ test('Vorschau: Abbrechen sendet nichts, Senden schickt den Freitext aus dem Fel
 
 test('Liste: Erinnerung für eingeladene Person auch bei neuen Terminen (Update zusätzlich)', async () => {
   const g = await setup(); if (!g) return 'SKIP';
-  globalThis.localStorage.setItem(INV, JSON.stringify({ Anna: new Date().toISOString() }));
+  // v1.5.0: „eingeladen“ kommt aus dem email_log (nicht mehr aus localStorage)
+  globalThis.fetch = async (url) => ({ status: 200, ok: true, json: async () => ({
+    items: /email_log/.test(String(url)) ? [{ plan_id: 'PBY', crew_name: 'Anna', crew_email: 'anna@x.de', email_type: 'invite', sent_at: '2027-01-01 10:00:00.000Z', success: 'true' }] : [],
+    page: 1, perPage: 200, totalPages: 1 }) });
   g.state.assignmentStatuses['2027-06-01'] = { gl: { status: 'proposed', crewName: 'Anna' } };  // 06-02 ist neu
   const host = { innerHTML: '' };
   const cn = await import('../js/crewNotify.js');
@@ -301,42 +305,4 @@ test('M6: schlägt der Versand mit 429 fehl, bleibt die konkrete Meldung stehen'
   ok(/halbe Minute/.test(log[log.length - 1]), 'letzte Meldung ist die 429-Erklärung, war: ' + log[log.length - 1]);
 });
 
-// ── Übernahme alter globaler Schlüssel beim Lesen (M3-Nachtrag) ─────────────────────────
-test('Migration Einlade-Vermerk: Plan mit Anna übernimmt ihn (→ Erinnerung), Plan ohne Anna nicht', async () => {
-  const g = await setup(); if (!g) return 'SKIP';
-  const ls = globalThis.localStorage;
-  ls.setItem('tourplan_crew_invites', JSON.stringify({ Anna: '2027-01-01T00:00:00.000Z' }));
-  g.state.assignmentStatuses['2027-06-01'] = { gl: { status: 'proposed', crewName: 'Anna' } };
-  const cn = await import('../js/crewNotify.js');
-  // Plan Y OHNE Anna in der Crew
-  const crewBak = g.state.crew.splice(0);
-  await withEls({ hostY: { innerHTML: '' } }, () => cn.renderCrewNotifyInto('hostY'));
-  eq(ls.getItem('tourplan_crew_invites_PBY'), null, 'Plan ohne Anna übernimmt nichts');
-  g.state.crew.push(...crewBak);
-  const host = { innerHTML: '' };
-  await withEls({ hostX: host }, () => cn.renderCrewNotifyInto('hostX'));
-  ok(JSON.parse(ls.getItem('tourplan_crew_invites_PBY')).Anna, 'Vermerk im Plan-Schlüssel');
-  ok(host.innerHTML.includes('Erinnerung') && !host.innerHTML.includes('data-type="invite"'), 'Anna gilt als eingeladen (kein Doppel-Einladen)');
-});
-
-test('Migration offene Absage: erscheint einmal im Plan mit dem Datum, fehlt global und im anderen Plan', async () => {
-  const g = await setup(); if (!g) return 'SKIP';
-  const ls = globalThis.localStorage;
-  ls.setItem('tourplan_pending_cancellations', JSON.stringify({
-    Anna: { email: 'anna@x.de', slots: [{ date: '2027-06-01', posLabel: 'GL' }] },
-    Fremd: { email: 'f@x.de', slots: [{ date: '2027-06-01', posLabel: 'GL' }] } }));   // Fremd ist nicht in der Crew
-  const posts = capture();
-  const cn = await import('../js/crewNotify.js');
-  g.plans.setActivePlanId('pbplan_PBX');
-  g.state.TOUR_DATES.length = 0; g.state.TOUR_DATES.push({ date: '2027-06-01', loc: 'B', type: 'show', typeLabel: 'Show' });
-  await cn.sendCancellationSummary('Anna');
-  eq(posts.length, 1, 'einmal gesendet');
-  eq(posts[0].planId, 'PBX');
-  eq(JSON.stringify(posts[0].removeSlots), '[{"date":"2027-06-01","posLabel":"GL"}]');
-  const rest = JSON.parse(ls.getItem('tourplan_pending_cancellations'));
-  ok(!rest.Anna, 'Anna aus dem globalen Schlüssel entfernt');
-  ok(rest.Fremd, 'Rest bleibt global liegen');
-  g.plans.setActivePlanId('pbplan_PBY');
-  await cn.sendCancellationSummary('Anna');
-  eq(posts.length, 1, 'in Plan Y kein zweites Mal');
-});
+// v1.5.0: Migration des Einlade-Vermerks entfällt samt Vermerk (Status kommt aus email_log; Test in consoleinvite.test.mjs).

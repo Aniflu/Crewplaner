@@ -44,6 +44,6 @@ test('admin.html: keine eigene Crew-/Positionslogik (kein Schreiben in plan.crew
 
 test('crewNotify.js: Liste rendert in den parametrierten Container, Modal bleibt Vorgabe', () => {
   ok(/export function renderCrewNotifyInto\(hostId\)/.test(notify), 'renderCrewNotifyInto fehlt');
-  ok(/_notifyHostId = 'sharedBody';\s*\n\s*_renderCrewNotifyList\(\)/.test(notify), 'openCrewNotifyModal setzt den Modal-Container nicht zurück');
+  ok(/_notifyHostId = 'sharedBody';\s*\n\s*(_logState = 'loading';\s*\n\s*)?_renderCrewNotifyList\(\)/.test(notify), 'openCrewNotifyModal setzt den Modal-Container nicht zurück');
   ok(!/getElementById\('sharedBody'\)\.innerHTML/.test(notify), 'Liste schreibt noch fest in #sharedBody');
 });

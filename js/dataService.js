@@ -923,7 +923,8 @@ export async function sendUpdateNotice(crewName, crewEmail, slots, customMessage
 }
 
 // ── Crew einladen / Erinnerung schicken (E-Mail via Pocketbase-Hook) ──────────
-export async function sendCrewInvite(crewName, crewEmail, type, slots, customMessage) {
+// v1.5.0: mailSlots (alle Termine mit Status) nur bei der Einladung; slots = nur die ohne Datensatz.
+export async function sendCrewInvite(crewName, crewEmail, type, slots, customMessage, mailSlots) {
   if (!SUPABASE_ENABLED || !crewEmail) return;
   const planId = await _getActivePlanId();
   if (!planId) return;
@@ -937,6 +938,7 @@ export async function sendCrewInvite(crewName, crewEmail, type, slots, customMes
   try {
     await notify({ type, planId, crewName, crewEmail,
                    planName: planNameDisplay, appUrl, slots: slots || [],
+                   ...(mailSlots ? { mailSlots } : {}),
                    ...(customMessage ? { customMessage } : {}) });
   } catch (e) {
     console.warn('sendCrewInvite Fehler:', e.message);
