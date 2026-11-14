@@ -59,7 +59,7 @@ const vStart = route.indexOf('var VORMERK');
 const vEnd   = route.indexOf('slots = offen;') + 'slots = offen;'.length + route.slice(route.indexOf('slots = offen;') + 14).search(/\}/) + 1;
 const filterSrc = route.slice(vStart, vEnd);
 
-function filtere(statusJeSlot, slots) {
+function filtere(statusJeSlot, slots, typ = 'reminder') {   // v4.30: invite hat eigene Regeln (hooknotifyinvite)
   const $app = {
     findFirstRecordByFilter: (_c, _f, p) => {
       const st = statusJeSlot[p.d + '|' + p.q];
@@ -68,7 +68,7 @@ function filtere(statusJeSlot, slots) {
     },
   };
   // eslint-disable-next-line no-new-func
-  return new Function('$app', 'planId', 'slots', filterSrc + '; return slots;')($app, 'PLAN1', slots);
+  return new Function('$app', 'planId', 'slots', 'typ', 'body', 'e', filterSrc + '; return slots;')($app, 'PLAN1', slots, typ, {}, {});
 }
 
 test('/notify: vorgemerkte und vorgemerkt-abgesagte Tage kommen nicht in die Slot-Liste', () => {
@@ -88,9 +88,9 @@ test('/notify: der Filter steht VOR der Mail-Liste und der Schreibschleife, plus
   const f = route.indexOf('var VORMERK');
   ok(f > -1 && f < route.indexOf('var liste = []'), 'Filter muss vor der Mail-Liste stehen');
   ok(f < route.indexOf('runInTransaction'), 'Filter muss vor dem Schreiben stehen');
-  ok(/if \(da && VORMERK\[da\.getString\('status'\)\]\) continue;/.test(route),
+  ok(/if \(da && SPERRE\[da\.getString\('status'\)\]\) continue;/.test(route),
      'Absicherung gegen Wettlauf in der Transaktion fehlt');
-  ok(route.indexOf("r.set('status', 'proposed')") > route.indexOf('if (da && VORMERK['),
+  ok(route.indexOf("r.set('status', 'proposed')") > route.indexOf('if (da && SPERRE['),
      'proposed darf erst nach der Vormerk-Prüfung gesetzt werden');
 });
 
@@ -189,15 +189,15 @@ function notify(body, statusJe) {
   return { r, antworten, body };
 }
 
-test('/notify: mailSlots werden wie slots um Vormerkungen bereinigt', () => {
-  const body = { type: 'invite', slots: [{ date: '2027-06-01', posId: 'gl', posLabel: 'GL' }, { date: '2027-06-02', posId: 'gl', posLabel: 'GL' }],
+test('/notify: mailSlots werden wie slots um Vormerkungen bereinigt (v4.30: reminder, invite filtert nicht mehr)', () => {
+  const body = { type: 'reminder', slots: [{ date: '2027-06-01', posId: 'gl', posLabel: 'GL' }, { date: '2027-06-02', posId: 'gl', posLabel: 'GL' }],
     mailSlots: [{ date: '2027-06-01', posLabel: 'GL' }, { date: '2027-06-02', posLabel: 'GL' }] };
   const { body: b } = notify(body, { '2027-06-01|gl': 'pencilled' });
   eq(b.mailSlots.map((m) => m.date).join(','), '2027-06-02');
 });
 
-test('/notify: Einladung, deren einziger Tag vorgemerkt ist → 200 skipped, keine Mail', () => {
-  const body = { type: 'invite', slots: [{ date: '2027-06-01', posId: 'gl' }], mailSlots: [{ date: '2027-06-01', posLabel: 'GL' }] };
+test('/notify: Erinnerung, deren einziger Tag vorgemerkt ist → 200 skipped, keine Mail (v4.30: nicht mehr invite)', () => {
+  const body = { type: 'reminder', slots: [{ date: '2027-06-01', posId: 'gl' }], mailSlots: [{ date: '2027-06-01', posLabel: 'GL' }] };
   const { antworten } = notify(body, { '2027-06-01|gl': 'pencil_declined' });
   eq(antworten.length, 1);
   eq(antworten[0][0], 200);

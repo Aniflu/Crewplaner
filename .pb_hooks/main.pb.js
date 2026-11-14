@@ -1135,6 +1135,12 @@ routerAdd('POST', '/notify', function(e) {
   // Information still eine Anfrage) und führen ihn auch nicht in der Mail-Liste. Aus vorgemerkt
   // wird nur durch den Planer eine Anfrage (Status direkt setzen, nicht über diese Route).
   var VORMERK = { pencilled: true, pencil_declined: true };
+  // v4.30: Die Einladung teilt Status nur mit, sie ändert keinen: Jeder aktive Datensatz
+  // (alles außer cancelled/cancel_acked) bleibt unangetastet; nur fehlend/entfallen wird proposed.
+  var AKTIV = { pencilled: true, pencil_declined: true, proposed: true, confirmed: true, declined: true };
+  var SPERRE = (typ === 'invite') ? AKTIV : VORMERK;
+  if (typ === 'invite' && !slots.length && !(Array.isArray(body.mailSlots) && body.mailSlots.length))
+    return e.string(400, 'keine Termine');
   if (slots.length) {
     var offen = [];
     for (var vi = 0; vi < slots.length; vi++) {
@@ -1146,7 +1152,7 @@ routerAdd('POST', '/notify', function(e) {
           'plan_id = {:p} && date = {:d} && pos_id = {:q}',
           { p: planId, d: String(vs.date), q: String(vs.posId) });
       } catch (errV) { vda = null; }
-      if (vda && VORMERK[vda.getString('status')]) continue;
+      if (vda && SPERRE[vda.getString('status')]) continue;
       offen.push(vs);
     }
     slots = offen;
@@ -1155,7 +1161,7 @@ routerAdd('POST', '/notify', function(e) {
   // kind 'removed' und kind 'status' (Information, z. B. „jetzt vorgemerkt“) bleiben. Übersprungene Schlüssel: Datum|posId und Datum|Label.
   var uebersprungen = 0;
   var ueberKeys = {};
-  if (typ === 'invite' || typ === 'reminder' || typ === 'update') {
+  if (typ === 'reminder' || typ === 'update') {
     var alleS = Array.isArray(body.slots) ? body.slots : [];
     for (var ui = 0; ui < alleS.length; ui++) {
       var us = alleS[ui];
@@ -1184,7 +1190,7 @@ routerAdd('POST', '/notify', function(e) {
       body.mailSlots = mFrei;
     }
     // Blieb nach dem Filter nichts übrig, geht keine leere Mail raus.
-    if (uebersprungen && (typ === 'invite' || typ === 'reminder') && !slots.length
+    if (uebersprungen && typ === 'reminder' && !slots.length
         && !(Array.isArray(body.mailSlots) && body.mailSlots.length)) {
       return e.string(200, JSON.stringify({ ok: true, skipped: 'keine Termine' }));
     }
@@ -1204,7 +1210,27 @@ routerAdd('POST', '/notify', function(e) {
   var planName = String(body.planName || '');
   var appUrl   = String(body.appUrl || '');
   var nutzlast;
-  if (Array.isArray(body.mailSlots)) {
+  if (typ === 'invite') {
+    // v4.30: Der Status je Eintrag kommt aus der Datenbank, nicht vom Client (kein/entfallener
+    // Datensatz → proposed). posId entfällt in der Nutzlast (Platz, 5000 Zeichen).
+    var quelle = Array.isArray(body.mailSlots) && body.mailSlots.length ? body.mailSlots : (Array.isArray(body.slots) ? body.slots : []);
+    var iListe = [];
+    for (var ii = 0; ii < quelle.length; ii++) {
+      var iq = quelle[ii];
+      if (!iq || !iq.date) continue;
+      var ist = 'proposed', ida = null;
+      try {
+        if (iq.posId) {
+          ida = $app.findFirstRecordByFilter('assignments',
+            'plan_id = {:p} && date = {:d} && pos_id = {:q}',
+            { p: planId, d: String(iq.date), q: String(iq.posId) });
+        }
+      } catch (errI) { ida = null; }
+      if (ida && AKTIV[ida.getString('status')]) ist = ida.getString('status');
+      iListe.push({ date: iq.date, posLabel: iq.posLabel || iq.posId, status: ist });
+    }
+    nutzlast = JSON.stringify(iListe);
+  } else if (Array.isArray(body.mailSlots)) {
     nutzlast = JSON.stringify(body.mailSlots);
   } else {
     var liste = [];
@@ -1231,7 +1257,7 @@ routerAdd('POST', '/notify', function(e) {
             'plan_id = {:p} && date = {:d} && pos_id = {:q}',
             { p: planId, d: String(s.date), q: String(s.posId) });
         } catch (err4) { da = null; }
-        if (da && VORMERK[da.getString('status')]) continue;   // v4.29, Absicherung in der Transaktion
+        if (da && SPERRE[da.getString('status')]) continue;   // v4.29/v4.30, Absicherung in der Transaktion
         var r = da || new Record(col);
         if (!da) {
           r.set('plan_id', planId);
