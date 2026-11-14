@@ -68,7 +68,7 @@ Nicht aus dem Audit, aber offen und jeweils ein eigener Vorgang:
   `activity_log` (470 Einträge auf Live) deckt nur Crew-Antworten ab und wird vom Browser
   geschrieben, ist also fälschbar.
   **Grenze:** `changed_by` zeigt den **letzten** Schreibenden, keine Historie.
-- **Guard ab Hook v4.30 (im Repo, nicht deployt): Crew schreibt nur noch über `POST /crewsave`.**
+- **Guard ab Hook v4.30 (Test und Live seit 2026-11-14): Crew schreibt nur noch über `POST /crewsave`.**
   Der `assignments`-Guard weist jede Statusänderung eines Crew-Kontos und jedes Anlegen durch ein
   Crew-Konto über die normale API ab (`status_transition_denied`, `assignment_create_denied`);
   „Crew“ = jedes Konto, das für den Plan nicht Planer ist (superadmin, manager, Plan-Owner).

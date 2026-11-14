@@ -1,6 +1,6 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.30 im Repo (nicht deployt)**; v4.29 auf Test seit 2026-11-13, Live **v4.28**
+PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.30 auf Test und Live** (2026-11-14, `docs/rueckmeldung-hook-v4.30-2026-11-14.md`, sha `458b2540…`)
 (2026-09-18, Test + Live)
 
 > Die API-Regeln in diesem Dokument sind am **2026-09-09 an der Live-Instanz ausgelesen**
@@ -120,7 +120,7 @@ PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.30 im R
 `proposed → confirmed|declined`, `confirmed → declined`, `pencilled → declined`,
 `cancelled → cancel_acked`, sowie „kein Record" → `confirmed|declined` für einen geplanten Slot.
 **Ab Hook v4.29 (Test seit 2026-11-13, Live ausstehend; `docs/rueckmeldung-hook-v4.29-2026-11-13.md`)** gilt zusätzlich: `pencilled → pencil_declined|declined` und `pencil_declined → pencilled` (Vormerkung absagen bzw. eigene Absage zurücknehmen); `declined` aus `pencilled` bleibt nur für die alte App v1.3.0 erlaubt. Wörtlich: `proposed:['confirmed','declined'], confirmed:['declined'], pencilled:['pencil_declined','declined'], pencil_declined:['pencilled'], cancelled:['cancel_acked']`.
-**Ab Hook v4.30 (im Repo, nicht deployt) ändert sich der Weg, nicht die Tabelle:** Der `assignments`-Guard weist **jede** Statusänderung eines Crew-Kontos über die normale API ab (`status_transition_denied`) und ebenso jedes Anlegen durch ein Crew-Konto (`assignment_create_denied`). „Crew“ ist jedes Konto, das für den Plan nicht Planer ist (Planer = superadmin, manager, Plan-Owner). Die Crew schreibt nur noch über `POST /crewsave`; die Tabelle oben gilt dort weiter, je Änderung geprüft. Planer und Owner sind unverändert.
+**Ab Hook v4.30 (Test und Live seit 2026-11-14) ändert sich der Weg, nicht die Tabelle:** Der `assignments`-Guard weist **jede** Statusänderung eines Crew-Kontos über die normale API ab (`status_transition_denied`) und ebenso jedes Anlegen durch ein Crew-Konto (`assignment_create_denied`). „Crew“ ist jedes Konto, das für den Plan nicht Planer ist (Planer = superadmin, manager, Plan-Owner). Die Crew schreibt nur noch über `POST /crewsave`; die Tabelle oben gilt dort weiter, je Änderung geprüft. Planer und Owner sind unverändert.
 Alles andere ist Planer-Sache — insbesondere **`pencilled → confirmed`** und **jedes** Setzen von
 `pencilled`. Leitprinzip: Die Crew bewegt einen Status nur abwärts; die einzige Aufwärtsbewegung,
 die ihr gehört, ist die Antwort auf eine Anfrage. Die Tabelle steht in `js/pure.js`
@@ -186,7 +186,7 @@ danach `purge_crew_invites: 1 entfernt` — der alte weg, der frische stand noch
   Mail, oder nichts von beidem. Rechte je Typ als Tabelle im Handler; Ablehnung als 404.
   Ersetzt die frühere Modellierung, bei der ein Vorgang aus bis zu 26 Einzelanfragen bestand
   (das riss die PocketBase-Regel `*:create` = 20 pro 5 Sekunden → 429 „Too many requests").
-- `routerAdd('POST','/crewsave')` (v4.30, im Repo, nicht deployt; authentifiziert) → die Crew speichert alle gesammelten Änderungen in **einem** Aufruf.
+- `routerAdd('POST','/crewsave')` (v4.30, Test und Live seit 2026-11-14; authentifiziert) → die Crew speichert alle gesammelten Änderungen in **einem** Aufruf.
   Body: `{ planId, changes: [{date, posId, from, to}], availability: [{date, posId}] }`; `to` ∈ `confirmed | declined | pencil_declined | pencilled | cancel_acked`, `from` ist der Status beim Ändern (`none` ohne Datensatz).
   Prüft: angemeldet; Person steht in `crew_members` des Plans; je Änderung eigener Datensatz (`crew_email` = eigene Adresse) und erlaubter Übergang (`CREW_STATUS_TRANSITIONS`); Ausnahme: Slot ohne Datensatz, der laut `plan_data` der Person gehört → Anlage als `confirmed`/`declined`. Alle Änderungen in **einer** Transaktion (`responded_at`, `changed_by`), je Änderung eine `activity_log`-Zeile, danach **ein** `crew_invites`-Datensatz Typ `crew_changes` (Mail an den Planer).
   Antworten: **200** gespeichert · **409** `{ stale: [{date, posId, now}] }` (aktueller Status ≠ `from`, nichts geschrieben) · **400** `{ denied: [...] }` bei unzulässiger Änderung (nichts geschrieben) oder leerer Liste · **404** Plan unbekannt oder Person nicht in der Crew · **401** nicht angemeldet.
