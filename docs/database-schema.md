@@ -1,6 +1,6 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.29 auf Test** (2026-11-13), Live **v4.28**
+PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.30 im Repo (nicht deployt)**; v4.29 auf Test seit 2026-11-13, Live **v4.28**
 (2026-09-18, Test + Live)
 
 > Die API-Regeln in diesem Dokument sind am **2026-09-09 an der Live-Instanz ausgelesen**
@@ -120,6 +120,7 @@ PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.29 auf 
 `proposed → confirmed|declined`, `confirmed → declined`, `pencilled → declined`,
 `cancelled → cancel_acked`, sowie „kein Record" → `confirmed|declined` für einen geplanten Slot.
 **Ab Hook v4.29 (Test seit 2026-11-13, Live ausstehend; `docs/rueckmeldung-hook-v4.29-2026-11-13.md`)** gilt zusätzlich: `pencilled → pencil_declined|declined` und `pencil_declined → pencilled` (Vormerkung absagen bzw. eigene Absage zurücknehmen); `declined` aus `pencilled` bleibt nur für die alte App v1.3.0 erlaubt. Wörtlich: `proposed:['confirmed','declined'], confirmed:['declined'], pencilled:['pencil_declined','declined'], pencil_declined:['pencilled'], cancelled:['cancel_acked']`.
+**Ab Hook v4.30 (im Repo, nicht deployt) ändert sich der Weg, nicht die Tabelle:** Der `assignments`-Guard weist **jede** Statusänderung eines Crew-Kontos über die normale API ab (`status_transition_denied`) und ebenso jedes Anlegen durch ein Crew-Konto (`assignment_create_denied`). „Crew“ ist jedes Konto, das für den Plan nicht Planer ist (Planer = superadmin, manager, Plan-Owner). Die Crew schreibt nur noch über `POST /crewsave`; die Tabelle oben gilt dort weiter, je Änderung geprüft. Planer und Owner sind unverändert.
 Alles andere ist Planer-Sache — insbesondere **`pencilled → confirmed`** und **jedes** Setzen von
 `pencilled`. Leitprinzip: Die Crew bewegt einen Status nur abwärts; die einzige Aufwärtsbewegung,
 die ihr gehört, ist die Antwort auf eine Anfrage. Die Tabelle steht in `js/pure.js`
@@ -176,7 +177,7 @@ danach `purge_crew_invites: 1 entfernt` — der alte weg, der frische stand noch
   `confirmed` anlegen; schließt den Weg, den Update-Guard per Zweitrecord zu umgehen. Fehler:
   `assignment_create_denied`.
 - assignments-CREATE-Hook **entfernt** (v4.2) — keine per-Slot-Mails mehr. Mails laufen über `crew_invites` (Einladung/Erinnerung/Update/Absage, konsolidiert).
-- UPDATE (status=declined) → Hook informiert den Admin („Abgelehnt").
+- UPDATE (status=declined) → Hook informiert den Admin („Abgelehnt"). **Ab v4.30 entfallen die Einzelmails** für `declined`, `pencil_declined` und `pencilled ← pencil_declined`; der Planer bekommt stattdessen die Sammelmail aus `/crewsave`.
 - users-CREATE (v4.8+) → Auto-Verify **+** übernimmt die Rolle aus dem Crew-Pool (`crew_members` mit `plan_id="__pool__"`, gleiche E-Mail), falls dort ≠ `crew`; vergibt zusätzlich `feed_token` falls leer (v4.9).
 - `routerAdd('GET','/ics/{token}/{plan}')` (v4.9.2, öffentlich, unauthentifiziert) → liefert den abonnierbaren ICS-Kalender-Feed einer Person für EINE Tour (Token→user, Plan-ID grenzt ein). Kein `/api`-Präfix, liegt am Route-Root.
 - `routerAdd('POST','/notify')` (v4.23, authentifiziert) → **der einzige Weg, der Mails auslöst.**
@@ -185,6 +186,11 @@ danach `purge_crew_invites: 1 entfernt` — der alte weg, der frische stand noch
   Mail, oder nichts von beidem. Rechte je Typ als Tabelle im Handler; Ablehnung als 404.
   Ersetzt die frühere Modellierung, bei der ein Vorgang aus bis zu 26 Einzelanfragen bestand
   (das riss die PocketBase-Regel `*:create` = 20 pro 5 Sekunden → 429 „Too many requests").
+- `routerAdd('POST','/crewsave')` (v4.30, im Repo, nicht deployt; authentifiziert) → die Crew speichert alle gesammelten Änderungen in **einem** Aufruf.
+  Body: `{ planId, changes: [{date, posId, from, to}], availability: [{date, posId}] }`; `to` ∈ `confirmed | declined | pencil_declined | pencilled | cancel_acked`, `from` ist der Status beim Ändern (`none` ohne Datensatz).
+  Prüft: angemeldet; Person steht in `crew_members` des Plans; je Änderung eigener Datensatz (`crew_email` = eigene Adresse) und erlaubter Übergang (`CREW_STATUS_TRANSITIONS`); Ausnahme: Slot ohne Datensatz, der laut `plan_data` der Person gehört → Anlage als `confirmed`/`declined`. Alle Änderungen in **einer** Transaktion (`responded_at`, `changed_by`), je Änderung eine `activity_log`-Zeile, danach **ein** `crew_invites`-Datensatz Typ `crew_changes` (Mail an den Planer).
+  Antworten: **200** gespeichert · **409** `{ stale: [{date, posId, now}] }` (aktueller Status ≠ `from`, nichts geschrieben) · **400** `{ denied: [...] }` bei unzulässiger Änderung (nichts geschrieben) oder leerer Liste · **404** Plan unbekannt oder Person nicht in der Crew · **401** nicht angemeldet.
+  Bereitschaften für Slots mit aktivem Datensatz werden ohne Fehler ignoriert. Fehlt `ADMIN_EMAIL`: Log-Zeile, Speichern gelingt trotzdem.
 - Der ICS-Titel lautet seit v4.24 `Tour · Art` (vorher `Art: Ort`); der Ort steht in `LOCATION`.
   Gemessen an 23 Live-Feeds / 993 Terminen: alle auf `PRODID: Feed v4.24`, alle mit nicht leerem
   `LOCATION`.
@@ -200,7 +206,7 @@ danach `purge_crew_invites: 1 entfernt` — der alte weg, der frische stand noch
 | `plan_id` | Text | Plan-Referenz (optional) |
 | `crew_name` | Text | Name der einzuladenden Person |
 | `crew_email` | Email | Ziel-E-Mail |
-| `type` | **Text** (kein Select) | `invite` / `reminder` / `update` / `cancellation` / `availability` / `staff_invite` — die sechs Zweige, die der Hook rendert. (`love_invite` stand in der Doku, existiert im Hook aber nicht.) |
+| `type` | **Text** (kein Select) | `invite` / `reminder` / `update` / `cancellation` / `availability` / `staff_invite` — die sechs Zweige, die der Hook rendert; ab v4.30 zusätzlich **`crew_changes`** (Sammelmail an den Planer, angelegt von `/crewsave`, Empfänger `ADMIN_EMAIL`, Inhalt: alle Änderungen und Bereitschaften). Mehr als 5 Einträge → Zählung statt Liste. (`love_invite` stand in der Doku, existiert im Hook aber nicht.) |
 | `plan_name` | Text | Für E-Mail-Template |
 | `app_url` | Text | Doppelt belegt: entweder Login-URL **oder** ein JSON-Slot-Array (dann rendert der Hook eine Terminliste). Feldgrenze 5000 Zeichen — seit v0.11.0 prüft der **Hook** sie, vorher der Browser. |
 | `custom_message` | Text (optional) | Freitext des Admins → Notiz-Block in der Mail (Hook v4.6) |
@@ -242,7 +248,7 @@ wie K-2). Soll-Stand in `tools/check-pb-rules.mjs`, dort am 2026-10-24 auf beide
 | `crew_email` | Text | Empfänger-E-Mail |
 | `email_type` | Text | `invite` / `reminder` / `update` / `cancellation` / `availability` / `love_invite` / `staff_invite` |
 | `sent_at` | Text | Zeitstempel |
-| `success` | Text | Erfolg/Fehler des Versands |
+| `success` | Text | `true` / `false`; ab v4.30 zusätzlich **`skipped`** (kein `RESEND_KEY`, z. B. Test: Mail nicht versendet, aber geloggt). Die Konsole wertet `true` und `skipped` als „eingeladen“ (Typ `invite`), `false` nicht. |
 
 Wird vom Hook nach jedem Mailversand geschrieben (seit v4.1); zeigt sich im „E-Mail-Log"-Tab der Konsole. `updateRule` leer (kein Patch nötig, nur Create + Read).
 
