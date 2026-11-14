@@ -1401,10 +1401,11 @@ routerAdd('POST', '/crewsave', function(e) {
     if (gesehen[key]) { denied.push({ date: date, posId: posId, reason: 'doppelt' }); continue; }
     gesehen[key] = true;
     var rec = slotRecord(date, posId);
+    // v4.30: Fremder Datensatz ZUERST — ein 409 darf nie den Status einer anderen Person verraten.
+    if (rec && String(rec.getString('crew_email') || '').toLowerCase() !== meineMail) { denied.push({ date: date, posId: posId, reason: 'fremder Termin' }); continue; }
     var jetzt = rec ? (rec.getString('status') || 'none') : 'none';
     if (jetzt !== von) { stale.push({ date: date, posId: posId, now: jetzt }); continue; }
     if (rec) {
-      if (String(rec.getString('crew_email') || '').toLowerCase() !== meineMail) { denied.push({ date: date, posId: posId, reason: 'fremder Termin' }); continue; }
       var erl = CREW_STATUS_TRANSITIONS[jetzt];
       if (!erl || erl.indexOf(nach) === -1) { denied.push({ date: date, posId: posId, reason: 'Übergang nicht erlaubt: ' + jetzt + ' → ' + nach }); continue; }
     } else {
@@ -1412,6 +1413,17 @@ routerAdd('POST', '/crewsave', function(e) {
       if (!gehoertMir(date, posId)) { denied.push({ date: date, posId: posId, reason: 'nicht dein Termin' }); continue; }
     }
     ops.push({ date: date, posId: posId, from: von, to: nach, rec: rec, label: rec ? (rec.getString('pos_label') || labelVon(posId)) : labelVon(posId) });
+  }
+  // Bereitschaften: nur echtes ISO-Datum und eine Position aus plan_data (sonst denied)
+  var posBekannt = function(posId) {
+    var ps = Array.isArray(pd.positions) ? pd.positions : [];
+    for (var qi = 0; qi < ps.length; qi++) { if (ps[qi] && ps[qi].id === posId) return true; }
+    return false;
+  };
+  for (var vc = 0; vc < verf.length; vc++) {
+    var vb = verf[vc] || {};
+    var vd = String(vb.date || ''), vp = String(vb.posId || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(vd) || !posBekannt(vp)) denied.push({ date: vd, posId: vp, reason: 'ungültige Angabe' });
   }
   e.response.header().set('Content-Type', 'application/json; charset=utf-8');
   if (stale.length) return e.string(409, JSON.stringify({ stale: stale }));

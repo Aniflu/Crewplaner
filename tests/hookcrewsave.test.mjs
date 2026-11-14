@@ -165,6 +165,31 @@ test('crewsave: fremder Datensatz → 400 denied', () => {
   eq(w.gespeichert.length, 0);
 });
 
+test('crewsave: fremder Datensatz mit falschem from → 400 denied, KEIN now in der Antwort', () => {
+  const w = welt({ records: [R('2027-06-01', 'gl', 'declined', 'eva@x.de')] });
+  const a = w.aufruf({ planId: 'PLAN1', changes: [C('2027-06-01', 'gl', 'proposed', 'confirmed')], availability: [] });
+  eq(a.code, 400);
+  ok(!/now|stale|declined/.test(a.text), 'Antwort verrät den fremden Status: ' + a.text);
+  eq(JSON.parse(a.text).denied[0].reason, 'fremder Termin');
+  eq(w.gespeichert.length, 0);
+});
+
+test('crewsave: Bereitschaft mit ungültigem Datum oder unbekannter Position → 400 denied, nichts geschrieben', () => {
+  const faelle = [
+    { date: '2027-6-1', posId: 'gl' }, { date: '<b>', posId: 'gl' }, { date: '2027-06-01', posId: 'xx' },
+    { date: '2027-06-01', posId: '' }, { posId: 'gl' },
+  ];
+  for (const f of faelle) {
+    const w = welt();
+    const a = w.aufruf({ planId: 'PLAN1', changes: [C('2027-06-01', 'gl', 'none', 'confirmed')], availability: [f] });
+    eq(a.code, 400, JSON.stringify(f));
+    eq(JSON.parse(a.text).denied[0].reason, 'ungültige Angabe');
+    eq(w.gespeichert.length, 0);
+  }
+  const gut = welt();
+  eq(gut.aufruf({ planId: 'PLAN1', changes: [], availability: [{ date: '2027-06-02', posId: 'ton' }] }).code, 200);
+});
+
 test('crewsave: nicht in crew_members → 404, ohne auth → 401, leer → 400', () => {
   const fremd = welt({ member: 'max@x.de' });
   eq(fremd.aufruf({ planId: 'PLAN1', changes: [C('2027-06-01', 'gl', 'proposed', 'confirmed')], availability: [] },
