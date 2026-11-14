@@ -128,5 +128,5 @@ Eine Hilfsfunktion im Mail-Hook `listOrSummary(rows, groupBy)`: ≤ 5 → Tabell
 ## Dem Builder überlassen
 Genaue Farben/Abstände der Leiste und Markierung (Projekt-Stil, farbig auf dunkel), Aufteilung des Codes in Module, Wortlaut der Toasts.
 
-## Offene Rückfrage an den Nutzer (nicht blockierend)
-Pascal Smirat (Zusage 2026-08-18) und Peter Weist (Zusage 2026-09-07) wurden danach vom Superadmin-Konto auf „vorgemerkt“ gesetzt. Gewollt?
+## Geklärt
+Pascal Smirat und Peter Weist wurden nach ihrer Zusage absichtlich auf „vorgemerkt“ gesetzt (Nutzer, 2026-11-14). Thomas Haine hat noch keine Mail; das ist richtig, er wird mit v1.5.0 eingeladen.
