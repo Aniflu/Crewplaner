@@ -1,12 +1,12 @@
 import { SUPABASE_ENABLED } from './config.js';
-import { setAuthState, IS_MANAGER, IS_CREW, CURRENT_USER_EMAIL } from './state.js';
-import { pbPost, pbGet, pbPatch } from './pb.js';
-import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses, loadCrewPlans, ackCancelledAssignments, logActivity } from './dataService.js';
+import { setAuthState, IS_MANAGER, IS_CREW, CURRENT_USER_EMAIL, meineEntfallenen } from './state.js';
+import { pbPost, pbGet } from './pb.js';
+import { loadPlanForCrew, loadPlanForManager, loadCrewMeta, loadAssignmentStatuses, loadCrewPlans, getCrewLoadedPlanId } from './dataService.js';
 import { renderTable } from './render.js';
 import { showToast } from './utils.js';
 import { getActivePlanId, _pruneOrphanPlans } from './plans.js';
 import { startApp } from './init.js';
-import { checkAndOpenMySchedule, renderCrewPlanList } from './userView.js';
+import { checkAndOpenMySchedule, renderCrewPlanList, checkCrewDraftOnOpen, queueCrewChange } from './userView.js';
 
 // ── Auth Service (Pocketbase) ──────────────────────────────────────────────────
 window.__authGuarded = SUPABASE_ENABLED;
@@ -108,8 +108,11 @@ export async function _authCheckAndStart() {
           .then(() => Promise.all([loadCrewMeta(), loadAssignmentStatuses()]));
 
     loadAll
-      .then(() => {
+      .then(async () => {
         renderTable();
+        // v1.5.0: Entwurf aus dem letzten Besuch zuerst klären (speichern/verwerfen), dann
+        // erst die üblichen Dialoge; Mail-Links danach, damit ihre Änderung nicht im Dialog landet.
+        try { await checkCrewDraftOnOpen(); } catch (e) { console.warn('Entwurf prüfen:', e.message); }
         checkAndOpenMySchedule();
         _handleEmailAction();
         _checkPendingAction();
@@ -148,6 +151,9 @@ export async function logout() {
   window.location.href = window.getNavUrl('login.html');
 }
 
+// Alte Mail-Links (bereits verschickte Mails): ?action=confirm|decline&aid=… und
+// ?action=ackcancel&aids=…. Seit v1.5.0 schreibt die App nie sofort — die Änderung landet im
+// Entwurf, die Leiste „ungespeicherte Änderungen" erscheint, gespeichert wird dort.
 export async function _handleEmailAction() {
   const params = new URLSearchParams(window.location.search);
   const action = params.get('action');
@@ -155,35 +161,31 @@ export async function _handleEmailAction() {
   const aids   = params.get('aids');
   if (!action || (!aid && !aids) || !SUPABASE_ENABLED) return;
   history.replaceState({}, '', window.location.pathname);
+  if (!IS_CREW || IS_MANAGER) return;   // Entwurf gibt es nur für die Crew
   try {
-    // „ÄNDERUNGEN GESEHEN ✓" aus der Änderungs-Mail (v0.30.0): quittiert alle
-    // mitgegebenen soft-gecancelten Records (Guard: nur status='cancelled' + eigene E-Mail).
     if (action === 'ackcancel') {
-      const n = await ackCancelledAssignments((aids || '').split(',').filter(Boolean));
-      showToast(n ? `${n} Änderung(en) als gesehen bestätigt ✓` : 'Nichts mehr zu bestätigen', n ? '#4ae8a0' : '#5a6070');
-      await loadAssignmentStatuses();
-      renderTable();
+      const ids = (aids || '').split(',').filter(Boolean);
+      const treffer = meineEntfallenen.filter(c => ids.includes(c.aid));
+      treffer.forEach(c => queueCrewChange(c.date, c.posId, 'cancel_acked'));
+      showToast(treffer.length ? `${treffer.length} Änderung(en) als gesehen vorgemerkt – bitte speichern` : 'Nichts mehr zu bestätigen',
+                treffer.length ? '#e8c84a' : '#5a6070');
       return;
     }
+    if (action !== 'confirm' && action !== 'decline') return;
     const record = await pbGet('/api/collections/assignments/records/' + aid);
     if (!record || (record.crew_email || '').toLowerCase() !== (CURRENT_USER_EMAIL || '').toLowerCase()) {
       showToast('Zugriff verweigert', '#e84a4a');
       return;
     }
-    const payload = { responded_at: new Date().toISOString() };
-    if (action === 'confirm') {
-      payload.status = 'confirmed';
-      await pbPatch('/api/collections/assignments/records/' + aid, payload);
-      logActivity('confirmed', { planId: record.plan_id, crewName: record.crew_name, crewEmail: record.crew_email, date: record.date, posLabel: record.pos_label });
-      showToast('Einsatz bestätigt ✓', '#4ae8a0');
-    } else if (action === 'decline') {
-      payload.status = 'declined';
-      await pbPatch('/api/collections/assignments/records/' + aid, payload);
-      logActivity('declined', { planId: record.plan_id, crewName: record.crew_name, crewEmail: record.crew_email, date: record.date, posLabel: record.pos_label });
-      showToast('Einsatz abgelehnt', '#e84a4a');
-    } else { return; }
-    await loadAssignmentStatuses();
-    renderTable();
+    const pb = getCrewLoadedPlanId();
+    if (pb && record.plan_id && record.plan_id !== pb) {
+      showToast('Dieser Termin gehört zu einer anderen Tour – bitte dort öffnen', '#e84a4a');
+      return;
+    }
+    const to = action === 'confirm' ? 'confirmed' : (record.status === 'pencilled' ? 'pencil_declined' : 'declined');
+    if (queueCrewChange(record.date, record.pos_id, to))
+      showToast(action === 'confirm' ? 'Bestätigen vorgemerkt – bitte speichern' : 'Absage vorgemerkt – bitte speichern',
+                action === 'confirm' ? '#4ae8a0' : '#e8c84a');
   } catch(e) {
     showToast('Fehler: ' + e.message, '#e84a4a');
   }

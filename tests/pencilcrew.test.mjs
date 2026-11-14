@@ -13,6 +13,7 @@ function setup(g, statuses){
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
   globalThis.localStorage.removeItem('crew_pencil_seen_PLAN1');
   globalThis.localStorage.removeItem('crew_pencil_seen_PLAN2');
+  globalThis.localStorage.removeItem('tourplan_crew_draft_PLAN1');   // v1.5.0: Entwurf je Test frisch
   if (g.dataService._setCrewLoadedPlanId) g.dataService._setCrewLoadedPlanId('PLAN1');
   g.state.crewMeta[ME] = { email: 'crew@example.com', userId: 'uid-crew' };
   g.state.POSITIONS.push({ id: 'gl', label: 'Gruppenleitung' }, { id: 'fa', label: 'Fahrer' });
@@ -123,31 +124,48 @@ test('Ohne geladenen Plan kein Popup und kein Log', async () => {
   } finally { dom.restore(); }
 });
 
-test('Absagen → pencil_declined; Wieder vormerken → pencilled', async () => {
+// v1.5.0: Crew schreibt nicht mehr sofort — Absagen/Zurücknehmen gehen in den Entwurf (kein PATCH).
+test('Absagen → Entwurf pencil_declined (kein PATCH); Wieder vormerken nimmt ihn zurück', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   const st = { '2026-07-01|gl': 'pencilled' };
   setup(g, st); mock(st); const dom = captureDom();
   try {
-    await g.userView.declineMySlot('2026-07-01', 'gl');
-    eq(log.patches.length, 1); eq(log.patches[0].body.status, 'pencil_declined');
-    st['2026-07-01|gl'] = 'pencil_declined';
-    await g.userView.restoreMyPencil('2026-07-01', 'gl');
-    eq(log.patches.length, 2); eq(log.patches[1].body.status, 'pencilled');
-    eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'pencilled');
+    g.userView.declineMySlot('2026-07-01', 'gl');
+    eq(log.patches.length, 0); eq(log.posts.length, 0);
+    const d = g.userView.getCrewDraft();
+    eq(d.changes.length, 1);
+    eq(d.changes[0].from, 'pencilled'); eq(d.changes[0].to, 'pencil_declined');
+    eq(g.state.assignmentStatuses['2026-07-01'].gl.status, 'pencilled', 'Server-Stand unverändert');
+    g.userView.restoreMyPencil('2026-07-01', 'gl');
+    eq(g.userView.getCrewDraft().changes.length, 0, 'zurück auf den Ausgangsstatus entfernt den Eintrag');
+    eq(log.patches.length, 0);
   } finally { dom.restore(); }
 });
 
-test('„Alle absagen“ trifft nur Vormerkungen, nie Anfrage/Bestätigt', async () => {
+test('Wieder vormerken aus abgesagter Vormerkung → Entwurf pencilled (kein PATCH)', async () => {
+  const g = await loadGraph(); if(!g) return 'SKIP';
+  const st = { '2026-07-01|gl': 'pencil_declined' };
+  setup(g, st); mock(st); const dom = captureDom();
+  try {
+    g.userView.restoreMyPencil('2026-07-01', 'gl');
+    eq(log.patches.length, 0);
+    const c = g.userView.getCrewDraft().changes;
+    eq(c.length, 1); eq(c[0].from, 'pencil_declined'); eq(c[0].to, 'pencilled');
+  } finally { dom.restore(); }
+});
+
+test('„Alle absagen“ trifft nur Vormerkungen, nie Anfrage/Bestätigt (im Entwurf)', async () => {
   const g = await loadGraph(); if(!g) return 'SKIP';
   const st = { '2026-07-01|gl': 'pencilled', '2026-07-02|gl': 'pencilled', '2026-07-02|fa': 'proposed', '2026-07-03|gl': 'confirmed' };
   setup(g, st); mock(st); const dom = captureDom();
   const origC = globalThis.showConfirm; globalThis.showConfirm = async () => true;
   try {
     await g.userView.declineAllMyPencilled();
-    eq(log.patches.length, 2);
-    ok(log.patches.every(p => p.body.status === 'pencil_declined'));
-    const ids = log.patches.map(p => p.url).join(',');
-    ok(!ids.includes('2026-07-02fa') && !ids.includes('2026-07-03gl'), 'proposed/confirmed unberührt');
+    eq(log.patches.length, 0, 'v1.5.0: kein sofortiges Schreiben');
+    const c = g.userView.getCrewDraft().changes;
+    eq(c.length, 2);
+    ok(c.every(x => x.to === 'pencil_declined' && x.from === 'pencilled'));
+    ok(!c.some(x => (x.date === '2026-07-02' && x.posId === 'fa') || x.date === '2026-07-03'), 'proposed/confirmed unberührt');
     eq(g.state.assignmentStatuses['2026-07-02'].fa.status, 'proposed');
     eq(g.state.assignmentStatuses['2026-07-03'].gl.status, 'confirmed');
   } finally { globalThis.showConfirm = origC; dom.restore(); }

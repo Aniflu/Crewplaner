@@ -712,3 +712,30 @@ body.modal-open{overflow:hidden;}
   .modal-bg{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;}
   .modal-box{width:100%;max-width:none;max-height:none;margin:auto 0;}
 }
+
+/* ── Crew-Entwurf (v1.5.0): Leiste fest unten + Markierung ungespeicherter Änderungen ── */
+#crewSaveBar{
+  position:fixed;left:0;right:0;bottom:0;z-index:250;
+  display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+  background:#10172A;color:#fff;border-top:2px solid #6aa7e8;
+  box-shadow:0 -4px 16px rgba(0,0,0,.35);
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.04em;
+}
+#crewSaveBar .csb-dot{color:#6aa7e8;}
+#crewSaveBar .csb-count{font-weight:600;}
+#crewSaveBar .csb-btns{display:flex;gap:8px;flex-wrap:wrap;}
+#crewSaveBar button{
+  font-family:inherit;font-size:.68rem;font-weight:700;letter-spacing:.04em;
+  min-height:40px;padding:8px 16px;border-radius:4px;cursor:pointer;
+}
+#crewSaveBar .csb-save{background:#4ae8a0;color:#10172A;border:1px solid #4ae8a0;}
+#crewSaveBar .csb-discard{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45);}
+body.has-save-bar{padding-bottom:84px;}   /* Leiste verdeckt sonst die letzte Tabellenzeile */
+.assign-cell.draft-changed{outline:2px dashed #6aa7e8;outline-offset:-2px;}
+.draft-tag{display:block;text-align:center;font-family:var(--mono);font-size:.54rem;color:#6aa7e8;padding:0 2px 3px;}
+@media (max-width:768px){
+  #crewSaveBar{flex-direction:column;align-items:stretch;text-align:center;}
+  #crewSaveBar .csb-btns{display:grid;grid-template-columns:2fr 1fr;}
+  body.has-save-bar{padding-bottom:128px;}
+}

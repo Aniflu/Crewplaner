@@ -3,8 +3,8 @@ import { SUPABASE_ENABLED } from './config.js';
 import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, defaultCrew,
          crew, CREW_COLORS,
          IS_MANAGER, IS_CREW, IS_BOOKER,
-         OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, CURRENT_USER_EMAIL,
-         pendingCancellations } from './state.js';
+         OFFEN, OFFDAY, REISE_TAG, AUSSCHREIBEN, CURRENT_USER_EMAIL } from './state.js';
+import { effectiveStatus } from './crewDraft.js';
 import { getVal, isPending, esc, fmtDParts, parseD, DE_DAYS, colorToDarkBg, sameCrew } from './utils.js';
 import { toISODate, todayMarkers } from './pure.js';
 import { TYPE_OPTS } from './types.js';
@@ -13,8 +13,8 @@ import { updateStats } from './stats.js';
 import { autoSave } from './persistence.js';
 import { renderBlockView } from './blockview.js';
 import { renderCrewView } from './crewview.js';
-import { getMyCrewName, _updateMeldungBar, _updateCrewUpdateBar,
-         _getMeldungSent, _meldungDraft, _queueCrewUpdate } from './userView.js';
+import { getMyCrewName, _updateCrewSaveBar, _updateCrewUpdateBar, getCrewDraft,
+         _getMeldungSent, _queueCrewUpdate } from './userView.js';
 
 // Status-Icon etwas größer als der umgebende Zellentext (User-Wunsch v0.29.0) — nur das
 // Symbol skaliert, Name/Layout bleiben unangetastet.
@@ -58,7 +58,7 @@ export function renderTable(){
   else if(CURRENT_VIEW==='crew'){renderCrewView();}
   updateStats();
   _updateViewMeta();
-  _updateMeldungBar();
+  _updateCrewSaveBar();
   _updateCrewUpdateBar();
   if(CURRENT_VIEW==='table'&&!_autoScrolledToday&&typeof requestAnimationFrame==='function'){
     _autoScrolledToday=true;
@@ -122,6 +122,8 @@ export function renderBody(){
   let b='',lastBlockId=null;
   const _meldungSentData=_getMeldungSent();
   const myName=SUPABASE_ENABLED?getMyCrewName():null;
+  // v1.5.0: Crew-Entwurf (nur Crew; Planer sieht nie Entwurfsmarken)
+  const _draft=getCrewDraft();
   // „Heute"-Marker (v0.25.0): today = exakter Tourtag, sonst next = erster kommender Tag.
   const _todayISO=toISODate(new Date());
   const {today:_todayRow,next:_nextRow}=todayMarkers(TOUR_DATES.map(r=>r.date),_todayISO);
@@ -168,15 +170,19 @@ export function renderBody(){
       } else if(val===OFFDAY){style='color:#70ad47;border-color:rgba(112,173,71,.4);background:rgba(112,173,71,.07);font-weight:600;';display='🏖 Offday';}
       else if(val===REISE_TAG){style='color:#4f81bd;border-color:rgba(79,129,189,.4);background:rgba(79,129,189,.07);font-weight:600;';display='✈ Reise';}
       else if(val===AUSSCHREIBEN){style='color:#c07830;border-color:rgba(192,120,48,.4);background:rgba(192,120,48,.07);font-weight:600;';display='📋 Ausschr.';}
-      const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName;
+      // v1.5.0: wirksamer Status = Entwurf, sonst Server-Stand; geänderte Zellen werden markiert.
+      const _eff=si?effectiveStatus(_draft,row.date,p.id,si.status):null;
+      const _avail=_draft.availability.some(a=>a.date===row.date&&a.posId===p.id);
+      const _chg=(si&&_eff!==si.status)||_avail;
+      const isMyProposed=!IS_MANAGER&&si&&si.status==='proposed'&&si.crewName===myName&&_eff==='proposed';
       const isAusschreibenSlot=SUPABASE_ENABLED&&IS_CREW&&val===AUSSCHREIBEN&&!si;
-      const isDrafted=isAusschreibenSlot&&!!_meldungDraft[row.date]?.has(p.id);
+      const isDrafted=isAusschreibenSlot&&_avail;
       const isSent=isAusschreibenSlot&&!!_meldungSentData[row.date]?.includes(p.id);
-      b+=`<td class="assign-cell">`;
+      b+=`<td class="assign-cell${_chg?' draft-changed':''}">`;
       if(isMyProposed){
         b+=`<button class="assign-btn" onclick="openSlotConfirmModal('${row.date}','${p.id}')" style="color:#e8c84a;border-color:rgba(232,200,74,.4);background:rgba(232,200,74,.07);">Bitte bestätigen</button>`;
       }else if(isDrafted){
-        b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#e8c84a;border-color:rgba(232,200,74,.4);background:rgba(232,200,74,.09);">✓ Gemerkt</button>`;
+        b+=`<button class="assign-btn slot-melden" onclick="meinesMelden('${row.date}','${p.id}')" style="color:#e8c84a;border-color:rgba(232,200,74,.4);background:rgba(232,200,74,.09);">✓ Gemerkt</button><span class="draft-tag">● ungespeichert</span>`;
       }else if(isSent){
         b+=`<button class="assign-btn" disabled style="color:#e8c84a;opacity:.55;border-color:rgba(232,200,74,.25);background:rgba(232,200,74,.05);">📋 Gemeldet</button>`;
       }else if(isAusschreibenSlot){
@@ -188,20 +194,25 @@ export function renderBody(){
         else if(si.status==='pencil_declined'){b+=`<span style="font-size:.6rem;color:var(--pencilled);text-decoration:line-through;display:block;text-align:center;">${esc(si.crewName)}</span>`;}
         else{b+=`<span style="font-size:.6rem;color:var(--accent);display:block;text-align:center;">${esc(si.crewName)}</span>`;}
       }else if(IS_CREW&&si&&si.crewName===myName){
-        const _pkey=row.date+'|'+p.id;
-        const _isPending=pendingCancellations.has(_pkey);
-        if(si.status==='confirmed'){
-          const _ps=_isPending?'background:rgba(232,74,74,.12);border-color:rgba(232,74,74,.4);color:var(--warn);text-decoration:line-through;':'color:var(--show);border-color:var(--show-wash-2);background:var(--show-wash);';
-          b+=`<button class="assign-btn" style="${_ps}" onclick="toggleCancellation('${row.date}','${p.id}')">${_isPending?'Absagen?':'✓ '+esc(si.crewName||myName)}</button>`;
-        }else if(si.status==='pencilled'){
+        // v1.5.0: alles nach _eff (Entwurf), nie nach si.status allein; geändert → „● ungespeichert".
+        const _tag=_chg?'<span class="draft-tag">● ungespeichert</span>':'';
+        if((_eff==='confirmed'||_eff==='declined')&&(si.status==='confirmed'||_chg)){
+          // Bestätigt auf dem Server → Klick schaltet „Absagen?" im Entwurf um; sonst (Anfrage
+          // beantwortet) öffnet der Klick das Modal, um die Wahl zu ändern.
+          const _ab=_eff==='declined';
+          const _ps=_ab?'background:rgba(232,74,74,.12);border-color:rgba(232,74,74,.4);color:var(--warn);text-decoration:line-through;':'color:var(--show);border-color:var(--show-wash-2);background:var(--show-wash);';
+          const _lbl=_ab?(si.status==='confirmed'?'Absagen?':'✗ '+esc(si.crewName||myName)):'✓ '+esc(si.crewName||myName);
+          const _oc=si.status==='confirmed'?`toggleCancellation('${row.date}','${p.id}')`:`openSlotConfirmModal('${row.date}','${p.id}')`;
+          b+=`<button class="assign-btn" style="${_ps}" onclick="${_oc}">${_lbl}</button>${_tag}`;
+        }else if(_eff==='pencilled'){
           // Eigene Vormerkung: anklickbar, aber NUR zum Absagen (v0.13.0). Vorher stand hier
           // ein toter <span> — die Crew sah, dass sie vorgemerkt ist, konnte aber nicht
           // sagen „geht bei mir nicht", und der Manager plante weiter auf Sand.
           // openSlotConfirmModal erkennt den Status und bietet dann kein „Bestätigen" an.
-          b+=`<button class="assign-btn" onclick="openSlotConfirmModal('${row.date}','${p.id}')" style="color:var(--pencilled);border-color:var(--pencilled-wash-2);background:var(--pencilled-wash);">✎ ${esc(si.crewName||myName)}</button>`;
-        }else if(si.status==='pencil_declined'){
+          b+=`<button class="assign-btn" onclick="openSlotConfirmModal('${row.date}','${p.id}')" style="color:var(--pencilled);border-color:var(--pencilled-wash-2);background:var(--pencilled-wash);">✎ ${esc(si.crewName||myName)}</button>${_tag}`;
+        }else if(_eff==='pencil_declined'){
           // Eigene abgesagte Vormerkung (v1.4.0): klickbar, nur „Wieder vormerken".
-          b+=`<button class="assign-btn" title="Vormerkung abgesagt" onclick="openSlotConfirmModal('${row.date}','${p.id}')" style="color:var(--pencilled);border-color:var(--pencilled-wash-2);text-decoration:line-through;">✎✗ ${esc(si.crewName||myName)}</button>`;
+          b+=`<button class="assign-btn" title="Vormerkung abgesagt" onclick="openSlotConfirmModal('${row.date}','${p.id}')" style="color:var(--pencilled);border-color:var(--pencilled-wash-2);text-decoration:line-through;">✎✗ ${esc(si.crewName||myName)}</button>${_tag}`;
         }else{
           b+=`<span class="${cls}" style="${style};cursor:default;">${icHtml?icHtml+' ':''}${esc(display)}</span>`;
         }

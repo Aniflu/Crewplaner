@@ -38,9 +38,9 @@ import { openNewPlan } from './plans.js';
 import { openAddType } from './types.js';
 import { openTourBlock, tbBack, tbStep2, tbSetAll, tbConfirm, openBlockRange } from './tourblock.js';
 import { openAddDate } from './dates.js';
-import { sendCancellations, bulkConfirmAllMySlots,
+import { saveMyChanges, discardMyChanges, bulkConfirmAllMySlots,
          _closeUpdateQueueModal,
-         _sendSelectedUpdates, _submitMeldung,
+         _sendSelectedUpdates,
          _ackMeineEntfallenen } from './userView.js';
 import { openModal, closeModal } from './modals.js';
 import { showToast } from './utils.js';
@@ -111,11 +111,11 @@ window.tbBack = tbBack;
 window.tbStep2 = tbStep2;
 window.tbSetAll = tbSetAll;
 window.tbConfirm = tbConfirm;
-window.sendCancellations = sendCancellations;
+window.saveMyChanges = saveMyChanges;
+window.discardMyChanges = discardMyChanges;
 window.bulkConfirmAllMySlots = bulkConfirmAllMySlots;
 window._closeUpdateQueueModal = _closeUpdateQueueModal;
 window._sendSelectedUpdates = _sendSelectedUpdates;
-window._submitMeldung = _submitMeldung;
 window._ackMeineEntfallenen = _ackMeineEntfallenen;
 window.openModal = openModal;
 window.closeModal = closeModal;

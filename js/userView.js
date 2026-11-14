@@ -1,56 +1,184 @@
 // ── User View — Meine Einsätze / Confirm / Decline ────────────────────────────
 import { TOUR_DATES, POSITIONS, assignments, assignmentStatuses, crewMeta,
          IS_CREW, IS_MANAGER, CURRENT_USER_EMAIL, CURRENT_USER_ID, setStatus,
-         pendingCancellations, meineEntfallenen } from './state.js';
+         meineEntfallenen } from './state.js';
 import { SUPABASE_ENABLED, POCKETBASE_URL } from './config.js';
 import { getVal, isPending, esc, showToast, fmtD, fmtDParts, sameCrew } from './utils.js';
-import { pbPatch, pbPost, pbFirst } from './pb.js';
-import { confirmAssignment, declineAssignment, loadAssignmentStatuses, sendUpdateNotice,
-         sendAvailabilityNotice, loadPlanForCrew, loadCrewMeta,
-         loadCrewPlans, ackCancelledAssignments, moveAssignmentDate,
-         restorePencilled, logActivity, getCrewLoadedPlanId } from './dataService.js';
+import { loadAssignmentStatuses, sendUpdateNotice,
+         loadPlanForCrew, loadCrewMeta,
+         loadCrewPlans, moveAssignmentDate,
+         logActivity, getCrewLoadedPlanId, saveCrewChanges } from './dataService.js';
+import { loadDraft, saveDraft, clearDraft, setChange, toggleAvailability, dropStale,
+         removeEntries, draftCount, effectiveStatus } from './crewDraft.js';
 import { _getNewSlotsForCrew } from './crewNotify.js';
 import { renderTable, resetTodayAutoScroll } from './render.js';
 import { getActivePlanId, getPlansIndex, activePlanName, _savePlanToLS } from './plans.js';
 import { closeModal, openModal } from './modals.js';
-import { showConfirm } from './dialog.js';
-import { icsExportRows, ICS_STATUS_LABEL, crewIcsContent, feedUrls,
+import { showConfirm, showAlert } from './dialog.js';
+import { isCrewStatusTransitionAllowed, icsExportRows, ICS_STATUS_LABEL, crewIcsContent, feedUrls,
          checkDateMove, moveDateInPlan, queueAddRemoved } from './pure.js';
 
-// ── Änderungen mitteilen — ausstehende Absagen ────────────────────────────────
-export function toggleCancellation(dateStr, posId) {
-  const key = dateStr + '|' + posId;
-  if (pendingCancellations.has(key)) pendingCancellations.delete(key);
-  else pendingCancellations.add(key);
-  _updateCancellationBar();
-  renderTable();
+// ── Crew-Entwurf (v1.5.0) ─────────────────────────────────────────────────────
+// Die Crew schreibt NICHTS mehr einzeln an den Server. Jede Antwort (bestätigen, absagen,
+// Vormerkung zurücknehmen, „Gesehen", Bereitschaft) landet im Entwurf (js/crewDraft.js, im
+// localStorage je PB-Plan). Erst „Änderungen speichern" schickt alles in EINEM Aufruf an
+// /crewsave — der Planer bekommt genau eine Mail. Nur für IS_CREW && !IS_MANAGER; der
+// Planer-Pfad (confirmAssignment/declineAssignment in dataService.js) bleibt unberührt.
+const _istCrew = () => IS_CREW && !IS_MANAGER;
+const _LEER = () => ({ changes: [], availability: [] });
+const _planKey = () => getCrewLoadedPlanId() || '';
+
+export function getCrewDraft() {
+  return _istCrew() ? loadDraft(_planKey()) : _LEER();
+}
+function _setDraft(d) {
+  if (draftCount(d)) saveDraft(_planKey(), d); else clearDraft(_planKey());
+  renderTable();   // rendert auch die Leiste (render.js → _updateCrewSaveBar)
+}
+// Aktueller Server-Stand eines Termins: Status, 'cancelled' (entfallen, steht nicht in
+// assignmentStatuses) oder 'none' (kein Datensatz).
+function _currentStatus(date, posId) {
+  const si = (assignmentStatuses || {})[date]?.[posId];
+  if (si && si.status) return si.status;
+  return meineEntfallenen.some(c => c.date === date && c.posId === posId) ? 'cancelled' : 'none';
+}
+// Wirksamer Status = Entwurf, sonst Server-Stand (für Tabelle und „Meine Einsätze").
+function _effStatus(date, posId) {
+  return effectiveStatus(getCrewDraft(), date, posId, _currentStatus(date, posId));
+}
+export function isDraftChanged(date, posId) {
+  return getCrewDraft().changes.some(c => c.date === date && c.posId === posId);
+}
+function _offeneEntfallene() {
+  return meineEntfallenen.filter(c => _effStatus(c.date, c.posId) !== 'cancel_acked');
 }
 
-function _updateCancellationBar() {
-  const btn = document.getElementById('btnSendCancellations');
-  if (!btn) return;
-  const n = pendingCancellations.size;
-  btn.style.display = IS_CREW && n > 0 ? '' : 'none';
-  btn.querySelector('.sb-gl').textContent = n > 0 ? `⚠ ${n}` : '⚠';
+// Gemeinsamer Schreibweg in den Entwurf. `to` = Wunschstatus. Liefert true, wenn vorgemerkt.
+export function queueCrewChange(date, posId, to) {
+  if (!_istCrew()) return false;
+  if (!_planKey()) { showToast('Plan nicht geladen – bitte neu laden', '#e84a4a'); return false; }
+  const from = _currentStatus(date, posId);
+  // Verboten ist nur, was der Server ohnehin ablehnen würde (statt es erst beim Speichern
+  // scheitern zu lassen). „Zurück auf den Ausgangsstatus" (to === from) ist immer erlaubt.
+  if (to !== from && !isCrewStatusTransitionAllowed(from === 'none' ? '' : from, to)) {
+    showToast('Diesen Status kannst du nicht selbst ändern – bitte den Planer fragen', '#e84a4a');
+    return false;
+  }
+  _setDraft(setChange(getCrewDraft(), { date, posId, from, to }));
+  return true;
 }
 
-export async function sendCancellations() {
-  if (!pendingCancellations.size) return;
-  showToast('Wird übermittelt…', '#e8c84a');
+// ── Änderungen speichern / verwerfen (Leiste #crewSaveBar) ────────────────────
+export function _updateCrewSaveBar() {
+  const bar = document.getElementById('crewSaveBar');
+  if (!bar) return;
+  const n = _istCrew() ? draftCount(getCrewDraft()) : 0;
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  const cnt = document.getElementById('crewSaveCount');
+  if (cnt) cnt.textContent = n + (n === 1 ? ' ungespeicherte Änderung' : ' ungespeicherte Änderungen');
+  if (document.body && document.body.classList) document.body.classList.toggle('has-save-bar', n > 0);
+}
+
+const _STATUS_TEXT = { proposed: 'angefragt', confirmed: 'bestätigt', declined: 'abgesagt',
+  pencilled: 'vorgemerkt', pencil_declined: 'Vormerkung abgesagt', cancelled: 'entfallen',
+  cancel_acked: 'entfallen (gesehen)', none: 'nicht eingeplant' };
+function _slotText(date, posId) {
+  const [y, m, d] = String(date).split('-');
+  const pos = POSITIONS.find(p => p.id === posId);
+  return d + '.' + m + '.' + y + ' ' + (pos?.label || posId);
+}
+
+let _saving = false;
+export async function saveMyChanges() {
+  if (!_istCrew() || _saving) return;
+  const pb = _planKey();
+  const draft = getCrewDraft();
+  if (!draftCount(draft)) return;
+  _saving = true;
+  showToast('Wird gespeichert…', '#e8c84a');
   try {
-    for (const key of Array.from(pendingCancellations)) {
-      const [dateStr, posId] = key.split('|');
-      await declineAssignment(dateStr, posId); // setzt lokalen Status bei Erfolg selbst
-    }
-    pendingCancellations.clear();
-    _updateCancellationBar();
-    showToast('Änderungen mitgeteilt — Manager wird benachrichtigt ✓', '#4ae8a0');
-    renderTable();
-  } catch(e) {
-    showToast('Fehler: ' + e.message, '#e84a4a');
+    await saveCrewChanges(pb, draft);
+    const sent = _getMeldungSent();
+    draft.availability.forEach(a => {
+      if (!sent[a.date]) sent[a.date] = [];
+      if (!sent[a.date].includes(a.posId)) sent[a.date].push(a.posId);
+    });
+    try { _saveMeldungSent(sent); } catch (_) { /* nur Anzeige „Gemeldet" */ }
+    clearDraft(pb);
     await loadAssignmentStatuses();
     renderTable();
+    showToast('Gespeichert – der Planer bekommt eine Mail ✓', '#4ae8a0');
+  } catch (e) {
+    if (e.status === 409 && e.body && Array.isArray(e.body.stale)) {
+      // Der Planer war schneller: genau diese Einträge raus, Rest bleibt, Stand neu laden.
+      const stale = e.body.stale;
+      _setDraft(removeEntries(getCrewDraft(), stale));
+      await loadAssignmentStatuses();
+      renderTable();
+      const zeilen = stale.map(x => _slotText(x.date, x.posId) + ' (jetzt: ' + (_STATUS_TEXT[x.now] || x.now) + ')');
+      await showAlert('Der Planer hat inzwischen geändert: ' + zeilen.join(', ')
+        + '. Diese Änderungen wurden aus deiner Liste entfernt. Prüfe sie und speichere den Rest erneut.');
+    } else {
+      const denied = e.body && Array.isArray(e.body.denied) ? e.body.denied : [];
+      const grund = denied.length
+        ? denied.map(x => _slotText(x.date, x.posId) + ': ' + x.reason).join('; ')
+        : e.message;
+      showToast('Nicht gespeichert: ' + grund, '#e84a4a', 6000);   // Entwurf bleibt unverändert
+    }
+  } finally {
+    _saving = false;
   }
+}
+
+export async function discardMyChanges() {
+  if (!_istCrew()) return;
+  const n = draftCount(getCrewDraft());
+  if (!n) return;
+  const ok = await showConfirm(n + ' ungespeicherte Änderung' + (n === 1 ? '' : 'en') + ' verwerfen?', 'Verwerfen');
+  if (!ok) return;
+  clearDraft(_planKey());
+  renderTable();
+  showToast('Änderungen verworfen ↩', '#5a6070');
+}
+
+// Beim Laden des Crew-Plans: Entwurf prüfen. Veraltetes (Termin weg oder Ausgangsstatus
+// inzwischen anders) fliegt raus und wird im Dialog genannt; bleibt etwas, fragt der Dialog
+// Speichern / Verwerfen. „Abbrechen" lässt den Rest in der Leiste stehen.
+export async function checkCrewDraftOnOpen() {
+  if (!_istCrew()) return;
+  const pb = _planKey();
+  if (!pb) return;
+  let draft = loadDraft(pb);
+  if (!draftCount(draft)) { _updateCrewSaveBar(); return; }
+  const dropped = [];
+  const tage = new Set(TOUR_DATES.map(t => t.date));
+  if (tage.size) {
+    const weg = draft.changes.concat(draft.availability).filter(x => !tage.has(x.date));
+    weg.forEach(x => dropped.push({ date: x.date, posId: x.posId }));
+    draft = removeEntries(draft, weg);
+  }
+  const r = dropStale(draft, _currentStatus);
+  draft = r.draft;
+  r.dropped.forEach(x => dropped.push(x));
+  if (dropped.length) { if (draftCount(draft)) saveDraft(pb, draft); else clearDraft(pb); }
+  const verworfen = dropped.length
+    ? '\n\nVerworfen, weil der Termin oder sein Stand sich inzwischen geändert hat: '
+      + dropped.map(x => _slotText(x.date, x.posId)).join(', ') + '.'
+    : '';
+  renderTable();
+  const n = draftCount(draft);
+  if (!n) { if (dropped.length) await showAlert('Deine ungespeicherten Änderungen sind nicht mehr gültig.' + verworfen); return; }
+  const speichern = await showConfirm('Du hast ungespeicherte Änderungen (' + n + '). Jetzt speichern?' + verworfen, 'Speichern');
+  if (speichern) { await saveMyChanges(); return; }
+  const verwerfen = await showConfirm('Stattdessen verwerfen? Mit „Abbrechen“ bleiben sie in der Leiste unten stehen.', 'Verwerfen');
+  if (verwerfen) { clearDraft(pb); renderTable(); }
+}
+
+// Änderung der Absage-Wahl direkt in der Tabelle (bestätigter Einsatz „Absagen?").
+export function toggleCancellation(dateStr, posId) {
+  const base = _currentStatus(dateStr, posId);
+  const eff = _effStatus(dateStr, posId);
+  queueCrewChange(dateStr, posId, eff === 'declined' ? base : 'declined');
 }
 
 // ── Crew: Plan-Umschalter in der Seitenleiste ─────────────────────────────────
@@ -84,6 +212,7 @@ export async function switchCrewPlan(pbId) {
     renderTable();
     const plans = await loadCrewPlans();
     renderCrewPlanList(plans, localStorage.getItem('tourplan_active_pb_id'));
+    await checkCrewDraftOnOpen();
     checkAndOpenMySchedule();
     showToast('Tour geladen ✓', '#4ae8a0');
   } catch(e) {
@@ -114,13 +243,14 @@ export function getMyPendingSlots() {
     _pos.forEach(pos => {
       if (!sameCrew(getVal(day.date, pos.id), myName)) return;
       const si = (assignmentStatuses[day.date] || {})[pos.id];
-      if (si && si.status === 'confirmed') return;   // schon bestätigt → nicht mehr offen
+      const eff = _effStatus(day.date, pos.id);
+      if (eff === 'confirmed') return;   // schon bestätigt (auch im Entwurf) → nicht mehr offen
       // „Vorgemerkt" ist KEINE offene Frage (v0.13.0). Es ist Planung des Managers — utils.js
       // sagt das seit v0.29.0 im Kommentar zu isPending, hier stand es nur nicht. Solange es
       // fehlte, fragte der Login nach vorgemerkten Tagen und die Antwort hob sie still auf
       // bestätigt, obwohl den Status ausschließlich Admin/Tourmanager bewegen darf.
       // Absagen kann die Crew sie trotzdem — dafür gibt es getMyPencilledSlots().
-      if (si && (si.status === 'pencilled' || si.status === 'pencil_declined')) return;   // v1.4.0
+      if (eff === 'pencilled' || eff === 'pencil_declined') return;   // v1.4.0 (v1.5.0: wirksamer Status)
       slots.push({ date: day.date, posId: pos.id });
     });
   });
@@ -141,8 +271,7 @@ export function getMyPencilledSlots() {
   _dates.forEach(day => {
     _pos.forEach(pos => {
       if (!sameCrew(getVal(day.date, pos.id), myName)) return;
-      const si = (assignmentStatuses[day.date] || {})[pos.id];
-      if (!si || si.status !== 'pencilled') return;
+      if (_effStatus(day.date, pos.id) !== 'pencilled') return;   // v1.5.0: wirksamer Status
       slots.push({ date: day.date, posId: pos.id });
     });
   });
@@ -160,8 +289,7 @@ export function getMyPencilDeclinedSlots() {
   _dates.forEach(day => {
     _pos.forEach(pos => {
       if (!sameCrew(getVal(day.date, pos.id), myName)) return;
-      const si = (assignmentStatuses[day.date] || {})[pos.id];
-      if (!si || si.status !== 'pencil_declined') return;
+      if (_effStatus(day.date, pos.id) !== 'pencil_declined') return;   // v1.5.0: wirksamer Status
       slots.push({ date: day.date, posId: pos.id });
     });
   });
@@ -230,7 +358,7 @@ export function pencilInfoOk() {
   try { localStorage.setItem(_pencilSeenKey(pb), JSON.stringify([...seen])); } catch(_) {}
   logActivity('pencil_seen', { planId: pb, crewName: getMyCrewName() || '', crewEmail: CURRENT_USER_EMAIL || '' });
   // Danach greifen die normalen Öffnungsregeln (offene Anfragen / entfallene Tage).
-  if (getMyPendingSlots().length > 0 || meineEntfallenen.length > 0) openMyScheduleModal();
+  if (getMyPendingSlots().length > 0 || _offeneEntfallene().length > 0) openMyScheduleModal();
 }
 
 // ── Modal automatisch öffnen wenn offene Slots vorhanden ─────────────────────
@@ -245,24 +373,21 @@ export function checkAndOpenMySchedule() {
   // der Login nicht danach fragen. Genau das war der gemeldete Fehler — wer vorgemerkt war,
   // bekam beim Anmelden „kannst du an diesen Terminen?" und hob mit der Antwort still den
   // Status auf bestätigt. Erreichbar bleiben sie über den Knopf (bulkConfirmAllMySlots).
-  if (getMyPendingSlots().length > 0 || meineEntfallenen.length > 0) openMyScheduleModal();
+  if (getMyPendingSlots().length > 0 || _offeneEntfallene().length > 0) openMyScheduleModal();
 }
 
 // „Gesehen" für die entfallenen Tage — derselbe Weg, den auch der Knopf in der Mail auslöst
 // (action=ackcancel). ackCancelledAssignments prüft serverseitig, dass die Adresse zum
 // Datensatz passt; hier wird nichts umgangen.
-export async function _ackMeineEntfallenen() {
-  const aids = meineEntfallenen.map(c => c.aid).filter(Boolean);
-  if (!aids.length) return;
-  showToast('Wird bestätigt…', '#e8c84a');
-  try {
-    const n = await ackCancelledAssignments(aids);
-    meineEntfallenen.length = 0;      // quittiert → nicht erneut zeigen
-    showToast(`${n} Änderung(en) als gesehen markiert ✓`, '#4ae8a0');
-    closeModal('sharedModal');
-  } catch (e) {
-    showToast('Fehler: ' + e.message, '#e84a4a');
-  }
+export function _ackMeineEntfallenen() {
+  const offen = _offeneEntfallene();
+  if (!offen.length) return;
+  // v1.5.0: kein Schreiben — „Gesehen" geht in den Entwurf und mit „Änderungen speichern" raus.
+  let d = getCrewDraft();
+  offen.forEach(c => { d = setChange(d, { date: c.date, posId: c.posId, from: _currentStatus(c.date, c.posId), to: 'cancel_acked' }); });
+  _setDraft(d);
+  showToast(offen.length + ' Änderung(en) als gesehen vorgemerkt – bitte speichern', '#e8c84a');
+  closeModal('sharedModal');
 }
 
 // ── Meine Einsätze Modal ──────────────────────────────────────────────────────
@@ -285,7 +410,7 @@ function _renderMySchedule(myName) {
   // tests/imports.test.mjs entfernt Template-Literale mit `\$\{[^}]*\}` und stolpert über
   // innere Klammern — der Rest der Datei wird dann falsch geparst und der Guard meldet
   // Unsinn. Getrennt ist es ohnehin lesbarer.
-  const entfallenZeilen = meineEntfallenen.map(c => {
+  const entfallenZeilen = _offeneEntfallene().map(c => {
     const [y, m, d] = String(c.date || '').split('-');
     const td = (typeof TOUR_DATES !== 'undefined' ? TOUR_DATES : []).find(x => x.date === c.date);
     const ort = td && td.loc ? ' · ' + esc(td.loc) : '';
@@ -297,10 +422,10 @@ function _renderMySchedule(myName) {
       + '</div></div>';
   }).join('');
 
-  const entfallenHTML = meineEntfallenen.length
+  const entfallenHTML = _offeneEntfallene().length
     ? '<div style="margin-top:18px;border-top:1px solid var(--rule);padding-top:14px;">'
       + '<div style="font-size:.62rem;color:#e84a4a;font-weight:bold;margin-bottom:8px;">'
-      + '➖ Entfallen — diese Tage bist du nicht mehr eingeplant (' + meineEntfallenen.length + ')</div>'
+      + '➖ Entfallen — diese Tage bist du nicht mehr eingeplant (' + _offeneEntfallene().length + ')</div>'
       // Eigener Scrollbereich wie die Liste darüber. Bei 20 entfallenen Tagen wäre der
       // „Gesehen"-Knopf sonst weit unten in der Box — erreichbar, aber man sucht ihn.
       + '<div style="max-height:30vh;overflow-y:auto;">' + entfallenZeilen + '</div>'
@@ -364,7 +489,7 @@ function _renderMySchedule(myName) {
 
   if (slots.length === 0) {
     document.getElementById('sharedBody').innerHTML = `
-      ${(meineEntfallenen.length || vormerkZeilen || abgesagtZeilen) ? '' : `<p style="font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">
+      ${(_offeneEntfallene().length || vormerkZeilen || abgesagtZeilen) ? '' : `<p style="font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">
         Keine offenen Einsätze — alles erledigt ✅
       </p>`}
       ${vormerkHTML}
@@ -424,30 +549,25 @@ function _renderMySchedule(myName) {
   });
 }
 
-export async function _bulkConfirmMySlots() {
+export function _bulkConfirmMySlots() {
   const checkboxes = document.querySelectorAll('#sharedBody input[type=checkbox]');
   const decisions = Array.from(checkboxes).map(cb => ({
     date: cb.dataset.date,
     posId: cb.dataset.pos,
     confirmed: cb.checked
   }));
-
-  showToast('Wird gespeichert…', '#e8c84a');
-  try {
-    await Promise.all(decisions.map(d =>
-      d.confirmed ? confirmAssignment(d.date, d.posId) : declineAssignment(d.date, d.posId)
-    ));
-  } catch(e) {
-    showToast('Teilweise fehlgeschlagen: ' + e.message, '#e84a4a');
-    await loadAssignmentStatuses();
-    renderTable();
-    return;
-  }
-
-  // Lokaler Status wird von confirm/declineAssignment gesetzt (nur bei echtem PB-Record)
+  // v1.5.0: nichts geht sofort an den Server — die Wahl landet im Entwurf (Leiste unten).
+  let d = getCrewDraft();
+  let abgelehnt = 0;
+  decisions.forEach(x => {
+    const from = _currentStatus(x.date, x.posId);
+    const to = x.confirmed ? 'confirmed' : 'declined';
+    if (to !== from && !isCrewStatusTransitionAllowed(from === 'none' ? '' : from, to)) { abgelehnt++; return; }
+    d = setChange(d, { date: x.date, posId: x.posId, from, to });
+  });
+  _setDraft(d);
   closeModal('sharedModal');
-  showToast('Einsätze bestätigt ✓', '#4ae8a0');
-  renderTable();
+  showToast(abgelehnt ? 'Teilweise vorgemerkt – bitte speichern' : 'Vorgemerkt – bitte „Änderungen speichern“ drücken', abgelehnt ? '#e8c84a' : '#4ae8a0');
 }
 
 // ── Slot-Bestätigungs-Modal (Einzelklick aus Tabelle) ────────────────────────
@@ -461,7 +581,7 @@ export function openSlotConfirmModal(dateStr, posId) {
   // Vorgemerkt → nur absagen (v0.13.0). Ein „✓ Bestätigen" wäre hier gelogen: Der Klick
   // würde vom Guard in dataService.js abgewiesen und die Crew stünde vor einem Knopf, der
   // nichts tut. Lieber gar nicht anbieten, was das System nicht annimmt.
-  const _st = (assignmentStatuses||{})[dateStr]?.[posId]?.status;
+  const _st = _effStatus(dateStr, posId);   // v1.5.0: wirksamer Status inkl. Entwurf
   const istVorgemerkt = _st === 'pencilled';
   const istVormAbgesagt = _st === 'pencil_declined';
   // ⚠️ Beide Blöcke VOR dem Template bauen, nicht als verschachteltes `${… ? `…` : ''}` —
@@ -516,37 +636,18 @@ export function bulkConfirmAllMySlots() {
 }
 
 // ── Einzelne Slot-Aktionen (aus Tabelle heraus) ───────────────────────────────
-export async function confirmMySlot(dateStr, posId) {
-  try {
-    await confirmAssignment(dateStr, posId);
-    showToast('Bestätigt ✓', '#4ae8a0');
-  } catch(e) {
-    showToast('Nicht gespeichert: ' + e.message, '#e84a4a');
-    await loadAssignmentStatuses();
-  }
-  renderTable();
+export function confirmMySlot(dateStr, posId) {
+  if (queueCrewChange(dateStr, posId, 'confirmed')) showToast('Vorgemerkt: bestätigt – bitte speichern', '#4ae8a0');
 }
 
-export async function declineMySlot(dateStr, posId) {
-  try {
-    await declineAssignment(dateStr, posId);
-    showToast('Abgelehnt', '#e84a4a');
-  } catch(e) {
-    showToast('Nicht gespeichert: ' + e.message, '#e84a4a');
-    await loadAssignmentStatuses();
-  }
-  renderTable();
+export function declineMySlot(dateStr, posId) {
+  // Vormerkung sagt die Crew mit eigenem Status ab (v1.4.0), alles andere mit „declined".
+  const to = _currentStatus(dateStr, posId) === 'pencilled' ? 'pencil_declined' : 'declined';
+  if (queueCrewChange(dateStr, posId, to)) showToast('Vorgemerkt: abgesagt – bitte speichern', '#e8c84a');
 }
 
-export async function restoreMyPencil(dateStr, posId) {
-  try {
-    await restorePencilled(dateStr, posId);
-    showToast('Wieder vorgemerkt ↩', '#4ae8a0');
-  } catch(e) {
-    showToast('Nicht gespeichert: ' + e.message, '#e84a4a');
-    await loadAssignmentStatuses();
-  }
-  renderTable();
+export function restoreMyPencil(dateStr, posId) {
+  if (queueCrewChange(dateStr, posId, 'pencilled')) showToast('Wieder vorgemerkt ↩ – bitte speichern', '#4ae8a0');
   if (document.getElementById('sharedModal')?.classList?.contains('open')) openMyScheduleModal();
 }
 
@@ -556,47 +657,31 @@ export async function declineAllMyPencilled() {
   if (!slots.length) return;
   const ok = await showConfirm('Alle ' + slots.length + ' Vormerkungen absagen?', 'Absagen');
   if (!ok) return;
-  let fehler = 0;
-  for (const { date, posId } of slots) {
-    try { await declineAssignment(date, posId); } catch(e) { fehler++; }
-  }
-  if (fehler) { showToast(fehler + ' Absage(n) nicht gespeichert', '#e84a4a'); await loadAssignmentStatuses(); }
-  else showToast('Vormerkungen abgesagt', '#e84a4a');
-  renderTable();
+  let d = getCrewDraft();
+  slots.forEach(({ date, posId }) => {
+    d = setChange(d, { date, posId, from: _currentStatus(date, posId), to: 'pencil_declined' });
+  });
+  _setDraft(d);
+  showToast('Vorgemerkt: Vormerkungen abgesagt – bitte speichern', '#e8c84a');
   openMyScheduleModal();
 }
 
 // ── Bereitschaftsmeldung Draft ────────────────────────────────────────────────
-export const _meldungDraft = {}; // { 'YYYY-MM-DD': Set<posId> } — in-memory only
-
 export const _getMeldungSent = () => {
   try { return JSON.parse(localStorage.getItem('crewplan_meldungen_'+(getActivePlanId()||'')) || '{}'); } catch(_) { return {}; }
 };
 const _saveMeldungSent = d => localStorage.setItem('crewplan_meldungen_'+(getActivePlanId()||''), JSON.stringify(d));
 
-function _meldungCount() {
-  return Object.values(_meldungDraft).reduce((s, set) => s + set.size, 0);
-}
-
-export function _updateMeldungBar() {
-  const bar = document.getElementById('meldungSubmitBar');
-  if (!bar) return;
-  const n = _meldungCount();
-  bar.style.display = (!IS_MANAGER && n > 0) ? 'block' : 'none';
-  const cnt = document.getElementById('meldungCount');
-  if (cnt) cnt.textContent = n;
+// Bereitschaft („📋 Bewerben") steht im selben Entwurf wie alle anderen Crew-Änderungen
+// (v1.5.0): erneutes Tippen nimmt sie zurück, gesendet wird mit „Änderungen speichern".
+export function isAvailabilityDrafted(date, posId) {
+  return getCrewDraft().availability.some(a => a.date === date && a.posId === posId);
 }
 
 export function meinesMelden(dateStr, posId) {
   if (!getMyCrewName()) { showToast('Dein Konto ist noch nicht verknüpft. Bitte Admin kontaktieren.', '#e84a4a'); return; }
-  if (!_meldungDraft[dateStr]) _meldungDraft[dateStr] = new Set();
-  if (_meldungDraft[dateStr].has(posId)) {
-    _meldungDraft[dateStr].delete(posId);
-    if (!_meldungDraft[dateStr].size) delete _meldungDraft[dateStr];
-  } else {
-    _meldungDraft[dateStr].add(posId);
-  }
-  renderTable();
+  if (!_istCrew()) return;
+  _setDraft(toggleAvailability(getCrewDraft(), { date: dateStr, posId }));
 }
 
 // ── Plan-Änderungs-Queue (Admin → Crew re-bestätigen) ─────────────────────────
@@ -1289,31 +1374,4 @@ export async function _sendPendingUpdates() {
   } catch(e) {
     showToast('Fehler: ' + e.message, '#e84a4a');
   }
-}
-
-export async function _submitMeldung() {
-  const myName = getMyCrewName();
-  if (!myName) return;
-  const meta = crewMeta[myName] || {};
-  const sent = _getMeldungSent();
-  const slots = [];
-  Object.entries(_meldungDraft).sort().forEach(([date, posSet]) => {
-    posSet.forEach(posId => {
-      const pos = POSITIONS.find(p => p.id === posId);
-      slots.push({ date, posLabel: pos?.label || posId });
-      if (!sent[date]) sent[date] = [];
-      if (!sent[date].includes(posId)) sent[date].push(posId);
-    });
-  });
-  if (!slots.length) return;
-  showToast('Wird gesendet…', '#e8c84a');
-  try {
-    await sendAvailabilityNotice(myName, meta.email, slots);
-    _saveMeldungSent(sent);
-    Object.keys(_meldungDraft).forEach(k => delete _meldungDraft[k]);
-    showToast('Bereitschaft gemeldet ✓', '#4ae8a0');
-  } catch(e) {
-    showToast('Fehler: ' + e.message, '#e84a4a');
-  }
-  renderTable();
 }

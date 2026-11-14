@@ -93,14 +93,14 @@ test('Hook liefert der Crew die EIGENEN entfallenen Einsätze', () => {
 
 test('das Crew-Popup öffnet auch bei ausschließlich entfallenen Tagen', () => {
   const fn = (userView.match(/export function checkAndOpenMySchedule\([\s\S]*?\n}/) || [''])[0];
-  ok(/meineEntfallenen\.length/.test(fn),
+  ok(/_offeneEntfallene\(\)\.length/.test(fn),   // v1.5.0: Entwurfs-bereinigte Liste statt meineEntfallenen.length
      'öffnet nur bei offenen Slots — ein entfallener Tag wäre dann nirgends zu sehen');
 });
 
 test('das Crew-Popup zeigt die entfallenen Tage samt Quittung', () => {
   ok(/_ackMeineEntfallenen/.test(userView), 'kein „Gesehen"-Weg im Popup');
-  ok(/ackCancelledAssignments/.test(userView),
-     'die Quittung läuft nicht über den geprüften Weg (Server prüft dort die Adresse)');
+  // v1.5.0: Quittung geht als 'cancel_acked' in den Entwurf; /crewsave prüft serverseitig Adresse + Übergang.
+  ok(/'cancel_acked'/.test(userView), 'die Quittung geht nicht in den Entwurf');
 });
 
 // ── Jedes Dialogfenster muss sich begrenzen ──────────────────────────────────────────

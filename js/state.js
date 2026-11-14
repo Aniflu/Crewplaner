@@ -31,8 +31,6 @@ export let assignmentStatuses = {};  // { "2026-07-01": { "gl": { status, propos
 // plan_data mehr, sie haben also keinen Platz in der Tabellen-Sicht.
 export const meineEntfallenen = [];
 
-// Crew-Absagen-Queue (shared zwischen userView.js und render.js)
-export const pendingCancellations = new Set();
 
 // ── Role-Based Access Control ──────────────────────────────────────────
 export let USER_ROLE     = 'crew';   // superadmin | manager | booker | crew
