@@ -2,6 +2,7 @@
 // Echte Datenformen (crewMeta, assignmentStatuses, entfallen mit aid), fetch gemockt; nichts
 // geht einzeln an assignments. Der Manager-Pfad schreibt weiter direkt.
 import { test, eq, ok } from './_assert.mjs';
+import { clearDraft } from '../js/crewDraft.js';
 import { loadGraph, resetState } from './_graph.mjs';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -42,7 +43,7 @@ function setup(g, statuses) {
   g.state.setAuthState('uid-crew', 'crew@example.com', 'crew');
   globalThis.localStorage.setItem('pb_token', 't');
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
-  globalThis.localStorage.removeItem(KEY);
+  clearDraft('PLAN1');   // Speicher + Arbeitsspeicher
   g.dataService._setCrewLoadedPlanId('PLAN1');
   g.state.crewMeta[ME] = { email: 'crew@example.com', userId: 'uid-crew' };
   g.state.POSITIONS.push({ id: 'gl', label: 'Gruppenleitung' }, { id: 'fa', label: 'Fahrer' });
@@ -280,4 +281,36 @@ test('Leiste: index.html hat #crewSaveBar mit Speichern/Verwerfen, die alten Lei
   const mq = css.slice(css.lastIndexOf('@media (max-width:768px)'));
   ok(/#crewSaveBar/.test(mq), 'kein Handy-Layout für die Leiste');
   ok(/window\.saveMyChanges\s*=/.test(app) && /window\.discardMyChanges\s*=/.test(app), 'window-Bindung fehlt');
+});
+
+test('Speichern entfernt nur gesendete Einträge: Klick während der Anfrage bleibt', async () => {
+  const g = await loadGraph(); if (!g) return 'SKIP';
+  setup(g, { '2026-07-01|gl': 'proposed', '2026-07-02|gl': 'proposed' });
+  let freigabe; const warten = new Promise(r => { freigabe = r; });
+  mock({ crewsave: async () => { await warten; return res({ ok: true, saved: 1 }); } });
+  const dom = captureDom();
+  try {
+    g.userView.confirmMySlot('2026-07-01', 'gl');
+    const lauf = g.userView.saveMyChanges();
+    await flush();
+    g.userView.confirmMySlot('2026-07-02', 'gl');   // Klick MITTEN in der Anfrage
+    freigabe(); await lauf;
+    const d = draftNow();
+    eq(d.changes.length, 1, 'nur der neue Klick bleibt');
+    eq(d.changes[0].date, '2026-07-02');
+  } finally { dom.restore(); }
+});
+
+test('Slot-Modal escaped Position und Ort', async () => {
+  const g = await loadGraph(); if (!g) return 'SKIP';
+  setup(g, { '2026-07-01|gl': 'proposed' });
+  g.state.POSITIONS[0].label = '<img src=x onerror=1>';
+  g.state.TOUR_DATES[0].loc = '<b>Ort</b>';
+  mock(); const dom = captureDom();
+  try {
+    g.userView.openSlotConfirmModal('2026-07-01', 'gl');
+    const h = dom.els.sharedBody.innerHTML;
+    ok(!h.includes('<img') && !h.includes('<b>Ort'), h);
+    ok(h.includes('&lt;img'), 'nicht escaped: ' + h);
+  } finally { dom.restore(); }
 });

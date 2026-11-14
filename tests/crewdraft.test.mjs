@@ -100,3 +100,18 @@ test('saveCrewChanges: ein POST mit Body-Form; 409 wirft mit body.stale', async 
   try { await g.dataService.saveCrewChanges('PLAN1', draft); } catch (x) { e = x; }
   ok(e && e.status === 500 && e.body === null, 'nicht lesbarer Körper → null');
 });
+
+// Arbeitsspeicher-Fallback (Spec: Speicher UND Arbeitsspeicher): blockiertes localStorage darf Klicks nicht verschlucken.
+test('Entwurf überlebt blockiertes localStorage (Arbeitsspeicher-Fallback)', () => {
+  const orig = globalThis.localStorage;
+  const wirft = () => { throw new Error('blockiert'); };
+  globalThis.localStorage = { getItem: wirft, setItem: wirft, removeItem: wirft };
+  try {
+    const d = D.setChange(leer(), { ...A, from: 'proposed', to: 'confirmed' });
+    D.saveDraft('PX', d);
+    const l = D.loadDraft('PX');
+    eq(l.changes.length, 1); eq(l.changes[0].to, 'confirmed');
+    D.clearDraft('PX');
+    eq(D.draftCount(D.loadDraft('PX')), 0, 'clearDraft leert auch den Arbeitsspeicher');
+  } finally { globalThis.localStorage = orig; }
+});

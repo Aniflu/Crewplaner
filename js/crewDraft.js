@@ -13,21 +13,28 @@ function _kopie(d) {
   };
 }
 
+// Arbeitsspeicher-Kopie je Plan: greift, wenn localStorage blockiert oder leer ist
+// (Privatmodus, gesperrte Website-Daten) — sonst ginge ein Klick der Crew still verloren.
+const _mem = new Map();
+
 export function loadDraft(pbPlanId) {
+  let raw = null;
+  try { raw = localStorage.getItem(draftKey(pbPlanId)); } catch (e) { raw = null; /* blockiert → Arbeitsspeicher */ }
+  if (!raw) return _mem.has(pbPlanId) ? _kopie(_mem.get(pbPlanId)) : _leer();
   try {
-    const raw = localStorage.getItem(draftKey(pbPlanId));
-    if (!raw) return _leer();
     const d = JSON.parse(raw);
     if (!d || !Array.isArray(d.changes) || !Array.isArray(d.availability)) return _leer();
     return _kopie(d);
-  } catch (e) { return _leer(); }
+  } catch (e) { return _leer(); }   // vorhandene, aber kaputte Daten → leer (nicht still ersetzen)
 }
 
 export function saveDraft(pbPlanId, draft) {
-  try { localStorage.setItem(draftKey(pbPlanId), JSON.stringify(draft)); } catch (e) { /* ohne Speicher: nur im Arbeitsspeicher */ }
+  _mem.set(pbPlanId, _kopie(draft));
+  try { localStorage.setItem(draftKey(pbPlanId), JSON.stringify(draft)); } catch (e) { /* nur im Arbeitsspeicher */ }
 }
 
 export function clearDraft(pbPlanId) {
+  _mem.delete(pbPlanId);
   try { localStorage.removeItem(draftKey(pbPlanId)); } catch (e) { /* nichts zu tun */ }
 }
 

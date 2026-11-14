@@ -104,7 +104,12 @@ export async function saveMyChanges() {
       if (!sent[a.date].includes(a.posId)) sent[a.date].push(a.posId);
     });
     try { _saveMeldungSent(sent); } catch (_) { /* nur Anzeige „Gemeldet" */ }
-    clearDraft(pb);
+    // Nur die GESENDETEN Einträge entfernen (unverändert gesendet): Klicks während der Anfrage bleiben.
+    const jetzt = getCrewDraft();
+    const gesendet = jetzt.changes.filter(c => draft.changes.some(x => x.date === c.date && x.posId === c.posId && x.from === c.from && x.to === c.to))
+      .concat(jetzt.availability.filter(a => draft.availability.some(x => x.date === a.date && x.posId === a.posId)));
+    const rest = removeEntries(jetzt, gesendet);
+    if (draftCount(rest)) saveDraft(pb, rest); else clearDraft(pb);
     await loadAssignmentStatuses();
     renderTable();
     showToast('Gespeichert – der Planer bekommt eine Mail ✓', '#4ae8a0');
@@ -520,7 +525,7 @@ function _renderMySchedule(myName) {
         <div style="font-size:.68rem;color:var(--ink);font-weight:600;">${dateStr}
           <span style="color:#5a6070;font-weight:400;margin-left:6px;">${typeLabel}</span>
         </div>
-        <div style="font-size:.6rem;color:var(--muted);margin-top:2px;">${posLabel}${location ? ' · ' + location : ''}</div>
+        <div style="font-size:.6rem;color:var(--muted);margin-top:2px;">${esc(posLabel)}${location ? ' · ' + esc(location) : ''}</div>
         ${changedBadge}
       </div>
       <span class="slot-avail-label" style="font-size:.58rem;color:#4ae8a0;">Verfügbar</span>
@@ -612,7 +617,7 @@ export function openSlotConfirmModal(dateStr, posId) {
   }
   document.getElementById('sharedBody').innerHTML = `
     <div style="font-size:.68rem;color:var(--ink);margin-bottom:16px;line-height:1.7;">
-      <strong>${dateLabel}</strong> · ${posLabel}${loc ? ' · ' + loc : ''}
+      <strong>${dateLabel}</strong> · ${esc(posLabel)}${loc ? ' · ' + esc(loc) : ''}
     </div>
     ${hinweisHTML}
     <div class="mactions">

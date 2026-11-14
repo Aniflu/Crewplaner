@@ -1,6 +1,7 @@
 // v1.4.0: Crew-Seite der Vormerkung — Info-Popup, Absagen, Zurücknehmen, „Alle absagen".
 import { test, eq, ok } from './_assert.mjs';
 import { loadGraph, resetState } from './_graph.mjs';
+import { clearDraft } from '../js/crewDraft.js';
 
 function res(body, status = 200){ return { status, ok: status < 400, json: async () => body }; }
 const ME = 'Marco Hoch';
@@ -13,7 +14,7 @@ function setup(g, statuses){
   globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
   globalThis.localStorage.removeItem('crew_pencil_seen_PLAN1');
   globalThis.localStorage.removeItem('crew_pencil_seen_PLAN2');
-  globalThis.localStorage.removeItem('tourplan_crew_draft_PLAN1');   // v1.5.0: Entwurf je Test frisch
+  clearDraft('PLAN1');   // v1.5.0: Entwurf je Test frisch (Speicher + Arbeitsspeicher)
   if (g.dataService._setCrewLoadedPlanId) g.dataService._setCrewLoadedPlanId('PLAN1');
   g.state.crewMeta[ME] = { email: 'crew@example.com', userId: 'uid-crew' };
   g.state.POSITIONS.push({ id: 'gl', label: 'Gruppenleitung' }, { id: 'fa', label: 'Fahrer' });
