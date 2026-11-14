@@ -25,13 +25,21 @@ const rumpf = (() => {
   return hook.slice(von + kopf.length, bis);
 })();
 
+// v4.30: Die Mail-Regel mailListe/MAIL_LISTE_MAX steht handler-lokal oberhalb der Zweige.
+const liste = (() => {
+  const von = hook.indexOf('var MAIL_LISTE_MAX');
+  const bis = hook.indexOf('// Optionaler Freitext des Admins', von);
+  ok(von >= 0 && bis > von, 'mailListe im Hook nicht gefunden');
+  return hook.slice(von, bis);
+})();
+
 // Attrappen für alles, was der Zweig aus dem Hook-Umfeld benutzt.
 function baue(slots) {
   let gesendet = null;
   const fn = new Function(
     'appUrl', 'email', 'plan', 'ePlan', 'eName', 'customMsg',
     'esc', 'fmtISO', 'noteBlock', 'mkBtn', 'wrap', 'sendMail', 'console',
-    rumpf
+    liste + rumpf
   );
   fn(
     JSON.stringify(slots), 'crew@example.com', 'Sommertour', 'Sommertour', 'Wolf', '',
@@ -58,32 +66,34 @@ test('Update-Mail baut fehlerfrei — alle vier Arten gemischt', () => {
   ok(/ÄNDERUNG/.test(m.subject), 'Betreff passt nicht: ' + m.subject);
 });
 
-test('Update-Mail nennt Anzahl und Art, aber KEINE Datumsangaben', () => {
+test('Update-Mail nennt Anzahl und Art, aber KEINE Datumsangaben (ab 6 Einträgen)', () => {
   // Der Kern der Änderung: Bei 20 entfallenen Tagen soll die Mail nicht 20 Zeilen lang sein.
+  // v4.30: Zählung „➖ 20 entfernt" plus Satz der Regel; bis 5 Einträge eine kleine Tabelle.
   const weg = [];
   for (let i = 1; i <= 20; i++) weg.push(WEG('2026-09-' + String(i).padStart(2, '0'), 'a' + i));
   const m = baue(weg);
-  ok(/20 Termine sind entfallen/.test(m.html), 'die Anzahl fehlt: ' + m.html.slice(0, 300));
+  ok(/➖ 20 entfernt/.test(m.html), 'die Anzahl fehlt: ' + m.html.slice(0, 300));
+  ok(/mehr als 5 Einträge/.test(m.html), 'der Satz der Regel fehlt');
   ok(!/2026-09-0/.test(m.html), 'es stehen doch Datumsangaben in der Mail');
-  ok(m.html.length < 3000, 'die Mail ist immer noch lang: ' + m.html.length + ' Zeichen');
+  ok(m.html.length < 3500, 'die Mail ist immer noch lang: ' + m.html.length + ' Zeichen');
 });
 
-test('Update-Mail: Einzahl wird richtig gebildet', () => {
-  // „1 Termine sind entfallen" wäre schlampig und fällt jedem Leser auf.
+test('Update-Mail: bis 5 Einträge eine Tabelle mit Art', () => {
   const m = baue([WEG('2026-09-03', 'a1')]);
-  ok(/Ein Termin ist entfallen/.test(m.html), 'Einzahl stimmt nicht: ' + m.html.slice(0, 400));
+  ok(/entfernt/.test(m.html) && /2026-09-03/.test(m.html), 'Tabelle mit Datum und Art fehlt: ' + m.html.slice(0, 400));
 });
 
-test('Update-Mail: die Quittung trägt ALLE aids', () => {
-  // Fehlt eine, bleibt diese Absage dauerhaft unbestätigt — und niemand merkt es.
+test('Update-Mail: keine Quittung per Link (v4.30), auch bei entfallenen Terminen', () => {
+  // GESEHEN/ackcancel ist weg — nichts in der Mail schreibt.
   const m = baue([WEG('2026-09-03', 'a1'), WEG('2026-09-04', 'a2'), WEG('2026-09-05', 'a3')]);
-  ok(/action=ackcancel&aids=a1,a2,a3/.test(m.html), 'aids unvollständig: ' + m.html);
+  ok(!/ackcancel|action=/.test(m.html), 'Quittungs-Link steht noch in der Mail: ' + m.html);
 });
 
-test('Update-Mail: ohne entfallene Termine kein Quittungs-Knopf', () => {
+test('Update-Mail: neue Termine → Hinweis auf die App, kein Bestätigen-Knopf', () => {
   const m = baue([NEU('2026-09-01')]);
-  ok(!/ackcancel/.test(m.html), 'Quittung erscheint, obwohl nichts entfallen ist');
-  ok(/TERMINE BEST/.test(m.html), 'der Bestätigen-Knopf fehlt');
+  ok(!/ackcancel/.test(m.html), 'Quittung erscheint');
+  ok(!/TERMINE BEST/.test(m.html), 'Bestätigen-Knopf in der Mail (v4.30: entfernt)');
+  ok(/in der App bestätigen/.test(m.html), 'Hinweis auf die App fehlt');
 });
 
 test('Update-Mail: Statuswechsel bekommen KEINEN Aktions-Knopf', () => {

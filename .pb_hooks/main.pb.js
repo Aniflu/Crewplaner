@@ -35,12 +35,29 @@ onRecordAfterCreateSuccess(function(e) {
     return p[2] + '.' + p[1] + '.' + p[0];
   };
 
+  // v4.30: email_log-Zeile auch ohne RESEND_KEY (success = 'skipped'), damit die Abnahme auf Test
+  // die Auslösung der Mail messen kann. Ein Log-Fehler bricht den Versand nie ab.
+  var logMail = function(success) {
+    try {
+      var _logCol = $app.findCollectionByNameOrId('email_log');
+      var _logRec = new Record(_logCol);
+      _logRec.set('plan_id',    r.get('plan_id') || '');
+      _logRec.set('crew_name',  name);
+      _logRec.set('crew_email', email);
+      _logRec.set('email_type', type);
+      _logRec.set('sent_at',    new Date().toISOString());
+      _logRec.set('success',    success);
+      $app.save(_logRec);
+      console.log('[mail] email_log gespeichert · ' + type + ' · ' + success);
+    } catch (logErr) { console.error('[mail] email_log Fehler:', logErr.message || String(logErr)); }
+  };
+
   var sendMail = function(to, subject, html) {
     try {
       var _key  = $os.getenv('RESEND_KEY');
       // Test-Umgebung ohne RESEND_KEY (v0.31.0): Mailversand bewusst aus → still überspringen,
       // kein sinnloser 401-Call an Resend. Live hat den Key → unverändertes Verhalten.
-      if (!_key) { console.log('[mail] kein RESEND_KEY — Mailversand übersprungen (Test-Umgebung)'); return; }
+      if (!_key) { console.log('[mail] kein RESEND_KEY — Mailversand übersprungen (Test-Umgebung)'); logMail('skipped'); return; }
       var _from = 'Tour Crew Plan <noreply@crewplanner.nyxlightwork.de>';
       var res = $http.send({
         url: 'https://api.resend.com/emails', method: 'POST',
@@ -50,18 +67,7 @@ onRecordAfterCreateSuccess(function(e) {
       var _success = res.statusCode < 400;
       if (!_success) { console.error('[mail] Resend Fehler ' + res.statusCode + ':', res.raw); }
       else { console.log('[mail] Gesendet an ' + to + ' · ' + subject); }
-      try {
-        var _logCol = $app.findCollectionByNameOrId('email_log');
-        var _logRec = new Record(_logCol);
-        _logRec.set('plan_id',    r.get('plan_id') || '');
-        _logRec.set('crew_name',  name);
-        _logRec.set('crew_email', email);
-        _logRec.set('email_type', type);
-        _logRec.set('sent_at',    new Date().toISOString());
-        _logRec.set('success',    _success ? 'true' : 'false');
-        $app.save(_logRec);
-        console.log('[mail] email_log gespeichert · ' + type);
-      } catch (logErr) { console.error('[mail] email_log Fehler:', logErr.message || String(logErr)); }
+      logMail(_success ? 'true' : 'false');
     } catch (err) { console.error('[mail] Fehler:', err.message || String(err)); }
   };
 
@@ -86,6 +92,40 @@ onRecordAfterCreateSuccess(function(e) {
 
   var _crewGuide = 'https://crewplanner.nyxlightwork.de/docs/guide-crew.html';
 
+  // v4.30: Mail-Regel „Liste oder Zählung". Bis MAIL_LISTE_MAX Einträge eine Tabelle, darüber nur
+  // eine Zählung je Gruppe plus der Satz der Regel (keine Einzeldaten — die Mail veraltet, der
+  // verlässliche Ort ist die App). Handler-lokal: jeder Handler läuft in Goja isoliert.
+  //   rows         Array der Einträge
+  //   spalten      [{kopf: 'DATUM', wert: function(row) → HTML}]
+  //   gruppeVon    function(row) → Schlüssel in gruppenText
+  //   gruppenText  {schlüssel: {sym: '✎', text: 'vorgemerkt'}} — Reihenfolge = Anzeigereihenfolge
+  var MAIL_LISTE_MAX = 5;
+  var mailListe = function(rows, spalten, gruppeVon, gruppenText) {
+    var th = 'padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;';
+    var td = 'padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;';
+    var i, j;
+    if (rows.length <= MAIL_LISTE_MAX) {
+      var out = '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;"><tr style="background:#f8f9fb;">';
+      for (j = 0; j < spalten.length; j++) out += '<td style="' + th + '">' + spalten[j].kopf + '</td>';
+      out += '</tr>';
+      for (i = 0; i < rows.length; i++) {
+        out += '<tr>';
+        for (j = 0; j < spalten.length; j++) out += '<td style="' + td + (j === 0 ? 'color:#1a1a2e;font-weight:bold;' : '') + '">' + spalten[j].wert(rows[i]) + '</td>';
+        out += '</tr>';
+      }
+      return out + '</table>';
+    }
+    var zaehl = {};
+    for (i = 0; i < rows.length; i++) { var gk = gruppeVon(rows[i]); zaehl[gk] = (zaehl[gk] || 0) + 1; }
+    var blk = '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">';
+    for (var key in gruppenText) {
+      if (!zaehl[key]) continue;
+      blk += '<tr><td style="' + td + 'color:#1a1a2e;font-weight:bold;">' + gruppenText[key].sym + ' ' + zaehl[key] + ' ' + gruppenText[key].text + '</td></tr>';
+    }
+    return blk + '</table>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 16px 0;">Es gibt mehr als ' + MAIL_LISTE_MAX + ' Einträge. Bitte logg dich ein und schau nach.</p>';
+  };
+
   // Optionaler Freitext des Admins (Feld custom_message auf crew_invites) als Notiz-Block
   var noteBlock = function(msg) {
     if (!msg) return '';
@@ -103,28 +143,41 @@ onRecordAfterCreateSuccess(function(e) {
     var invSlots = [];
     if (appUrl && appUrl.charAt(0) === '[') { try { invSlots = JSON.parse(appUrl); } catch (_) { invSlots = []; } }
     var invBtnUrl = (invSlots && invSlots.length) ? 'https://crewplanner.nyxlightwork.de' : appUrl;
-    var invTable = '';
+    // v4.30: Einladung mit Status je Termin. `status` fehlt bei älteren Aufrufern → proposed.
+    // Mail-Regel: bis 5 Termine Tabelle, darüber nur die Zählung je Status. Keine Schreib-Knöpfe:
+    // bestätigt/abgesagt wird ausschließlich in der App.
+    var invText = {
+      pencilled: 'Vorgemerkt – nur Info, halte dir den Tag frei',
+      proposed: 'Angefragt – bitte bestätigen',
+      confirmed: 'Bestätigt',
+      declined: 'Abgesagt',
+      pencil_declined: 'Abgesagt'
+    };
+    var invStatus = function(sl) { return (sl && invText[sl.status]) ? sl.status : 'proposed'; };
+    var invGruppe = function(sl) { var st = invStatus(sl); return st === 'pencil_declined' ? 'declined' : st; };
+    var invTable = '', invAnfrage = false;
     if (invSlots && invSlots.length) {
-      var invRows = '';
-      for (var iv = 0; iv < invSlots.length; iv++) {
-        var isv = invSlots[iv];
-        invRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + fmtISO(isv.date) + '</td>' +
-          '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">' + esc(isv.posLabel) + '</td></tr>';
-      }
-      invTable =
-        '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
-        '<tr style="background:#f8f9fb;"><td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td>' +
-        '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td></tr>' +
-        invRows + '</table>';
+      for (var ia = 0; ia < invSlots.length; ia++) { if (invStatus(invSlots[ia]) === 'proposed') invAnfrage = true; }
+      invTable = mailListe(invSlots, [
+        { kopf: 'DATUM',    wert: function(sl) { return fmtISO(sl.date); } },
+        { kopf: 'POSITION', wert: function(sl) { return esc(sl.posLabel); } },
+        { kopf: 'STATUS',   wert: function(sl) { return esc(invText[invStatus(sl)]); } }
+      ], invGruppe, {
+        pencilled: { sym: '✎', text: 'vorgemerkt' },
+        proposed:  { sym: '⏳', text: 'angefragt' },
+        confirmed: { sym: '✅', text: 'bestätigt' },
+        declined:  { sym: '✗', text: 'abgesagt' }
+      });
     }
     sendMail(email, 'CREW INVITE · ' + plan, wrap(
       '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Du bist dabei.</h1>' +
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">CREW INVITE · ' + ePlan + '</p>' +
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey ' + eName + ',<br><br>du wurdest f&uuml;r <strong style="color:#1a1a2e;">' + ePlan + '</strong> eingeladen.' +
-      (invTable ? ' Bitte best&auml;tige deine Eins&auml;tze:' : '') + '</p>' +
+      (invTable ? ' Hier ist dein Stand:' : '') + '</p>' +
       invTable +
+      (invAnfrage ? '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 16px 0;">Bitte in der App bestätigen oder absagen.</p>' : '') +
       noteBlock(customMsg) +
-      mkBtn(invBtnUrl, 'EINS&Auml;TZE BEST&Auml;TIGEN &rarr;') +
+      mkBtn(invBtnUrl, 'APP &Ouml;FFNEN &rarr;') +
       mkBtn(_crewGuide, 'ANLEITUNG &rarr;', '#f8f9fb', '#555570')
     ));
   } else if (type === 'reminder') {
@@ -139,35 +192,30 @@ onRecordAfterCreateSuccess(function(e) {
     var slots = [];
     // app_url field is intentionally reused to transport JSON slot data for cancellation mails
     try { slots = JSON.parse(appUrl || '[]'); } catch (_) {}
-    var rowsHtml = '';
-    for (var i = 0; i < slots.length; i++) {
-      var s = slots[i];
-      var fd2 = fmtISO(s.date);
-      rowsHtml += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + esc(s.posLabel) + '</td>' +
-        '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">' + fd2 + '</td></tr>';
-    }
+    if (!Array.isArray(slots)) slots = [];
+    // v4.30: Mail-Regel „Liste oder Zählung" (bis 5 Tabelle, darüber nur Zählung)
+    var rowsHtml = mailListe(slots, [
+      { kopf: 'POSITION', wert: function(sl) { return esc(sl && sl.posLabel); } },
+      { kopf: 'DATUM',    wert: function(sl) { return fmtISO(sl && sl.date); } }
+    ], function() { return 'a'; }, { a: { sym: '✗', text: 'Absagen' } });
     sendMail(email, 'PLAN UPDATE · ' + plan, wrap(
       '<h1 style="font-size:36px;font-weight:bold;color:#e84a4a;margin:0 0 6px 0;">Plan ge&auml;ndert.</h1>' +
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">PLAN UPDATE · ' + ePlan + '</p>' +
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey ' + eName + ',<br><br>folgende Eins&auml;tze wurden aus deinem Plan entfernt:</p>' +
       noteBlock(customMsg) +
-      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
-      '<tr style="background:#f8f9fb;"><td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td>' +
-      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td></tr>' +
-      rowsHtml + '</table>' +
+      rowsHtml +
       mkBtn('https://crewplanner.nyxlightwork.de', 'APP &Ouml;FFNEN &rarr;', '#f8f9fb', '#555570')
     ));
     console.log('[hook] cancellation email sent to ' + email + ' (' + slots.length + ' slots)');
   } else if (type === 'availability') {
     var avSlots = [];
     try { avSlots = JSON.parse(appUrl || '[]'); } catch (_) {}
-    var avRows = '';
-    for (var i = 0; i < avSlots.length; i++) {
-      var s = avSlots[i];
-      var fdv = fmtISO(s.date);
-      avRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">'+esc(s.posLabel)+'</td>'+
-        '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">'+fdv+'</td></tr>';
-    }
+    if (!Array.isArray(avSlots)) avSlots = [];
+    // v4.30: Mail-Regel „Liste oder Zählung" (bis 5 Tabelle, darüber nur Zählung)
+    var avRows = mailListe(avSlots, [
+      { kopf: 'POSITION', wert: function(sl) { return esc(sl && sl.posLabel); } },
+      { kopf: 'DATUM',    wert: function(sl) { return fmtISO(sl && sl.date); } }
+    ], function() { return 'a'; }, { a: { sym: '📋', text: 'Termine' } });
     // v0.8.0: Die Adresse stand hier fest verdrahtet — und die Hook-Datei wird über
     // crewplanner.nyxlightwork.de/.pb_hooks/main.pb.js öffentlich ausgeliefert. Zusammen mit
     // dem fehlenden Rate-Limiting am Login war das ein benanntes Angriffsziel. Jetzt kommt sie
@@ -182,10 +230,7 @@ onRecordAfterCreateSuccess(function(e) {
       '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Bereit.</h1>'+
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">BEREITSCHAFTSMELDUNG · '+ePlan+'</p>'+
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">'+eName+' ist verfügbar für:</p>'+
-      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">'+
-      '<tr style="background:#f8f9fb;"><td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td>'+
-      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td></tr>'+
-      avRows+'</table>'+
+      avRows+
       mkBtn('https://crewplanner.nyxlightwork.de', 'PLAN ÖFFNEN →', '#f8f9fb', '#555570')
     ));
     console.log('[hook] availability email sent to admin for '+name+' ('+avSlots.length+' slots)');
@@ -196,58 +241,52 @@ onRecordAfterCreateSuccess(function(e) {
     // v4.12: 'status' = Statuswechsel bestätigt ⇄ vorgemerkt (Termin bleibt, nur die
     // Verbindlichkeit ändert sich). Alles andere (auch ohne kind, rückwärtskompatibel)
     // = neue/geänderte Termine.
-    var upNew = [], upRem = [], upPen = [], upCnf = [], ackIds = [];
+    var upNew = [], upRem = [], upPen = [], upCnf = [];
     for (var i = 0; i < upSlots.length; i++) {
       if (!upSlots[i]) continue;
       if (upSlots[i].kind === 'removed') {
         upRem.push(upSlots[i]);
-        if (upSlots[i].aid) ackIds.push(upSlots[i].aid);
       } else if (upSlots[i].kind === 'status') {
         if (upSlots[i].to === 'confirmed') upCnf.push(upSlots[i]);
         else upPen.push(upSlots[i]);
       } else { upNew.push(upSlots[i]); }
     }
-    // v4.21: KEINE Terminlisten mehr. Vorher stand hier je Art eine Tabelle mit allen Daten —
-    // bei einer 60-Tage-Tour wurde die Mail unlesbar lang, und aktuell bleibt sie ohnehin nicht:
-    // Wer sie später öffnet, liest einen Stand von gestern. Der verlässliche Ort ist die App.
-    // Deshalb nur noch: WAS für eine Änderung, plus der Weg dorthin.
-    //
-    // Die Einteilung in die vier Arten bleibt — sie steuert Satz und Knopf. Die `aids` der
-    // entfallenen Termine werden weiter mitgegeben; der Knopf ist die Quittung („GESEHEN").
-    var anz = function (n, ein, viele) { return n === 1 ? ein : n + ' ' + viele; };
+    // v4.30: Mail-Regel „Liste oder Zählung": bis 5 Einträge eine Tabelle (Datum, Position, Art),
+    // darüber nur die Zählung je Art (➕ neu · ➖ entfernt · ↻ geändert) plus der Satz der Regel.
+    // KEINE Schreib-Knöpfe mehr (weder Bestätigen noch Quittieren per Mail-Link): bestätigt wird
+    // ausschließlich in der App. Die Nutzlast in app_url kann schlank sein (ohne date/posLabel);
+    // fehlende Felder erscheinen dann als „–" in der Tabelle.
+    var upArt = { neu: 'neu', entfernt: 'entfernt', geaendert: 'ge&auml;ndert' };
+    var upAlle = [];
+    for (var ua = 0; ua < upSlots.length; ua++) {
+      var usl = upSlots[ua];
+      if (!usl) continue;
+      upAlle.push({ slot: usl, art: usl.kind === 'removed' ? 'entfernt' : (usl.kind === 'status' ? 'geaendert' : 'neu') });
+    }
+    var upListe = mailListe(upAlle, [
+      { kopf: 'DATUM',    wert: function(x) { return x.slot.date ? fmtISO(x.slot.date) : '&ndash;'; } },
+      { kopf: 'POSITION', wert: function(x) { return x.slot.posLabel ? esc(x.slot.posLabel) : '&ndash;'; } },
+      { kopf: 'ART',      wert: function(x) { return upArt[x.art]; } }
+    ], function(x) { return x.art; }, {
+      neu:       { sym: '➕', text: 'neu' },
+      entfernt:  { sym: '➖', text: 'entfernt' },
+      geaendert: { sym: '↻', text: 'geändert' }
+    });
 
     var upBody = '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Es gab &Auml;nderungen.</h1>'+
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">PLAN GE&Auml;NDERT · '+ePlan+'</p>'+
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hallo '+eName+',<br><br>in der Tour <strong style="color:#1a1a2e;">'+ePlan+'</strong> hat sich etwas ge&auml;ndert:</p>'+
-      noteBlock(customMsg);
-
+      noteBlock(customMsg) + upListe;
     if (upNew.length) {
-      upBody += '<p style="font-size:13px;color:#2d6a3f;font-weight:bold;margin:24px 0 8px 0;">&#10133; '+
-        anz(upNew.length, 'Ein neuer Termin', 'neue Termine')+' &mdash; bitte best&auml;tige, dass du Zeit hast.</p>'+
-        mkBtn('https://crewplanner.nyxlightwork.de', 'TERMINE BEST&Auml;TIGEN &rarr;');
+      upBody += '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 16px 0;">Neue Termine bitte in der App bestätigen oder absagen.</p>';
     }
-    if (upRem.length) {
-      upBody += '<p style="font-size:13px;color:#e84a4a;font-weight:bold;margin:24px 0 8px 0;">&#10134; '+
-        anz(upRem.length, 'Ein Termin ist entfallen', 'Termine sind entfallen')+'.</p>';
-      if (ackIds.length) {
-        upBody += mkBtn('https://crewplanner.nyxlightwork.de?action=ackcancel&aids='+ackIds.join(','), '&Auml;NDERUNGEN GESEHEN &#10003;', '#f8f9fb', '#555570');
-      }
-    }
-    // Statuswechsel: Der Termin bleibt bestehen, nur die Verbindlichkeit ändert sich.
-    // Bewusst OHNE Aktions-Button — hier ist nichts zu bestätigen.
+    // Statuswechsel: Der Termin bleibt bestehen, nur die Verbindlichkeit ändert sich — nichts zu tun.
     if (upPen.length) {
-      upBody += '<p style="font-size:13px;color:#7A5FB3;font-weight:bold;margin:24px 0 4px 0;">&#9998; '+
-        anz(upPen.length, 'Ein Termin ist jetzt vorgemerkt', 'Termine sind jetzt vorgemerkt')+'.</p>'+
-        '<p style="font-size:12px;color:#555570;line-height:1.7;margin:0 0 16px 0;">Du musst nichts tun &mdash; vorl&auml;ufig geplant, noch nicht verbindlich. Wir melden uns, sobald es fest wird.</p>';
+      upBody += '<p style="font-size:12px;color:#555570;line-height:1.7;margin:0 0 16px 0;">Bei vorgemerkten Terminen musst du nichts tun &mdash; vorl&auml;ufig geplant, noch nicht verbindlich.</p>';
     }
-    if (upCnf.length) {
-      upBody += '<p style="font-size:13px;color:#2d6a3f;font-weight:bold;margin:24px 0 4px 0;">&#10003; '+
-        anz(upCnf.length, 'Ein Termin ist wieder fest', 'Termine sind wieder fest')+'.</p>';
-    }
-
     upBody += '<p style="font-size:13px;color:#555570;line-height:1.8;margin:28px 0 0 0;border-top:1px solid #e8e8e8;padding-top:20px;">'+
-      'Welche Tage betroffen sind, siehst du nach dem Einloggen &mdash; dort steht immer der aktuelle Stand.</p>'+
-      mkBtn('https://crewplanner.nyxlightwork.de', 'PLAN &Ouml;FFNEN &rarr;', '#f8f9fb', '#555570');
+      'Den aktuellen Stand siehst du nach dem Einloggen in der App.</p>'+
+      mkBtn('https://crewplanner.nyxlightwork.de', 'APP &Ouml;FFNEN &rarr;', '#f8f9fb', '#555570');
     sendMail(email, 'ÄNDERUNG · ' + plan, wrap(upBody));
     console.log('[hook] update email sent to '+email+' ('+upNew.length+' neu, '+upRem.length+' entfernt, '+upPen.length+' vorgemerkt, '+upCnf.length+' bestätigt)');
   } else if (type === 'staff_invite') {
@@ -266,20 +305,16 @@ onRecordAfterCreateSuccess(function(e) {
     var piSlots = [];
     try { piSlots = JSON.parse(appUrl || '[]'); } catch (_) {}
     if (!Array.isArray(piSlots)) piSlots = [];
-    var piRows = '';
-    for (var pi = 0; pi < piSlots.length; pi++) {
-      var ps = piSlots[pi] || {};
-      piRows += '<tr><td style="padding:10px 16px;font-size:13px;color:#1a1a2e;font-weight:bold;border-bottom:1px solid #e8e8e8;">' + esc(ps.posLabel) + '</td>' +
-        '<td style="padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;">' + fmtISO(ps.date) + '</td></tr>';
-    }
+    // v4.30: Mail-Regel „Liste oder Zählung" (bis 5 Tabelle, darüber nur Zählung)
+    var piRows = mailListe(piSlots, [
+      { kopf: 'POSITION', wert: function(sl) { return esc(sl && sl.posLabel); } },
+      { kopf: 'DATUM',    wert: function(sl) { return fmtISO(sl && sl.date); } }
+    ], function() { return 'a'; }, { a: { sym: '✎', text: 'vorgemerkt' } });
     sendMail(email, 'Vormerkung – nur Information · ' + plan, wrap(
       '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Nur zur Information.</h1>' +
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">VORMERKUNG · ' + ePlan + '</p>' +
       '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 4px 0;">Hey ' + eName + ',<br><br>du bist f&uuml;r diese Termine vorgemerkt. Das ist <strong style="color:#1a1a2e;">keine Anfrage</strong>. Halte dir die Tage bitte frei. Ob du wirklich gebraucht wirst, erf&auml;hrst du mit einer Anfrage. Wenn du schon wei&szlig;t, dass du nicht kannst, sag bitte in der App ab.</p>' +
-      '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;">' +
-      '<tr style="background:#f8f9fb;"><td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">POSITION</td>' +
-      '<td style="padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;">DATUM</td></tr>' +
-      piRows + '</table>' +
+      piRows +
       noteBlock(customMsg) +
       mkBtn('https://crewplanner.nyxlightwork.de', 'APP &Ouml;FFNEN &rarr;', '#f8f9fb', '#555570')
     ));
@@ -545,8 +580,7 @@ onRecordAfterUpdateSuccess(function(e) {
     }
 
     var eCrewName2 = esc(crewName);
-    var confirmUrl2 = 'https://crewplanner.nyxlightwork.de?action=confirm&aid=' + aid;
-    var declineUrl2 = 'https://crewplanner.nyxlightwork.de?action=decline&aid=' + aid;
+    // v4.30: keine Schreib-Knöpfe in Mails — bestätigt/abgesagt wird ausschließlich in der App.
 
     sendMail(crewEmail, 'ANFRAGE · ' + posLabel + ' · ' + fdate,
       '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
@@ -564,10 +598,8 @@ onRecordAfterUpdateSuccess(function(e) {
       '<tr><td style="padding:11px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;">DATUM</td>' +
       '<td style="padding:11px 16px;font-size:13px;color:#1a1a2e;">' + fdate + '</td></tr>' +
       '</table>' +
-      '<table cellpadding="0" cellspacing="0"><tr>' +
-      '<td style="padding-right:12px;"><table cellpadding="0" cellspacing="0"><tr><td style="background:#e8c84a;border-radius:2px;"><a href="' + confirmUrl2 + '" style="display:block;padding:13px 24px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#0d0d1a;text-decoration:none;letter-spacing:3px;">✓ BESTÄTIGEN →</a></td></tr></table></td>' +
-      '<td><table cellpadding="0" cellspacing="0"><tr><td style="background:#ffffff;border:1px solid #e8e8e8;border-radius:2px;"><a href="' + declineUrl2 + '" style="display:block;padding:13px 24px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#555570;text-decoration:none;letter-spacing:3px;">✗ ABLEHNEN →</a></td></tr></table></td>' +
-      '</tr></table>' +
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 16px 0;">Bitte in der App bestätigen oder absagen.</p>' +
+      '<table cellpadding="0" cellspacing="0" style="margin:8px 0;"><tr><td style="background:#e8c84a;border-radius:2px;"><a href="https://crewplanner.nyxlightwork.de" style="display:block;padding:13px 28px;font-family:\'Courier New\',Courier,monospace;font-size:11px;font-weight:bold;color:#0d0d1a;text-decoration:none;letter-spacing:3px;">APP &Ouml;FFNEN &rarr;</a></td></tr></table>' +
       '</td></tr>' +
       '<tr><td style="padding:20px 36px;border-top:1px solid #e8e8e8;"><p style="font-size:9px;color:#999999;letter-spacing:2px;margin:0;text-transform:uppercase;">Tour Crew Plan · Nyx Lightwork · https://crewplanner.nyxlightwork.de</p></td></tr>' +
       '</table></td></tr></table></body></html>'
@@ -990,7 +1022,7 @@ routerAdd('GET', '/planstatus/{id}', function(e) {
   //
   // ⚠️ Nur die EIGENEN, per E-Mail gefiltert. Diese Route gibt seit v0.8.1 bewusst keine
   // fremden Kontaktdaten heraus; hier kommt nichts über andere Personen dazu.
-  // `aid` ist die Datensatz-ID für die Quittung (action=ackcancel), nichts Geheimes.
+  // `aid` ist die Datensatz-ID für die Quittung (ackcancel), nichts Geheimes.
   var entfallen = [];
   try {
     var cRows = $app.findRecordsByFilter(

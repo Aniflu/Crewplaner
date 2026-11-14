@@ -67,15 +67,16 @@ const updateZweig = (() => {
 test('Update-Mail zählt keine Termine mehr auf', () => {
   // Bei einer 60-Tage-Tour war die Mail unlesbar lang — und sie veraltet ohnehin: Wer sie
   // später öffnet, liest einen Stand von gestern. Der verlässliche Ort ist die App.
+  // v4.30: Tabelle nur noch über die gemeinsame Regel mailListe (höchstens 5 Einträge, darüber
+  // nur Zählung) — keine eigene Terminliste (upTable) im Zweig.
   ok(!/upTable/.test(updateZweig), 'die Terminliste (upTable) ist zurück');
-  ok(!/DATUM/.test(updateZweig), 'eine Datumstabelle steht wieder in der Mail');
+  ok(/mailListe\(/.test(updateZweig), 'der Zweig nutzt die Mail-Regel mailListe nicht');
 });
 
-test('Update-Mail behält die Aktions-Knöpfe und den Weg in die App', () => {
-  // Der GESEHEN-Knopf trägt die aids und ist die Quittung — ohne ihn bleibt die Absage
-  // dauerhaft unbestätigt.
-  ok(/action=ackcancel/.test(updateZweig), 'die Quittung für entfallene Termine fehlt');
-  ok(/TERMINE BEST/.test(updateZweig), 'der Bestätigen-Knopf für neue Termine fehlt');
+test('Update-Mail: nur noch der Weg in die App, keine Schreib-Knöpfe', () => {
+  // v4.30: GESEHEN (ackcancel) und TERMINE BESTÄTIGEN sind weg — bestätigt wird in der App.
+  ok(!/action=ackcancel/.test(updateZweig), 'die Quittung per Mail-Link ist zurück');
+  ok(!/TERMINE BEST/.test(updateZweig), 'der Bestätigen-Knopf in der Mail ist zurück');
   ok(/einloggen|Einloggen|eingeloggt/.test(updateZweig),
      'kein Hinweis, wo die Details stehen — ohne den ist die kurze Mail eine Sackgasse');
 });
