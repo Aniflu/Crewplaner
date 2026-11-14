@@ -108,7 +108,8 @@ test('Update: type update, proposedBy update, slots (schreiben) und mailSlots (s
   eq(b.type, 'update'); eq(b.planId, 'PBY'); eq(b.proposedBy, 'update');
   eq(keys(b), 'crewEmail,crewName,mailSlots,planId,planName,proposedBy,slots,type');
   eq(b.slots.length, 2, 'Schreib-Slots = neue Termine');
-  ok(b.mailSlots.every(m => !('date' in m) && !('posLabel' in m)), 'mailSlots sind schlank (nur kind/to/aid)');
+  // v1.5.0: bis 5 Einträge gehen date/posLabel mit (Tabelle in der Mail); darüber schlank (siehe hookmail.test.mjs)
+  ok(b.mailSlots.length <= 5 || b.mailSlots.every(m => !('date' in m) && !('posLabel' in m)), 'mailSlots über 5 sind schlank');
 });
 
 test('Update aus der Warteschlange (sendUpdateNotice): Plan PBY, Freitext nur wenn gesetzt', async () => {
@@ -119,7 +120,7 @@ test('Update aus der Warteschlange (sendUpdateNotice): Plan PBY, Freitext nur we
   eq(posts.length, 2);
   eq(posts[0].planId, 'PBY');
   eq(keys(posts[0]), 'crewEmail,crewName,mailSlots,planId,planName,proposedBy,slots,type');
-  eq(JSON.stringify(posts[0].mailSlots), '[{"kind":"moved","to":"X","aid":"a1"}]', 'nur kind/to/aid');
+  eq(JSON.stringify(posts[0].mailSlots), '[{"kind":"moved","to":"X","aid":"a1","date":"zz"}]', 'kind/to/aid + date (<= 5, v1.5.0)');
   eq(posts[1].customMessage, 'Hallo');
 });
 

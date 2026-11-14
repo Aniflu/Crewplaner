@@ -149,3 +149,48 @@ test('mit RESEND_KEY bleibt success true', () => {
   const { logs } = lauf('invite', fuenf(INV));
   eq(logs[0].success, 'true');
 });
+
+// ── Fix v4.30: update-Mail mit der ECHTEN Nutzlast des Clients (_schlankeSlots) ─────────
+import { loadGraph, resetState } from './_graph.mjs';
+
+async function echteNutzlast(n) {
+  const g = await loadGraph(); if (!g) return null;
+  resetState(g);
+  g.state.setAuthState('uid-mgr', 'mgr@x.de', 'manager');
+  globalThis.localStorage.setItem('pb_token', 't');
+  globalThis.localStorage.setItem('tourplan_active_pb_id', 'PLAN1');
+  g.plans.setActivePlanId('PLAN1'); localStorage.setItem('tourplan_pb_' + 'PLAN1', 'PLAN1');
+  const slots = [];
+  for (let i = 0; i < n; i++)
+    slots.push({ kind: i % 2 ? 'removed' : 'status', to: 'pencilled', date: '2027-05-' + String(13 + i),
+                 posId: 'lt', posLabel: 'Lichttechnik', aid: 'r' + i, changes: ['x'] });
+  let gesendet = null;
+  globalThis.fetch = async (url, opts) => {
+    if ((opts && opts.method) === 'POST') gesendet = JSON.parse(opts.body || '{}');
+    return { status: 200, ok: true, json: async () => ({ items: [], page: 1, perPage: 200, totalPages: 1, id: 'r1' }) };
+  };
+  await g.dataService.sendUpdateNotice('Wolf', 'wolf@example.com', slots);
+  return gesendet && gesendet.mailSlots;
+}
+
+test('update-Mail mit echter Client-Nutzlast: 5 → echte Daten, 6 → nur Zählung', async () => {
+  const n5 = await echteNutzlast(5); if (!n5) return 'SKIP';
+  const h5 = html('update', n5);
+  ok(/13\.05\.2027/.test(h5) && /17\.05\.2027/.test(h5), '5 Einträge: echte Daten fehlen');
+  ok(!h5.includes('–') && !h5.includes('&ndash;'), '5 Einträge: Platzhalter-Zeilen');
+  const n6 = await echteNutzlast(6);
+  ok(!n6.some((x) => x.date || x.posLabel), 'ab 6 muss die Nutzlast schlank bleiben');
+  const h6 = html('update', n6);
+  ok(h6.includes('mehr als 5 Einträge') && !/\d{2}\.05\.2027/.test(h6), '6 Einträge: nur Zählung');
+});
+
+test('update-Mail: fehlt irgendwo das Datum, gibt es nie leere Zeilen, sondern die Zählung', () => {
+  const h = html('update', [{ date: '2027-05-13', posLabel: 'Licht' }, { kind: 'removed', aid: 'a1' }]);
+  ok(!h.includes('&ndash;') && !/13\.05\.2027/.test(h), 'Tabelle mit Lücken statt Zählung');
+  ok(h.includes('➕ 1 neu') && h.includes('➖ 1 entfernt'), 'Zählung fehlt');
+});
+
+test('invite: null-Element in der Terminliste wirft nicht', () => {
+  const h = html('invite', [null, { date: '2027-05-13', posLabel: 'Licht', status: 'pencilled' }]);
+  ok(h.includes('13.05.2027'), 'Mail wurde nicht gebaut');
+});

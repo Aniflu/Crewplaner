@@ -874,12 +874,21 @@ export async function sendAvailabilityNotice(crewName, crewEmail, slots) {
 // Schlank sind dieselben 59 Einsätze ~2400 Zeichen.
 //
 // Die lokale Warteschlange behält die vollen Daten — die Vorschau zeigt dir ja die Tage.
+// v1.5.0 / Hook v4.30: Bis MAIL_LISTE_MAX (5) Einträge zeigt die Mail eine Tabelle und braucht
+// dafür `date` und `posLabel`; darüber zählt der Hook nur (schlank, sonst Feldgrenze).
+const MAIL_LISTE_MAX = 5;
 function _schlankeSlots(slots) {
-  return (slots || []).map(s => {
+  const liste = slots || [];
+  const mitTagen = liste.length <= MAIL_LISTE_MAX;
+  return liste.map(s => {
     const o = {};
     if (s.kind) o.kind = s.kind;
     if (s.to)   o.to   = s.to;
     if (s.aid)  o.aid  = s.aid;   // trägt die Quittung — darf NIE wegfallen
+    if (mitTagen) {
+      if (s.date)     o.date     = s.date;
+      if (s.posLabel) o.posLabel = s.posLabel;
+    }
     return o;
   });
 }

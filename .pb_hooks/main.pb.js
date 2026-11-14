@@ -100,11 +100,11 @@ onRecordAfterCreateSuccess(function(e) {
   //   gruppeVon    function(row) → Schlüssel in gruppenText
   //   gruppenText  {schlüssel: {sym: '✎', text: 'vorgemerkt'}} — Reihenfolge = Anzeigereihenfolge
   var MAIL_LISTE_MAX = 5;
-  var mailListe = function(rows, spalten, gruppeVon, gruppenText) {
+  var mailListe = function(rows, spalten, gruppeVon, gruppenText, nurZaehlen) {
     var th = 'padding:10px 16px;font-size:9px;color:#999999;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #e8e8e8;';
     var td = 'padding:10px 16px;font-size:13px;color:#555570;border-bottom:1px solid #e8e8e8;';
     var i, j;
-    if (rows.length <= MAIL_LISTE_MAX) {
+    if (rows.length <= MAIL_LISTE_MAX && !nurZaehlen) {
       var out = '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e8e8e8;border-radius:2px;"><tr style="background:#f8f9fb;">';
       for (j = 0; j < spalten.length; j++) out += '<td style="' + th + '">' + spalten[j].kopf + '</td>';
       out += '</tr>';
@@ -123,7 +123,7 @@ onRecordAfterCreateSuccess(function(e) {
       blk += '<tr><td style="' + td + 'color:#1a1a2e;font-weight:bold;">' + gruppenText[key].sym + ' ' + zaehl[key] + ' ' + gruppenText[key].text + '</td></tr>';
     }
     return blk + '</table>' +
-      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 16px 0;">Es gibt mehr als ' + MAIL_LISTE_MAX + ' Einträge. Bitte logg dich ein und schau nach.</p>';
+      '<p style="font-size:13px;color:#555570;line-height:1.8;margin:0 0 16px 0;">' + (rows.length > MAIL_LISTE_MAX ? 'Es gibt mehr als ' + MAIL_LISTE_MAX + ' Einträge. ' : '') + 'Bitte logg dich ein und schau nach.</p>';
   };
 
   // Optionaler Freitext des Admins (Feld custom_message auf crew_invites) als Notiz-Block
@@ -159,8 +159,8 @@ onRecordAfterCreateSuccess(function(e) {
     if (invSlots && invSlots.length) {
       for (var ia = 0; ia < invSlots.length; ia++) { if (invStatus(invSlots[ia]) === 'proposed') invAnfrage = true; }
       invTable = mailListe(invSlots, [
-        { kopf: 'DATUM',    wert: function(sl) { return fmtISO(sl.date); } },
-        { kopf: 'POSITION', wert: function(sl) { return esc(sl.posLabel); } },
+        { kopf: 'DATUM',    wert: function(sl) { return fmtISO(sl && sl.date); } },
+        { kopf: 'POSITION', wert: function(sl) { return esc(sl && sl.posLabel); } },
         { kopf: 'STATUS',   wert: function(sl) { return esc(invText[invStatus(sl)]); } }
       ], invGruppe, {
         pencilled: { sym: '✎', text: 'vorgemerkt' },
@@ -255,7 +255,7 @@ onRecordAfterCreateSuccess(function(e) {
     // darüber nur die Zählung je Art (➕ neu · ➖ entfernt · ↻ geändert) plus der Satz der Regel.
     // KEINE Schreib-Knöpfe mehr (weder Bestätigen noch Quittieren per Mail-Link): bestätigt wird
     // ausschließlich in der App. Die Nutzlast in app_url kann schlank sein (ohne date/posLabel);
-    // fehlende Felder erscheinen dann als „–" in der Tabelle.
+    // fehlt das Datum, gilt die Zählung (nie eine Tabelle mit leeren Zeilen).
     var upArt = { neu: 'neu', entfernt: 'entfernt', geaendert: 'ge&auml;ndert' };
     var upAlle = [];
     for (var ua = 0; ua < upSlots.length; ua++) {
@@ -263,15 +263,19 @@ onRecordAfterCreateSuccess(function(e) {
       if (!usl) continue;
       upAlle.push({ slot: usl, art: usl.kind === 'removed' ? 'entfernt' : (usl.kind === 'status' ? 'geaendert' : 'neu') });
     }
+    // Fehlt bei irgendeiner Zeile das Datum (schlanke Nutzlast), gibt es nie eine Tabelle mit
+    // leeren Zeilen, sondern die Zählung.
+    var upOhneDatum = false;
+    for (var ub = 0; ub < upAlle.length; ub++) { if (!upAlle[ub].slot.date) upOhneDatum = true; }
     var upListe = mailListe(upAlle, [
-      { kopf: 'DATUM',    wert: function(x) { return x.slot.date ? fmtISO(x.slot.date) : '&ndash;'; } },
-      { kopf: 'POSITION', wert: function(x) { return x.slot.posLabel ? esc(x.slot.posLabel) : '&ndash;'; } },
+      { kopf: 'DATUM',    wert: function(x) { return fmtISO(x.slot.date); } },
+      { kopf: 'POSITION', wert: function(x) { return esc(x.slot.posLabel); } },
       { kopf: 'ART',      wert: function(x) { return upArt[x.art]; } }
     ], function(x) { return x.art; }, {
       neu:       { sym: '➕', text: 'neu' },
       entfernt:  { sym: '➖', text: 'entfernt' },
       geaendert: { sym: '↻', text: 'geändert' }
-    });
+    }, upOhneDatum);
 
     var upBody = '<h1 style="font-size:36px;font-weight:bold;color:#1a1a2e;margin:0 0 6px 0;">Es gab &Auml;nderungen.</h1>'+
       '<p style="font-size:10px;color:#e8c84a;letter-spacing:3px;margin:0 0 28px 0;text-transform:uppercase;">PLAN GE&Auml;NDERT · '+ePlan+'</p>'+
