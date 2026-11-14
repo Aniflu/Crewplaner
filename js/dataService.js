@@ -26,6 +26,8 @@ async function _pbRoute(path, method, body) {
   if (!res.ok) {
     const err = new Error('Route ' + path + ' → HTTP ' + res.status);
     err.status = res.status;
+    // Antwortkörper (z. B. {stale:[…]} bei 409) mitgeben; nicht lesbar → null.
+    try { err.body = await res.json(); } catch (e) { err.body = null; }
     throw err;
   }
   return res.json();
@@ -40,6 +42,14 @@ async function _pbRoute(path, method, body) {
 // nichts. Das ist jetzt strukturell ausgeschlossen, nicht bloß seltener.
 export async function notify(nutzlast) {
   return _pbRoute('/notify', 'POST', nutzlast);
+}
+
+// ── Crew speichert gesammelt (v1.5.0) ─────────────────────────────────────────
+// Bei 409 ({stale}) und 400 ({denied}) wirft _pbRoute einen Fehler mit .status und .body.
+export async function saveCrewChanges(planId, draft) {
+  return _pbRoute('/crewsave', 'POST', {
+    planId, changes: draft.changes, availability: draft.availability
+  });
 }
 
 // ── Mail-Fehler sichtbar anzeigen (8s Toast) ───────────────────────────────────
