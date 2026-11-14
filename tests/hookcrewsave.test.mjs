@@ -318,10 +318,11 @@ test('Hook enthält keine Planer-Einzelmail mehr', () => {
   ok(!/VORMERKUNG WIEDER FREI|VORMERKUNG ABGESAGT|'ABGELEHNT'|Absage-Meldung an den Planer/.test(code), 'Einzelmail an den Planer taucht im Code auf');
 });
 
-test('Hook: Version 4.30 mit Changelog-Eintrag', () => {
-  ok(/^\/\/ Version: 4\.30$/m.test(hook));
+test('Hook: Version 4.31 mit Changelog-Einträgen v4.30 und v4.31', () => {
+  ok(/^\/\/ Version: 4\.31$/m.test(hook));
   ok(/^\/\/ v4\.30 /m.test(hook));
-  ok(/hook\] main\.pb\.js v4\.30 geladen/.test(hook));
+  ok(/^\/\/ v4\.31 /m.test(hook));
+  ok(/hook\] main\.pb\.js v4\.31 geladen/.test(hook));
 });
 
 // ── Mail crew_changes ─────────────────────────────────────────────────────────

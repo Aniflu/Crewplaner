@@ -1,7 +1,8 @@
 // ── NYX LIGHTWORK · Crewplaner E-Mail-Hook ──────────────────────────────────────
 // PocketBase Goja JS Hook · Resend HTTP API (kein SMTP)
-// Version: 4.30
+// Version: 4.31
 // CHANGELOG
+// v4.31 Superuser zählt in beiden assignments-Guards als Planer (darf von Hand anlegen/ändern).
 // v4.30 Einladung mit Status, Crew speichert gesammelt (App v1.5.0):
 //   · Mail-Regel „Liste oder Zählung": mehr als 5 Einträge → nur Zählung + Satz (MAIL_LISTE_MAX);
 //     Einladung mit Status je Termin; keine Schreib-Knöpfe in Mails (kein confirm/decline/ackcancel);
@@ -21,7 +22,7 @@
 //     pencil_declined→pencilled; „ABGELEHNT" nur noch bei declined
 //   · /notify: neuer Typ pencil_info (Info-Mail, schreibt keinen Status); invite/reminder/update
 //     setzen pencilled/pencil_declined NIE auf proposed und führen sie nicht in der Mail-Liste
-console.log('[hook] main.pb.js v4.30 geladen');
+console.log('[hook] main.pb.js v4.31 geladen');
 
 // ── 1. Crew-Einladung & Erinnerung (crew_invites) ─────────────────────────────
 onRecordAfterCreateSuccess(function(e) {
@@ -481,6 +482,8 @@ onRecordUpdateRequest(function(e) {
   // wieder ausgebaut.
   var istPlaner = function(auth, planId) {
     if (!auth) return false;
+    // v4.31: Der PocketBase-Superuser hat keine `role` und ist nie Plan-Owner — er zählt als Planer.
+    try { if (typeof auth.isSuperuser === 'function' && auth.isSuperuser()) return true; } catch (errS) {}
     var rolle = auth.getString('role');
     if (rolle === 'superadmin' || rolle === 'manager') return true;
     try {
@@ -530,6 +533,8 @@ onRecordCreateRequest(function(e) {
   // Dateiebene ist genau das, was NICHT funktioniert.
   var istPlaner = function(auth, planId) {
     if (!auth) return false;
+    // v4.31: Der PocketBase-Superuser hat keine `role` und ist nie Plan-Owner — er zählt als Planer.
+    try { if (typeof auth.isSuperuser === 'function' && auth.isSuperuser()) return true; } catch (errS) {}
     var rolle = auth.getString('role');
     if (rolle === 'superadmin' || rolle === 'manager') return true;
     try {
