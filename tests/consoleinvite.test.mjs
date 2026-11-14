@@ -170,3 +170,20 @@ test('buildInvitePayload: cancelled zählt als „kein aktiver Datensatz“, dec
   eq(p.mailSlots.map(m => m.status).join(','), 'proposed,declined,pencilled');
   eq(p.slots.map(s => s.date).join(','), dayOf(0));
 });
+
+test('Zelle neu besetzt: Status einer anderen Person zählt nicht, Termin geht in slots', async () => {
+  const g = await setup({ oliver: 3, thomas: 0 }); if (!g) return 'SKIP';
+  g.state.assignmentStatuses[dayOf(0)].sys = { status: 'confirmed', crewName: 'Anna' };   // Zelle gehörte vorher Anna
+  eq(JSON.stringify(g.crewNotify.statusCounts('Oliver')), JSON.stringify({ pencilled: 2, proposed: 0, confirmed: 0, declined: 0 }));
+  const p = g.crewNotify.buildInvitePayload('Oliver', 'oliver@x.de');
+  eq(p.mailSlots[0].status, 'proposed'); eq(p.slots.map(s => s.date).join(','), dayOf(0));
+});
+
+test('Vorschau >5: Zahl der angefragten Termine = slots der Nutzlast (cancelled zählt mit)', async () => {
+  const g = await setup({ oliver: 8, thomas: 0 }); if (!g) return 'SKIP';
+  capture([]);
+  g.state.assignmentStatuses[dayOf(0)].sys.status = 'cancelled';
+  const body = { innerHTML: '' };
+  await withEls({ sharedBody: body, sharedTitle: {} }, async () => { g.crewNotify.openInvitePreview('Oliver', 'invite'); });
+  ok(body.innerHTML.includes('⏳ 1 ohne Status werden angefragt'), 'Vorschau: ' + body.innerHTML.slice(0, 400));
+});

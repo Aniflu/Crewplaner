@@ -143,12 +143,19 @@ function _pencilSeenTs(name, email) {
   return hit ? hit.ts : '';
 }
 
+// Status eines Termins FÜR diese Person: gehört der Datensatz einer anderen Person (Zelle neu
+// besetzt), gilt der Termin als ohne Status.
+function _slotStatus(s, name) {
+  const si = assignmentStatuses[s.date]?.[s.posId];
+  return (si && (!si.crewName || si.crewName === name)) ? si.status : undefined;
+}
+
 // Status-Zählung über alle Tabellentermine der Person (Termin ohne Status zählt nicht;
 // pencil_declined zählt zu declined).
 export function statusCounts(name) {
   const c = { pencilled: 0, proposed: 0, confirmed: 0, declined: 0 };
   _getAllSlotsForCrew(name).forEach(s => {
-    const st = assignmentStatuses[s.date]?.[s.posId]?.status;
+    const st = _slotStatus(s, name);
     if (st === 'pencil_declined') c.declined++;
     else if (st in c) c[st]++;
   });
@@ -161,7 +168,7 @@ export function buildInvitePayload(name, email) {
   const all = _getAllSlotsForCrew(name, email);
   const slots = [], mailSlots = [];
   all.forEach(s => {
-    const st = assignmentStatuses[s.date]?.[s.posId]?.status;
+    const st = _slotStatus(s, name);
     const none = !st || st === 'cancelled' || st === 'cancel_acked';
     mailSlots.push({ date: s.date, posId: s.posId, posLabel: s.posLabel, status: none ? 'proposed' : st });
     if (none) slots.push(s);
@@ -354,14 +361,14 @@ export function openInvitePreview(crewName, type) {
     return;
   }
   // Einladung: alle Termine mit Status; über MAIL_LISTE_MAX nur die Zählung, wie die Mail.
-  const { mailSlots } = buildInvitePayload(crewName, meta.email);
+  const { slots: anfrage, mailSlots } = buildInvitePayload(crewName, meta.email);
   const SYM = { pencilled: '✎ vorgemerkt', pencil_declined: '✗ abgesagt', proposed: '⏳ angefragt', confirmed: '✅ bestätigt', declined: '✗ abgesagt' };
   const many = mailSlots.length > MAIL_LISTE_MAX;
   const rows = many ? [] : mailSlots.map(m => ({ date: m.date, posLabel: m.posLabel + ' · ' + (SYM[m.status] || m.status) }));
   const c = statusCounts(crewName);
   const countTxt = [['✎', c.pencilled, 'vorgemerkt'], ['⏳', c.proposed, 'angefragt'], ['✅', c.confirmed, 'bestätigt'], ['✗', c.declined, 'abgesagt']]
     .filter(p => p[1] > 0).map(p => `${p[0]} ${p[1]} ${p[2]}`).join(' · ');
-  const none = mailSlots.filter(m => !assignmentStatuses[m.date]?.[m.posId]?.status).length;   // werden angefragt
+  const none = anfrage.length;   // werden angefragt (gleiche Quelle wie die Nutzlast)
   const extra = many
     ? `<div style="margin-top:6px;">${mailSlots.length} Termine: ${esc(countTxt)}${none ? ` · ⏳ ${none} ohne Status werden angefragt` : ''}<br>Es gibt mehr als ${MAIL_LISTE_MAX} Einträge. Bitte logg dich ein und schau nach.</div>` : '';
   _openSendPreview({ kind: 'invite', crewName, email: meta.email }, '📧 Einladung an ' + crewName,

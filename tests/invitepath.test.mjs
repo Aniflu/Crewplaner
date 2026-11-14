@@ -306,3 +306,25 @@ test('M6: schlägt der Versand mit 429 fehl, bleibt die konkrete Meldung stehen'
 });
 
 // v1.5.0: Migration des Einlade-Vermerks entfällt samt Vermerk (Status kommt aus email_log; Test in consoleinvite.test.mjs).
+
+test('Migration offene Absage: erscheint einmal im Plan mit dem Datum, fehlt global und im anderen Plan', async () => {
+  const g = await setup(); if (!g) return 'SKIP';
+  const ls = globalThis.localStorage;
+  ls.setItem('tourplan_pending_cancellations', JSON.stringify({
+    Anna: { email: 'anna@x.de', slots: [{ date: '2027-06-01', posLabel: 'GL' }] },
+    Fremd: { email: 'f@x.de', slots: [{ date: '2027-06-01', posLabel: 'GL' }] } }));   // Fremd ist nicht in der Crew
+  const posts = capture();
+  const cn = await import('../js/crewNotify.js');
+  g.plans.setActivePlanId('pbplan_PBX');
+  g.state.TOUR_DATES.length = 0; g.state.TOUR_DATES.push({ date: '2027-06-01', loc: 'B', type: 'show', typeLabel: 'Show' });
+  await cn.sendCancellationSummary('Anna');
+  eq(posts.length, 1, 'einmal gesendet');
+  eq(posts[0].planId, 'PBX');
+  eq(JSON.stringify(posts[0].removeSlots), '[{"date":"2027-06-01","posLabel":"GL"}]');
+  const rest = JSON.parse(ls.getItem('tourplan_pending_cancellations'));
+  ok(!rest.Anna, 'Anna aus dem globalen Schlüssel entfernt');
+  ok(rest.Fremd, 'Rest bleibt global liegen');
+  g.plans.setActivePlanId('pbplan_PBY');
+  await cn.sendCancellationSummary('Anna');
+  eq(posts.length, 1, 'in Plan Y kein zweites Mal');
+});
