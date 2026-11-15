@@ -1,6 +1,6 @@
 # Datenbank-Schema — Crewplanner
 
-PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.30 auf Test und Live** (2026-11-14, `docs/rueckmeldung-hook-v4.30-2026-11-14.md`, sha `458b2540…`)
+PocketBase-Collections (SQLite). Stand: v1.0.0 (2026-10-24) · Hook **v4.31 auf Test und Live** (2026-11-14, `docs/rueckmeldung-hook-v4.31-2026-11-14.md`, sha `4308efb4…`; v4.31 = Superuser zählt in den assignments-Guards als Planer)
 (2026-09-18, Test + Live)
 
 > Die API-Regeln in diesem Dokument sind am **2026-09-09 an der Live-Instanz ausgelesen**
